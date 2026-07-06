@@ -25,7 +25,8 @@ TOKEN_PATTERN = re.compile(r"\b[A-Za-z0-9][A-Za-z0-9_-]{31,}\b")
 CODEX_FAILED_GOAL_STATES = {"blocked", "usage_limited", "budget_limited"}
 CODEX_RUNNING_GOAL_STATES = {"active"}
 CLAUDE_ACTIVE_TASK_STATES = {"in_progress"}
-CLAUDE_ACTIVE_JOB_STATES = {"working", "blocked"}
+CLAUDE_ACTIVE_JOB_STATES = {"working"}
+CLAUDE_BUSY_SESSION_STATES = {"busy"}
 CLAUDE_IN_FLIGHT_JOB_STATE = "working"
 
 
@@ -144,7 +145,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--codex-homes", default=os.getenv("STATUS_CODEX_HOMES", "~/.codex-api:~/.codex"))
     parser.add_argument(
         "--claude-sessions-dir",
-        default=os.getenv("STATUS_CLAUDE_SESSIONS_DIR", "~/Library/Application Support/Claude/claude-code-sessions"),
+        default=os.getenv("STATUS_CLAUDE_SESSIONS_DIR", "~/.claude/sessions"),
     )
     parser.add_argument("--claude-tasks-dir", default=os.getenv("STATUS_CLAUDE_TASKS_DIR", "~/.claude/tasks"))
     parser.add_argument("--claude-jobs-dir", default=os.getenv("STATUS_CLAUDE_JOBS_DIR", "~/.claude/jobs"))
@@ -380,25 +381,28 @@ def open_files(process_id: int) -> list[Path]:
 
 def claude_snapshot(sessions_dir: Path, tasks_dir: Path, jobs_dir: Path, now: float, active_window_seconds: int, device: DeviceIdentity) -> AgentSnapshot:
     sessions = read_claude_sessions(sessions_dir)
-    job = latest_claude_job(jobs_dir)
-    if not sessions and job is None:
+    jobs = read_claude_jobs(jobs_dir)
+    if not sessions and not jobs:
         return AgentSnapshot(agent_id="claude-code", state="idle", device_id=device.device_id, device_name=device.device_name, updated_at=utc_now())
 
     sessions.sort(key=lambda item: item.updated_at_seconds, reverse=True)
     session = sessions[0] if sessions else None
     task = claude_open_task(tasks_dir / session.cli_session_id) if session and session.cli_session_id else None
+    latest_job = latest_item(jobs)
+    active_job = latest_item([job for job in jobs if claude_job_active(job, now, active_window_seconds)])
     updated_at = max(
         session.updated_at_seconds if session else 0,
         task.updated_at_seconds if task else 0,
-        job.updated_at_seconds if job else 0,
+        latest_job.updated_at_seconds if latest_job else 0,
     )
-    active = claude_active(session, task, job, now, active_window_seconds)
+    active = claude_active(session, task, active_job, jobs, now, active_window_seconds)
+    source = active_job or task or latest_job or session
     return AgentSnapshot(
         agent_id="claude-code",
         state="running" if active else "idle",
         device_id=device.device_id,
         device_name=device.device_name,
-        task=sanitize_task((task.title if task else "") or (job.title if job else "") or (session.title if session else "")),
+        task=sanitize_task(source.title if source else ""),
         updated_at=iso_time(updated_at),
     )
 
@@ -446,9 +450,9 @@ def claude_open_task(task_dir: Path) -> ClaudeTask | None:
     return candidates[0] if candidates else None
 
 
-def latest_claude_job(jobs_dir: Path) -> ClaudeTask | None:
+def read_claude_jobs(jobs_dir: Path) -> list[ClaudeTask]:
     if not jobs_dir.exists():
-        return None
+        return []
     candidates: list[ClaudeTask] = []
     for path in sorted(jobs_dir.glob("*/state.json"), key=lambda item: item.stat().st_mtime, reverse=True)[:20]:
         data = read_json_object(path)
@@ -460,15 +464,34 @@ def latest_claude_job(jobs_dir: Path) -> ClaudeTask | None:
         state = CLAUDE_IN_FLIGHT_JOB_STATE if has_in_flight_work(data.get("inFlight")) else str(data.get("state") or "")
         candidates.append(ClaudeTask(title, state, timestamp_seconds(data.get("updatedAt") or path.stat().st_mtime)))
     candidates.sort(key=lambda item: item.updated_at_seconds, reverse=True)
-    return candidates[0] if candidates else None
+    return candidates
 
 
-def claude_active(session: ClaudeSession | None, task: ClaudeTask | None, job: ClaudeTask | None, now: float, active_window_seconds: int) -> bool:
+def claude_active(
+    session: ClaudeSession | None,
+    task: ClaudeTask | None,
+    active_job: ClaudeTask | None,
+    jobs: list[ClaudeTask],
+    now: float,
+    active_window_seconds: int,
+) -> bool:
     if task and task.status in CLAUDE_ACTIVE_TASK_STATES and recent(task.updated_at_seconds, now, active_window_seconds):
         return True
-    if job and job.status in CLAUDE_ACTIVE_JOB_STATES and recent(job.updated_at_seconds, now, active_window_seconds):
+    if active_job:
         return True
+    if not jobs and session and session.status in CLAUDE_BUSY_SESSION_STATES:
+        return recent(session.updated_at_seconds, now, active_window_seconds)
     return False
+
+
+def claude_job_active(job: ClaudeTask, now: float, active_window_seconds: int) -> bool:
+    return job.status in CLAUDE_ACTIVE_JOB_STATES and recent(job.updated_at_seconds, now, active_window_seconds)
+
+
+def latest_item(items: list[ClaudeTask]) -> ClaudeTask | None:
+    if not items:
+        return None
+    return max(items, key=lambda item: item.updated_at_seconds)
 
 
 def has_in_flight_work(value: Any) -> bool:
