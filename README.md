@@ -142,16 +142,14 @@ POST /api/ingest/mobile
 Authorization: Bearer <STATUS_INGEST_TOKEN>
 ```
 
-Linux probes register Prometheus scrape targets with the gateway, then Prometheus pulls node-exporter/device-exporter metrics:
+Linux probes only install local exporters. Prometheus discovers and pulls them from the status gateway's HTTP service discovery endpoint, so the probe host does not need the gateway URL or ingest token.
 
 ```sh
 curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-linux-probe.sh \
-  | sudo env STATUS_GATEWAY_URL=http://<gateway-host>:18080 \
-      STATUS_EXPORTER_HOST=<device-lan-ip> \
-      bash
+  | sudo env STATUS_EXPORTER_HOST=<device-lan-ip> bash
 ```
 
-Use `INSTALL_AGENT=1` when the device should also expose Codex/Claude active-agent state. Use `STATUS_DEVICE_ROLE=vm STATUS_DEVICE_KIND=virtual_machine` for VMs. The Linux installer does not hardcode LAN addresses; pass `STATUS_EXPORTER_HOST` when automatic route detection is not suitable. Media title collection on Linux uses `playerctl` when available. On macOS, run `scripts/status-device-reporter.py --serve` under the logged-in user so media session metadata is visible.
+Register scrape targets centrally on the gateway side. Use `INSTALL_AGENT=1` when the device should also expose Codex/Claude active-agent state. Use `STATUS_DEVICE_ROLE=vm STATUS_DEVICE_KIND=virtual_machine` for VMs. The Linux installer does not hardcode LAN addresses; pass `STATUS_EXPORTER_HOST` when automatic route detection is not suitable. Media title collection on Linux uses `playerctl` when available. On macOS, run `scripts/status-device-reporter.py --serve` under the logged-in user so media session metadata is visible.
 
 
 ## Public status page

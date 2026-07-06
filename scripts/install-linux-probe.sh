@@ -4,6 +4,7 @@ set -euo pipefail
 INSTALL_DIR=${INSTALL_DIR:-/opt/realtime-me}
 ENV_FILE=${ENV_FILE:-/etc/realtime-me.env}
 GATEWAY_URL=${STATUS_GATEWAY_URL:-}
+REGISTER_TARGETS=${STATUS_REGISTER_TARGETS:-0}
 DEVICE_ID=${STATUS_DEVICE_ID:-$(hostname -s 2>/dev/null || hostname)}
 DEVICE_NAME=${STATUS_DEVICE_NAME:-$(hostname 2>/dev/null || echo linux)}
 DEVICE_MODEL=${STATUS_DEVICE_MODEL:-}
@@ -90,22 +91,11 @@ require_command() {
   fi
 }
 
-read_gateway_url() {
-  if [[ -n ${GATEWAY_URL:-} ]]; then
-    normalize_url "$GATEWAY_URL"
+configure_gateway_url() {
+  if [[ -z ${GATEWAY_URL:-} ]]; then
     return
   fi
-  if [[ ! -r /dev/tty ]]; then
-    echo "Set STATUS_GATEWAY_URL or run from an interactive terminal." >&2
-    exit 2
-  fi
-  local value
-  read -rp "STATUS_GATEWAY_URL: " value </dev/tty
-  if [[ -z $value ]]; then
-    echo "STATUS_GATEWAY_URL is required." >&2
-    exit 2
-  fi
-  normalize_url "$value"
+  normalize_url "$GATEWAY_URL"
 }
 
 normalize_url() {
@@ -363,15 +353,30 @@ post_json() {
   rm -f "$config"
 }
 
-register_prometheus_targets() {
-  local token=$1
-  local host
-  local payload
-  host=$(auto_exporter_host)
-  if [[ -z $host ]]; then
+detect_exporter_host() {
+  EXPORTER_HOST=$(auto_exporter_host)
+  if [[ -z $EXPORTER_HOST ]]; then
     echo "Could not detect exporter host. Set STATUS_EXPORTER_HOST." >&2
     exit 2
   fi
+}
+
+should_register_targets() {
+  [[ $REGISTER_TARGETS == 1 || -n ${GATEWAY_URL:-} ]]
+}
+
+register_prometheus_targets() {
+  if ! should_register_targets; then
+    log "Skipping Prometheus target registration"
+    return
+  fi
+  if [[ -z ${GATEWAY_URL:-} ]]; then
+    echo "Set STATUS_GATEWAY_URL when STATUS_REGISTER_TARGETS=1." >&2
+    exit 2
+  fi
+  local token
+  local payload
+  token=$(read_token)
   export STATUS_NODE_EXPORTER_PORT=$NODE_EXPORTER_PORT
   export STATUS_DEVICE_EXPORTER_PORT=$DEVICE_EXPORTER_PORT
   export STATUS_AGENT_EXPORTER_PORT=$AGENT_EXPORTER_PORT
@@ -380,14 +385,15 @@ register_prometheus_targets() {
   export STATUS_DEVICE_MODEL=$DEVICE_MODEL
   export STATUS_DEVICE_KIND=$DEVICE_KIND
   export STATUS_DEVICE_ROLE=$DEVICE_ROLE
-  payload=$(json_payload "$host" "$INSTALL_AGENT")
+  payload=$(json_payload "$EXPORTER_HOST" "$INSTALL_AGENT")
   post_json "$GATEWAY_URL/api/prometheus/register" "$token" "$payload"
-  EXPORTER_HOST=$host
 }
 
 print_summary() {
   echo "Installed Realtime Me Prometheus probe."
-  echo "Gateway:  $GATEWAY_URL"
+  if [[ -n ${GATEWAY_URL:-} ]]; then
+    echo "Gateway:         $GATEWAY_URL"
+  fi
   echo "Device:          $DEVICE_NAME ($DEVICE_ID)"
   echo "Node exporter:   $EXPORTER_HOST:$NODE_EXPORTER_PORT"
   echo "Device exporter: $EXPORTER_HOST:$DEVICE_EXPORTER_PORT"
@@ -402,9 +408,8 @@ main() {
   require_command systemctl
   require_command tar
   inherit_proxy_env
-  GATEWAY_URL=$(read_gateway_url)
-  local token
-  token=$(read_token)
+  GATEWAY_URL=$(configure_gateway_url)
+  detect_exporter_host
   log "Writing configuration"
   write_env_file
   download_exporters
@@ -413,8 +418,7 @@ main() {
   write_systemd_units
   log "Starting exporters"
   start_units
-  log "Registering Prometheus scrape targets"
-  register_prometheus_targets "$token"
+  register_prometheus_targets
   print_summary
 }
 

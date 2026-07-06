@@ -41,13 +41,11 @@ curl -H "Authorization: Bearer $STATUS_INGEST_TOKEN" http://<STATUS_GATEWAY_BIND
 curl http://127.0.0.1:19090/-/ready
 ```
 
-Register an additional Linux device by running the installer on that device and passing its reachable LAN address as `STATUS_EXPORTER_HOST`:
+Install an additional Linux probe on that device; register its scrape targets centrally through the gateway API:
 
 ```sh
 curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-linux-probe.sh \
-  | sudo env STATUS_GATEWAY_URL=http://<gateway-host>:18080 \
-      STATUS_EXPORTER_HOST=<device-lan-ip> \
-      bash
+  | sudo env STATUS_EXPORTER_HOST=<device-lan-ip> bash
 ```
 
 Open `http://<STATUS_GATEWAY_BIND>:18080/internal` on the LAN for detailed device, metric, GitHub sync, and active-agent status. The page stores the internal access token only in browser local storage.
