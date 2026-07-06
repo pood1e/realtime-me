@@ -9,7 +9,16 @@ DEVICE_NAME=${STATUS_DEVICE_NAME:-$(hostname 2>/dev/null || echo linux)}
 DEVICE_KIND=${STATUS_DEVICE_KIND:-host}
 DEVICE_ROLE=${STATUS_DEVICE_ROLE:-desktop}
 INSTALL_AGENT=${INSTALL_AGENT:-0}
-RAW_BASE_URL=${REALTIME_ME_RAW_BASE_URL:-https://raw.githubusercontent.com/pood1e/realtime-me/main/scripts}
+if [[ -n ${REALTIME_ME_RAW_BASE_URL:-} ]]; then
+  RAW_BASE_URLS=("$REALTIME_ME_RAW_BASE_URL")
+elif [[ -n ${REALTIME_ME_RAW_BASE_URLS:-} ]]; then
+  read -r -a RAW_BASE_URLS <<<"$REALTIME_ME_RAW_BASE_URLS"
+else
+  RAW_BASE_URLS=(
+    "https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts"
+    "https://raw.githubusercontent.com/pood1e/realtime-me/main/scripts"
+  )
+fi
 PYTHON_BIN=${PYTHON_BIN:-/usr/bin/python3}
 CURL_BIN=${CURL_BIN:-/usr/bin/curl}
 
@@ -18,6 +27,10 @@ require_root() {
     echo "Run with sudo or as root." >&2
     exit 2
   fi
+}
+
+log() {
+  echo "[realtime-me] $*" >&2
 }
 
 require_command() {
@@ -92,12 +105,33 @@ ENV
 
 download_reporters() {
   install -d -m 755 "$INSTALL_DIR"
-  "$CURL_BIN" -fsSL "$RAW_BASE_URL/status-device-reporter.py" -o "$INSTALL_DIR/status-device-reporter.py"
+  download_file status-device-reporter.py "$INSTALL_DIR/status-device-reporter.py"
   chmod 755 "$INSTALL_DIR/status-device-reporter.py"
   if [[ $INSTALL_AGENT == 1 ]]; then
-    "$CURL_BIN" -fsSL "$RAW_BASE_URL/agent-status-reporter.py" -o "$INSTALL_DIR/agent-status-reporter.py"
+    download_file agent-status-reporter.py "$INSTALL_DIR/agent-status-reporter.py"
     chmod 755 "$INSTALL_DIR/agent-status-reporter.py"
   fi
+}
+
+download_file() {
+  local name=$1
+  local destination=$2
+  local temporary
+  local curl_error
+  temporary=$(mktemp)
+  curl_error=$(mktemp)
+  log "Downloading $name"
+  for base_url in "${RAW_BASE_URLS[@]}"; do
+    if "$CURL_BIN" -fsSL --connect-timeout 10 --max-time 60 "${base_url%/}/$name" -o "$temporary" 2>"$curl_error"; then
+      rm -f "$curl_error"
+      mv "$temporary" "$destination"
+      return
+    fi
+    log "Download mirror failed; trying next mirror"
+  done
+  rm -f "$temporary" "$curl_error"
+  echo "Could not download $name from configured mirrors." >&2
+  exit 1
 }
 
 write_systemd_unit() {
@@ -182,9 +216,12 @@ main() {
   local token
   token=$(read_token)
   download_reporters
+  log "Writing configuration"
   write_env_file "$token"
+  log "Installing systemd units"
   write_systemd_unit
   write_agent_unit
+  log "Starting systemd units"
   start_units
   print_summary
 }
