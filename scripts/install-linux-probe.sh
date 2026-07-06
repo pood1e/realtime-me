@@ -20,8 +20,8 @@ PROBE_USER=${STATUS_PROBE_USER:-${SUDO_USER:-}}
 NODE_EXPORTER_VERSION=${NODE_EXPORTER_VERSION:-1.11.1}
 NODE_EXPORTER_VERSION=${NODE_EXPORTER_VERSION#v}
 NODE_EXPORTER_BIN=${NODE_EXPORTER_BIN:-/usr/local/bin/node_exporter}
-DOWNLOAD_TIMEOUT_SECONDS=${STATUS_DOWNLOAD_TIMEOUT_SECONDS:-45}
-NODE_EXPORTER_DOWNLOAD_TIMEOUT_SECONDS=${STATUS_NODE_EXPORTER_DOWNLOAD_TIMEOUT_SECONDS:-180}
+DOWNLOAD_TIMEOUT_SECONDS=${STATUS_DOWNLOAD_TIMEOUT_SECONDS:-15}
+NODE_EXPORTER_DOWNLOAD_TIMEOUT_SECONDS=${STATUS_NODE_EXPORTER_DOWNLOAD_TIMEOUT_SECONDS:-90}
 CURL_FORCE_IPV4=${STATUS_CURL_FORCE_IPV4:-1}
 if [[ -n ${REALTIME_ME_RAW_BASE_URL:-} ]]; then
   RAW_BASE_URLS=("$REALTIME_ME_RAW_BASE_URL")
@@ -96,7 +96,7 @@ require_command() {
 
 curl_download_args() {
   local timeout=$1
-  local args=(-fsSL --connect-timeout 5 --max-time "$timeout" --speed-time 15 --speed-limit 1 --retry 2 --retry-delay 1 --retry-connrefused)
+  local args=(-fsSL --connect-timeout 5 --max-time "$timeout" --speed-time 5 --speed-limit 1 --retry 0)
   if [[ $CURL_FORCE_IPV4 == 1 ]]; then
     args=(-4 "${args[@]}")
   fi
@@ -195,7 +195,7 @@ download_file() {
     log "Download mirror failed; trying next mirror"
   done
   rm -f "$temporary" "$curl_error"
-  echo "Could not download $name from configured mirrors." >&2
+  echo "Could not download $name from configured mirrors. If this host uses a proxy, preserve proxy env when running sudo." >&2
   exit 1
 }
 
@@ -239,7 +239,7 @@ install_node_exporter() {
   log "Downloading node_exporter v$NODE_EXPORTER_VERSION"
   if ! "$CURL_BIN" "${args[@]}" "$source_url" -o "$archive"; then
     rm -rf "$archive" "$workdir"
-    echo "Could not download node_exporter." >&2
+    echo "Could not download node_exporter. If this host uses a proxy, preserve proxy env when running sudo." >&2
     exit 1
   fi
   tar -xzf "$archive" -C "$workdir"
