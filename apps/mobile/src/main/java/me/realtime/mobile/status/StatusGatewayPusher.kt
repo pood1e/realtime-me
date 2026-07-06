@@ -1,6 +1,7 @@
 package me.realtime.mobile.status
 
 import android.content.Context
+import android.util.Log
 import me.realtime.mobile.state.StatusGatewayTokenStore
 import me.realtime.mobile.state.StoredWatchSnapshot
 import me.realtime.mobile.state.WatchSnapshotStore
@@ -15,7 +16,10 @@ class StatusGatewayPusher(context: Context) {
     private val client = StatusGatewayClient()
 
     fun pushLatest(): StatusGatewayPushResult {
-        val token = tokenStore.token() ?: return StatusGatewayPushResult.Disabled
+        val token = tokenStore.token() ?: run {
+            Log.w(TAG, "Status gateway token is not configured")
+            return StatusGatewayPushResult.Disabled
+        }
         val payload = payloadBuilder.build(snapshotStore.latest()?.takeIfFresh())
         return client.push(token, payload)
     }
@@ -26,6 +30,7 @@ class StatusGatewayPusher(context: Context) {
     }
 
     private companion object {
+        const val TAG = "RealtimeStatus"
         val MAX_WATCH_SNAPSHOT_AGE: Duration = Duration.ofMinutes(2)
     }
 }

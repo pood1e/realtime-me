@@ -7,6 +7,7 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/status-gateway .
 
 FROM alpine:3.23
 RUN adduser -D -H -u 10001 appuser
+RUN mkdir -p /data && chown appuser:appuser /data
 COPY --from=build /out/status-gateway /usr/local/bin/status-gateway
 USER appuser
 EXPOSE 8080

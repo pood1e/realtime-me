@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "realtime-me-status",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-07-06",
+  "workers_dev": false,
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "routes": [
+    {
+      "pattern": "me.pood1e.space",
+      "custom_domain": true
+    }
+  ]
+}

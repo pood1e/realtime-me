@@ -10,7 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import me.realtime.mobile.state.WatchSnapshotProcessor
+import me.realtime.mobile.background.StatusSyncRunner
 import me.realtime.protocol.DataLayerContract
 
 class WatchSnapshotListenerService : WearableListenerService() {
@@ -21,7 +21,7 @@ class WatchSnapshotListenerService : WearableListenerService() {
             for (event in dataEvents) {
                 val payload = event.snapshotPayload() ?: continue
                 scope.launch {
-                    WatchSnapshotProcessor(applicationContext).process(payload)
+                    StatusSyncRunner(applicationContext).syncPayload(payload)
                 }
             }
         } finally {
@@ -32,7 +32,7 @@ class WatchSnapshotListenerService : WearableListenerService() {
     override fun onMessageReceived(messageEvent: MessageEvent) {
         if (messageEvent.path != DataLayerContract.WATCH_SNAPSHOT_PATH) return
         scope.launch {
-            WatchSnapshotProcessor(applicationContext).process(messageEvent.data)
+            StatusSyncRunner(applicationContext).syncPayload(messageEvent.data)
         }
     }
 

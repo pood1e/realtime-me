@@ -18,9 +18,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import me.realtime.mobile.R
 import me.realtime.mobile.state.StatusGatewayTokenStore
-import me.realtime.mobile.state.WatchSnapshotProcessor
-import me.realtime.mobile.status.StatusGatewayPusher
-import me.realtime.mobile.wear.WatchSnapshotReader
 import java.time.Duration
 
 class StatusForegroundService : Service() {
@@ -64,9 +61,7 @@ class StatusForegroundService : Service() {
     }
 
     private suspend fun syncOnce() {
-        val payload = runCatching { WatchSnapshotReader(applicationContext).latestPayload() }.getOrNull()
-        val processed = payload?.let { WatchSnapshotProcessor(applicationContext).process(it) } == true
-        if (!processed) StatusGatewayPusher(applicationContext).pushLatest()
+        StatusSyncRunner(applicationContext).syncLatest()
     }
 
     private fun hasSyncToken(): Boolean = StatusGatewayTokenStore(this).hasToken()

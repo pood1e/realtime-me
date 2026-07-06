@@ -17,7 +17,7 @@ The watch does not need internet access. It collects local health/device data an
   - Pushes phone/watch status to configured gateway endpoints; private LAN/public URLs are build properties, not committed values.
   - Keeps a foreground sync service active after token setup; WorkManager is only a 15-minute OS-managed recovery fallback.
 - `apps/status-gateway`: Go gateway for mobile/agent ingestion, GitHub `changeUserStatus`, public status JSON, and Prometheus metrics.
-- `apps/status-page`: Vite/React status page using shadcn/ui, Radix, Lucide, and Tailwind.
+- `apps/status-page`: Vite/React status page using shadcn/ui, Radix, Lucide, Tailwind, and a Cloudflare Worker custom domain.
 - `infra/status-stack`: Prometheus, node-exporter, cAdvisor, status-gateway, and optional cloudflared service definitions.
 - `libs/protocol` and `proto/realtime/me/v1/watch.proto`: shared protobuf contract for the Data Layer payload.
 
@@ -110,7 +110,7 @@ The debug receiver exists only in debug builds and stores the token through the 
 
 ## Self-hosted status stack
 
-The status stack stores raw time-series data in Prometheus on your own host. Cloudflare only needs to expose the public API/page through a Tunnel or Pages.
+The status stack stores raw time-series data in Prometheus on your own host. Cloudflare only needs to expose the public API/page through a Tunnel or Worker custom domain.
 
 ```sh
 cd infra/status-stack
@@ -140,6 +140,24 @@ The phone app publishes:
 ```text
 POST /api/ingest/mobile
 Authorization: Bearer <STATUS_INGEST_TOKEN>
+```
+
+## Public status page
+
+`apps/status-page/wrangler.jsonc` deploys the page directly to the Worker custom domain `me.pood1e.space`; no Pages project or `pages.dev` deployment is required.
+
+Build the static assets, then deploy with the public gateway URL as a runtime variable:
+
+```sh
+npm run build --workspace apps/status-page
+npx wrangler deploy --config apps/status-page/wrangler.jsonc \
+  --var STATUS_API_BASE_URL:https://api-status.example.com
+```
+
+The Worker serves the SPA and proxies only `GET /api/public-status` to `STATUS_API_BASE_URL`, so the browser reads status from the same origin:
+
+```text
+https://me.pood1e.space/api/public-status
 ```
 
 ## Runtime setup
