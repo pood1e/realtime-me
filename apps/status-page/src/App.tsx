@@ -21,6 +21,24 @@ import {
   Watch,
   Wifi,
 } from 'lucide-react';
+import {
+  siAlpinelinux,
+  siAndroid,
+  siArchlinux,
+  siCentos,
+  siDebian,
+  siFedora,
+  siKalilinux,
+  siLinux,
+  siLinuxmint,
+  siMacos,
+  siPopos,
+  siRedhat,
+  siUbuntu,
+  siWearos,
+  siZorin,
+} from 'simple-icons/icons';
+import type { SimpleIcon } from 'simple-icons';
 import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -224,7 +242,7 @@ function DeviceCard({ device, title, icon, showChildren = true }: { device: Devi
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">{icon}{title}</CardTitle>
+        <CardTitle className="flex items-center gap-2">{deviceIcon(device, icon)}{title}</CardTitle>
         <CardAction className="flex items-center gap-2">
           <InlineTime value={device?.updated_at} />
           <StatusBadge state={device?.state} />
@@ -252,7 +270,7 @@ function PhoneCard({ mobile }: { mobile: MobileStatus | null }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Smartphone className="size-4" />Phone</CardTitle>
+        <CardTitle className="flex items-center gap-2"><BrandIcon icon={siAndroid} />Phone</CardTitle>
         <CardAction className="flex items-center gap-2">
           <InlineTime value={mobile?.received_at} />
           {mobile ? <Badge><CheckCircle2 /></Badge> : <Badge variant="outline">—</Badge>}
@@ -276,7 +294,7 @@ function WatchCard({ mobile }: { mobile: MobileStatus | null }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Watch className="size-4" />Watch</CardTitle>
+        <CardTitle className="flex items-center gap-2"><BrandIcon icon={siWearos} />Watch</CardTitle>
         <CardAction className="flex items-center gap-2">
           <InlineTime value={mobile?.received_at} />
           <WatchStatusBadge watch={watch} offWrist={offWrist} />
@@ -347,6 +365,40 @@ function AgentCard({ agents }: { agents: AgentStatus[] }) {
         ))}
       </CardContent>
     </Card>
+  );
+}
+
+function deviceIcon(device: DeviceStatus | null, fallback: ReactElement): ReactElement {
+  const icon = osIcon(device?.device_model ?? device?.device_name ?? '');
+  return icon ? <BrandIcon icon={icon} /> : fallback;
+}
+
+function osIcon(value: string): SimpleIcon | null {
+  const text = value.toLowerCase();
+  if (text.includes('wear os')) return siWearos;
+  if (text.includes('android')) return siAndroid;
+  if (text.includes('macos') || text.includes('darwin')) return siMacos;
+  if (text.includes('kali')) return siKalilinux;
+  if (text.includes('ubuntu')) return siUbuntu;
+  if (text.includes('debian')) return siDebian;
+  if (text.includes('fedora')) return siFedora;
+  if (text.includes('arch')) return siArchlinux;
+  if (text.includes('centos')) return siCentos;
+  if (text.includes('red hat') || text.includes('rhel')) return siRedhat;
+  if (text.includes('alpine')) return siAlpinelinux;
+  if (text.includes('linux mint')) return siLinuxmint;
+  if (text.includes('pop!_os') || text.includes('pop! os')) return siPopos;
+  if (text.includes('zorin')) return siZorin;
+  if (text.includes('linux')) return siLinux;
+  return null;
+}
+
+function BrandIcon({ icon }: { icon: SimpleIcon }) {
+  return (
+    <svg aria-label={icon.title} className="size-4 shrink-0" role="img" style={{ color: `#${icon.hex}` }} viewBox="0 0 24 24">
+      <title>{icon.title}</title>
+      <path d={icon.path} fill="currentColor" />
+    </svg>
   );
 }
 
