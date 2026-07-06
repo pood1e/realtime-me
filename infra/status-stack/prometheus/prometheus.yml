@@ -12,16 +12,33 @@ scrape_configs:
       - targets: ["node-exporter:9100"]
         labels:
           instance: "server"
+          device_id: "server"
+          device_name: "Server"
+          device_kind: "host"
+          device_role: "server"
+    http_sd_configs:
+      - url: http://status-gateway:8080/api/prometheus/http-sd/node-exporter
+        refresh_interval: 30s
 
   - job_name: vm-node-exporter
-    file_sd_configs:
-      - files:
-          - /etc/prometheus/file_sd/vm-node-exporters.yml
+    http_sd_configs:
+      - url: http://status-gateway:8080/api/prometheus/http-sd/vm-node-exporter
+        refresh_interval: 30s
+
+  - job_name: device-exporter
+    http_sd_configs:
+      - url: http://status-gateway:8080/api/prometheus/http-sd/device-exporter
+        refresh_interval: 30s
 
   - job_name: cadvisor
     file_sd_configs:
       - files:
           - /etc/prometheus/file_sd/cadvisor.yml
+
+  - job_name: agent-exporter
+    http_sd_configs:
+      - url: http://status-gateway:8080/api/prometheus/http-sd/agent-exporter
+        refresh_interval: 30s
 
   - job_name: status-gateway
     static_configs:

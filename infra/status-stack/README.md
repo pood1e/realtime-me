@@ -7,7 +7,7 @@ Self-hosted metrics and status gateway for a private metrics host.
 - Prometheus stores raw metrics for 30 days by default.
 - node-exporter exposes host metrics.
 - cAdvisor exposes Docker container metrics when the `containers` profile is enabled.
-- status-gateway receives phone/watch/agent status, updates GitHub status, exposes public JSON, Prometheus metrics, and the LAN-only internal status page.
+- status-gateway receives phone/watch status, serves Prometheus HTTP service discovery, updates GitHub status, exposes public JSON, Prometheus metrics, and the LAN-only internal status page.
 - cloudflared is optional and runs only with the `tunnel` compose profile.
 
 ## Setup
@@ -39,6 +39,15 @@ curl http://<STATUS_GATEWAY_BIND>:18080/healthz
 curl http://<STATUS_GATEWAY_BIND>:18080/api/public-status
 curl -H "Authorization: Bearer $STATUS_INGEST_TOKEN" http://<STATUS_GATEWAY_BIND>:18080/api/internal/status
 curl http://127.0.0.1:19090/-/ready
+```
+
+Register an additional Linux device by running the installer on that device and passing its reachable LAN address as `STATUS_EXPORTER_HOST`:
+
+```sh
+curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-linux-probe.sh \
+  | sudo env STATUS_GATEWAY_URL=http://<gateway-host>:18080 \
+      STATUS_EXPORTER_HOST=<device-lan-ip> \
+      bash
 ```
 
 Open `http://<STATUS_GATEWAY_BIND>:18080/internal` on the LAN for detailed device, metric, GitHub sync, and active-agent status. The page stores the internal access token only in browser local storage.

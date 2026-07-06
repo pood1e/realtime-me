@@ -35,6 +35,8 @@ func (server *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/ingest/mobile", server.ingestMobile)
 	mux.HandleFunc("POST /api/ingest/host", server.ingestDevice)
 	mux.HandleFunc("POST /api/ingest/agent", server.ingestAgent)
+	mux.HandleFunc("POST /api/prometheus/register", server.registerPrometheusTargets)
+	mux.HandleFunc("GET /api/prometheus/http-sd/{job}", server.prometheusHTTPDiscovery)
 	mux.HandleFunc("GET /api/public-status", server.publicStatus)
 	mux.HandleFunc("GET /api/internal/status", server.internalStatus)
 	mux.HandleFunc("GET /api/internal/metrics/query", server.internalMetricQuery)
@@ -112,6 +114,34 @@ func (server *Server) ingestAgent(writer http.ResponseWriter, request *http.Requ
 	writeJSON(writer, http.StatusOK, map[string]bool{"ok": true})
 }
 
+func (server *Server) registerPrometheusTargets(writer http.ResponseWriter, request *http.Request) {
+	if !server.config.Authorized(request.Header.Get("Authorization")) {
+		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	var input PrometheusTargetRegistration
+	if err := json.NewDecoder(request.Body).Decode(&input); err != nil || !validatePrometheusRegistration(&input) {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid_payload"})
+		return
+	}
+	if err := server.store.RegisterPrometheusTargets(input.Targets, time.Now()); err != nil {
+		slog.Error("failed to save prometheus scrape targets", "error", err)
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "store_failed"})
+		return
+	}
+	writeJSON(writer, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (server *Server) prometheusHTTPDiscovery(writer http.ResponseWriter, request *http.Request) {
+	job := request.PathValue("job")
+	if !validPrometheusJob(job) {
+		writeJSON(writer, http.StatusNotFound, map[string]string{"error": "not_found"})
+		return
+	}
+	writeJSON(writer, http.StatusOK, server.store.PrometheusHTTPDiscovery(job))
+}
+
 func (server *Server) publicStatus(writer http.ResponseWriter, request *http.Request) {
 	writeJSON(writer, http.StatusOK, server.status(request.Context()))
 }
@@ -163,9 +193,8 @@ func (server *Server) metrics(writer http.ResponseWriter, _ *http.Request) {
 
 func (server *Server) status(ctx context.Context) PublicStatus {
 	snapshot := server.store.Snapshot()
-	nowTime := time.Now().UTC()
-	now := nowTime.Format(time.RFC3339)
-	agents := publicAgents(runningAgents(snapshot.Agents, nowTime, time.Duration(server.config.AgentFreshSeconds)*time.Second))
+	now := time.Now().UTC().Format(time.RFC3339)
+	agents := publicAgents(server.prometheus.AgentStatuses(ctx))
 	if len(agents) == 0 && server.config.PublicAgentPlaceholder {
 		agents = []StoredAgentStatus{{
 			AgentIngest: AgentIngest{
@@ -187,7 +216,7 @@ func (server *Server) status(ctx context.Context) PublicStatus {
 	return PublicStatus{
 		Server:  mergeServerStatus(server.prometheus.ServerStatus(ctx), snapshot.Devices),
 		Mobile:  snapshot.Mobile,
-		Devices: mergePrometheusDevices(server.prometheus.VirtualMachineStatuses(ctx), nonServerDevices(snapshot.Devices)),
+		Devices: mergePrometheusDevices(server.prometheus.NodeExporterStatuses(ctx), nonServerDevices(snapshot.Devices)),
 		Agents:  agents,
 		GitHub: PublicGitHubStatus{
 			Enabled:   server.config.GitHubToken != "",
@@ -203,7 +232,6 @@ func (server *Server) status(ctx context.Context) PublicStatus {
 func (server *Server) internalSnapshot(ctx context.Context) InternalStatus {
 	public := server.status(ctx)
 	snapshot := server.store.Snapshot()
-	nowTime := time.Now().UTC()
 	github := snapshot.GitHub
 	if server.config.GitHubToken == "" {
 		github.Configured = false
@@ -215,7 +243,7 @@ func (server *Server) internalSnapshot(ctx context.Context) InternalStatus {
 		Server:    public.Server,
 		Mobile:    public.Mobile,
 		Devices:   public.Devices,
-		Agents:    publicAgents(runningAgents(snapshot.Agents, nowTime, time.Duration(server.config.AgentFreshSeconds)*time.Second)),
+		Agents:    public.Agents,
 		GitHub:    github,
 		UpdatedAt: public.UpdatedAt,
 	}
@@ -259,6 +287,9 @@ func mergeServerStatus(base DeviceStatus, devices []StoredDeviceStatus) DeviceSt
 		if len(device.Metrics) > 0 {
 			base.Metrics = device.Metrics
 		}
+		if device.Media != nil {
+			base.Media = device.Media
+		}
 		break
 	}
 	if base.DeviceName == "" {
@@ -295,6 +326,9 @@ func mergePrometheusDevices(primary []DeviceStatus, stored []StoredDeviceStatus)
 		existing.DeviceName = firstString(device.DeviceName, existing.DeviceName)
 		existing.DeviceModel = firstString(device.DeviceModel, existing.DeviceModel)
 		existing.ReceivedAt = firstString(existing.ReceivedAt, device.ReceivedAt)
+		if device.Media != nil {
+			existing.Media = device.Media
+		}
 		merged[device.DeviceID] = existing
 	}
 

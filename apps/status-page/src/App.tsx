@@ -19,6 +19,7 @@ import {
   LoaderCircle,
   LogOut,
   MemoryStick,
+  Music,
   RefreshCw,
   Server,
   ShieldCheck,
@@ -96,6 +97,9 @@ type DeviceStatus = {
   state?: string;
   updated_at?: string;
   metrics?: MetricSample[];
+  media?: {
+    title: string;
+  };
   children?: DeviceStatus[];
 };
 
@@ -514,6 +518,7 @@ function InternalDeviceCard({ device, icon }: { device: DeviceStatus; icon: Reac
       <CardContent className="grid gap-4">
         <DeviceModel model={device.device_model} />
         <MetricBadges>
+          {device.media?.title && <MetricBadge icon={<Music />} value={compactText(device.media.title, 36)} title={`Playing: ${device.media.title}`} variant="secondary" />}
           {hasMetric(device, CPU_CORES) && <MetricBadge icon={<Cpu />} value={cpuCoreText(device)} title="CPU cores" variant="secondary" />}
           <MetricBadge icon={<Activity />} value={`${metricCount}`} title="Metrics" variant="outline" />
         </MetricBadges>
@@ -726,7 +731,13 @@ function DeviceCard({ device, title, icon, showChildren = true }: { device: Devi
         <DeviceModel model={device?.device_model} />
         {showCpuBadge && (
           <MetricBadges>
+            {device?.media?.title && <MetricBadge icon={<Music />} value={compactText(device.media.title, 36)} title={`Playing: ${device.media.title}`} variant="secondary" />}
             <MetricBadge icon={<Cpu />} value={cpuCoreText(device)} title="CPU cores" variant="secondary" />
+          </MetricBadges>
+        )}
+        {!showCpuBadge && device?.media?.title && (
+          <MetricBadges>
+            <MetricBadge icon={<Music />} value={compactText(device.media.title, 36)} title={`Playing: ${device.media.title}`} variant="secondary" />
           </MetricBadges>
         )}
         {cpuUsage !== undefined && <ProgressMetric label="CPU" value={cpuUsage} valueText={cpuText(device)} />}
@@ -1090,6 +1101,7 @@ function ChildDevices({ devices }: { devices: DeviceStatus[] }) {
             <Badge variant={device.state === 'running' ? 'default' : 'secondary'}>{device.state ?? 'unknown'}</Badge>
           </div>
           <MetricBadges>
+            {device.media?.title && <MetricBadge icon={<Music />} value={compactText(device.media.title, 28)} title={`Playing: ${device.media.title}`} variant="secondary" />}
             {hasMetric(device, CPU_CORES) && <MetricBadge icon={<Cpu />} value={cpuCoreText(device)} title="CPU cores" variant="secondary" />}
             {memoryValues(device).percent !== undefined && <MetricBadge icon={<MemoryStick />} value={memoryValues(device).text} title="Memory" />}
             {diskValues(device).percent !== undefined && <MetricBadge icon={<HardDrive />} value={diskValues(device).text} title="Disk" />}
@@ -1199,13 +1211,15 @@ function memoryValues(device: DeviceStatus | null | undefined): { text: string; 
 }
 
 function diskValues(device: DeviceStatus | null | undefined): { text: string; percent?: number } {
-  const directPercent = metricPercent(device, FILESYSTEM_UTILIZATION);
-  if (directPercent !== undefined) return { text: formatPercent(directPercent), percent: directPercent };
   const used = metricValue(device, FILESYSTEM_USAGE);
   const total = metricValue(device, FILESYSTEM_LIMIT);
-  if (used === undefined || total === undefined || total <= 0) return { text: '—' };
-  const percent = used * 100 / total;
-  return { text: formatPercent(percent), percent };
+  if (used !== undefined && total !== undefined && total > 0) {
+    const percent = used * 100 / total;
+    return { text: `${formatGigabytes(used)}/${formatGigabytes(total)} · ${formatPercent(percent)}`, percent };
+  }
+  const directPercent = metricPercent(device, FILESYSTEM_UTILIZATION);
+  if (directPercent !== undefined) return { text: formatPercent(directPercent), percent: directPercent };
+  return { text: '—' };
 }
 
 function metricPercent(device: DeviceStatus | null | undefined, name: string): number | undefined {
@@ -1280,6 +1294,10 @@ function formatPercent(value: number | null | undefined): string {
 
 function formatGigabytes(value: number): string {
   return `${(value / 1024 / 1024 / 1024).toFixed(1)}GB`;
+}
+
+function compactText(value: string, maxLength: number): string {
+  return value.length <= maxLength ? value : `${value.slice(0, maxLength - 1).trim()}…`;
 }
 
 function formatTime(value: string): string {

@@ -51,6 +51,7 @@ func (client *PrometheusClient) ServerStatus(ctx context.Context) DeviceStatus {
 	memoryAvailable := client.queryScalar(ctx, `node_memory_MemAvailable_bytes{job="node-exporter",instance="server"}`)
 	diskTotal := client.queryScalar(ctx, `node_filesystem_size_bytes{job="node-exporter",instance="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`)
 	diskAvailable := client.queryScalar(ctx, `node_filesystem_avail_bytes{job="node-exporter",instance="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`)
+	media := client.DeviceMediaStatuses(ctx)
 
 	return DeviceStatus{
 		DeviceID:  "server",
@@ -59,21 +60,23 @@ func (client *PrometheusClient) ServerStatus(ctx context.Context) DeviceStatus {
 		State:     onlineState(up),
 		UpdatedAt: utcTime(),
 		Metrics:   systemMetrics(cpuCores, cpuUsage, memoryTotal, memoryAvailable, diskTotal, diskAvailable),
+		Media:     media["server"],
 	}
 }
 
-func (client *PrometheusClient) VirtualMachineStatuses(ctx context.Context) []DeviceStatus {
-	up := client.queryVector(ctx, `up{job="vm-node-exporter"}`)
+func (client *PrometheusClient) NodeExporterStatuses(ctx context.Context) []DeviceStatus {
+	up := client.queryVector(ctx, `up{job=~"node-exporter|vm-node-exporter",instance!="server"}`)
 	if len(up) == 0 {
 		return nil
 	}
-	cpuUsage := samplesByInstance(client.queryVector(ctx, `1 - avg by (instance) (rate(node_cpu_seconds_total{job="vm-node-exporter",mode="idle"}[2m]))`))
-	cpuCores := samplesByInstance(client.queryVector(ctx, `count by (instance) (count by (instance, cpu) (node_cpu_seconds_total{job="vm-node-exporter",mode="idle"}))`))
-	memoryTotal := samplesByInstance(client.queryVector(ctx, `node_memory_MemTotal_bytes{job="vm-node-exporter"}`))
-	memoryAvailable := samplesByInstance(client.queryVector(ctx, `node_memory_MemAvailable_bytes{job="vm-node-exporter"}`))
-	diskTotal := samplesByInstance(client.queryVector(ctx, `node_filesystem_size_bytes{job="vm-node-exporter",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`))
-	diskAvailable := samplesByInstance(client.queryVector(ctx, `node_filesystem_avail_bytes{job="vm-node-exporter",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`))
-	models := vmModels(client.queryVector(ctx, `node_os_info{job="vm-node-exporter"}`), client.queryVector(ctx, `node_uname_info{job="vm-node-exporter"}`))
+	cpuUsage := samplesByInstance(client.queryVector(ctx, `1 - avg by (instance) (rate(node_cpu_seconds_total{job=~"node-exporter|vm-node-exporter",instance!="server",mode="idle"}[2m]))`))
+	cpuCores := samplesByInstance(client.queryVector(ctx, `count by (instance) (count by (instance, cpu) (node_cpu_seconds_total{job=~"node-exporter|vm-node-exporter",instance!="server",mode="idle"}))`))
+	memoryTotal := samplesByInstance(client.queryVector(ctx, `node_memory_MemTotal_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"}`))
+	memoryAvailable := samplesByInstance(client.queryVector(ctx, `node_memory_MemAvailable_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"}`))
+	diskTotal := samplesByInstance(client.queryVector(ctx, `node_filesystem_size_bytes{job=~"node-exporter|vm-node-exporter",instance!="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`))
+	diskAvailable := samplesByInstance(client.queryVector(ctx, `node_filesystem_avail_bytes{job=~"node-exporter|vm-node-exporter",instance!="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`))
+	models := nodeModels(client.queryVector(ctx, `node_os_info{job=~"node-exporter|vm-node-exporter",instance!="server"}`), client.queryVector(ctx, `node_uname_info{job=~"node-exporter|vm-node-exporter",instance!="server"}`))
+	media := client.DeviceMediaStatuses(ctx)
 
 	devices := make([]DeviceStatus, 0, len(up))
 	for _, sample := range up {
@@ -81,12 +84,19 @@ func (client *PrometheusClient) VirtualMachineStatuses(ctx context.Context) []De
 		if instance == "" {
 			continue
 		}
+		kind := firstNonEmpty(sample.Metric["device_kind"], "host")
+		role := firstNonEmpty(sample.Metric["device_role"], "desktop")
+		if sample.Metric["job"] == "vm-node-exporter" {
+			kind = firstNonEmpty(sample.Metric["device_kind"], "virtual_machine")
+			role = firstNonEmpty(sample.Metric["device_role"], "vm")
+		}
+		deviceID := firstNonEmpty(sample.Metric["device_id"], instance)
 		devices = append(devices, DeviceStatus{
-			DeviceID:    instance,
-			DeviceName:  instance,
-			DeviceModel: models[instance],
-			Kind:        "virtual_machine",
-			Role:        "vm",
+			DeviceID:    deviceID,
+			DeviceName:  firstNonEmpty(sample.Metric["device_name"], instance),
+			DeviceModel: firstNonEmpty(sample.Metric["device_model"], models[instance]),
+			Kind:        kind,
+			Role:        role,
 			State:       onlineState(&sample.Value),
 			UpdatedAt:   utcTime(),
 			Metrics: systemMetrics(
@@ -97,12 +107,68 @@ func (client *PrometheusClient) VirtualMachineStatuses(ctx context.Context) []De
 				diskTotal[instance],
 				diskAvailable[instance],
 			),
+			Media: media[deviceID],
 		})
 	}
 	sort.Slice(devices, func(left int, right int) bool {
 		return devices[left].DeviceID < devices[right].DeviceID
 	})
 	return devices
+}
+
+func (client *PrometheusClient) DeviceMediaStatuses(ctx context.Context) map[string]*MediaStatus {
+	samples := client.queryVector(ctx, `realtime_device_media_playing{job="device-exporter"} == 1`)
+	statuses := make(map[string]*MediaStatus, len(samples))
+	for _, sample := range samples {
+		title := sample.Metric["title"]
+		if title == "" {
+			continue
+		}
+		deviceID := firstNonEmpty(sample.Metric["device_id"], sample.Metric["instance"])
+		if deviceID == "" {
+			continue
+		}
+		statuses[deviceID] = &MediaStatus{Title: title}
+	}
+	return statuses
+}
+
+func (client *PrometheusClient) AgentStatuses(ctx context.Context) []StoredAgentStatus {
+	running := client.queryVector(ctx, `realtime_agent_state{job="agent-exporter",state="running"} == 1`)
+	if len(running) == 0 {
+		return nil
+	}
+	budgets := samplesByAgent(client.queryVector(ctx, `realtime_agent_budget_remaining_ratio{job="agent-exporter"}`))
+	now := utcTime()
+	agents := make([]StoredAgentStatus, 0, len(running))
+	for _, sample := range running {
+		agentID := sample.Metric["agent_id"]
+		if agentID == "" {
+			continue
+		}
+		input := AgentIngest{
+			AgentID:    agentID,
+			DeviceID:   sample.Metric["device_id"],
+			DeviceName: sample.Metric["device_name"],
+			UpdatedAt:  now,
+			State:      "running",
+		}
+		if value, ok := budgets[agentKey(input)]; ok {
+			percent := int(math.Round(clampRatio(value) * 100))
+			input.BudgetRemainingPercent = &percent
+		}
+		agents = append(agents, StoredAgentStatus{
+			AgentIngest: input,
+			ReceivedAt:  now,
+		})
+	}
+	sort.Slice(agents, func(left int, right int) bool {
+		if agents[left].DeviceID != agents[right].DeviceID {
+			return agents[left].DeviceID < agents[right].DeviceID
+		}
+		return agents[left].AgentID < agents[right].AgentID
+	})
+	return agents
 }
 
 func (client *PrometheusClient) Proxy(ctx context.Context, path string, values url.Values) ([]byte, int, error) {
@@ -242,7 +308,29 @@ func samplesByInstance(samples []prometheusSample) map[string]*float64 {
 	return values
 }
 
-func vmModels(osInfo []prometheusSample, unameInfo []prometheusSample) map[string]string {
+func samplesByAgent(samples []prometheusSample) map[string]float64 {
+	values := make(map[string]float64, len(samples))
+	for _, sample := range samples {
+		agent := AgentIngest{
+			AgentID:  sample.Metric["agent_id"],
+			DeviceID: sample.Metric["device_id"],
+		}
+		if agent.AgentID == "" {
+			continue
+		}
+		values[agentKey(agent)] = sample.Value
+	}
+	return values
+}
+
+func agentKey(agent AgentIngest) string {
+	if agent.DeviceID == "" {
+		return agent.AgentID
+	}
+	return agent.DeviceID + "/" + agent.AgentID
+}
+
+func nodeModels(osInfo []prometheusSample, unameInfo []prometheusSample) map[string]string {
 	models := map[string]string{}
 	for _, sample := range unameInfo {
 		instance := sample.Metric["instance"]

@@ -10,19 +10,21 @@ import (
 )
 
 type StatusStore struct {
-	stateFile string
-	mutex     sync.Mutex
-	mobile    *StoredMobileStatus
-	agents    map[string]StoredAgentStatus
-	devices   map[string]StoredDeviceStatus
-	github    GitHubSyncStatus
+	stateFile         string
+	mutex             sync.Mutex
+	mobile            *StoredMobileStatus
+	agents            map[string]StoredAgentStatus
+	devices           map[string]StoredDeviceStatus
+	prometheusTargets map[string]PrometheusScrapeTarget
+	github            GitHubSyncStatus
 }
 
 func NewStatusStore(stateFile string) *StatusStore {
 	return &StatusStore{
-		stateFile: stateFile,
-		agents:    map[string]StoredAgentStatus{},
-		devices:   map[string]StoredDeviceStatus{},
+		stateFile:         stateFile,
+		agents:            map[string]StoredAgentStatus{},
+		devices:           map[string]StoredDeviceStatus{},
+		prometheusTargets: map[string]PrometheusScrapeTarget{},
 		github: GitHubSyncStatus{
 			Configured: false,
 			State:      GitHubSyncDisabled,
@@ -52,6 +54,9 @@ func (store *StatusStore) Load() error {
 	}
 	for _, device := range snapshot.Devices {
 		store.devices[device.DeviceID] = device
+	}
+	for _, target := range snapshot.PrometheusTargets {
+		store.prometheusTargets[prometheusTargetKey(target)] = target
 	}
 	if snapshot.GitHub.State != "" {
 		store.github = snapshot.GitHub
@@ -87,6 +92,48 @@ func (store *StatusStore) UpdateDevice(input DeviceStatus, receivedAt time.Time)
 	defer store.mutex.Unlock()
 	store.devices[status.DeviceID] = status
 	return status, store.saveLocked()
+}
+
+func (store *StatusStore) RegisterPrometheusTargets(targets []PrometheusScrapeTarget, receivedAt time.Time) error {
+	timestamp := receivedAt.UTC().Format(time.RFC3339)
+
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+	for _, target := range targets {
+		if target.Instance == "" {
+			target.Instance = firstString(target.DeviceID, target.Target)
+		}
+		if target.DeviceID == "" {
+			target.DeviceID = target.Instance
+		}
+		target.UpdatedAt = timestamp
+		store.prometheusTargets[prometheusTargetKey(target)] = target
+	}
+	return store.saveLocked()
+}
+
+func (store *StatusStore) PrometheusHTTPDiscovery(job string) []PrometheusHTTPDiscoveryGroup {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+
+	targets := make([]PrometheusScrapeTarget, 0, len(store.prometheusTargets))
+	for _, target := range store.prometheusTargets {
+		if target.Job == job {
+			targets = append(targets, target)
+		}
+	}
+	sort.Slice(targets, func(left, right int) bool {
+		return prometheusTargetKey(targets[left]) < prometheusTargetKey(targets[right])
+	})
+
+	groups := make([]PrometheusHTTPDiscoveryGroup, 0, len(targets))
+	for _, target := range targets {
+		groups = append(groups, PrometheusHTTPDiscoveryGroup{
+			Targets: []string{target.Target},
+			Labels:  prometheusTargetLabels(target),
+		})
+	}
+	return groups
 }
 
 func (store *StatusStore) UpdateAgent(input AgentIngest, receivedAt time.Time) (StoredAgentStatus, error) {
@@ -155,11 +202,19 @@ func (store *StatusStore) snapshotLocked() GatewayStateSnapshot {
 	sort.Slice(devices, func(left, right int) bool {
 		return devices[left].DeviceID < devices[right].DeviceID
 	})
+	targets := make([]PrometheusScrapeTarget, 0, len(store.prometheusTargets))
+	for _, target := range store.prometheusTargets {
+		targets = append(targets, target)
+	}
+	sort.Slice(targets, func(left, right int) bool {
+		return prometheusTargetKey(targets[left]) < prometheusTargetKey(targets[right])
+	})
 	return GatewayStateSnapshot{
-		Mobile:  store.mobile,
-		Agents:  agents,
-		Devices: devices,
-		GitHub:  store.github,
+		Mobile:            store.mobile,
+		Agents:            agents,
+		Devices:           devices,
+		PrometheusTargets: targets,
+		GitHub:            store.github,
 	}
 }
 
@@ -168,4 +223,31 @@ func agentStoreKey(agent AgentIngest) string {
 		return agent.AgentID
 	}
 	return agent.DeviceID + "/" + agent.AgentID
+}
+
+func prometheusTargetKey(target PrometheusScrapeTarget) string {
+	return target.Job + "/" + firstString(target.Instance, target.Target)
+}
+
+func prometheusTargetLabels(target PrometheusScrapeTarget) map[string]string {
+	labels := map[string]string{}
+	if target.Instance != "" {
+		labels["instance"] = target.Instance
+	}
+	if target.DeviceID != "" {
+		labels["device_id"] = target.DeviceID
+	}
+	if target.DeviceName != "" {
+		labels["device_name"] = target.DeviceName
+	}
+	if target.DeviceModel != "" {
+		labels["device_model"] = target.DeviceModel
+	}
+	if target.DeviceKind != "" {
+		labels["device_kind"] = target.DeviceKind
+	}
+	if target.DeviceRole != "" {
+		labels["device_role"] = target.DeviceRole
+	}
+	return labels
 }

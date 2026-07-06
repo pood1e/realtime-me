@@ -1,6 +1,8 @@
 package gateway
 
 import (
+	"net"
+	"strings"
 	"time"
 	"unicode/utf8"
 )
@@ -80,6 +82,9 @@ func validateDevice(input *DeviceStatus) bool {
 	if input.UpdatedAt != "" && !isDateTime(input.UpdatedAt) {
 		return false
 	}
+	if input.Media != nil && !validateMedia(input.Media) {
+		return false
+	}
 	for _, metric := range input.Metrics {
 		if !validateMetric(metric) {
 			return false
@@ -91,6 +96,10 @@ func validateDevice(input *DeviceStatus) bool {
 		}
 	}
 	return true
+}
+
+func validateMedia(media *MediaStatus) bool {
+	return media != nil && utf8.RuneCountInString(media.Title) > 0 && utf8.RuneCountInString(media.Title) <= 120
 }
 
 func validateMetric(metric MetricSample) bool {
@@ -125,6 +134,39 @@ func validateAgent(input *AgentIngest) bool {
 		return false
 	}
 	return input.BudgetRemainingPercent == nil || inRange(*input.BudgetRemainingPercent, 0, 100)
+}
+
+func validatePrometheusRegistration(input *PrometheusTargetRegistration) bool {
+	if input == nil || len(input.Targets) < 1 || len(input.Targets) > 20 {
+		return false
+	}
+	for _, target := range input.Targets {
+		if !validatePrometheusTarget(target) {
+			return false
+		}
+	}
+	return true
+}
+
+func validatePrometheusTarget(target PrometheusScrapeTarget) bool {
+	if !validPrometheusJob(target.Job) || len(target.Target) < 3 || len(target.Target) > 120 {
+		return false
+	}
+	host, port, err := net.SplitHostPort(target.Target)
+	if err != nil || strings.TrimSpace(host) == "" || strings.TrimSpace(port) == "" {
+		return false
+	}
+	if strings.ContainsAny(target.Target, "/?#@ \t\r\n") {
+		return false
+	}
+	if len(target.Instance) > 80 || len(target.DeviceID) > 80 || len(target.DeviceName) > 80 || len(target.DeviceModel) > 120 {
+		return false
+	}
+	return len(target.DeviceKind) <= 40 && len(target.DeviceRole) <= 40
+}
+
+func validPrometheusJob(value string) bool {
+	return value == "node-exporter" || value == "vm-node-exporter" || value == "device-exporter" || value == "agent-exporter"
 }
 
 func validChargeState(value ChargeState) bool {

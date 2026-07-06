@@ -6,19 +6,19 @@ ENV_FILE=${ENV_FILE:-/etc/realtime-me.env}
 GATEWAY_URL=${STATUS_GATEWAY_URL:-}
 DEVICE_ID=${STATUS_DEVICE_ID:-$(hostname -s 2>/dev/null || hostname)}
 DEVICE_NAME=${STATUS_DEVICE_NAME:-$(hostname 2>/dev/null || echo linux)}
+DEVICE_MODEL=${STATUS_DEVICE_MODEL:-}
 DEVICE_KIND=${STATUS_DEVICE_KIND:-host}
 DEVICE_ROLE=${STATUS_DEVICE_ROLE:-desktop}
+EXPORTER_BIND=${STATUS_EXPORTER_BIND:-0.0.0.0}
+EXPORTER_HOST=${STATUS_EXPORTER_HOST:-}
+NODE_EXPORTER_PORT=${STATUS_NODE_EXPORTER_PORT:-9100}
+DEVICE_EXPORTER_PORT=${STATUS_DEVICE_EXPORTER_PORT:-18083}
+AGENT_EXPORTER_PORT=${STATUS_AGENT_EXPORTER_PORT:-18082}
 INSTALL_AGENT=${INSTALL_AGENT:-0}
-PROXY_ENV_NAMES=(
-  http_proxy
-  https_proxy
-  all_proxy
-  no_proxy
-  HTTP_PROXY
-  HTTPS_PROXY
-  ALL_PROXY
-  NO_PROXY
-)
+PROBE_USER=${STATUS_PROBE_USER:-${SUDO_USER:-}}
+NODE_EXPORTER_VERSION=${NODE_EXPORTER_VERSION:-1.11.1}
+NODE_EXPORTER_VERSION=${NODE_EXPORTER_VERSION#v}
+NODE_EXPORTER_BIN=${NODE_EXPORTER_BIN:-/usr/local/bin/node_exporter}
 if [[ -n ${REALTIME_ME_RAW_BASE_URL:-} ]]; then
   RAW_BASE_URLS=("$REALTIME_ME_RAW_BASE_URL")
 elif [[ -n ${REALTIME_ME_RAW_BASE_URLS:-} ]]; then
@@ -139,38 +139,19 @@ read_token() {
 }
 
 write_env_file() {
-  local token=$1
   umask 077
   cat >"$ENV_FILE" <<ENV
-STATUS_GATEWAY_URL=$GATEWAY_URL
 STATUS_DEVICE_ID=$DEVICE_ID
 STATUS_DEVICE_NAME=$DEVICE_NAME
+STATUS_DEVICE_MODEL=$DEVICE_MODEL
 STATUS_DEVICE_KIND=$DEVICE_KIND
 STATUS_DEVICE_ROLE=$DEVICE_ROLE
-STATUS_INGEST_TOKEN=$token
+STATUS_DEVICE_EXPORTER_BIND=$EXPORTER_BIND
+STATUS_DEVICE_EXPORTER_PORT=$DEVICE_EXPORTER_PORT
+STATUS_AGENT_EXPORTER_BIND=$EXPORTER_BIND
+STATUS_AGENT_EXPORTER_PORT=$AGENT_EXPORTER_PORT
 ENV
-  append_proxy_env_file
-  chmod 600 "$ENV_FILE"
-}
-
-append_proxy_env_file() {
-  local name
-  local value
-  for name in "${PROXY_ENV_NAMES[@]}"; do
-    value=${!name:-}
-    [[ -n $value ]] || continue
-    printf '%s=%s\n' "$name" "$value" >>"$ENV_FILE"
-  done
-}
-
-download_reporters() {
-  install -d -m 755 "$INSTALL_DIR"
-  download_file status-device-reporter.py "$INSTALL_DIR/status-device-reporter.py"
-  chmod 755 "$INSTALL_DIR/status-device-reporter.py"
-  if [[ $INSTALL_AGENT == 1 ]]; then
-    download_file agent-status-reporter.py "$INSTALL_DIR/agent-status-reporter.py"
-    chmod 755 "$INSTALL_DIR/agent-status-reporter.py"
-  fi
+  chmod 644 "$ENV_FILE"
 }
 
 download_file() {
@@ -194,77 +175,224 @@ download_file() {
   exit 1
 }
 
-write_systemd_unit() {
-  cat >/etc/systemd/system/realtime-me-status-device.service <<SERVICE
-[Unit]
-Description=Realtime Me Linux status reporter
-Wants=network-online.target
-After=network-online.target
-
-[Service]
-Type=oneshot
-EnvironmentFile=$ENV_FILE
-ExecStart=$PYTHON_BIN $INSTALL_DIR/status-device-reporter.py
-SERVICE
-
-  cat >/etc/systemd/system/realtime-me-status-device.timer <<'TIMER'
-[Unit]
-Description=Run Realtime Me Linux status reporter
-
-[Timer]
-OnBootSec=15s
-OnUnitActiveSec=10s
-AccuracySec=1s
-
-[Install]
-WantedBy=timers.target
-TIMER
+download_exporters() {
+  install -d -m 755 "$INSTALL_DIR"
+  download_file status-device-reporter.py "$INSTALL_DIR/status-device-reporter.py"
+  chmod 755 "$INSTALL_DIR/status-device-reporter.py"
+  [[ $INSTALL_AGENT == 1 ]] || return
+  download_file agent-status-reporter.py "$INSTALL_DIR/agent-status-reporter.py"
+  chmod 755 "$INSTALL_DIR/agent-status-reporter.py"
 }
 
-write_agent_unit() {
-  [[ $INSTALL_AGENT == 1 ]] || return
-  cat >/etc/systemd/system/realtime-me-agent.service <<SERVICE
+node_exporter_arch() {
+  case "$(uname -m)" in
+    x86_64|amd64) echo amd64 ;;
+    aarch64|arm64) echo arm64 ;;
+    armv7l|armv7*) echo armv7 ;;
+    armv6l|armv6*) echo armv6 ;;
+    *)
+      echo "Unsupported CPU architecture: $(uname -m)" >&2
+      exit 2
+      ;;
+  esac
+}
+
+install_node_exporter() {
+  local arch
+  local archive
+  local workdir
+  local source_url
+  arch=$(node_exporter_arch)
+  source_url=${NODE_EXPORTER_URL:-https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXPORTER_VERSION}/node_exporter-${NODE_EXPORTER_VERSION}.linux-${arch}.tar.gz}
+  archive=$(mktemp)
+  workdir=$(mktemp -d)
+  log "Downloading node_exporter v$NODE_EXPORTER_VERSION"
+  if ! "$CURL_BIN" -fsSL --connect-timeout 10 --max-time 180 "$source_url" -o "$archive"; then
+    rm -rf "$archive" "$workdir"
+    echo "Could not download node_exporter." >&2
+    exit 1
+  fi
+  tar -xzf "$archive" -C "$workdir"
+  install -m 755 "$workdir"/node_exporter-*.linux-*/node_exporter "$NODE_EXPORTER_BIN"
+  rm -rf "$archive" "$workdir"
+}
+
+probe_service_directives() {
+  [[ -n ${PROBE_USER:-} && $PROBE_USER != root ]] || return
+  local uid
+  uid=$(id -u "$PROBE_USER" 2>/dev/null || true)
+  [[ -n $uid ]] || return
+  printf 'User=%s\n' "$PROBE_USER"
+  printf 'Environment=XDG_RUNTIME_DIR=/run/user/%s\n' "$uid"
+  printf 'Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%s/bus\n' "$uid"
+}
+
+write_systemd_units() {
+  local user_directives
+  user_directives=$(probe_service_directives)
+  cat >/etc/systemd/system/realtime-me-node-exporter.service <<SERVICE
 [Unit]
-Description=Realtime Me local agent status reporter
+Description=Realtime Me node_exporter
 Wants=network-online.target
 After=network-online.target
 
 [Service]
-Type=oneshot
-EnvironmentFile=$ENV_FILE
-ExecStart=$PYTHON_BIN $INSTALL_DIR/agent-status-reporter.py
-SERVICE
-
-  cat >/etc/systemd/system/realtime-me-agent.timer <<'TIMER'
-[Unit]
-Description=Run Realtime Me local agent status reporter
-
-[Timer]
-OnBootSec=20s
-OnUnitActiveSec=10s
-AccuracySec=1s
+Type=simple
+ExecStart=$NODE_EXPORTER_BIN --web.listen-address=$EXPORTER_BIND:$NODE_EXPORTER_PORT
+Restart=always
+RestartSec=5s
 
 [Install]
-WantedBy=timers.target
-TIMER
+WantedBy=multi-user.target
+SERVICE
+
+  cat >/etc/systemd/system/realtime-me-device-exporter.service <<SERVICE
+[Unit]
+Description=Realtime Me device exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+$user_directives
+EnvironmentFile=$ENV_FILE
+ExecStart=$PYTHON_BIN $INSTALL_DIR/status-device-reporter.py --serve --bind $EXPORTER_BIND --port $DEVICE_EXPORTER_PORT
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+
+  [[ $INSTALL_AGENT == 1 ]] || return
+  cat >/etc/systemd/system/realtime-me-agent-exporter.service <<SERVICE
+[Unit]
+Description=Realtime Me agent exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+$user_directives
+EnvironmentFile=$ENV_FILE
+ExecStart=$PYTHON_BIN $INSTALL_DIR/agent-status-reporter.py --serve --bind $EXPORTER_BIND --port $AGENT_EXPORTER_PORT
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
 }
 
 start_units() {
   systemctl daemon-reload
-  systemctl enable --now realtime-me-status-device.timer >/dev/null
-  systemctl start realtime-me-status-device.service
+  systemctl enable --now realtime-me-node-exporter.service >/dev/null
+  systemctl enable --now realtime-me-device-exporter.service >/dev/null
   if [[ $INSTALL_AGENT == 1 ]]; then
-    systemctl enable --now realtime-me-agent.timer >/dev/null
-    systemctl start realtime-me-agent.service
+    systemctl enable --now realtime-me-agent-exporter.service >/dev/null
   fi
 }
 
+auto_exporter_host() {
+  if [[ -n ${EXPORTER_HOST:-} ]]; then
+    printf '%s' "$EXPORTER_HOST"
+    return
+  fi
+  local route_host
+  route_host=$(ip route get 1.1.1.1 2>/dev/null | awk '/src/ { for (i = 1; i <= NF; i++) if ($i == "src") { print $(i + 1); exit } }' || true)
+  if [[ -n $route_host ]]; then
+    printf '%s' "$route_host"
+    return
+  fi
+  hostname -I 2>/dev/null | awk '{ print $1; exit }'
+}
+
+json_payload() {
+  local host=$1
+  "$PYTHON_BIN" - "$host" "$INSTALL_AGENT" <<'PY'
+import json
+import os
+import sys
+
+host = sys.argv[1]
+install_agent = sys.argv[2] == "1"
+node_port = os.environ["STATUS_NODE_EXPORTER_PORT"]
+device_port = os.environ["STATUS_DEVICE_EXPORTER_PORT"]
+agent_port = os.environ["STATUS_AGENT_EXPORTER_PORT"]
+device_id = os.environ["STATUS_DEVICE_ID"]
+device_name = os.environ["STATUS_DEVICE_NAME"]
+device_model = os.environ.get("STATUS_DEVICE_MODEL", "")
+device_kind = os.environ["STATUS_DEVICE_KIND"]
+device_role = os.environ["STATUS_DEVICE_ROLE"]
+node_job = "vm-node-exporter" if device_kind == "virtual_machine" or device_role == "vm" else "node-exporter"
+common = {
+    "instance": device_id,
+    "device_id": device_id,
+    "device_name": device_name,
+    "device_model": device_model,
+    "device_kind": device_kind,
+    "device_role": device_role,
+}
+targets = [
+    dict(common, job=node_job, target=f"{host}:{node_port}"),
+    dict(common, job="device-exporter", target=f"{host}:{device_port}"),
+]
+if install_agent:
+    targets.append(dict(common, job="agent-exporter", target=f"{host}:{agent_port}"))
+print(json.dumps({"targets": targets}, separators=(",", ":")))
+PY
+}
+
+post_json() {
+  local endpoint=$1
+  local token=$2
+  local payload=$3
+  local config
+  config=$(mktemp)
+  chmod 600 "$config"
+  {
+    printf 'header = "Accept: application/json"\n'
+    printf 'header = "Authorization: Bearer %s"\n' "$token"
+    printf 'header = "Content-Type: application/json; charset=utf-8"\n'
+  } >"$config"
+  if ! "$CURL_BIN" -fsSL --connect-timeout 10 --max-time 30 --config "$config" --data-binary "$payload" "$endpoint" >/dev/null; then
+    rm -f "$config"
+    echo "Could not register Prometheus scrape targets." >&2
+    exit 1
+  fi
+  rm -f "$config"
+}
+
+register_prometheus_targets() {
+  local token=$1
+  local host
+  local payload
+  host=$(auto_exporter_host)
+  if [[ -z $host ]]; then
+    echo "Could not detect exporter host. Set STATUS_EXPORTER_HOST." >&2
+    exit 2
+  fi
+  export STATUS_NODE_EXPORTER_PORT=$NODE_EXPORTER_PORT
+  export STATUS_DEVICE_EXPORTER_PORT=$DEVICE_EXPORTER_PORT
+  export STATUS_AGENT_EXPORTER_PORT=$AGENT_EXPORTER_PORT
+  export STATUS_DEVICE_ID=$DEVICE_ID
+  export STATUS_DEVICE_NAME=$DEVICE_NAME
+  export STATUS_DEVICE_MODEL=$DEVICE_MODEL
+  export STATUS_DEVICE_KIND=$DEVICE_KIND
+  export STATUS_DEVICE_ROLE=$DEVICE_ROLE
+  payload=$(json_payload "$host" "$INSTALL_AGENT")
+  post_json "$GATEWAY_URL/api/prometheus/register" "$token" "$payload"
+  EXPORTER_HOST=$host
+}
+
 print_summary() {
-  echo "Installed Realtime Me probe."
-  echo "Gateway: $GATEWAY_URL"
-  echo "Device:  $DEVICE_NAME ($DEVICE_ID)"
-  echo "Agent:   $([[ $INSTALL_AGENT == 1 ]] && echo enabled || echo disabled)"
-  echo "Check:   systemctl status realtime-me-status-device.service --no-pager"
+  echo "Installed Realtime Me Prometheus probe."
+  echo "Gateway:  $GATEWAY_URL"
+  echo "Device:          $DEVICE_NAME ($DEVICE_ID)"
+  echo "Node exporter:   $EXPORTER_HOST:$NODE_EXPORTER_PORT"
+  echo "Device exporter: $EXPORTER_HOST:$DEVICE_EXPORTER_PORT"
+  echo "Agent:    $([[ $INSTALL_AGENT == 1 ]] && printf '%s:%s' "$EXPORTER_HOST" "$AGENT_EXPORTER_PORT" || echo disabled)"
+  echo "Check:    systemctl status realtime-me-node-exporter.service --no-pager"
 }
 
 main() {
@@ -272,18 +400,21 @@ main() {
   require_command "$CURL_BIN"
   require_command "$PYTHON_BIN"
   require_command systemctl
+  require_command tar
   inherit_proxy_env
   GATEWAY_URL=$(read_gateway_url)
   local token
   token=$(read_token)
-  download_reporters
   log "Writing configuration"
-  write_env_file "$token"
+  write_env_file
+  download_exporters
+  install_node_exporter
   log "Installing systemd units"
-  write_systemd_unit
-  write_agent_unit
-  log "Starting systemd units"
+  write_systemd_units
+  log "Starting exporters"
   start_units
+  log "Registering Prometheus scrape targets"
+  register_prometheus_targets "$token"
   print_summary
 }
 

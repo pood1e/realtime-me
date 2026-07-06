@@ -48,7 +48,12 @@ type DeviceStatus struct {
 	State       string         `json:"state,omitempty"`
 	UpdatedAt   string         `json:"updated_at,omitempty"`
 	Metrics     []MetricSample `json:"metrics,omitempty"`
+	Media       *MediaStatus   `json:"media,omitempty"`
 	Children    []DeviceStatus `json:"children,omitempty"`
+}
+
+type MediaStatus struct {
+	Title string `json:"title"`
 }
 
 type MetricSample struct {
@@ -83,6 +88,27 @@ type StoredDeviceStatus struct {
 	ReceivedAt string `json:"received_at"`
 }
 
+type PrometheusScrapeTarget struct {
+	Job         string `json:"job"`
+	Target      string `json:"target"`
+	Instance    string `json:"instance,omitempty"`
+	DeviceID    string `json:"device_id,omitempty"`
+	DeviceName  string `json:"device_name,omitempty"`
+	DeviceModel string `json:"device_model,omitempty"`
+	DeviceKind  string `json:"device_kind,omitempty"`
+	DeviceRole  string `json:"device_role,omitempty"`
+	UpdatedAt   string `json:"updated_at,omitempty"`
+}
+
+type PrometheusTargetRegistration struct {
+	Targets []PrometheusScrapeTarget `json:"targets"`
+}
+
+type PrometheusHTTPDiscoveryGroup struct {
+	Targets []string          `json:"targets"`
+	Labels  map[string]string `json:"labels,omitempty"`
+}
+
 type GitHubSyncState string
 
 const (
@@ -105,10 +131,11 @@ type GitHubSyncStatus struct {
 }
 
 type GatewayStateSnapshot struct {
-	Mobile  *StoredMobileStatus  `json:"mobile"`
-	Agents  []StoredAgentStatus  `json:"agents"`
-	Devices []StoredDeviceStatus `json:"devices"`
-	GitHub  GitHubSyncStatus     `json:"github"`
+	Mobile            *StoredMobileStatus      `json:"mobile"`
+	Agents            []StoredAgentStatus      `json:"agents"`
+	Devices           []StoredDeviceStatus     `json:"devices"`
+	PrometheusTargets []PrometheusScrapeTarget `json:"prometheus_targets,omitempty"`
+	GitHub            GitHubSyncStatus         `json:"github"`
 }
 
 type PublicGitHubStatus struct {

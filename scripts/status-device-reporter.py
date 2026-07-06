@@ -32,6 +32,12 @@ class MemoryUsage:
     total: int
 
 
+@dataclass(frozen=True)
+class MediaSnapshot:
+    title: str
+    player: str = ""
+
+
 def main() -> int:
     args = parse_args()
     if args.serve:
@@ -68,7 +74,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def build_payload(args: argparse.Namespace) -> dict:
-    return {
+    payload = {
         "device_id": args.device_id,
         "device_name": args.device_name,
         "device_model": args.device_model,
@@ -78,6 +84,10 @@ def build_payload(args: argparse.Namespace) -> dict:
         "updated_at": utc_now(),
         "metrics": metrics(),
     }
+    media = current_media()
+    if media:
+        payload["media"] = {"title": media.title}
+    return payload
 
 
 def serve(args: argparse.Namespace) -> int:
@@ -89,6 +99,9 @@ def serve(args: argparse.Namespace) -> int:
             if self.path == "/api/device-status":
                 self.write_json(build_payload(args))
                 return
+            if self.path == "/metrics":
+                self.write_text(render_prometheus_metrics())
+                return
             self.write_json({"error": "not_found"}, 404)
 
         def log_message(self, _format: str, *_args: object) -> None:
@@ -99,6 +112,15 @@ def serve(args: argparse.Namespace) -> int:
             self.send_response(status)
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def write_text(self, payload: str, status: int = 200) -> None:
+            data = payload.encode()
+            self.send_response(status)
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
@@ -131,6 +153,134 @@ def sample(name: str, unit: str, value: float, attributes: dict[str, str] | None
     if attributes:
         payload["attributes"] = attributes
     return payload
+
+
+def render_prometheus_metrics() -> str:
+    lines = [
+        "# HELP realtime_device_media_playing Device media playback state. OpenTelemetry name: realtime.device.media.playing.",
+        "# TYPE realtime_device_media_playing gauge",
+        "# UNIT realtime_device_media_playing 1",
+    ]
+    media = current_media()
+    if media:
+        labels = {"title": media.title, "player": media.player}
+        lines.append(f"realtime_device_media_playing{label_set(labels)} 1")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def current_media() -> MediaSnapshot | None:
+    system = platform.system().lower()
+    if system == "darwin":
+        return darwin_media()
+    if system == "linux":
+        return linux_media()
+    return None
+
+
+def darwin_media() -> MediaSnapshot | None:
+    for provider in (darwin_nowplaying_cli, darwin_music_media, darwin_spotify_media):
+        media = provider()
+        if media:
+            return media
+    return None
+
+
+def darwin_nowplaying_cli() -> MediaSnapshot | None:
+    if not command_exists("nowplaying-cli"):
+        return None
+    title = run(["nowplaying-cli", "get", "title"]).strip()
+    if not title:
+        return None
+    player = run(["nowplaying-cli", "get", "bundleIdentifier"]).strip()
+    return MediaSnapshot(title=sanitize_media_text(title), player=sanitize_media_text(player))
+
+
+def darwin_music_media() -> MediaSnapshot | None:
+    script = """
+tell application "System Events" to set musicRunning to exists (processes where name is "Music")
+if musicRunning then
+  tell application "Music"
+    if player state is playing then
+      return name of current track
+    end if
+  end tell
+end if
+return ""
+"""
+    title = run_osascript(script).strip()
+    if not title:
+        return None
+    return MediaSnapshot(title=sanitize_media_text(title), player="Music")
+
+
+def darwin_spotify_media() -> MediaSnapshot | None:
+    script = """
+tell application "System Events" to set spotifyRunning to exists (processes where name is "Spotify")
+if spotifyRunning then
+  tell application "Spotify"
+    if player state is playing then
+      return name of current track
+    end if
+  end tell
+end if
+return ""
+"""
+    title = run_osascript(script).strip()
+    if not title:
+        return None
+    return MediaSnapshot(title=sanitize_media_text(title), player="Spotify")
+
+
+def linux_media() -> MediaSnapshot | None:
+    if not command_exists("playerctl"):
+        return None
+    players = [line.strip() for line in run(["playerctl", "--list-all"]).splitlines() if line.strip()]
+    for player in players:
+        if run(["playerctl", "--player", player, "status"]).strip().lower() != "playing":
+            continue
+        title = run(["playerctl", "--player", player, "metadata", "title"]).strip()
+        if title:
+            return MediaSnapshot(title=sanitize_media_text(title), player=sanitize_media_text(player))
+    return None
+
+
+def run_osascript(script: str) -> str:
+    return run(["osascript", "-e", script]) if command_exists("osascript") else ""
+
+
+def command_exists(name: str) -> bool:
+    return shutil.which(name) is not None
+
+
+def sanitize_media_text(value: str) -> str:
+    text = re.sub(r"[\x00-\x1f\x7f]", " ", value)
+    text = re.sub(r"\s+", " ", text).strip()
+    if len(text) <= 120:
+        return text
+    return text[:119].rstrip() + "…"
+
+
+def label_set(labels: dict[str, str]) -> str:
+    pairs = []
+    for key in sorted(labels):
+        value = labels[key]
+        if value:
+            pairs.append(f'{prometheus_label_name(key)}="{escape_label_value(value)}"')
+    return "{" + ",".join(pairs) + "}" if pairs else ""
+
+
+def prometheus_label_name(value: str) -> str:
+    name = re.sub(r"[^A-Za-z0-9_]", "_", value)
+    if not name:
+        return "label"
+    if name[0].isdigit():
+        return f"label_{name}"
+    return name
+
+
+def escape_label_value(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("\n", "\\n").replace('"', '\\"')
 
 
 def cpu_usage() -> float:

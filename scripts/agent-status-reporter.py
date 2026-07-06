@@ -181,6 +181,9 @@ def serve(args: argparse.Namespace) -> int:
             if self.path == "/api/agent-status":
                 self.write_json([snapshot.payload() for snapshot in build_snapshots(args)])
                 return
+            if self.path == "/metrics":
+                self.write_text(render_prometheus_metrics(build_snapshots(args)))
+                return
             self.write_json({"error": "not_found"}, 404)
 
         def log_message(self, _format: str, *_args: object) -> None:
@@ -191,6 +194,15 @@ def serve(args: argparse.Namespace) -> int:
             self.send_response(status)
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def write_text(self, payload: str, status: int = 200) -> None:
+            data = payload.encode()
+            self.send_response(status)
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
@@ -540,6 +552,54 @@ def post_agent(endpoint: str, token: str, payload: dict[str, Any], timeout_secon
         print(f"gateway agent status push failed: {error.__class__.__name__}", file=sys.stderr)
         return False
     return True
+
+
+def render_prometheus_metrics(snapshots: list[AgentSnapshot]) -> str:
+    lines = [
+        "# HELP realtime_agent_state Agent state labelled by state. OpenTelemetry name: realtime.agent.state.",
+        "# TYPE realtime_agent_state gauge",
+        "# UNIT realtime_agent_state 1",
+        "# HELP realtime_agent_budget_remaining_ratio Agent budget remaining as a fraction. OpenTelemetry name: realtime.agent.budget.remaining.",
+        "# TYPE realtime_agent_budget_remaining_ratio gauge",
+        "# UNIT realtime_agent_budget_remaining_ratio 1",
+    ]
+    for snapshot in snapshots:
+        labels = {
+            "agent_id": snapshot.agent_id,
+            "device_id": snapshot.device_id,
+            "device_name": snapshot.device_name,
+        }
+        for state in ("idle", "running", "failed"):
+            lines.append(f"realtime_agent_state{label_set({**labels, 'state': state})} {1 if snapshot.state == state else 0}")
+        if snapshot.budget_remaining_percent is not None:
+            lines.append(
+                f"realtime_agent_budget_remaining_ratio{label_set(labels)} "
+                f"{max(0, min(100, snapshot.budget_remaining_percent)) / 100}"
+            )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def label_set(labels: dict[str, str]) -> str:
+    pairs = []
+    for key in sorted(labels):
+        value = labels[key]
+        if value:
+            pairs.append(f'{prometheus_label_name(key)}="{escape_label_value(value)}"')
+    return "{" + ",".join(pairs) + "}" if pairs else ""
+
+
+def prometheus_label_name(value: str) -> str:
+    name = re.sub(r"[^A-Za-z0-9_]", "_", value)
+    if not name:
+        return "label"
+    if name[0].isdigit():
+        return f"label_{name}"
+    return name
+
+
+def escape_label_value(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("\n", "\\n").replace('"', '\\"')
 
 
 def sanitize_task(value: str) -> str:

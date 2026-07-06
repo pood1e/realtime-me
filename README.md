@@ -16,7 +16,7 @@ The watch does not need internet access. It collects local health/device data an
   - Stores only the self-hosted gateway ingest token with Android Keystore-backed AES/GCM encrypted shared preferences.
   - Pushes phone/watch status to configured gateway endpoints; private LAN/public URLs are build properties, not committed values.
   - Keeps a foreground sync service active after token setup; WorkManager is only a 15-minute OS-managed recovery fallback.
-- `apps/status-gateway`: Go gateway for mobile/agent ingestion, GitHub `changeUserStatus`, public status JSON, and Prometheus metrics.
+- `apps/status-gateway`: Go gateway for mobile ingestion, Prometheus HTTP service discovery, GitHub `changeUserStatus`, public status JSON, and internal metrics charts.
 - `apps/status-page`: Vite/React status page using shadcn/ui, Radix, Lucide, Tailwind, and a Cloudflare Worker custom domain.
 - `infra/status-stack`: Prometheus, node-exporter, cAdvisor, status-gateway, and optional cloudflared service definitions.
 - `libs/protocol` and `proto/realtime/me/v1/watch.proto`: shared protobuf contract for the Data Layer payload.
@@ -110,7 +110,7 @@ The debug receiver exists only in debug builds and stores the token through the 
 
 ## Self-hosted status stack
 
-The status stack stores raw time-series data in Prometheus on your own host. Cloudflare only needs to expose the public API/page through a Tunnel or Worker custom domain. Host and desktop reports use a generic device model with OpenTelemetry semantic metric names such as `system.cpu.logical.count`, `system.cpu.utilization`, `system.memory.usage`, and `system.memory.limit`, instead of bespoke CPU/memory structs.
+The status stack stores raw time-series data in Prometheus on your own host. Cloudflare only needs to expose the public API/page through a Tunnel or Worker custom domain. Linux host and VM metrics are scraped by Prometheus through node-exporter and HTTP service discovery. Extra device signals, such as the currently playing media title on macOS/Linux, are scraped from `status-device-reporter.py --serve`.
 
 ```sh
 cd infra/status-stack
@@ -142,24 +142,16 @@ POST /api/ingest/mobile
 Authorization: Bearer <STATUS_INGEST_TOKEN>
 ```
 
-Host/device reporters publish:
-
-```text
-POST /api/ingest/host
-Authorization: Bearer <STATUS_INGEST_TOKEN>
-```
-The optional host reporter publishes server, desktop, and VM state through the same generic device model:
+Linux probes register Prometheus scrape targets with the gateway, then Prometheus pulls node-exporter/device-exporter metrics:
 
 ```sh
-STATUS_INGEST_TOKEN=replace-with-generated-token \
-STATUS_GATEWAY_URL=http://<gateway-host>:18080 \
-STATUS_DEVICE_ID=server \
-STATUS_DEVICE_ROLE=server \
-STATUS_VM_NAME_CONTAINS=kali \
-./scripts/status-device-reporter.py
+curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-linux-probe.sh \
+  | sudo env STATUS_GATEWAY_URL=http://<gateway-host>:18080 \
+      STATUS_EXPORTER_HOST=<device-lan-ip> \
+      bash
 ```
 
-For a Mac or workstation, set `STATUS_DEVICE_ROLE=desktop`. The reporter includes CPU logical count, CPU utilization, memory used/total bytes, root filesystem usage/limit, device model, and matching `virsh` VMs when available.
+Use `INSTALL_AGENT=1` when the device should also expose Codex/Claude active-agent state. Use `STATUS_DEVICE_ROLE=vm STATUS_DEVICE_KIND=virtual_machine` for VMs. The Linux installer does not hardcode LAN addresses; pass `STATUS_EXPORTER_HOST` when automatic route detection is not suitable. Media title collection on Linux uses `playerctl` when available. On macOS, run `scripts/status-device-reporter.py --serve` under the logged-in user so media session metadata is visible.
 
 
 ## Public status page
