@@ -1,12 +1,16 @@
 package me.realtime.mobile.status
 
+import android.Manifest
+import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.Build
+import android.provider.Settings
 import me.realtime.mobile.state.StoredWatchSnapshot
 import me.realtime.protocol.v1.ChargeState
 import me.realtime.protocol.v1.WristState
@@ -18,7 +22,7 @@ class StatusGatewayPayloadBuilder(private val context: Context) {
     fun build(storedWatchSnapshot: StoredWatchSnapshot?): JSONObject {
         return JSONObject()
             .put("device_id", StatusDeviceIdentity(context).id())
-            .put("device_name", Build.MODEL)
+            .put("device_name", deviceName())
             .put("device_model", deviceModel())
             .put("updated_at", Instant.now().toString())
             .put("phone", phoneState())
@@ -52,7 +56,30 @@ class StatusGatewayPayloadBuilder(private val context: Context) {
         return state
     }
 
+    private fun deviceName(): String = firstNonBlank(
+        bluetoothName(),
+        globalDeviceName(),
+        Build.MODEL,
+    )
+
     private fun deviceModel(): String = listOf(Build.MANUFACTURER, Build.MODEL).joinToString(" ").trim()
+
+    private fun bluetoothName(): String = runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return@runCatching ""
+        }
+        context.getSystemService(BluetoothManager::class.java)?.adapter?.name.orEmpty()
+    }.getOrDefault("")
+
+    private fun globalDeviceName(): String = runCatching {
+        Settings.Global.getString(context.contentResolver, Settings.Global.DEVICE_NAME)
+    }.getOrDefault("")
+
+    private fun firstNonBlank(vararg values: String?): String {
+        return values.firstOrNull { !it.isNullOrBlank() && !it.equals("null", ignoreCase = true) }?.trim().orEmpty()
+    }
 
     private fun networkState(): String {
         val manager = context.getSystemService(ConnectivityManager::class.java) ?: return "unknown"

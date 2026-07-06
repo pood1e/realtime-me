@@ -24,6 +24,7 @@ import {
 import {
   siAlpinelinux,
   siAndroid,
+  siApple,
   siArchlinux,
   siCentos,
   siDebian,
@@ -31,7 +32,6 @@ import {
   siKalilinux,
   siLinux,
   siLinuxmint,
-  siMacos,
   siPopos,
   siRedhat,
   siUbuntu,
@@ -380,7 +380,7 @@ function osIcon(value: string): SimpleIcon | null {
   const text = value.toLowerCase();
   if (text.includes('wear os')) return siWearos;
   if (text.includes('android')) return siAndroid;
-  if (text.includes('macos') || text.includes('darwin')) return siMacos;
+  if (text.includes('macos') || text.includes('darwin')) return siApple;
   if (text.includes('kali')) return siKalilinux;
   if (text.includes('ubuntu')) return siUbuntu;
   if (text.includes('debian')) return siDebian;

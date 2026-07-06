@@ -93,7 +93,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        requestNotificationPermissionIfNeeded()
+        requestRuntimePermissionsIfNeeded()
         enableEdgeToEdge()
         setContent {
             RealtimeMobileScreen(
@@ -165,10 +165,22 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
-        requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), NOTIFICATION_PERMISSION_REQUEST_CODE)
+    private fun requestRuntimePermissionsIfNeeded() {
+        val permissions = buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            ) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+            ) {
+                add(Manifest.permission.BLUETOOTH_CONNECT)
+            }
+        }
+        if (permissions.isNotEmpty()) {
+            requestPermissions(permissions.toTypedArray(), RUNTIME_PERMISSION_REQUEST_CODE)
+        }
     }
 
     private fun startBackgroundSyncIfConfigured() {
@@ -268,7 +280,7 @@ class MainActivity : ComponentActivity() {
     private companion object {
         const val REFRESH_INTERVAL_MS = 2_000L
         const val MIN_STATUS_GATEWAY_TOKEN_LENGTH = 16
-        const val NOTIFICATION_PERMISSION_REQUEST_CODE = 1002
+        const val RUNTIME_PERMISSION_REQUEST_CODE = 1002
         const val MISSING_VALUE = "—"
     }
 }
