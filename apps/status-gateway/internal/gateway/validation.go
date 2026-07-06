@@ -1,6 +1,9 @@
 package gateway
 
-import "time"
+import (
+	"time"
+	"unicode/utf8"
+)
 
 func validateMobile(input *MobileIngest) bool {
 	if input == nil || len(input.DeviceID) < 1 || len(input.DeviceID) > 80 {
@@ -115,7 +118,7 @@ func validateAgent(input *AgentIngest) bool {
 	if input.State != "idle" && input.State != "running" && input.State != "failed" {
 		return false
 	}
-	if len(input.Task) > 120 {
+	if utf8.RuneCountInString(input.Task) > 120 {
 		return false
 	}
 	return input.BudgetRemainingPercent == nil || inRange(*input.BudgetRemainingPercent, 0, 100)

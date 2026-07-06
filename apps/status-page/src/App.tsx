@@ -26,6 +26,7 @@ import {
   siAndroid,
   siApple,
   siArchlinux,
+  siClaude,
   siCentos,
   siDebian,
   siFedora,
@@ -347,21 +348,28 @@ function AgentCard({ agents }: { agents: AgentStatus[] }) {
         <CardTitle className="flex items-center gap-2"><Bot className="size-4" />Agents</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3">
+        {agents.length === 0 && <CardDescription>No agents yet</CardDescription>}
         {agents.map((agent, index) => (
           <div key={agent.agent_id}>
             {index > 0 && <Separator className="mb-3" />}
             <div className="flex items-center justify-between gap-3">
-              <span className="font-medium">{agent.agent_id}</span>
+              <span className="flex min-w-0 items-center gap-2 font-medium">
+                {agentIcon(agent.agent_id)}
+                <span className="truncate">{agentName(agent.agent_id)}</span>
+              </span>
               <span className="flex items-center gap-2">
-                <InlineTime value={agent.received_at} />
-                <Badge variant={agent.state === 'failed' ? 'destructive' : agent.state === 'running' ? 'default' : 'secondary'}>{agent.state}</Badge>
+                <InlineTime value={agent.updated_at || agent.received_at} />
+                <Badge variant={agentBadgeVariant(agent.state)} title={agent.state}>{agentStateIcon(agent.state)}</Badge>
               </span>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">{agent.task ?? '—'}</p>
             {agent.budget_remaining_percent !== undefined && (
               <div className="mt-3 grid gap-2">
+                <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                  <span>Budget</span>
+                  <span>{agent.budget_remaining_percent}%</span>
+                </div>
                 <Progress value={agent.budget_remaining_percent} />
-                <span className="text-xs text-muted-foreground">Budget {agent.budget_remaining_percent}%</span>
               </div>
             )}
           </div>
@@ -369,6 +377,30 @@ function AgentCard({ agents }: { agents: AgentStatus[] }) {
       </CardContent>
     </Card>
   );
+}
+
+function agentName(agentId: string): string {
+  if (agentId === 'claude-code') return 'Claude Code';
+  if (agentId === 'codex') return 'Codex';
+  if (agentId.startsWith('codex:')) return `Codex · ${agentId.slice('codex:'.length)}`;
+  return agentId;
+}
+
+function agentIcon(agentId: string): ReactElement {
+  if (agentId === 'claude-code') return <BrandIcon icon={siClaude} />;
+  return <Bot className="size-4" />;
+}
+
+function agentStateIcon(state: AgentStatus['state']): ReactElement {
+  if (state === 'failed') return <AlertTriangle />;
+  if (state === 'running') return <LoaderCircle className="animate-spin" />;
+  return <CircleOff />;
+}
+
+function agentBadgeVariant(state: AgentStatus['state']): 'default' | 'secondary' | 'destructive' {
+  if (state === 'failed') return 'destructive';
+  if (state === 'running') return 'default';
+  return 'secondary';
 }
 
 function deviceIcon(device: DeviceStatus | null, fallback: ReactElement): ReactElement {
