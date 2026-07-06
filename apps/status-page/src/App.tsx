@@ -57,6 +57,11 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
+type AgentMotionAsset = {
+  src: string;
+  durationMs: number;
+};
+
 const POLL_INTERVAL_MS = 10_000;
 const CPU_CORES = 'system.cpu.logical.count';
 const CPU_USAGE = 'system.cpu.utilization';
@@ -65,6 +70,20 @@ const MEMORY_LIMIT = 'system.memory.limit';
 const FILESYSTEM_USAGE = 'system.filesystem.usage';
 const FILESYSTEM_LIMIT = 'system.filesystem.limit';
 const FILESYSTEM_UTILIZATION = 'system.filesystem.utilization';
+const CLAWD_MOTION_ASSETS: AgentMotionAsset[] = [
+  { src: clawdTypingUrl, durationMs: 1_440 },
+  { src: clawdBuildingUrl, durationMs: 960 },
+  { src: clawdDebuggerUrl, durationMs: 2_880 },
+  { src: clawdThinkingUrl, durationMs: 3_840 },
+  { src: clawdSweepingUrl, durationMs: 1_440 },
+  { src: clawdJugglingUrl, durationMs: 1_120 },
+];
+const CODEX_MOTION_ASSETS: AgentMotionAsset[] = [
+  { src: codexOrbitUrl, durationMs: 4_000 },
+  { src: codexRibbonsUrl, durationMs: 4_000 },
+  { src: codexSparksUrl, durationMs: 4_000 },
+];
+const DEFAULT_MOTION_ASSETS: AgentMotionAsset[] = [{ src: agentOrbitUrl, durationMs: 4_000 }];
 
 type PublicStatus = {
   server: DeviceStatus;
@@ -387,11 +406,27 @@ function AgentCard({ agent }: { agent: AgentStatus }) {
 }
 
 function AgentMotion({ agent }: { agent: AgentStatus }) {
-  const image = agentMotionImage(agent);
+  const assets = agentMotionAssets(agent.agent_id);
+  const initialIndex = hashString(`${agent.device_id ?? ''}:${agent.agent_id}`) % assets.length;
+  const [index, setIndex] = useState(initialIndex);
+  const asset = assets[index % assets.length];
   const imageClassName = isClaudeAgent(agent.agent_id) ? 'agent-motion-image agent-motion-image-pixel' : 'agent-motion-image';
+
+  useEffect(() => {
+    setIndex(initialIndex);
+  }, [initialIndex]);
+
+  useEffect(() => {
+    if (assets.length <= 1) return;
+    const timeout = window.setTimeout(() => {
+      setIndex((current) => (current + 1) % assets.length);
+    }, asset.durationMs);
+    return () => window.clearTimeout(timeout);
+  }, [asset.durationMs, assets.length, index]);
+
   return (
     <div className="agent-motion">
-      <img className={imageClassName} src={image} alt={`${agentName(agent.agent_id)} working`} />
+      <img key={asset.src} className={imageClassName} src={asset.src} alt={`${agentName(agent.agent_id)} working`} />
     </div>
   );
 }
@@ -413,18 +448,10 @@ function agentIcon(agentId: string): ReactElement {
   return <Bot className="size-4" />;
 }
 
-function agentMotionImage(agent: AgentStatus): string {
-  const images = agentMotionImages(agent.agent_id);
-  const seed = `${agent.agent_id}:${agent.updated_at || agent.received_at}`;
-  return images[hashString(seed) % images.length];
-}
-
-function agentMotionImages(agentId: string): string[] {
-  if (isClaudeAgent(agentId)) {
-    return [clawdTypingUrl, clawdBuildingUrl, clawdDebuggerUrl, clawdThinkingUrl, clawdSweepingUrl, clawdJugglingUrl];
-  }
-  if (agentId === 'codex' || agentId.startsWith('codex:')) return [codexOrbitUrl, codexRibbonsUrl, codexSparksUrl];
-  return [agentOrbitUrl];
+function agentMotionAssets(agentId: string): AgentMotionAsset[] {
+  if (isClaudeAgent(agentId)) return CLAWD_MOTION_ASSETS;
+  if (agentId === 'codex' || agentId.startsWith('codex:')) return CODEX_MOTION_ASSETS;
+  return DEFAULT_MOTION_ASSETS;
 }
 
 function isClaudeAgent(agentId: string): boolean {
