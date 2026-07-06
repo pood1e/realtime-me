@@ -48,7 +48,7 @@ func (store *StatusStore) Load() error {
 	}
 	store.mobile = snapshot.Mobile
 	for _, agent := range snapshot.Agents {
-		store.agents[agent.AgentID] = agent
+		store.agents[agentStoreKey(agent.AgentIngest)] = agent
 	}
 	for _, device := range snapshot.Devices {
 		store.devices[device.DeviceID] = device
@@ -100,7 +100,10 @@ func (store *StatusStore) UpdateAgent(input AgentIngest, receivedAt time.Time) (
 
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
-	store.agents[status.AgentID] = status
+	if status.DeviceID != "" {
+		delete(store.agents, status.AgentID)
+	}
+	store.agents[agentStoreKey(status.AgentIngest)] = status
 	return status, store.saveLocked()
 }
 
@@ -140,6 +143,9 @@ func (store *StatusStore) snapshotLocked() GatewayStateSnapshot {
 		agents = append(agents, agent)
 	}
 	sort.Slice(agents, func(left, right int) bool {
+		if agents[left].DeviceID != agents[right].DeviceID {
+			return agents[left].DeviceID < agents[right].DeviceID
+		}
 		return agents[left].AgentID < agents[right].AgentID
 	})
 	devices := make([]StoredDeviceStatus, 0, len(store.devices))
@@ -155,4 +161,11 @@ func (store *StatusStore) snapshotLocked() GatewayStateSnapshot {
 		Devices: devices,
 		GitHub:  store.github,
 	}
+}
+
+func agentStoreKey(agent AgentIngest) string {
+	if agent.DeviceID == "" {
+		return agent.AgentID
+	}
+	return agent.DeviceID + "/" + agent.AgentID
 }

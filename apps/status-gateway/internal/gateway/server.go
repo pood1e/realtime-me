@@ -132,7 +132,7 @@ func (server *Server) status(ctx context.Context) PublicStatus {
 	snapshot := server.store.Snapshot()
 	nowTime := time.Now().UTC()
 	now := nowTime.Format(time.RFC3339)
-	agents := freshAgents(snapshot.Agents, nowTime, time.Duration(server.config.AgentFreshSeconds)*time.Second)
+	agents := runningAgents(snapshot.Agents, nowTime, time.Duration(server.config.AgentFreshSeconds)*time.Second)
 	if len(agents) == 0 && server.config.PublicAgentPlaceholder {
 		agents = []StoredAgentStatus{{
 			AgentIngest: AgentIngest{
@@ -168,9 +168,12 @@ func (server *Server) status(ctx context.Context) PublicStatus {
 	}
 }
 
-func freshAgents(agents []StoredAgentStatus, now time.Time, freshness time.Duration) []StoredAgentStatus {
+func runningAgents(agents []StoredAgentStatus, now time.Time, freshness time.Duration) []StoredAgentStatus {
 	result := make([]StoredAgentStatus, 0, len(agents))
 	for _, agent := range agents {
+		if agent.State != "running" {
+			continue
+		}
 		timestamp, err := time.Parse(time.RFC3339, firstString(agent.ReceivedAt, agent.UpdatedAt))
 		if err != nil || now.Sub(timestamp) <= freshness {
 			result = append(result, agent)

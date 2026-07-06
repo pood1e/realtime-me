@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 import re
+import socket
 import sqlite3
 import subprocess
 import sys
@@ -29,6 +30,8 @@ CLAUDE_OPEN_TASK_STATES = {"in_progress", "pending"}
 class AgentSnapshot:
     agent_id: str
     state: str
+    device_id: str = ""
+    device_name: str = ""
     task: str = ""
     updated_at: str = ""
     budget_remaining_percent: int | None = None
@@ -38,6 +41,10 @@ class AgentSnapshot:
             "agent_id": self.agent_id,
             "state": self.state,
         }
+        if self.device_id:
+            data["device_id"] = self.device_id
+        if self.device_name:
+            data["device_name"] = self.device_name
         if self.task:
             data["task"] = self.task
         if self.updated_at:
@@ -73,12 +80,24 @@ class CodexCandidate:
 
 
 @dataclass(frozen=True)
+class CodexActivity:
+    working: bool
+    updated_at_seconds: float
+
+
+@dataclass(frozen=True)
 class ClaudeSession:
     session_id: str
     cli_session_id: str
     title: str
     updated_at_seconds: float
     archived: bool
+
+
+@dataclass(frozen=True)
+class DeviceIdentity:
+    device_id: str
+    device_name: str
 
 
 def main() -> int:
@@ -104,6 +123,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Publish local Claude Code and Codex task titles to realtime-me gateway.")
     parser.add_argument("--url", default=os.getenv("STATUS_GATEWAY_URL", "http://127.0.0.1:18080"))
     parser.add_argument("--token", default="")
+    parser.add_argument("--device-id", default=os.getenv("STATUS_DEVICE_ID", socket.gethostname()))
+    parser.add_argument("--device-name", default=os.getenv("STATUS_DEVICE_NAME", socket.gethostname()))
     parser.add_argument("--timeout-seconds", type=float, default=5)
     parser.add_argument("--active-window-seconds", type=int, default=int(os.getenv("STATUS_AGENT_ACTIVE_WINDOW_SECONDS", "300")))
     parser.add_argument("--codex-homes", default=os.getenv("STATUS_CODEX_HOMES", "~/.codex-api:~/.codex"))
@@ -118,34 +139,37 @@ def parse_args() -> argparse.Namespace:
 
 def build_snapshots(args: argparse.Namespace) -> list[AgentSnapshot]:
     now = time.time()
+    device = DeviceIdentity(args.device_id, args.device_name)
     codex_homes = [expand_path(value) for value in re.split(r"[:;,]", args.codex_homes) if value.strip()]
     return [
-        *codex_snapshots(codex_homes, now, args.active_window_seconds),
-        claude_snapshot(expand_path(args.claude_sessions_dir), expand_path(args.claude_tasks_dir), now, args.active_window_seconds),
+        *codex_snapshots(codex_homes, now, args.active_window_seconds, device),
+        claude_snapshot(expand_path(args.claude_sessions_dir), expand_path(args.claude_tasks_dir), now, args.active_window_seconds, device),
     ]
 
 
-def codex_snapshots(homes: list[Path], now: float, active_window_seconds: int) -> list[AgentSnapshot]:
-    open_thread_ids = codex_open_thread_ids(homes)
-    candidates = codex_candidates(homes, open_thread_ids, now, active_window_seconds)
+def codex_snapshots(homes: list[Path], now: float, active_window_seconds: int, device: DeviceIdentity) -> list[AgentSnapshot]:
+    open_sessions = codex_open_sessions(homes)
+    candidates = codex_candidates(homes, open_sessions, now, active_window_seconds)
     if not candidates:
-        return [AgentSnapshot(agent_id="codex", state="idle", updated_at=utc_now())]
+        return [AgentSnapshot(agent_id="codex", state="idle", device_id=device.device_id, device_name=device.device_name, updated_at=utc_now())]
 
     candidates.sort(key=lambda item: (item.state != "idle", item.updated_at_seconds), reverse=True)
-    return [codex_agent_snapshot(candidate) for candidate in candidates]
+    return [codex_agent_snapshot(candidate, device) for candidate in candidates]
 
 
-def codex_agent_snapshot(candidate: CodexCandidate) -> AgentSnapshot:
+def codex_agent_snapshot(candidate: CodexCandidate, device: DeviceIdentity) -> AgentSnapshot:
     return AgentSnapshot(
         agent_id=f"codex:{candidate.thread_id[:8]}",
         state=candidate.state,
+        device_id=device.device_id,
+        device_name=device.device_name,
         task=sanitize_task(candidate.task),
         updated_at=iso_time(candidate.updated_at_seconds),
         budget_remaining_percent=candidate.budget_remaining_percent,
     )
 
 
-def codex_candidates(homes: list[Path], open_thread_ids: set[str], now: float, active_window_seconds: int) -> list[CodexCandidate]:
+def codex_candidates(homes: list[Path], open_sessions: dict[str, Path], now: float, active_window_seconds: int) -> list[CodexCandidate]:
     threads: dict[str, CodexThread] = {}
     goals: dict[str, CodexGoal] = {}
     for home in homes:
@@ -153,14 +177,18 @@ def codex_candidates(homes: list[Path], open_thread_ids: set[str], now: float, a
         goals.update(read_codex_goals(home / "goals_1.sqlite"))
 
     candidates: list[CodexCandidate] = []
-    for thread_id in open_thread_ids:
+    for thread_id, session_path in open_sessions.items():
         thread = threads.get(thread_id)
         goal = goals.get(thread_id)
         if not thread and not goal:
             continue
-        updated_at = max(thread.updated_at_seconds if thread else 0, goal.updated_at_seconds if goal else 0)
-        active = now - updated_at <= active_window_seconds
-        state = codex_state(goal.status if goal else "", active)
+        activity = codex_activity(session_path, now, active_window_seconds)
+        updated_at = max(
+            thread.updated_at_seconds if thread else 0,
+            goal.updated_at_seconds if goal else 0,
+            activity.updated_at_seconds,
+        )
+        state = codex_state(goal.status if goal else "", activity.working)
         task = goal.objective if goal and goal.status in CODEX_RUNNING_GOAL_STATES | CODEX_FAILED_GOAL_STATES else thread.title if thread else goal.objective
         candidates.append(CodexCandidate(thread_id, task, state, updated_at, goal.budget_remaining_percent if goal else None))
 
@@ -213,14 +241,37 @@ def read_codex_goals(database: Path) -> dict[str, CodexGoal]:
     return goals
 
 
-def codex_open_thread_ids(homes: list[Path]) -> set[str]:
+def codex_open_sessions(homes: list[Path]) -> dict[str, Path]:
     session_paths = codex_open_session_paths(homes)
-    thread_ids = set()
+    sessions = {}
     for path in session_paths:
         match = UUID_PATTERN.search(path.name)
         if match:
-            thread_ids.add(match.group(0))
-    return thread_ids
+            sessions[match.group(0)] = path
+    return sessions
+
+
+def codex_activity(session_path: Path, now: float, active_window_seconds: int) -> CodexActivity:
+    fallback = session_path.stat().st_mtime
+    for line in reversed(tail_lines(session_path)):
+        event = decode_json(line)
+        if not event:
+            continue
+        timestamp = parse_event_timestamp(event.get("timestamp"), fallback)
+        payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
+        payload_type = str(payload.get("type") or "")
+        event_type = str(event.get("type") or "")
+        if payload_type == "token_count":
+            continue
+        if payload_type in {"task_complete", "agent_message"}:
+            return CodexActivity(False, timestamp)
+        if event_type == "response_item" and payload_type == "message":
+            return CodexActivity(False, timestamp)
+        if payload_type == "function_call":
+            return CodexActivity(True, timestamp)
+        if payload_type in {"function_call_output", "reasoning", "user_message"}:
+            return CodexActivity(now - timestamp <= active_window_seconds, timestamp)
+    return CodexActivity(False, fallback)
 
 
 def codex_open_session_paths(homes: list[Path]) -> set[Path]:
@@ -259,10 +310,10 @@ def open_files(process_id: int) -> list[Path]:
     return paths
 
 
-def claude_snapshot(sessions_dir: Path, tasks_dir: Path, now: float, active_window_seconds: int) -> AgentSnapshot:
+def claude_snapshot(sessions_dir: Path, tasks_dir: Path, now: float, active_window_seconds: int, device: DeviceIdentity) -> AgentSnapshot:
     sessions = read_claude_sessions(sessions_dir)
     if not sessions:
-        return AgentSnapshot(agent_id="claude-code", state="idle", updated_at=utc_now())
+        return AgentSnapshot(agent_id="claude-code", state="idle", device_id=device.device_id, device_name=device.device_name, updated_at=utc_now())
 
     sessions.sort(key=lambda item: item.updated_at_seconds, reverse=True)
     session = sessions[0]
@@ -271,6 +322,8 @@ def claude_snapshot(sessions_dir: Path, tasks_dir: Path, now: float, active_wind
     return AgentSnapshot(
         agent_id="claude-code",
         state="running" if active else "idle",
+        device_id=device.device_id,
+        device_name=device.device_name,
         task=sanitize_task(open_task or session.title),
         updated_at=iso_time(session.updated_at_seconds),
     )
@@ -336,6 +389,25 @@ def read_json_object(path: Path) -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+def decode_json(line: str) -> dict[str, Any]:
+    try:
+        data = json.loads(line)
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def tail_lines(path: Path, max_bytes: int = 131_072) -> list[str]:
+    try:
+        with path.open("rb") as file:
+            file.seek(0, os.SEEK_END)
+            size = file.tell()
+            file.seek(max(0, size - max_bytes))
+            return file.read().decode(errors="ignore").splitlines()
+    except OSError:
+        return []
+
+
 def post_agent(endpoint: str, token: str, payload: dict[str, Any], timeout_seconds: float) -> bool:
     request = urllib.request.Request(
         endpoint,
@@ -390,6 +462,15 @@ def timestamp_seconds(value: Any) -> float:
     except (TypeError, ValueError):
         return 0
     return numeric / 1000 if numeric > 10_000_000_000 else numeric
+
+
+def parse_event_timestamp(value: Any, fallback: float) -> float:
+    if not isinstance(value, str):
+        return fallback
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return fallback
 
 
 def iso_time(timestamp: float) -> str:

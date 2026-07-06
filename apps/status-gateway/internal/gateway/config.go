@@ -24,7 +24,7 @@ func LoadConfig() Config {
 		StateFile:                      env("STATUS_STATE_FILE", "/data/status-state.json"),
 		IngestTokens:                   parseTokens(os.Getenv("STATUS_INGEST_TOKEN")),
 		PrometheusURL:                  strings.TrimRight(env("PROMETHEUS_URL", "http://prometheus:9090"), "/"),
-		PublicAgentPlaceholder:         os.Getenv("PUBLIC_AGENT_PLACEHOLDER") != "false",
+		PublicAgentPlaceholder:         os.Getenv("PUBLIC_AGENT_PLACEHOLDER") == "true",
 		AgentFreshSeconds:              positiveInt("STATUS_AGENT_FRESH_SECONDS", 120),
 		GitHubToken:                    secretEnv("GITHUB_TOKEN"),
 		GitHubStatusMinIntervalSeconds: positiveInt("GITHUB_STATUS_MIN_INTERVAL_SECONDS", 10),

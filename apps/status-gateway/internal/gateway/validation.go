@@ -109,6 +109,9 @@ func validateAgent(input *AgentIngest) bool {
 	if input == nil || len(input.AgentID) < 1 || len(input.AgentID) > 80 {
 		return false
 	}
+	if len(input.DeviceID) > 80 || len(input.DeviceName) > 80 {
+		return false
+	}
 	if input.UpdatedAt != "" && !isDateTime(input.UpdatedAt) {
 		return false
 	}

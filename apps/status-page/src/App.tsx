@@ -9,7 +9,6 @@ import {
   CircleOff,
   Clock,
   Cpu,
-  GitBranch,
   HardDrive,
   HeartPulse,
   Laptop,
@@ -30,6 +29,7 @@ import {
   siCentos,
   siDebian,
   siFedora,
+  siGithub,
   siKalilinux,
   siLinux,
   siLinuxmint,
@@ -46,7 +46,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const POLL_INTERVAL_MS = 10_000;
@@ -122,6 +121,8 @@ type MobileStatus = {
 
 type AgentStatus = {
   agent_id: string;
+  device_id?: string;
+  device_name?: string;
   state: 'idle' | 'running' | 'failed';
   task?: string;
   budget_remaining_percent?: number;
@@ -319,23 +320,17 @@ function WatchCard({ mobile }: { mobile: MobileStatus | null }) {
 }
 
 function GitHubCard({ github }: { github: GitHubStatus | null }) {
-  const icon = githubIcon(github?.state);
+  const state = github?.state;
   return (
     <Card size="sm">
-      <CardContent className="flex flex-wrap items-center justify-between gap-3">
-        {github ? (
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <GitBranch className="size-4 text-muted-foreground" />
-            <Badge variant="secondary">{github.emoji ?? '⌚'}</Badge>
-            <Badge variant="outline">{github.message ?? github.state}</Badge>
-          </div>
-        ) : (
-          <Skeleton className="h-5 w-32" />
-        )}
-        <div className="flex items-center gap-2">
-          <InlineTime value={github?.updated_at} />
-          <Badge variant={githubBadgeVariant(github?.state)}>{icon}</Badge>
-        </div>
+      <CardContent className="flex items-center gap-2">
+        <BrandIcon icon={siGithub} />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant={githubBadgeVariant(state)} title={githubStatusTitle(state)}>{githubIcon(state)}</Badge>
+          </TooltipTrigger>
+          <TooltipContent>{githubStatusTitle(state)}</TooltipContent>
+        </Tooltip>
       </CardContent>
     </Card>
   );
@@ -350,12 +345,13 @@ function AgentCard({ agents }: { agents: AgentStatus[] }) {
       <CardContent className="grid gap-3">
         {agents.length === 0 && <CardDescription>No agents yet</CardDescription>}
         {agents.map((agent, index) => (
-          <div key={agent.agent_id}>
+          <div key={agentKey(agent)}>
             {index > 0 && <Separator className="mb-3" />}
             <div className="flex items-center justify-between gap-3">
               <span className="flex min-w-0 items-center gap-2 font-medium">
                 {agentIcon(agent.agent_id)}
                 <span className="truncate">{agentName(agent.agent_id)}</span>
+                <AgentDeviceBadge agent={agent} />
               </span>
               <span className="flex items-center gap-2">
                 <InlineTime value={agent.updated_at || agent.received_at} />
@@ -386,6 +382,10 @@ function agentName(agentId: string): string {
   return agentId;
 }
 
+function agentKey(agent: AgentStatus): string {
+  return `${agent.device_id ?? ''}/${agent.agent_id}`;
+}
+
 function agentIcon(agentId: string): ReactElement {
   if (agentId === 'claude-code') return <BrandIcon icon={siClaude} />;
   if (agentId === 'codex' || agentId.startsWith('codex:')) return <CodexIcon />;
@@ -401,6 +401,17 @@ function CodexIcon() {
         d="M8.086.457a6.105 6.105 0 013.046-.415c1.333.153 2.521.72 3.564 1.7a.117.117 0 00.107.029c1.408-.346 2.762-.224 4.061.366l.063.03.154.076c1.357.703 2.33 1.77 2.918 3.198.278.679.418 1.388.421 2.126a5.655 5.655 0 01-.18 1.631.167.167 0 00.04.155 5.982 5.982 0 011.578 2.891c.385 1.901-.01 3.615-1.183 5.14l-.182.22a6.063 6.063 0 01-2.934 1.851.162.162 0 00-.108.102c-.255.736-.511 1.364-.987 1.992-1.199 1.582-2.962 2.462-4.948 2.451-1.583-.008-2.986-.587-4.21-1.736a.145.145 0 00-.14-.032c-.518.167-1.04.191-1.604.185a5.924 5.924 0 01-2.595-.622 6.058 6.058 0 01-2.146-1.781c-.203-.269-.404-.522-.551-.821a7.74 7.74 0 01-.495-1.283 6.11 6.11 0 01-.017-3.064.166.166 0 00.008-.074.115.115 0 00-.037-.064 5.958 5.958 0 01-1.38-2.202 5.196 5.196 0 01-.333-1.589 6.915 6.915 0 01.188-2.132c.45-1.484 1.309-2.648 2.577-3.493.282-.188.55-.334.802-.438.286-.12.573-.22.861-.304a.129.129 0 00.087-.087A6.016 6.016 0 015.635 2.31C6.315 1.464 7.132.846 8.086.457zm-.804 7.85a.848.848 0 00-1.473.842l1.694 2.965-1.688 2.848a.849.849 0 001.46.864l1.94-3.272a.849.849 0 00.007-.854l-1.94-3.393zm5.446 6.24a.849.849 0 000 1.695h4.848a.849.849 0 000-1.696h-4.848z"
       />
     </svg>
+  );
+}
+
+function AgentDeviceBadge({ agent }: { agent: AgentStatus }) {
+  const device = agent.device_name || agent.device_id;
+  if (!device) return null;
+  return (
+    <Badge variant="outline" className="min-w-0 shrink" title={device}>
+      <Laptop />
+      <span className="truncate">{device}</span>
+    </Badge>
   );
 }
 
@@ -530,7 +541,7 @@ function githubIcon(state: GitHubStatus['state'] | undefined): ReactElement {
   if (state === 'error') return <AlertTriangle />;
   if (state === 'pending') return <LoaderCircle className="animate-spin" />;
   if (state === 'ok') return <CheckCircle2 />;
-  return <GitBranch />;
+  return <CircleOff />;
 }
 
 function githubBadgeVariant(state: GitHubStatus['state'] | undefined): 'default' | 'secondary' | 'destructive' | 'outline' {
@@ -538,6 +549,13 @@ function githubBadgeVariant(state: GitHubStatus['state'] | undefined): 'default'
   if (state === 'ok') return 'default';
   if (state === 'pending') return 'secondary';
   return 'outline';
+}
+
+function githubStatusTitle(state: GitHubStatus['state'] | undefined): string {
+  if (state === 'ok') return 'Connected';
+  if (state === 'pending') return 'Connecting';
+  if (state === 'error') return 'Sync failed';
+  return 'Disconnected';
 }
 
 function cpuCoreText(device: DeviceStatus | null | undefined): string {

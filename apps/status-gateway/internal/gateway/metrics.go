@@ -105,9 +105,16 @@ func appendBattery(lines *[]string, deviceID string, deviceType string, value *i
 }
 
 func appendAgentMetrics(lines *[]string, status StoredAgentStatus) {
-	appendState(lines, "realtime_agent_state", map[string]string{"agent_id": status.AgentID}, "state", status.State, []string{"idle", "running", "failed"})
+	labels := map[string]string{"agent_id": status.AgentID}
+	if status.DeviceID != "" {
+		labels["device_id"] = status.DeviceID
+	}
+	if status.DeviceName != "" {
+		labels["device_name"] = status.DeviceName
+	}
+	appendState(lines, "realtime_agent_state", labels, "state", status.State, []string{"idle", "running", "failed"})
 	if status.BudgetRemainingPercent != nil {
-		appendSample(lines, "realtime_agent_budget_remaining_ratio", map[string]string{"agent_id": status.AgentID}, float64(*status.BudgetRemainingPercent)/100)
+		appendSample(lines, "realtime_agent_budget_remaining_ratio", labels, float64(*status.BudgetRemainingPercent)/100)
 	}
 }
 

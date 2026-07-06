@@ -60,6 +60,8 @@ type MetricSample struct {
 
 type AgentIngest struct {
 	AgentID                string `json:"agent_id"`
+	DeviceID               string `json:"device_id,omitempty"`
+	DeviceName             string `json:"device_name,omitempty"`
 	UpdatedAt              string `json:"updated_at,omitempty"`
 	State                  string `json:"state,omitempty"`
 	Task                   string `json:"task,omitempty"`
