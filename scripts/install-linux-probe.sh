@@ -20,6 +20,9 @@ PROBE_USER=${STATUS_PROBE_USER:-${SUDO_USER:-}}
 NODE_EXPORTER_VERSION=${NODE_EXPORTER_VERSION:-1.11.1}
 NODE_EXPORTER_VERSION=${NODE_EXPORTER_VERSION#v}
 NODE_EXPORTER_BIN=${NODE_EXPORTER_BIN:-/usr/local/bin/node_exporter}
+DOWNLOAD_TIMEOUT_SECONDS=${STATUS_DOWNLOAD_TIMEOUT_SECONDS:-45}
+NODE_EXPORTER_DOWNLOAD_TIMEOUT_SECONDS=${STATUS_NODE_EXPORTER_DOWNLOAD_TIMEOUT_SECONDS:-180}
+CURL_FORCE_IPV4=${STATUS_CURL_FORCE_IPV4:-1}
 if [[ -n ${REALTIME_ME_RAW_BASE_URL:-} ]]; then
   RAW_BASE_URLS=("$REALTIME_ME_RAW_BASE_URL")
 elif [[ -n ${REALTIME_ME_RAW_BASE_URLS:-} ]]; then
@@ -91,6 +94,34 @@ require_command() {
   fi
 }
 
+curl_download_args() {
+  local timeout=$1
+  local args=(-fsSL --connect-timeout 5 --max-time "$timeout" --speed-time 15 --speed-limit 1 --retry 2 --retry-delay 1 --retry-connrefused)
+  if [[ $CURL_FORCE_IPV4 == 1 ]]; then
+    args=(-4 "${args[@]}")
+  fi
+  printf '%s\0' "${args[@]}"
+}
+
+remove_unit_file() {
+  local unit=$1
+  systemctl disable --now "$unit" >/dev/null 2>&1 || true
+  rm -f "/etc/systemd/system/$unit"
+}
+
+remove_legacy_units() {
+  log "Removing legacy push services"
+  remove_unit_file realtime-me-status-device.timer
+  remove_unit_file realtime-me-status-device.service
+  remove_unit_file realtime-me-agent.timer
+  remove_unit_file realtime-me-agent.service
+  if [[ $INSTALL_AGENT != 1 ]]; then
+    remove_unit_file realtime-me-agent-exporter.service
+  fi
+  systemctl daemon-reload
+  systemctl reset-failed >/dev/null 2>&1 || true
+}
+
 configure_gateway_url() {
   if [[ -z ${GATEWAY_URL:-} ]]; then
     return
@@ -149,11 +180,14 @@ download_file() {
   local destination=$2
   local temporary
   local curl_error
+  local args
   temporary=$(mktemp)
   curl_error=$(mktemp)
+  mapfile -d '' -t args < <(curl_download_args "$DOWNLOAD_TIMEOUT_SECONDS")
   log "Downloading $name"
   for base_url in "${RAW_BASE_URLS[@]}"; do
-    if "$CURL_BIN" -fsSL --connect-timeout 10 --max-time 60 "${base_url%/}/$name" -o "$temporary" 2>"$curl_error"; then
+    log "Trying ${base_url%/}/$name"
+    if "$CURL_BIN" "${args[@]}" "${base_url%/}/$name" -o "$temporary" 2>"$curl_error"; then
       rm -f "$curl_error"
       mv "$temporary" "$destination"
       return
@@ -192,12 +226,18 @@ install_node_exporter() {
   local archive
   local workdir
   local source_url
+  local args
+  if [[ -x $NODE_EXPORTER_BIN ]] && "$NODE_EXPORTER_BIN" --version 2>&1 | grep -q "version $NODE_EXPORTER_VERSION"; then
+    log "node_exporter v$NODE_EXPORTER_VERSION already installed"
+    return
+  fi
   arch=$(node_exporter_arch)
   source_url=${NODE_EXPORTER_URL:-https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXPORTER_VERSION}/node_exporter-${NODE_EXPORTER_VERSION}.linux-${arch}.tar.gz}
   archive=$(mktemp)
   workdir=$(mktemp -d)
+  mapfile -d '' -t args < <(curl_download_args "$NODE_EXPORTER_DOWNLOAD_TIMEOUT_SECONDS")
   log "Downloading node_exporter v$NODE_EXPORTER_VERSION"
-  if ! "$CURL_BIN" -fsSL --connect-timeout 10 --max-time 180 "$source_url" -o "$archive"; then
+  if ! "$CURL_BIN" "${args[@]}" "$source_url" -o "$archive"; then
     rm -rf "$archive" "$workdir"
     echo "Could not download node_exporter." >&2
     exit 1
@@ -276,10 +316,13 @@ SERVICE
 
 start_units() {
   systemctl daemon-reload
-  systemctl enable --now realtime-me-node-exporter.service >/dev/null
-  systemctl enable --now realtime-me-device-exporter.service >/dev/null
+  systemctl enable realtime-me-node-exporter.service >/dev/null
+  systemctl restart realtime-me-node-exporter.service
+  systemctl enable realtime-me-device-exporter.service >/dev/null
+  systemctl restart realtime-me-device-exporter.service
   if [[ $INSTALL_AGENT == 1 ]]; then
-    systemctl enable --now realtime-me-agent-exporter.service >/dev/null
+    systemctl enable realtime-me-agent-exporter.service >/dev/null
+    systemctl restart realtime-me-agent-exporter.service
   fi
 }
 
@@ -410,6 +453,7 @@ main() {
   inherit_proxy_env
   GATEWAY_URL=$(configure_gateway_url)
   detect_exporter_host
+  remove_legacy_units
   log "Writing configuration"
   write_env_file
   download_exporters
