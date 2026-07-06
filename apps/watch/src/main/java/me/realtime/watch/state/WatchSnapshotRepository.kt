@@ -58,6 +58,7 @@ class WatchSnapshotRepository(private val context: Context) {
         } else {
             builder.watchState = WatchStateReader.read(context, builder.watchState.wristState)
         }
+        builder.deviceInfo = DeviceInfoReader.read()
         return builder.build().also(::save)
     }
 

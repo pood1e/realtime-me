@@ -28,6 +28,7 @@ func (server *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", server.health)
 	mux.HandleFunc("POST /api/ingest/mobile", server.ingestMobile)
+	mux.HandleFunc("POST /api/ingest/host", server.ingestDevice)
 	mux.HandleFunc("POST /api/ingest/agent", server.ingestAgent)
 	mux.HandleFunc("GET /api/public-status", server.publicStatus)
 	mux.HandleFunc("GET /api/internal-status", server.internalStatus)
@@ -59,6 +60,25 @@ func (server *Server) ingestMobile(writer http.ResponseWriter, request *http.Req
 	}
 	if err := server.github.Publish(request.Context(), mobile); err != nil {
 		slog.Error("failed to publish github status", "error", err)
+	}
+	writeJSON(writer, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (server *Server) ingestDevice(writer http.ResponseWriter, request *http.Request) {
+	if !server.config.Authorized(request.Header.Get("Authorization")) {
+		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	var input DeviceStatus
+	if err := json.NewDecoder(request.Body).Decode(&input); err != nil || !validateDevice(&input) {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid_payload"})
+		return
+	}
+	if _, err := server.store.UpdateDevice(input, time.Now()); err != nil {
+		slog.Error("failed to save device status", "error", err)
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "store_failed"})
+		return
 	}
 	writeJSON(writer, http.StatusOK, map[string]bool{"ok": true})
 }
@@ -95,6 +115,7 @@ func (server *Server) internalStatus(writer http.ResponseWriter, request *http.R
 	writeJSON(writer, http.StatusOK, map[string]any{
 		"server":     status.Server,
 		"mobile":     status.Mobile,
+		"devices":    status.Devices,
 		"agents":     status.Agents,
 		"github":     status.GitHub,
 		"updated_at": status.UpdatedAt,
@@ -131,9 +152,10 @@ func (server *Server) status(ctx context.Context) PublicStatus {
 	}
 
 	return PublicStatus{
-		Server: server.prometheus.ServerSummary(ctx),
-		Mobile: snapshot.Mobile,
-		Agents: agents,
+		Server:  mergeServerStatus(server.prometheus.ServerStatus(ctx), snapshot.Devices),
+		Mobile:  snapshot.Mobile,
+		Devices: nonServerDevices(snapshot.Devices),
+		Agents:  agents,
 		GitHub: PublicGitHubStatus{
 			Enabled:   server.config.GitHubToken != "",
 			State:     githubState,
@@ -143,6 +165,48 @@ func (server *Server) status(ctx context.Context) PublicStatus {
 		},
 		UpdatedAt: now,
 	}
+}
+
+func mergeServerStatus(base DeviceStatus, devices []StoredDeviceStatus) DeviceStatus {
+	for _, device := range devices {
+		if device.Role != "server" && device.DeviceID != "server" {
+			continue
+		}
+		base.DeviceID = firstString(device.DeviceID, base.DeviceID)
+		base.DeviceName = firstString(device.DeviceName, base.DeviceName)
+		base.DeviceModel = firstString(device.DeviceModel, base.DeviceModel)
+		base.Kind = firstString(device.Kind, base.Kind)
+		base.Role = firstString(device.Role, base.Role)
+		base.State = firstString(device.State, base.State)
+		base.UpdatedAt = firstString(device.ReceivedAt, base.UpdatedAt)
+		if len(device.Metrics) > 0 {
+			base.Metrics = device.Metrics
+		}
+		base.Children = device.Children
+		break
+	}
+	if base.DeviceName == "" {
+		base.DeviceName = "Server"
+	}
+	return base
+}
+
+func nonServerDevices(devices []StoredDeviceStatus) []StoredDeviceStatus {
+	filtered := make([]StoredDeviceStatus, 0, len(devices))
+	for _, device := range devices {
+		if device.Role == "server" || device.DeviceID == "server" {
+			continue
+		}
+		filtered = append(filtered, device)
+	}
+	return filtered
+}
+
+func firstString(primary string, fallback string) string {
+	if primary != "" {
+		return primary
+	}
+	return fallback
 }
 
 func cors(next http.Handler) http.Handler {

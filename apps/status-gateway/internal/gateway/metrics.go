@@ -21,6 +21,11 @@ var metricDefinitions = []metricDefinition{
 	{Name: "realtime_device_battery_level_ratio", Type: "gauge", Unit: "1", OTelName: "realtime.device.battery.level", Description: "Device battery level as a fraction of total capacity."},
 	{Name: "realtime_device_charging", Type: "gauge", Unit: "1", OTelName: "realtime.device.charging", Description: "Device charging state: 1 for charging, 0 otherwise."},
 	{Name: "realtime_device_network_state", Type: "gauge", Unit: "1", OTelName: "realtime.device.network.state", Description: "Phone network state labelled by network_type; current state is 1."},
+	{Name: "realtime_host_cpu_cores", Type: "gauge", Unit: "{cpu}", OTelName: "system.cpu.logical.count", Description: "Host CPU logical core count."},
+	{Name: "realtime_host_cpu_usage_ratio", Type: "gauge", Unit: "1", OTelName: "system.cpu.utilization", Description: "Host CPU utilization as a fraction."},
+	{Name: "realtime_host_memory_usage_bytes", Type: "gauge", Unit: "By", OTelName: "system.memory.usage", Description: "Host memory usage in bytes."},
+	{Name: "realtime_host_memory_limit_bytes", Type: "gauge", Unit: "By", OTelName: "system.memory.limit", Description: "Host memory capacity in bytes."},
+	{Name: "realtime_host_vm_state", Type: "gauge", Unit: "1", OTelName: "realtime.host.vm.state", Description: "Virtual machine state labelled by vm_name and state; current state is 1."},
 	{Name: "realtime_watch_heart_rate_beats_per_minute", Type: "gauge", Unit: "{beat}/min", OTelName: "realtime.watch.heart_rate", Description: "Latest watch heart rate."},
 	{Name: "realtime_watch_steps", Type: "gauge", Unit: "{step}", OTelName: "realtime.watch.steps", Description: "Latest watch local-day step count."},
 	{Name: "realtime_watch_wrist_state", Type: "gauge", Unit: "1", OTelName: "realtime.watch.wrist.state", Description: "Watch wrist state labelled by wrist_state; current state is 1."},
@@ -37,6 +42,9 @@ func RenderMetrics(snapshot GatewayStateSnapshot) string {
 	}
 	for _, agent := range snapshot.Agents {
 		appendAgentMetrics(&lines, agent)
+	}
+	for _, device := range snapshot.Devices {
+		appendReportedDeviceMetrics(&lines, device)
 	}
 	appendGitHubMetrics(&lines, snapshot.GitHub)
 	return strings.Join(append(lines, ""), "\n")
@@ -97,6 +105,40 @@ func appendAgentMetrics(lines *[]string, status StoredAgentStatus) {
 	appendState(lines, "realtime_agent_state", map[string]string{"agent_id": status.AgentID}, "state", status.State, []string{"idle", "running", "failed"})
 	if status.BudgetRemainingPercent != nil {
 		appendSample(lines, "realtime_agent_budget_remaining_ratio", map[string]string{"agent_id": status.AgentID}, float64(*status.BudgetRemainingPercent)/100)
+	}
+}
+
+func appendReportedDeviceMetrics(lines *[]string, status StoredDeviceStatus) {
+	labels := map[string]string{"device_id": status.DeviceID}
+	if status.Role != "" {
+		labels["role"] = status.Role
+	}
+	appendDeviceTimestamp(lines, status.DeviceID, status.Kind, status.ReceivedAt)
+	for _, metric := range status.Metrics {
+		appendReportedMetric(lines, labels, metric)
+	}
+	for _, child := range status.Children {
+		childLabels := copyLabels(labels)
+		childLabels["child_device_id"] = child.DeviceID
+		childLabels["child_kind"] = child.Kind
+		appendState(lines, "realtime_host_vm_state", childLabels, "state", child.State, []string{"running", "shut off", "paused", "unknown"})
+	}
+}
+
+func appendReportedMetric(lines *[]string, baseLabels map[string]string, metric MetricSample) {
+	labels := copyLabels(baseLabels)
+	for key, value := range metric.Attributes {
+		labels[key] = value
+	}
+	switch metric.Name {
+	case metricSystemCPULogicalCount:
+		appendSample(lines, "realtime_host_cpu_cores", labels, metric.Value)
+	case metricSystemCPUUtilization:
+		appendSample(lines, "realtime_host_cpu_usage_ratio", labels, metric.Value)
+	case metricSystemMemoryUsage:
+		appendSample(lines, "realtime_host_memory_usage_bytes", labels, metric.Value)
+	case metricSystemMemoryLimit:
+		appendSample(lines, "realtime_host_memory_limit_bytes", labels, metric.Value)
 	}
 }
 

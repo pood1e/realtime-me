@@ -15,10 +15,12 @@ const (
 )
 
 type MobileIngest struct {
-	DeviceID  string       `json:"device_id"`
-	UpdatedAt string       `json:"updated_at,omitempty"`
-	Phone     *PhoneStatus `json:"phone,omitempty"`
-	Watch     *WatchStatus `json:"watch,omitempty"`
+	DeviceID    string       `json:"device_id"`
+	DeviceName  string       `json:"device_name,omitempty"`
+	DeviceModel string       `json:"device_model,omitempty"`
+	UpdatedAt   string       `json:"updated_at,omitempty"`
+	Phone       *PhoneStatus `json:"phone,omitempty"`
+	Watch       *WatchStatus `json:"watch,omitempty"`
 }
 
 type PhoneStatus struct {
@@ -28,11 +30,32 @@ type PhoneStatus struct {
 }
 
 type WatchStatus struct {
+	DeviceName     string      `json:"device_name,omitempty"`
+	DeviceModel    string      `json:"device_model,omitempty"`
 	HeartRate      *int        `json:"heart_rate,omitempty"`
 	Steps          *int        `json:"steps,omitempty"`
 	BatteryPercent *int        `json:"battery_percent,omitempty"`
 	ChargeState    ChargeState `json:"charge_state,omitempty"`
 	WristState     WristState  `json:"wrist_state,omitempty"`
+}
+
+type DeviceStatus struct {
+	DeviceID    string         `json:"device_id"`
+	DeviceName  string         `json:"device_name,omitempty"`
+	DeviceModel string         `json:"device_model,omitempty"`
+	Kind        string         `json:"kind,omitempty"`
+	Role        string         `json:"role,omitempty"`
+	State       string         `json:"state,omitempty"`
+	UpdatedAt   string         `json:"updated_at,omitempty"`
+	Metrics     []MetricSample `json:"metrics,omitempty"`
+	Children    []DeviceStatus `json:"children,omitempty"`
+}
+
+type MetricSample struct {
+	Name       string            `json:"name"`
+	Unit       string            `json:"unit,omitempty"`
+	Value      float64           `json:"value"`
+	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
 type AgentIngest struct {
@@ -50,6 +73,11 @@ type StoredMobileStatus struct {
 
 type StoredAgentStatus struct {
 	AgentIngest
+	ReceivedAt string `json:"received_at"`
+}
+
+type StoredDeviceStatus struct {
+	DeviceStatus
 	ReceivedAt string `json:"received_at"`
 }
 
@@ -75,17 +103,10 @@ type GitHubSyncStatus struct {
 }
 
 type GatewayStateSnapshot struct {
-	Mobile *StoredMobileStatus `json:"mobile"`
-	Agents []StoredAgentStatus `json:"agents"`
-	GitHub GitHubSyncStatus    `json:"github"`
-}
-
-type ServerSummary struct {
-	Online        bool     `json:"online"`
-	CPUPercent    *float64 `json:"cpu_percent"`
-	MemoryPercent *float64 `json:"memory_percent"`
-	DiskPercent   *float64 `json:"disk_percent"`
-	UpdatedAt     string   `json:"updated_at"`
+	Mobile  *StoredMobileStatus  `json:"mobile"`
+	Agents  []StoredAgentStatus  `json:"agents"`
+	Devices []StoredDeviceStatus `json:"devices"`
+	GitHub  GitHubSyncStatus     `json:"github"`
 }
 
 type PublicGitHubStatus struct {
@@ -97,9 +118,10 @@ type PublicGitHubStatus struct {
 }
 
 type PublicStatus struct {
-	Server    ServerSummary       `json:"server"`
-	Mobile    *StoredMobileStatus `json:"mobile"`
-	Agents    []StoredAgentStatus `json:"agents"`
-	GitHub    PublicGitHubStatus  `json:"github"`
-	UpdatedAt string              `json:"updated_at"`
+	Server    DeviceStatus         `json:"server"`
+	Mobile    *StoredMobileStatus  `json:"mobile"`
+	Devices   []StoredDeviceStatus `json:"devices"`
+	Agents    []StoredAgentStatus  `json:"agents"`
+	GitHub    PublicGitHubStatus   `json:"github"`
+	UpdatedAt string               `json:"updated_at"`
 }

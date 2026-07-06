@@ -6,6 +6,9 @@ func validateMobile(input *MobileIngest) bool {
 	if input == nil || len(input.DeviceID) < 1 || len(input.DeviceID) > 80 {
 		return false
 	}
+	if len(input.DeviceName) > 80 || len(input.DeviceModel) > 120 {
+		return false
+	}
 	if input.UpdatedAt != "" && !isDateTime(input.UpdatedAt) {
 		return false
 	}
@@ -46,6 +49,9 @@ func validatePhone(phone *PhoneStatus) bool {
 }
 
 func validateWatch(watch *WatchStatus) bool {
+	if len(watch.DeviceName) > 80 || len(watch.DeviceModel) > 120 {
+		return false
+	}
 	if watch.HeartRate != nil && !inRange(*watch.HeartRate, 1, 240) {
 		return false
 	}
@@ -59,6 +65,41 @@ func validateWatch(watch *WatchStatus) bool {
 		return false
 	}
 	return watch.WristState == "" || watch.WristState == WristUnknown || watch.WristState == WristOnWrist || watch.WristState == WristOffWrist
+}
+
+func validateDevice(input *DeviceStatus) bool {
+	if input == nil || len(input.DeviceID) < 1 || len(input.DeviceID) > 80 {
+		return false
+	}
+	if len(input.DeviceName) > 80 || len(input.DeviceModel) > 120 || len(input.Kind) > 40 || len(input.Role) > 40 || len(input.State) > 40 {
+		return false
+	}
+	if input.UpdatedAt != "" && !isDateTime(input.UpdatedAt) {
+		return false
+	}
+	for _, metric := range input.Metrics {
+		if !validateMetric(metric) {
+			return false
+		}
+	}
+	for _, child := range input.Children {
+		if !validateDevice(&child) {
+			return false
+		}
+	}
+	return true
+}
+
+func validateMetric(metric MetricSample) bool {
+	if len(metric.Name) < 1 || len(metric.Name) > 120 || len(metric.Unit) > 24 {
+		return false
+	}
+	for key, value := range metric.Attributes {
+		if len(key) < 1 || len(key) > 80 || len(value) > 120 {
+			return false
+		}
+	}
+	return true
 }
 
 func validateAgent(input *AgentIngest) bool {

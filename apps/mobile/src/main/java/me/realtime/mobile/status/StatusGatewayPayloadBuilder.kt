@@ -6,6 +6,7 @@ import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
+import android.os.Build
 import me.realtime.mobile.state.StoredWatchSnapshot
 import me.realtime.protocol.v1.ChargeState
 import me.realtime.protocol.v1.WristState
@@ -17,6 +18,8 @@ class StatusGatewayPayloadBuilder(private val context: Context) {
     fun build(storedWatchSnapshot: StoredWatchSnapshot?): JSONObject {
         return JSONObject()
             .put("device_id", StatusDeviceIdentity(context).id())
+            .put("device_name", Build.MODEL)
+            .put("device_model", deviceModel())
             .put("updated_at", Instant.now().toString())
             .put("phone", phoneState())
             .also { payload ->
@@ -39,11 +42,17 @@ class StatusGatewayPayloadBuilder(private val context: Context) {
             .put("battery_percent", snapshot.watchState.batteryPercent)
             .put("charge_state", snapshot.watchState.chargeState.toWireValue())
             .put("wrist_state", snapshot.watchState.wristState.toWireValue())
+        if (snapshot.hasDeviceInfo()) {
+            state.put("device_name", snapshot.deviceInfo.displayName)
+            state.put("device_model", snapshot.deviceInfo.model)
+        }
         if (snapshot.watchState.wristState != WristState.WRIST_STATE_OFF_WRIST && snapshot.heartRate.beatsPerMinute > 0) {
             state.put("heart_rate", snapshot.heartRate.beatsPerMinute)
         }
         return state
     }
+
+    private fun deviceModel(): String = listOf(Build.MANUFACTURER, Build.MODEL).joinToString(" ").trim()
 
     private fun networkState(): String {
         val manager = context.getSystemService(ConnectivityManager::class.java) ?: return "unknown"

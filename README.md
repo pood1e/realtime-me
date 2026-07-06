@@ -110,7 +110,7 @@ The debug receiver exists only in debug builds and stores the token through the 
 
 ## Self-hosted status stack
 
-The status stack stores raw time-series data in Prometheus on your own host. Cloudflare only needs to expose the public API/page through a Tunnel or Worker custom domain.
+The status stack stores raw time-series data in Prometheus on your own host. Cloudflare only needs to expose the public API/page through a Tunnel or Worker custom domain. Host and desktop reports use a generic device model with OpenTelemetry semantic metric names such as `system.cpu.logical.count`, `system.cpu.utilization`, `system.memory.usage`, and `system.memory.limit`, instead of bespoke CPU/memory structs.
 
 ```sh
 cd infra/status-stack
@@ -141,6 +141,26 @@ The phone app publishes:
 POST /api/ingest/mobile
 Authorization: Bearer <STATUS_INGEST_TOKEN>
 ```
+
+Host/device reporters publish:
+
+```text
+POST /api/ingest/host
+Authorization: Bearer <STATUS_INGEST_TOKEN>
+```
+The optional host reporter publishes server, desktop, and VM state through the same generic device model:
+
+```sh
+STATUS_INGEST_TOKEN=replace-with-generated-token \
+STATUS_GATEWAY_URL=http://<gateway-host>:18080 \
+STATUS_DEVICE_ID=server \
+STATUS_DEVICE_ROLE=server \
+STATUS_VM_NAME_CONTAINS=kali \
+./scripts/status-device-reporter.py
+```
+
+For a Mac or workstation, set `STATUS_DEVICE_ROLE=desktop`. The reporter includes CPU logical count, CPU utilization, memory used/total bytes, root filesystem usage/limit, device model, and matching `virsh` VMs when available.
+
 
 ## Public status page
 

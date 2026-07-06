@@ -14,6 +14,7 @@ type StatusStore struct {
 	mutex     sync.Mutex
 	mobile    *StoredMobileStatus
 	agents    map[string]StoredAgentStatus
+	devices   map[string]StoredDeviceStatus
 	github    GitHubSyncStatus
 }
 
@@ -21,6 +22,7 @@ func NewStatusStore(stateFile string) *StatusStore {
 	return &StatusStore{
 		stateFile: stateFile,
 		agents:    map[string]StoredAgentStatus{},
+		devices:   map[string]StoredDeviceStatus{},
 		github: GitHubSyncStatus{
 			Configured: false,
 			State:      GitHubSyncDisabled,
@@ -48,6 +50,9 @@ func (store *StatusStore) Load() error {
 	for _, agent := range snapshot.Agents {
 		store.agents[agent.AgentID] = agent
 	}
+	for _, device := range snapshot.Devices {
+		store.devices[device.DeviceID] = device
+	}
 	if snapshot.GitHub.State != "" {
 		store.github = snapshot.GitHub
 	}
@@ -66,6 +71,21 @@ func (store *StatusStore) UpdateMobile(input MobileIngest, receivedAt time.Time)
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
 	store.mobile = &status
+	return status, store.saveLocked()
+}
+
+func (store *StatusStore) UpdateDevice(input DeviceStatus, receivedAt time.Time) (StoredDeviceStatus, error) {
+	if input.UpdatedAt == "" {
+		input.UpdatedAt = receivedAt.UTC().Format(time.RFC3339)
+	}
+	status := StoredDeviceStatus{
+		DeviceStatus: input,
+		ReceivedAt:   receivedAt.UTC().Format(time.RFC3339),
+	}
+
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+	store.devices[status.DeviceID] = status
 	return status, store.saveLocked()
 }
 
@@ -122,9 +142,17 @@ func (store *StatusStore) snapshotLocked() GatewayStateSnapshot {
 	sort.Slice(agents, func(left, right int) bool {
 		return agents[left].AgentID < agents[right].AgentID
 	})
+	devices := make([]StoredDeviceStatus, 0, len(store.devices))
+	for _, device := range store.devices {
+		devices = append(devices, device)
+	}
+	sort.Slice(devices, func(left, right int) bool {
+		return devices[left].DeviceID < devices[right].DeviceID
+	})
 	return GatewayStateSnapshot{
-		Mobile: store.mobile,
-		Agents: agents,
-		GitHub: store.github,
+		Mobile:  store.mobile,
+		Agents:  agents,
+		Devices: devices,
+		GitHub:  store.github,
 	}
 }

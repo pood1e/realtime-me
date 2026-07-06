@@ -4,12 +4,17 @@ import {
   Battery,
   BatteryCharging,
   Bot,
-  GitBranch,
+  Box,
   CheckCircle2,
-  Clock,
   CircleOff,
+  Clock,
+  Cpu,
+  GitBranch,
+  HardDrive,
   HeartPulse,
+  Laptop,
   LoaderCircle,
+  MemoryStick,
   RefreshCw,
   Server,
   Smartphone,
@@ -26,19 +31,44 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const POLL_INTERVAL_MS = 10_000;
+const CPU_CORES = 'system.cpu.logical.count';
+const CPU_USAGE = 'system.cpu.utilization';
+const MEMORY_USAGE = 'system.memory.usage';
+const MEMORY_LIMIT = 'system.memory.limit';
+const FILESYSTEM_USAGE = 'system.filesystem.usage';
+const FILESYSTEM_LIMIT = 'system.filesystem.limit';
+const FILESYSTEM_UTILIZATION = 'system.filesystem.utilization';
 
 type PublicStatus = {
-  server: {
-    online: boolean;
-    cpu_percent: number | null;
-    memory_percent: number | null;
-    disk_percent: number | null;
-    updated_at: string;
-  };
+  server: DeviceStatus;
   mobile: MobileStatus | null;
+  devices: StoredDeviceStatus[];
   agents: AgentStatus[];
   github: GitHubStatus;
   updated_at: string;
+};
+
+type StoredDeviceStatus = DeviceStatus & {
+  received_at: string;
+};
+
+type DeviceStatus = {
+  device_id: string;
+  device_name?: string;
+  device_model?: string;
+  kind?: string;
+  role?: string;
+  state?: string;
+  updated_at?: string;
+  metrics?: MetricSample[];
+  children?: DeviceStatus[];
+};
+
+type MetricSample = {
+  name: string;
+  unit?: string;
+  value: number;
+  attributes?: Record<string, string>;
 };
 
 type GitHubStatus = {
@@ -51,6 +81,8 @@ type GitHubStatus = {
 
 type MobileStatus = {
   device_id: string;
+  device_name?: string;
+  device_model?: string;
   updated_at: string;
   received_at: string;
   phone?: {
@@ -59,6 +91,8 @@ type MobileStatus = {
     network?: string;
   };
   watch?: {
+    device_name?: string;
+    device_model?: string;
     heart_rate?: number;
     steps?: number;
     battery_percent?: number;
@@ -107,7 +141,7 @@ export function App() {
   return (
     <TooltipProvider>
       <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.18),transparent_35rem),radial-gradient(circle_at_top_right,rgba(59,130,246,0.18),transparent_30rem)]">
-        <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-5 py-8">
+        <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-5 py-8">
           <header className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Realtime Me</p>
@@ -129,8 +163,11 @@ export function App() {
             </div>
           </header>
 
-          <section className="grid gap-4 md:grid-cols-3">
-            <ServerCard status={status} />
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <DeviceCard device={status?.server ?? null} title="Server" icon={<Server className="size-4" />} />
+            {(status?.devices ?? []).map((device) => (
+              <DeviceCard key={device.device_id} device={device} title={device.role === 'desktop' ? 'Mac' : 'Device'} icon={<Laptop className="size-4" />} />
+            ))}
             <PhoneCard mobile={status?.mobile ?? null} />
             <WatchCard mobile={status?.mobile ?? null} />
           </section>
@@ -150,22 +187,29 @@ export function App() {
   );
 }
 
-function ServerCard({ status }: { status: PublicStatus | null }) {
-  const server = status?.server;
+function DeviceCard({ device, title, icon }: { device: DeviceStatus | null; title: string; icon: ReactElement }) {
+  const memory = memoryValues(device);
+  const disk = diskValues(device);
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Server className="size-4" />Server</CardTitle>
+        <CardTitle className="flex items-center gap-2">{icon}{title}</CardTitle>
         <CardAction>
-          <Badge variant={server?.online ? 'default' : 'destructive'}>
-            {server?.online ? <CheckCircle2 /> : <AlertTriangle />}
-          </Badge>
+          <StatusBadge state={device?.state} />
         </CardAction>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <ProgressMetric label="CPU" value={server?.cpu_percent} />
-        <ProgressMetric label="Mem" value={server?.memory_percent} />
-        <ProgressMetric label="Disk" value={server?.disk_percent} />
+        <DeviceDetails name={device?.device_name ?? title} model={device?.device_model} />
+        <MetricBadges>
+          <MetricBadge icon={<Cpu />} value={cpuCoreText(device)} title="CPU cores" variant="secondary" />
+          <MetricBadge icon={<MemoryStick />} value={memory.text} title="Memory" />
+          <MetricBadge icon={<HardDrive />} value={disk.text} title="Disk" />
+        </MetricBadges>
+        <ProgressMetric label="CPU" value={metricPercent(device, CPU_USAGE)} valueText={cpuText(device)} />
+        <ProgressMetric label="Mem" value={memory.percent} valueText={memory.text} />
+        <ProgressMetric label="Disk" value={disk.percent} valueText={disk.text} />
+        <ChildDevices devices={device?.children ?? []} />
+        <MutedTime value={device?.updated_at} fallback="No device report" />
       </CardContent>
     </Card>
   );
@@ -180,6 +224,7 @@ function PhoneCard({ mobile }: { mobile: MobileStatus | null }) {
         <CardAction>{mobile ? <Badge><CheckCircle2 /></Badge> : <Badge variant="outline">—</Badge>}</CardAction>
       </CardHeader>
       <CardContent className="space-y-4">
+        <DeviceDetails name={mobile?.device_name ?? 'Phone'} model={mobile?.device_model} />
         <MetricBadges>
           <MetricBadge icon={<Battery />} value={formatBattery(phone?.battery_percent)} title="Battery" />
           {phone?.charge_state === 'charging' && <MetricBadge icon={<BatteryCharging />} value="" title="Charging" />}
@@ -201,6 +246,7 @@ function WatchCard({ mobile }: { mobile: MobileStatus | null }) {
         <CardAction>{offWrist ? <Badge variant="secondary"><CircleOff /></Badge> : <Badge><CheckCircle2 /></Badge>}</CardAction>
       </CardHeader>
       <CardContent className="space-y-4">
+        <DeviceDetails name={watch?.device_name ?? 'Watch'} model={watch?.device_model} />
         <MetricBadges>
           {!offWrist && <MetricBadge icon={<HeartPulse />} value={watch?.heart_rate ? `${watch.heart_rate}` : '—'} title="Heart rate" />}
           <MetricBadge icon={<Activity />} value={watch?.steps?.toLocaleString() ?? '—'} title="Steps" variant="secondary" />
@@ -264,13 +310,46 @@ function AgentCard({ agents }: { agents: AgentStatus[] }) {
   );
 }
 
-function ProgressMetric({ label, value }: { label: string; value: number | null | undefined }) {
+function DeviceDetails({ name, model }: { name?: string; model?: string }) {
+  return (
+    <div className="grid gap-1">
+      <span className="font-medium">{name || '—'}</span>
+      <span className="text-xs text-muted-foreground">{model || 'model unknown'}</span>
+    </div>
+  );
+}
+
+function ChildDevices({ devices }: { devices: DeviceStatus[] }) {
+  if (devices.length === 0) return null;
+  return (
+    <div className="grid gap-2">
+      {devices.map((device) => (
+        <div key={device.device_id} className="flex items-center justify-between gap-2 text-sm">
+          <span className="flex min-w-0 items-center gap-2 truncate text-muted-foreground"><Box className="size-3.5" />{device.device_name || device.device_id}</span>
+          <Badge variant={device.state === 'running' ? 'default' : 'secondary'}>{device.state ?? 'unknown'}</Badge>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StatusBadge({ state }: { state?: string }) {
+  const online = state === 'online' || state === 'running';
+  const offline = state === 'offline' || state === 'failed';
+  return (
+    <Badge variant={offline ? 'destructive' : online ? 'default' : 'outline'}>
+      {offline ? <AlertTriangle /> : online ? <CheckCircle2 /> : '—'}
+    </Badge>
+  );
+}
+
+function ProgressMetric({ label, value, valueText }: { label: string; value: number | null | undefined; valueText?: string }) {
   const safeValue = Math.max(0, Math.min(100, value ?? 0));
   return (
     <div className="grid gap-2">
-      <div className="flex items-center justify-between text-sm">
+      <div className="flex items-center justify-between gap-3 text-sm">
         <span className="text-muted-foreground">{label}</span>
-        <span className="font-medium">{value === null || value === undefined ? '—' : `${Math.round(safeValue)}%`}</span>
+        <span className="truncate text-right font-medium">{valueText ?? formatPercent(value)}</span>
       </div>
       <Progress value={safeValue} />
     </div>
@@ -313,8 +392,53 @@ function githubBadgeVariant(state: GitHubStatus['state'] | undefined): 'default'
   return 'outline';
 }
 
+function cpuCoreText(device: DeviceStatus | null | undefined): string {
+  const cores = metricValue(device, CPU_CORES);
+  return cores === undefined ? '—' : `${Math.round(cores)}`;
+}
+
+function cpuText(device: DeviceStatus | null | undefined): string {
+  const percent = formatPercent(metricPercent(device, CPU_USAGE));
+  const cores = cpuCoreText(device);
+  return cores === '—' ? percent : `${percent} · ${cores} cores`;
+}
+
+function memoryValues(device: DeviceStatus | null | undefined): { text: string; percent?: number } {
+  const used = metricValue(device, MEMORY_USAGE);
+  const total = metricValue(device, MEMORY_LIMIT);
+  if (used === undefined || total === undefined || total <= 0) return { text: '—' };
+  return { text: `${formatGigabytes(used)}/${formatGigabytes(total)}`, percent: used * 100 / total };
+}
+
+function diskValues(device: DeviceStatus | null | undefined): { text: string; percent?: number } {
+  const directPercent = metricPercent(device, FILESYSTEM_UTILIZATION);
+  if (directPercent !== undefined) return { text: formatPercent(directPercent), percent: directPercent };
+  const used = metricValue(device, FILESYSTEM_USAGE);
+  const total = metricValue(device, FILESYSTEM_LIMIT);
+  if (used === undefined || total === undefined || total <= 0) return { text: '—' };
+  const percent = used * 100 / total;
+  return { text: formatPercent(percent), percent };
+}
+
+function metricPercent(device: DeviceStatus | null | undefined, name: string): number | undefined {
+  const value = metricValue(device, name);
+  return value === undefined ? undefined : value * 100;
+}
+
+function metricValue(device: DeviceStatus | null | undefined, name: string): number | undefined {
+  return device?.metrics?.find((metric) => metric.name === name)?.value;
+}
+
 function formatBattery(value: number | undefined): string {
   return value === undefined ? '—' : `${value}%`;
+}
+
+function formatPercent(value: number | null | undefined): string {
+  return value === null || value === undefined ? '—' : `${Math.round(value)}%`;
+}
+
+function formatGigabytes(value: number): string {
+  return `${(value / 1024 / 1024 / 1024).toFixed(1)}GB`;
 }
 
 function formatTime(value: string): string {

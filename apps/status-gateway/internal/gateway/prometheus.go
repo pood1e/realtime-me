@@ -10,6 +10,16 @@ import (
 	"time"
 )
 
+const (
+	metricSystemCPULogicalCount    = "system.cpu.logical.count"
+	metricSystemCPUUtilization     = "system.cpu.utilization"
+	metricSystemMemoryUsage        = "system.memory.usage"
+	metricSystemMemoryLimit        = "system.memory.limit"
+	metricSystemFilesystemUsage    = "system.filesystem.usage"
+	metricSystemFilesystemLimit    = "system.filesystem.limit"
+	metricSystemFilesystemUsagePct = "system.filesystem.utilization"
+)
+
 type PrometheusClient struct {
 	baseURL string
 	client  *http.Client
@@ -24,19 +34,41 @@ func NewPrometheusClient(baseURL string) *PrometheusClient {
 	}
 }
 
-func (client *PrometheusClient) ServerSummary(ctx context.Context) ServerSummary {
+func (client *PrometheusClient) ServerStatus(ctx context.Context) DeviceStatus {
 	up := client.queryScalar(ctx, `max(up{job="node-exporter"})`)
-	cpu := client.queryScalar(ctx, `100 * (1 - avg(rate(node_cpu_seconds_total{job="node-exporter",mode="idle"}[2m])))`)
-	memory := client.queryScalar(ctx, `100 * (1 - (node_memory_MemAvailable_bytes{job="node-exporter"} / node_memory_MemTotal_bytes{job="node-exporter"}))`)
-	disk := client.queryScalar(ctx, `100 * (1 - (node_filesystem_avail_bytes{job="node-exporter",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node-exporter",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}))`)
+	cpuUsage := client.queryRatio(ctx, `1 - avg(rate(node_cpu_seconds_total{job="node-exporter",mode="idle"}[2m]))`)
+	cpuCores := client.queryScalar(ctx, `count(count by (cpu) (node_cpu_seconds_total{job="node-exporter",mode="idle"}))`)
+	memoryTotal := client.queryScalar(ctx, `node_memory_MemTotal_bytes{job="node-exporter"}`)
+	memoryAvailable := client.queryScalar(ctx, `node_memory_MemAvailable_bytes{job="node-exporter"}`)
+	diskTotal := client.queryScalar(ctx, `node_filesystem_size_bytes{job="node-exporter",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`)
+	diskAvailable := client.queryScalar(ctx, `node_filesystem_avail_bytes{job="node-exporter",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`)
 
-	return ServerSummary{
-		Online:        up != nil && *up > 0,
-		CPUPercent:    clampPercent(cpu),
-		MemoryPercent: clampPercent(memory),
-		DiskPercent:   clampPercent(disk),
-		UpdatedAt:     time.Now().UTC().Format(time.RFC3339),
+	metrics := make([]MetricSample, 0, 7)
+	metrics = appendMetric(metrics, metricSystemCPULogicalCount, "{cpu}", cpuCores, nil)
+	metrics = appendMetric(metrics, metricSystemCPUUtilization, "1", cpuUsage, nil)
+	metrics = appendMetric(metrics, metricSystemMemoryUsage, "By", subtract(memoryTotal, memoryAvailable), map[string]string{"system.memory.state": "used"})
+	metrics = appendMetric(metrics, metricSystemMemoryLimit, "By", memoryTotal, nil)
+	metrics = appendMetric(metrics, metricSystemFilesystemUsage, "By", subtract(diskTotal, diskAvailable), map[string]string{"mountpoint": "/"})
+	metrics = appendMetric(metrics, metricSystemFilesystemLimit, "By", diskTotal, map[string]string{"mountpoint": "/"})
+	metrics = appendMetric(metrics, metricSystemFilesystemUsagePct, "1", ratio(subtract(diskTotal, diskAvailable), diskTotal), map[string]string{"mountpoint": "/"})
+
+	return DeviceStatus{
+		DeviceID:  "server",
+		Kind:      "host",
+		Role:      "server",
+		State:     onlineState(up),
+		UpdatedAt: time.Now().UTC().Format(time.RFC3339),
+		Metrics:   metrics,
 	}
+}
+
+func (client *PrometheusClient) queryRatio(ctx context.Context, query string) *float64 {
+	value := client.queryScalar(ctx, query)
+	if value == nil {
+		return nil
+	}
+	clamped := math.Max(0, math.Min(1, *value))
+	return &clamped
 }
 
 func (client *PrometheusClient) queryScalar(ctx context.Context, query string) *float64 {
@@ -87,10 +119,41 @@ type prometheusQueryResponse struct {
 	} `json:"data"`
 }
 
-func clampPercent(value *float64) *float64 {
+func appendMetric(metrics []MetricSample, name string, unit string, value *float64, attributes map[string]string) []MetricSample {
 	if value == nil {
+		return metrics
+	}
+	return append(metrics, MetricSample{
+		Name:       name,
+		Unit:       unit,
+		Value:      roundMetric(*value),
+		Attributes: attributes,
+	})
+}
+
+func subtract(total *float64, available *float64) *float64 {
+	if total == nil || available == nil {
 		return nil
 	}
-	clamped := math.Round(math.Max(0, math.Min(100, *value))*10) / 10
-	return &clamped
+	used := math.Max(0, *total-*available)
+	return &used
+}
+
+func ratio(value *float64, total *float64) *float64 {
+	if value == nil || total == nil || *total <= 0 {
+		return nil
+	}
+	ratio := math.Max(0, math.Min(1, *value / *total))
+	return &ratio
+}
+
+func onlineState(up *float64) string {
+	if up != nil && *up > 0 {
+		return "online"
+	}
+	return "offline"
+}
+
+func roundMetric(value float64) float64 {
+	return math.Round(value*1000) / 1000
 }
