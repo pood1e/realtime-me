@@ -70,7 +70,7 @@ const MEMORY_LIMIT = 'system.memory.limit';
 const FILESYSTEM_USAGE = 'system.filesystem.usage';
 const FILESYSTEM_LIMIT = 'system.filesystem.limit';
 const FILESYSTEM_UTILIZATION = 'system.filesystem.utilization';
-const AGENT_MOTION_REPETITIONS = 2;
+const AGENT_MOTION_MIN_VISIBLE_MS = 10_000;
 const CLAWD_MOTION_ASSETS: AgentMotionAsset[] = [
   { src: clawdTypingUrl, durationMs: 1_440 },
   { src: clawdBuildingUrl, durationMs: 960 },
@@ -421,7 +421,7 @@ function AgentMotion({ agent }: { agent: AgentStatus }) {
     if (assets.length <= 1) return;
     const timeout = window.setTimeout(() => {
       setIndex((current) => (current + 1) % assets.length);
-    }, asset.durationMs * AGENT_MOTION_REPETITIONS);
+    }, agentMotionDelayMs(asset));
     return () => window.clearTimeout(timeout);
   }, [asset.durationMs, assets.length, index]);
 
@@ -453,6 +453,11 @@ function agentMotionAssets(agentId: string): AgentMotionAsset[] {
   if (isClaudeAgent(agentId)) return CLAWD_MOTION_ASSETS;
   if (agentId === 'codex' || agentId.startsWith('codex:')) return CODEX_MOTION_ASSETS;
   return DEFAULT_MOTION_ASSETS;
+}
+
+function agentMotionDelayMs(asset: AgentMotionAsset): number {
+  if (asset.durationMs <= 0) return AGENT_MOTION_MIN_VISIBLE_MS;
+  return Math.ceil(AGENT_MOTION_MIN_VISIBLE_MS / asset.durationMs) * asset.durationMs;
 }
 
 function isClaudeAgent(agentId: string): boolean {
