@@ -270,21 +270,7 @@ def virtual_machine_model(name: str) -> str:
         root = ET.fromstring(output)
     except ET.ParseError:
         return ""
-    return " · ".join(unique(model_parts(name, root)))[:120]
-
-
-def model_parts(name: str, root: ET.Element) -> list[str]:
-    parts = []
-    os_name = libosinfo_name(root) or guest_os_hint(name, root)
-    if os_name:
-        parts.append(os_name)
-    machine_type = root.find("./os/type")
-    if machine_type is not None:
-        machine = machine_type.attrib.get("machine", "").strip()
-        architecture = machine_type.attrib.get("arch", "").strip()
-        virtualization = (machine_type.text or "").strip()
-        parts.extend([machine, architecture, virtualization])
-    return [part for part in parts if part]
+    return libosinfo_name(root) or guest_os_hint(name, root)
 
 
 def libosinfo_name(root: ET.Element) -> str:
@@ -309,17 +295,6 @@ def guest_os_hint(name: str, root: ET.Element) -> str:
         if marker in text:
             return label
     return ""
-
-
-def unique(values: list[str]) -> list[str]:
-    result = []
-    seen = set()
-    for value in values:
-        if value in seen:
-            continue
-        seen.add(value)
-        result.append(value)
-    return result
 
 
 def virtual_machine_memory(info: dict[str, str], memory: dict[str, int]) -> tuple[int | None, int | None]:
@@ -385,12 +360,7 @@ def device_model() -> str:
         cpu = run(["sysctl", "-n", "machdep.cpu.brand_string"]).strip()
         return " · ".join(part for part in [os_name, model, cpu] if part)[:120]
     if system == "linux":
-        parts = [read_first(paths) for paths in [
-            ["/sys/class/dmi/id/sys_vendor", "/sys/class/dmi/id/board_vendor"],
-            ["/sys/class/dmi/id/product_name", "/sys/class/dmi/id/board_name"],
-        ]]
-        hardware = " ".join(part for part in parts if part and not part.startswith("Default"))
-        return " · ".join(part for part in [linux_os_name(), hardware] if part)[:120] or platform.machine()
+        return linux_os_name() or platform.machine()
     return platform.platform()
 
 
@@ -401,17 +371,6 @@ def linux_os_name() -> str:
                 return line.split("=", 1)[1].strip().strip('"')
     except OSError:
         return ""
-    return ""
-
-
-def read_first(paths: list[str]) -> str:
-    for path in paths:
-        try:
-            value = Path(path).read_text().strip()
-        except OSError:
-            continue
-        if value:
-            return value
     return ""
 
 

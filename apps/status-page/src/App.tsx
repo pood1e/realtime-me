@@ -225,7 +225,8 @@ function DeviceCard({ device, title, icon, showChildren = true }: { device: Devi
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">{icon}{title}</CardTitle>
-        <CardAction>
+        <CardAction className="flex items-center gap-2">
+          <InlineTime value={device?.updated_at} />
           <StatusBadge state={device?.state} />
         </CardAction>
       </CardHeader>
@@ -241,7 +242,6 @@ function DeviceCard({ device, title, icon, showChildren = true }: { device: Devi
         {hasDisk && <ProgressMetric label="Disk" value={disk.percent} valueText={disk.text} />}
         {!hasAnyMetric && <CardDescription>No metrics yet</CardDescription>}
         {showChildren && <ChildDevices devices={device?.children ?? []} />}
-        <MutedTime value={device?.updated_at} fallback="No device report" />
       </CardContent>
     </Card>
   );
@@ -253,7 +253,10 @@ function PhoneCard({ mobile }: { mobile: MobileStatus | null }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Smartphone className="size-4" />Phone</CardTitle>
-        <CardAction>{mobile ? <Badge><CheckCircle2 /></Badge> : <Badge variant="outline">—</Badge>}</CardAction>
+        <CardAction className="flex items-center gap-2">
+          <InlineTime value={mobile?.received_at} />
+          {mobile ? <Badge><CheckCircle2 /></Badge> : <Badge variant="outline">—</Badge>}
+        </CardAction>
       </CardHeader>
       <CardContent className="space-y-4">
         <DeviceDetails name={mobile?.device_name ?? 'Phone'} model={mobile?.device_model} />
@@ -262,7 +265,6 @@ function PhoneCard({ mobile }: { mobile: MobileStatus | null }) {
           {phone?.charge_state === 'charging' && <MetricBadge icon={<BatteryCharging />} value="" title="Charging" />}
           <MetricBadge icon={<Wifi />} value={phone?.network ?? '—'} title="Network" variant="secondary" />
         </MetricBadges>
-        <MutedTime value={mobile?.received_at} fallback="No phone report" />
       </CardContent>
     </Card>
   );
@@ -275,7 +277,10 @@ function WatchCard({ mobile }: { mobile: MobileStatus | null }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Watch className="size-4" />Watch</CardTitle>
-        <CardAction>{offWrist ? <Badge variant="secondary"><CircleOff /></Badge> : <Badge><CheckCircle2 /></Badge>}</CardAction>
+        <CardAction className="flex items-center gap-2">
+          <InlineTime value={mobile?.received_at} />
+          <WatchStatusBadge watch={watch} offWrist={offWrist} />
+        </CardAction>
       </CardHeader>
       <CardContent className="space-y-4">
         <DeviceDetails name={watch?.device_name ?? 'Watch'} model={watch?.device_model} />
@@ -299,14 +304,16 @@ function GitHubCard({ github }: { github: GitHubStatus | null }) {
         {github ? (
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <GitBranch className="size-4 text-muted-foreground" />
-            <Badge variant={githubBadgeVariant(github.state)}>{icon}</Badge>
             <Badge variant="secondary">{github.emoji ?? '⌚'}</Badge>
             <Badge variant="outline">{github.message ?? github.state}</Badge>
           </div>
         ) : (
           <Skeleton className="h-5 w-32" />
         )}
-        <MutedTime value={github?.updated_at} fallback="Waiting for status sync" />
+        <div className="flex items-center gap-2">
+          <InlineTime value={github?.updated_at} />
+          <Badge variant={githubBadgeVariant(github?.state)}>{icon}</Badge>
+        </div>
       </CardContent>
     </Card>
   );
@@ -324,7 +331,10 @@ function AgentCard({ agents }: { agents: AgentStatus[] }) {
             {index > 0 && <Separator className="mb-3" />}
             <div className="flex items-center justify-between gap-3">
               <span className="font-medium">{agent.agent_id}</span>
-              <Badge variant={agent.state === 'failed' ? 'destructive' : agent.state === 'running' ? 'default' : 'secondary'}>{agent.state}</Badge>
+              <span className="flex items-center gap-2">
+                <InlineTime value={agent.received_at} />
+                <Badge variant={agent.state === 'failed' ? 'destructive' : agent.state === 'running' ? 'default' : 'secondary'}>{agent.state}</Badge>
+              </span>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">{agent.task ?? '—'}</p>
             {agent.budget_remaining_percent !== undefined && (
@@ -380,6 +390,11 @@ function StatusBadge({ state }: { state?: string }) {
   );
 }
 
+function WatchStatusBadge({ watch, offWrist }: { watch?: MobileStatus['watch']; offWrist: boolean }) {
+  if (!watch) return <Badge variant="outline">—</Badge>;
+  return offWrist ? <Badge variant="secondary"><CircleOff /></Badge> : <Badge><CheckCircle2 /></Badge>;
+}
+
 function ProgressMetric({ label, value, valueText }: { label: string; value: number | null | undefined; valueText?: string }) {
   const safeValue = Math.max(0, Math.min(100, value ?? 0));
   return (
@@ -411,8 +426,8 @@ function MetricBadge({ icon, value, title, variant = 'outline' }: MetricBadgePro
   );
 }
 
-function MutedTime({ value, fallback }: { value?: string; fallback: string }) {
-  return <p className="text-xs text-muted-foreground">{value ? formatTime(value) : fallback}</p>;
+function InlineTime({ value }: { value?: string }) {
+  return <span className="text-xs text-muted-foreground">{value ? formatTime(value) : '—'}</span>;
 }
 
 function githubIcon(state: GitHubStatus['state'] | undefined): ReactElement {
