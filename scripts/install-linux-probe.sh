@@ -3,7 +3,7 @@ set -euo pipefail
 
 INSTALL_DIR=${INSTALL_DIR:-/opt/realtime-me}
 ENV_FILE=${ENV_FILE:-/etc/realtime-me.env}
-GATEWAY_URL=${STATUS_GATEWAY_URL:-http://192.168.0.126:18080}
+GATEWAY_URL=${STATUS_GATEWAY_URL:-}
 DEVICE_ID=${STATUS_DEVICE_ID:-$(hostname -s 2>/dev/null || hostname)}
 DEVICE_NAME=${STATUS_DEVICE_NAME:-$(hostname 2>/dev/null || echo linux)}
 DEVICE_KIND=${STATUS_DEVICE_KIND:-host}
@@ -26,6 +26,35 @@ require_command() {
     echo "Missing required command: $command" >&2
     exit 2
   fi
+}
+
+read_gateway_url() {
+  if [[ -n ${GATEWAY_URL:-} ]]; then
+    normalize_url "$GATEWAY_URL"
+    return
+  fi
+  if [[ ! -r /dev/tty ]]; then
+    echo "Set STATUS_GATEWAY_URL or run from an interactive terminal." >&2
+    exit 2
+  fi
+  local value
+  read -rp "STATUS_GATEWAY_URL: " value </dev/tty
+  if [[ -z $value ]]; then
+    echo "STATUS_GATEWAY_URL is required." >&2
+    exit 2
+  fi
+  normalize_url "$value"
+}
+
+normalize_url() {
+  local value=${1%/}
+  case "$value" in
+    http://*|https://*) printf '%s' "$value" ;;
+    *)
+      echo "STATUS_GATEWAY_URL must start with http:// or https://." >&2
+      exit 2
+      ;;
+  esac
 }
 
 read_token() {
@@ -149,6 +178,7 @@ main() {
   require_command "$CURL_BIN"
   require_command "$PYTHON_BIN"
   require_command systemctl
+  GATEWAY_URL=$(read_gateway_url)
   local token
   token=$(read_token)
   download_reporters
