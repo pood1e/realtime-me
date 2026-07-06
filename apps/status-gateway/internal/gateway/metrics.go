@@ -1,0 +1,168 @@
+package gateway
+
+import (
+	"fmt"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+)
+
+type metricDefinition struct {
+	Name        string
+	Type        string
+	Unit        string
+	Description string
+	OTelName    string
+}
+
+var metricDefinitions = []metricDefinition{
+	{Name: "realtime_device_last_update_time_seconds", Type: "gauge", Unit: "s", OTelName: "realtime.device.last_update", Description: "Unix timestamp of the latest accepted device update."},
+	{Name: "realtime_device_battery_level_ratio", Type: "gauge", Unit: "1", OTelName: "realtime.device.battery.level", Description: "Device battery level as a fraction of total capacity."},
+	{Name: "realtime_device_charging", Type: "gauge", Unit: "1", OTelName: "realtime.device.charging", Description: "Device charging state: 1 for charging, 0 otherwise."},
+	{Name: "realtime_device_network_state", Type: "gauge", Unit: "1", OTelName: "realtime.device.network.state", Description: "Phone network state labelled by network_type; current state is 1."},
+	{Name: "realtime_watch_heart_rate_beats_per_minute", Type: "gauge", Unit: "{beat}/min", OTelName: "realtime.watch.heart_rate", Description: "Latest watch heart rate."},
+	{Name: "realtime_watch_steps", Type: "gauge", Unit: "{step}", OTelName: "realtime.watch.steps", Description: "Latest watch local-day step count."},
+	{Name: "realtime_watch_wrist_state", Type: "gauge", Unit: "1", OTelName: "realtime.watch.wrist.state", Description: "Watch wrist state labelled by wrist_state; current state is 1."},
+	{Name: "realtime_agent_state", Type: "gauge", Unit: "1", OTelName: "realtime.agent.state", Description: "Agent state labelled by state; current state is 1."},
+	{Name: "realtime_agent_budget_remaining_ratio", Type: "gauge", Unit: "1", OTelName: "realtime.agent.budget.remaining", Description: "Agent budget remaining as a fraction."},
+	{Name: "realtime_github_status_sync_state", Type: "gauge", Unit: "1", OTelName: "realtime.github.status.sync.state", Description: "GitHub status sync state labelled by state; current state is 1."},
+}
+
+func RenderMetrics(snapshot GatewayStateSnapshot) string {
+	lines := make([]string, 0, 64)
+	appendMetricMetadata(&lines)
+	if snapshot.Mobile != nil {
+		appendMobileMetrics(&lines, *snapshot.Mobile)
+	}
+	for _, agent := range snapshot.Agents {
+		appendAgentMetrics(&lines, agent)
+	}
+	appendGitHubMetrics(&lines, snapshot.GitHub)
+	return strings.Join(append(lines, ""), "\n")
+}
+
+func appendMetricMetadata(lines *[]string) {
+	for _, metric := range metricDefinitions {
+		*lines = append(*lines,
+			fmt.Sprintf("# HELP %s %s OpenTelemetry name: %s.", metric.Name, metric.Description, metric.OTelName),
+			fmt.Sprintf("# TYPE %s %s", metric.Name, metric.Type),
+			fmt.Sprintf("# UNIT %s %s", metric.Name, metric.Unit),
+		)
+	}
+}
+
+func appendMobileMetrics(lines *[]string, status StoredMobileStatus) {
+	appendDeviceTimestamp(lines, status.DeviceID, "phone", status.ReceivedAt)
+	if status.Phone != nil {
+		appendBattery(lines, status.DeviceID, "phone", status.Phone.BatteryPercent)
+		if status.Phone.ChargeState != "" {
+			appendSample(lines, "realtime_device_charging", deviceLabels(status.DeviceID, "phone"), boolFloat(status.Phone.ChargeState == ChargeCharging))
+		}
+		if status.Phone.Network != "" {
+			appendState(lines, "realtime_device_network_state", map[string]string{"device_id": status.DeviceID}, "network_type", status.Phone.Network, []string{"offline", "wifi", "cellular", "vpn", "online", "unknown"})
+		}
+	}
+	if status.Watch == nil {
+		return
+	}
+	appendDeviceTimestamp(lines, status.DeviceID, "watch", status.ReceivedAt)
+	appendBattery(lines, status.DeviceID, "watch", status.Watch.BatteryPercent)
+	if status.Watch.ChargeState != "" {
+		appendSample(lines, "realtime_device_charging", deviceLabels(status.DeviceID, "watch"), boolFloat(status.Watch.ChargeState == ChargeCharging))
+	}
+	if status.Watch.HeartRate != nil && status.Watch.WristState != WristOffWrist {
+		appendSample(lines, "realtime_watch_heart_rate_beats_per_minute", map[string]string{"device_id": status.DeviceID}, float64(*status.Watch.HeartRate))
+	}
+	if status.Watch.Steps != nil {
+		appendSample(lines, "realtime_watch_steps", map[string]string{"device_id": status.DeviceID}, float64(*status.Watch.Steps))
+	}
+	if status.Watch.WristState != "" {
+		appendState(lines, "realtime_watch_wrist_state", map[string]string{"device_id": status.DeviceID}, "wrist_state", string(status.Watch.WristState), []string{string(WristUnknown), string(WristOnWrist), string(WristOffWrist)})
+	}
+}
+
+func appendDeviceTimestamp(lines *[]string, deviceID string, deviceType string, receivedAt string) {
+	appendSample(lines, "realtime_device_last_update_time_seconds", deviceLabels(deviceID, deviceType), float64(unixSeconds(receivedAt)))
+}
+
+func appendBattery(lines *[]string, deviceID string, deviceType string, value *int) {
+	if value == nil {
+		return
+	}
+	appendSample(lines, "realtime_device_battery_level_ratio", deviceLabels(deviceID, deviceType), float64(*value)/100)
+}
+
+func appendAgentMetrics(lines *[]string, status StoredAgentStatus) {
+	appendState(lines, "realtime_agent_state", map[string]string{"agent_id": status.AgentID}, "state", status.State, []string{"idle", "running", "failed"})
+	if status.BudgetRemainingPercent != nil {
+		appendSample(lines, "realtime_agent_budget_remaining_ratio", map[string]string{"agent_id": status.AgentID}, float64(*status.BudgetRemainingPercent)/100)
+	}
+}
+
+func appendGitHubMetrics(lines *[]string, status GitHubSyncStatus) {
+	appendState(lines, "realtime_github_status_sync_state", nil, "state", string(status.State), []string{string(GitHubSyncDisabled), string(GitHubSyncPending), string(GitHubSyncOK), string(GitHubSyncError)})
+}
+
+func appendState(lines *[]string, metric string, baseLabels map[string]string, stateLabel string, current string, states []string) {
+	seen := map[string]struct{}{}
+	for _, state := range states {
+		seen[state] = struct{}{}
+		labels := copyLabels(baseLabels)
+		labels[stateLabel] = state
+		appendSample(lines, metric, labels, boolFloat(current == state))
+	}
+	if _, ok := seen[current]; current != "" && !ok {
+		labels := copyLabels(baseLabels)
+		labels[stateLabel] = current
+		appendSample(lines, metric, labels, 1)
+	}
+}
+
+func appendSample(lines *[]string, name string, labels map[string]string, value float64) {
+	*lines = append(*lines, fmt.Sprintf("%s%s %s", name, labelSet(labels), strconv.FormatFloat(value, 'f', -1, 64)))
+}
+
+func deviceLabels(deviceID string, deviceType string) map[string]string {
+	return map[string]string{"device_id": deviceID, "device_type": deviceType}
+}
+
+func copyLabels(labels map[string]string) map[string]string {
+	copy := map[string]string{}
+	for key, value := range labels {
+		copy[key] = value
+	}
+	return copy
+}
+
+func unixSeconds(value string) int64 {
+	parsed, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		return 0
+	}
+	return parsed.Unix()
+}
+
+func labelSet(labels map[string]string) string {
+	if len(labels) == 0 {
+		return ""
+	}
+	keys := make([]string, 0, len(labels))
+	for key := range labels {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	pairs := make([]string, 0, len(keys))
+	for _, key := range keys {
+		value := labels[key]
+		pairs = append(pairs, fmt.Sprintf("%s=%s", key, strconv.Quote(value)))
+	}
+	return "{" + strings.Join(pairs, ",") + "}"
+}
+
+func boolFloat(value bool) float64 {
+	if value {
+		return 1
+	}
+	return 0
+}

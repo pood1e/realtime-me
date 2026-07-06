@@ -1,0 +1,16 @@
+{
+  "name": "realtime-me",
+  "private": true,
+  "workspaces": [
+    "apps/status-page"
+  ],
+  "scripts": {
+    "build:gateway": "cd apps/status-gateway && go build ./...",
+    "check:gateway": "cd apps/status-gateway && go vet ./... && go test ./...",
+    "build:status": "npm run build:gateway && npm run build --workspace apps/status-page",
+    "check:status": "npm run check:gateway && npm run check --workspace apps/status-page"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

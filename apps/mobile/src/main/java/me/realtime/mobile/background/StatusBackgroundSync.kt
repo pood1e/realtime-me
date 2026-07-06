@@ -9,26 +9,26 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import me.realtime.mobile.state.GitHubTokenStore
+import me.realtime.mobile.state.StatusGatewayTokenStore
 import java.util.concurrent.TimeUnit
 
-object GitHubBackgroundSync {
+object StatusBackgroundSync {
     fun ensureActive(context: Context) {
         val appContext = context.applicationContext
-        if (!GitHubTokenStore(appContext).hasToken()) {
+        if (!StatusGatewayTokenStore(appContext).hasToken()) {
             cancel(appContext)
-            GitHubStatusForegroundService.stop(appContext)
+            StatusForegroundService.stop(appContext)
             return
         }
 
         ensureScheduled(appContext)
         enqueueNow(appContext)
-        GitHubStatusForegroundService.start(appContext)
+        StatusForegroundService.start(appContext)
     }
 
     fun ensureScheduled(context: Context) {
         val appContext = context.applicationContext
-        if (!GitHubTokenStore(appContext).hasToken()) {
+        if (!StatusGatewayTokenStore(appContext).hasToken()) {
             cancel(appContext)
             return
         }
@@ -37,7 +37,7 @@ object GitHubBackgroundSync {
             .enqueueUniquePeriodicWork(
                 PERIODIC_WORK_NAME,
                 ExistingPeriodicWorkPolicy.UPDATE,
-                PeriodicWorkRequestBuilder<GitHubStatusSyncWorker>(
+                PeriodicWorkRequestBuilder<StatusSyncWorker>(
                     PERIODIC_INTERVAL_MINUTES,
                     TimeUnit.MINUTES,
                 )
@@ -48,13 +48,13 @@ object GitHubBackgroundSync {
 
     fun enqueueNow(context: Context) {
         val appContext = context.applicationContext
-        if (!GitHubTokenStore(appContext).hasToken()) return
+        if (!StatusGatewayTokenStore(appContext).hasToken()) return
 
         WorkManager.getInstance(appContext)
             .enqueueUniqueWork(
                 IMMEDIATE_WORK_NAME,
                 ExistingWorkPolicy.REPLACE,
-                OneTimeWorkRequestBuilder<GitHubStatusSyncWorker>()
+                OneTimeWorkRequestBuilder<StatusSyncWorker>()
                     .setConstraints(networkConstraints())
                     .setBackoffCriteria(
                         BackoffPolicy.EXPONENTIAL,
@@ -75,8 +75,8 @@ object GitHubBackgroundSync {
         .setRequiredNetworkType(NetworkType.CONNECTED)
         .build()
 
-    private const val IMMEDIATE_WORK_NAME = "github_status_sync_now"
-    private const val PERIODIC_WORK_NAME = "github_status_sync_periodic"
+    private const val IMMEDIATE_WORK_NAME = "status_gateway_sync_now"
+    private const val PERIODIC_WORK_NAME = "status_gateway_sync_periodic"
     private const val PERIODIC_INTERVAL_MINUTES = 15L
     private const val RETRY_BACKOFF_SECONDS = 30L
 }

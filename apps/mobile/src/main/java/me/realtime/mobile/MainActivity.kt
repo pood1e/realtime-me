@@ -1,17 +1,15 @@
 package me.realtime.mobile
 
 import android.Manifest
-import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,16 +31,13 @@ import androidx.compose.material.icons.outlined.BatteryFull
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.LinkOff
-import androidx.compose.material.icons.outlined.OpenInBrowser
 import androidx.compose.material.icons.outlined.WatchOff
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -58,11 +53,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
@@ -71,15 +65,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.realtime.mobile.background.GitHubBackgroundSync
-import me.realtime.mobile.background.GitHubStatusForegroundService
-import me.realtime.mobile.github.GitHubProfile
-import me.realtime.mobile.github.GitHubProfileResult
-import me.realtime.mobile.github.GitHubStatusClient
-import me.realtime.mobile.state.GitHubTokenStore
-import me.realtime.mobile.state.SnapshotProcessor
-import me.realtime.mobile.state.StatusSyncStore
+import me.realtime.mobile.background.StatusBackgroundSync
+import me.realtime.mobile.state.StatusGatewayTokenStore
 import me.realtime.mobile.state.StoredWatchSnapshot
+import me.realtime.mobile.state.WatchSnapshotProcessor
 import me.realtime.mobile.state.WatchSnapshotStore
 import me.realtime.mobile.wear.WatchSnapshotReader
 import me.realtime.protocol.v1.ChargeState
@@ -99,8 +88,7 @@ class MainActivity : ComponentActivity() {
     private val dateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, HH:mm:ss").withZone(zoneId)
     private var refreshJob: Job? = null
 
-    private var githubAccount by mutableStateOf<GitHubAccountUiState>(GitHubAccountUiState.Missing)
-    private var githubSyncFailed by mutableStateOf(false)
+    private var statusGatewayConnected by mutableStateOf(false)
     private var watchData by mutableStateOf<WatchDataUiState>(WatchDataUiState.Empty)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -109,12 +97,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             RealtimeMobileScreen(
-                githubAccount = githubAccount,
-                githubSyncFailed = githubSyncFailed,
+                statusGatewayConnected = statusGatewayConnected,
                 watchData = watchData,
-                onRequestGitHubToken = ::requestGitHubToken,
-                onImportCopiedToken = ::importCopiedToken,
-                onDisconnectGitHub = ::disconnectGitHub,
+                onImportStatusGatewayToken = ::importStatusGatewayToken,
+                onDisconnectStatusGateway = ::disconnectStatusGateway,
             )
         }
     }
@@ -128,7 +114,6 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         refreshStatus()
-        refreshGitHubAccount()
     }
 
     override fun onStop() {
@@ -142,16 +127,7 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    private fun requestGitHubToken() {
-        val intent = Intent(Intent.ACTION_VIEW, GITHUB_TOKEN_REQUEST_URI.toUri())
-        try {
-            startActivity(intent)
-        } catch (_: ActivityNotFoundException) {
-            Toast.makeText(this, R.string.github_token_browser_missing, Toast.LENGTH_LONG).show()
-        }
-    }
-
-    private fun importCopiedToken() {
+    private fun importStatusGatewayToken() {
         val clipboard = getSystemService(ClipboardManager::class.java)
         val token = clipboard?.primaryClip
             ?.takeIf { it.itemCount > 0 }
@@ -160,35 +136,31 @@ class MainActivity : ComponentActivity() {
             ?.toString()
             ?.trim()
             .orEmpty()
-        if (!token.looksLikeGitHubToken()) {
-            Toast.makeText(this, R.string.github_token_clipboard_missing, Toast.LENGTH_SHORT).show()
+        if (token.length < MIN_STATUS_GATEWAY_TOKEN_LENGTH) {
+            Toast.makeText(this, R.string.status_gateway_token_clipboard_missing, Toast.LENGTH_SHORT).show()
             return
         }
 
         scope.launch {
             withContext(Dispatchers.IO) {
-                GitHubTokenStore(applicationContext).save(token)
-                StatusSyncStore(applicationContext).clearError()
+                StatusGatewayTokenStore(applicationContext).save(token)
+                StatusBackgroundSync.ensureActive(applicationContext)
             }
             clipboard?.clearToken()
-            withContext(Dispatchers.IO) { GitHubBackgroundSync.ensureActive(applicationContext) }
-            Toast.makeText(this@MainActivity, R.string.github_token_saved, Toast.LENGTH_SHORT).show()
+            statusGatewayConnected = true
+            Toast.makeText(this@MainActivity, R.string.status_gateway_token_saved, Toast.LENGTH_SHORT).show()
             refreshStatus()
-            refreshGitHubAccount()
         }
     }
 
-    private fun disconnectGitHub() {
+    private fun disconnectStatusGateway() {
         scope.launch {
             withContext(Dispatchers.IO) {
-                GitHubTokenStore(applicationContext).clear()
-                StatusSyncStore(applicationContext).clearError()
-                GitHubBackgroundSync.cancel(applicationContext)
-                GitHubStatusForegroundService.stop(applicationContext)
+                StatusGatewayTokenStore(applicationContext).clear()
+                StatusBackgroundSync.ensureActive(applicationContext)
             }
-            githubAccount = GitHubAccountUiState.Missing
-            githubSyncFailed = false
-            Toast.makeText(this@MainActivity, getString(R.string.github_disconnected), Toast.LENGTH_SHORT).show()
+            statusGatewayConnected = false
+            Toast.makeText(this@MainActivity, R.string.status_gateway_disconnected, Toast.LENGTH_SHORT).show()
             refreshStatus()
         }
     }
@@ -201,25 +173,7 @@ class MainActivity : ComponentActivity() {
 
     private fun startBackgroundSyncIfConfigured() {
         scope.launch(Dispatchers.IO) {
-            GitHubBackgroundSync.ensureActive(applicationContext)
-        }
-    }
-
-    private fun refreshGitHubAccount() {
-        if (githubAccount is GitHubAccountUiState.Checking) return
-
-        scope.launch {
-            val token = withContext(Dispatchers.IO) { GitHubTokenStore(applicationContext).token() }
-            if (token == null) {
-                githubAccount = GitHubAccountUiState.Missing
-                return@launch
-            }
-
-            githubAccount = GitHubAccountUiState.Checking
-            githubAccount = when (val result = withContext(Dispatchers.IO) { GitHubStatusClient().viewerProfile(token) }) {
-                is GitHubProfileResult.Success -> result.profile.toUiState()
-                is GitHubProfileResult.Failure -> GitHubAccountUiState.Error
-            }
+            StatusBackgroundSync.ensureActive(applicationContext)
         }
     }
 
@@ -241,27 +195,17 @@ class MainActivity : ComponentActivity() {
         val state = withContext(Dispatchers.IO) {
             refreshLatestWatchSnapshot()
             StatusState(
-                hasToken = GitHubTokenStore(applicationContext).hasToken(),
-                githubSyncFailed = StatusSyncStore(applicationContext).hasError(),
+                statusGatewayConnected = StatusGatewayTokenStore(applicationContext).hasToken(),
                 watchData = WatchSnapshotStore(applicationContext).latest()?.toUiState() ?: WatchDataUiState.Empty,
             )
         }
-        applyTokenPresence(state.hasToken)
-        githubSyncFailed = state.hasToken && state.githubSyncFailed
+        statusGatewayConnected = state.statusGatewayConnected
         watchData = state.watchData
-    }
-
-    private fun applyTokenPresence(hasToken: Boolean) {
-        githubAccount = when {
-            !hasToken -> GitHubAccountUiState.Missing
-            githubAccount is GitHubAccountUiState.Missing -> GitHubAccountUiState.Stored
-            else -> githubAccount
-        }
     }
 
     private suspend fun refreshLatestWatchSnapshot() {
         val payload = runCatching { WatchSnapshotReader(applicationContext).latestPayload() }.getOrNull() ?: return
-        runCatching { SnapshotProcessor(applicationContext).process(payload) }
+        WatchSnapshotProcessor(applicationContext).process(payload)
     }
 
     private fun StoredWatchSnapshot.toUiState(): WatchDataUiState.Loaded {
@@ -308,21 +252,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun GitHubProfile.toUiState(): GitHubAccountUiState.Connected {
-        val statusText = status?.let { githubStatus ->
-            listOfNotNull(githubStatus.emoji, githubStatus.message)
-                .filter { it.isNotBlank() }
-                .joinToString(separator = " ")
-                .takeIf { it.isNotBlank() }
-        } ?: getString(R.string.github_status_empty)
-        return GitHubAccountUiState.Connected(
-            login = "@$login",
-            status = statusText,
-        )
-    }
-
-    private fun String.looksLikeGitHubToken(): Boolean = GITHUB_TOKEN_PREFIXES.any(::startsWith)
-
     private fun ClipboardManager.clearToken() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             clearPrimaryClip()
@@ -332,17 +261,15 @@ class MainActivity : ComponentActivity() {
     }
 
     private data class StatusState(
-        val hasToken: Boolean,
-        val githubSyncFailed: Boolean,
+        val statusGatewayConnected: Boolean,
         val watchData: WatchDataUiState,
     )
 
     private companion object {
         const val REFRESH_INTERVAL_MS = 2_000L
+        const val MIN_STATUS_GATEWAY_TOKEN_LENGTH = 16
         const val NOTIFICATION_PERMISSION_REQUEST_CODE = 1002
         const val MISSING_VALUE = "—"
-        const val GITHUB_TOKEN_REQUEST_URI = "https://github.com/settings/tokens/new?description=Realtime%20Me%20Pixel%20Watch%20status%20publisher&scopes=user"
-        val GITHUB_TOKEN_PREFIXES = listOf("github_pat_", "ghp_")
     }
 }
 
@@ -359,42 +286,13 @@ private sealed interface WatchDataUiState {
     ) : WatchDataUiState
 }
 
-private sealed interface GitHubAccountUiState {
-    val hasToken: Boolean
-
-    data object Missing : GitHubAccountUiState {
-        override val hasToken: Boolean = false
-    }
-
-    data object Stored : GitHubAccountUiState {
-        override val hasToken: Boolean = true
-    }
-
-    data object Checking : GitHubAccountUiState {
-        override val hasToken: Boolean = true
-    }
-
-    data class Connected(
-        val login: String,
-        val status: String,
-    ) : GitHubAccountUiState {
-        override val hasToken: Boolean = true
-    }
-
-    data object Error : GitHubAccountUiState {
-        override val hasToken: Boolean = true
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RealtimeMobileScreen(
-    githubAccount: GitHubAccountUiState,
-    githubSyncFailed: Boolean,
+    statusGatewayConnected: Boolean,
     watchData: WatchDataUiState,
-    onRequestGitHubToken: () -> Unit,
-    onImportCopiedToken: () -> Unit,
-    onDisconnectGitHub: () -> Unit,
+    onImportStatusGatewayToken: () -> Unit,
+    onDisconnectStatusGateway: () -> Unit,
 ) {
     MaterialTheme {
         Scaffold(
@@ -411,12 +309,10 @@ private fun RealtimeMobileScreen(
                         .padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    GitHubConnectionCard(
-                        githubAccount = githubAccount,
-                        githubSyncFailed = githubSyncFailed,
-                        onRequestGitHubToken = onRequestGitHubToken,
-                        onImportCopiedToken = onImportCopiedToken,
-                        onDisconnectGitHub = onDisconnectGitHub,
+                    StatusGatewayCard(
+                        connected = statusGatewayConnected,
+                        onImportToken = onImportStatusGatewayToken,
+                        onDisconnect = onDisconnectStatusGateway,
                     )
                     CurrentWatchCard(watchData = watchData)
                 }
@@ -425,24 +321,22 @@ private fun RealtimeMobileScreen(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun GitHubConnectionCard(
-    githubAccount: GitHubAccountUiState,
-    githubSyncFailed: Boolean,
-    onRequestGitHubToken: () -> Unit,
-    onImportCopiedToken: () -> Unit,
-    onDisconnectGitHub: () -> Unit,
+private fun StatusGatewayCard(
+    connected: Boolean,
+    onImportToken: () -> Unit,
+    onDisconnect: () -> Unit,
 ) {
-    var showDisconnectAction by remember(githubAccount.hasToken) { mutableStateOf(false) }
+    var showDisconnectAction by remember(connected) { mutableStateOf(false) }
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
                 onClick = {},
-                onLongClickLabel = stringResource(R.string.disconnect_github),
+                onLongClickLabel = stringResource(R.string.status_gateway_disconnect),
                 onLongClick = {
-                    if (githubAccount.hasToken) showDisconnectAction = !showDisconnectAction
+                    if (connected) showDisconnectAction = !showDisconnectAction
                 },
             ),
     ) {
@@ -451,79 +345,43 @@ private fun GitHubConnectionCard(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             IconSectionHeader(
-                title = stringResource(R.string.github_card_title),
-                icon = githubAccount.statusIcon(githubSyncFailed),
-                contentDescription = githubAccount.statusLabel(githubSyncFailed),
-                tint = githubAccount.statusIconTint(githubSyncFailed),
+                title = stringResource(R.string.status_gateway_title),
+                icon = if (connected) Icons.Outlined.CheckCircle else Icons.Outlined.LinkOff,
+                contentDescription = if (connected) {
+                    stringResource(R.string.status_gateway_connected)
+                } else {
+                    stringResource(R.string.status_gateway_missing)
+                },
             )
             Text(
-                text = githubAccount.description(),
+                text = if (connected) {
+                    stringResource(R.string.status_gateway_connected_description)
+                } else {
+                    stringResource(R.string.status_gateway_missing_description)
+                },
                 style = MaterialTheme.typography.bodyMedium,
             )
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (!githubAccount.hasToken || githubAccount == GitHubAccountUiState.Error || githubSyncFailed) {
-                    ActionIconButton(
-                        icon = Icons.Outlined.OpenInBrowser,
-                        contentDescription = stringResource(R.string.create_github_token),
-                        onClick = onRequestGitHubToken,
-                        style = ActionButtonStyle.Primary,
-                    )
+                if (!connected) {
                     ActionIconButton(
                         icon = Icons.Outlined.ContentPaste,
-                        contentDescription = stringResource(R.string.save_copied_token),
-                        onClick = onImportCopiedToken,
+                        contentDescription = stringResource(R.string.status_gateway_import_token),
+                        onClick = onImportToken,
                     )
                 }
-                if (githubAccount.hasToken && showDisconnectAction) {
+                if (connected && showDisconnectAction) {
                     ActionIconButton(
                         icon = Icons.Outlined.Delete,
-                        contentDescription = stringResource(R.string.disconnect_github),
-                        onClick = onDisconnectGitHub,
+                        contentDescription = stringResource(R.string.status_gateway_disconnect),
+                        onClick = onDisconnect,
                     )
                 }
             }
         }
     }
-}
-
-private fun GitHubAccountUiState.statusIcon(githubSyncFailed: Boolean): ImageVector = when {
-    githubSyncFailed && hasToken -> Icons.Outlined.ErrorOutline
-    this == GitHubAccountUiState.Missing -> Icons.Outlined.LinkOff
-    this == GitHubAccountUiState.Stored -> Icons.Outlined.HourglassEmpty
-    this == GitHubAccountUiState.Checking -> Icons.Outlined.HourglassEmpty
-    this is GitHubAccountUiState.Connected -> Icons.Outlined.CheckCircle
-    else -> Icons.Outlined.ErrorOutline
-}
-
-@Composable
-private fun GitHubAccountUiState.statusIconTint(githubSyncFailed: Boolean): Color {
-    return if ((githubSyncFailed && hasToken) || this == GitHubAccountUiState.Error) {
-        MaterialTheme.colorScheme.error
-    } else {
-        MaterialTheme.colorScheme.primary
-    }
-}
-
-@Composable
-private fun GitHubAccountUiState.statusLabel(githubSyncFailed: Boolean): String = when {
-    githubSyncFailed && hasToken -> stringResource(R.string.github_sync_failed_chip)
-    this == GitHubAccountUiState.Missing -> stringResource(R.string.github_not_connected_chip)
-    this == GitHubAccountUiState.Stored -> stringResource(R.string.github_stored_chip)
-    this == GitHubAccountUiState.Checking -> stringResource(R.string.github_checking_chip)
-    this is GitHubAccountUiState.Connected -> stringResource(R.string.github_connected_chip)
-    else -> stringResource(R.string.github_error_chip)
-}
-
-@Composable
-private fun GitHubAccountUiState.description(): String = when (this) {
-    GitHubAccountUiState.Missing -> stringResource(R.string.github_token_missing_description)
-    GitHubAccountUiState.Stored -> stringResource(R.string.github_token_stored_description)
-    GitHubAccountUiState.Checking -> stringResource(R.string.github_token_checking_description)
-    is GitHubAccountUiState.Connected -> stringResource(R.string.github_connected_description, login)
-    GitHubAccountUiState.Error -> stringResource(R.string.github_token_error_description)
 }
 
 @Composable
@@ -545,7 +403,6 @@ private fun CurrentWatchCard(watchData: WatchDataUiState) {
         }
     }
 }
-
 
 @Composable
 private fun WatchDataUiState.statusLabel(): String = when (this) {
@@ -662,33 +519,17 @@ private fun ActionIconButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
-    style: ActionButtonStyle = ActionButtonStyle.Tonal,
 ) {
-    val modifier = Modifier.size(56.dp)
-    val content: @Composable () -> Unit = {
+    FilledTonalIconButton(
+        onClick = onClick,
+        modifier = Modifier.size(56.dp),
+    ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
             modifier = Modifier.size(26.dp),
         )
     }
-    when (style) {
-        ActionButtonStyle.Primary -> FilledIconButton(
-            onClick = onClick,
-            modifier = modifier,
-            content = content,
-        )
-        ActionButtonStyle.Tonal -> FilledTonalIconButton(
-            onClick = onClick,
-            modifier = modifier,
-            content = content,
-        )
-    }
-}
-
-private enum class ActionButtonStyle {
-    Primary,
-    Tonal,
 }
 
 @Composable

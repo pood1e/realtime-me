@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+fun String.asBuildConfigString(): String = replace("\\", "\\\\").replace("\"", "\\\"")
+
 android {
     namespace = "me.realtime.mobile"
     compileSdk = 37
@@ -17,6 +19,25 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+
+    buildTypes {
+        all {
+            buildConfigField(
+                "String",
+                "STATUS_GATEWAY_LAN_URL",
+                "\"${providers.gradleProperty("statusGatewayLanUrl").orElse("").get().asBuildConfigString()}\"",
+            )
+            buildConfigField(
+                "String",
+                "STATUS_GATEWAY_PUBLIC_URL",
+                "\"${providers.gradleProperty("statusGatewayPublicUrl").orElse("").get().asBuildConfigString()}\"",
+            )
+            manifestPlaceholders["usesCleartextTraffic"] = providers.gradleProperty("statusGatewayAllowCleartext")
+                .orElse("false")
+                .get()
+        }
     }
 
     compileOptions {

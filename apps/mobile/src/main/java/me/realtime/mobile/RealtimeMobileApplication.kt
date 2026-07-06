@@ -1,11 +1,11 @@
 package me.realtime.mobile
 
 import android.app.Application
-import me.realtime.mobile.background.GitHubBackgroundSync
+import me.realtime.mobile.background.StatusBackgroundSync
 
 class RealtimeMobileApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        GitHubBackgroundSync.ensureScheduled(this)
+        StatusBackgroundSync.ensureScheduled(this)
     }
 }

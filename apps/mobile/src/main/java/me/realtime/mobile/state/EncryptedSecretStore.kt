@@ -12,22 +12,28 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-class GitHubTokenStore(context: Context) {
-    private val preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+class EncryptedSecretStore(
+    context: Context,
+    private val prefsName: String,
+    private val keyAlias: String,
+    private val ivKey: String = DEFAULT_IV_KEY,
+    private val ciphertextKey: String = DEFAULT_CIPHERTEXT_KEY,
+) {
+    private val preferences = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
 
-    fun save(token: String) {
+    fun save(value: String) {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, secretKey())
-        val encrypted = cipher.doFinal(token.toByteArray(StandardCharsets.UTF_8))
+        val encrypted = cipher.doFinal(value.toByteArray(StandardCharsets.UTF_8))
         preferences.edit {
-            putString(IV_KEY, Base64.getEncoder().encodeToString(cipher.iv))
-            putString(CIPHERTEXT_KEY, Base64.getEncoder().encodeToString(encrypted))
+            putString(ivKey, Base64.getEncoder().encodeToString(cipher.iv))
+            putString(ciphertextKey, Base64.getEncoder().encodeToString(encrypted))
         }
     }
 
-    fun token(): String? {
-        val encodedIv = preferences.getString(IV_KEY, null) ?: return null
-        val encodedCiphertext = preferences.getString(CIPHERTEXT_KEY, null) ?: return null
+    fun value(): String? {
+        val encodedIv = preferences.getString(ivKey, null) ?: return null
+        val encodedCiphertext = preferences.getString(ciphertextKey, null) ?: return null
         return runCatching {
             val cipher = Cipher.getInstance(TRANSFORMATION)
             cipher.init(
@@ -40,22 +46,22 @@ class GitHubTokenStore(context: Context) {
         }.getOrNull()
     }
 
-    fun hasToken(): Boolean = token() != null
+    fun hasValue(): Boolean = value() != null
 
     fun clear() {
         preferences.edit {
-            remove(IV_KEY)
-            remove(CIPHERTEXT_KEY)
+            remove(ivKey)
+            remove(ciphertextKey)
         }
     }
 
     private fun secretKey(): SecretKey {
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
-        (keyStore.getKey(KEY_ALIAS, null) as? SecretKey)?.let { return it }
+        (keyStore.getKey(keyAlias, null) as? SecretKey)?.let { return it }
 
         val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
         val spec = KeyGenParameterSpec.Builder(
-            KEY_ALIAS,
+            keyAlias,
             KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
         )
             .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
@@ -67,11 +73,9 @@ class GitHubTokenStore(context: Context) {
     }
 
     private companion object {
-        const val PREFS_NAME = "github_secrets"
-        const val IV_KEY = "github_token_iv"
-        const val CIPHERTEXT_KEY = "github_token_ciphertext"
+        const val DEFAULT_IV_KEY = "secret_iv"
+        const val DEFAULT_CIPHERTEXT_KEY = "secret_ciphertext"
         const val ANDROID_KEYSTORE = "AndroidKeyStore"
-        const val KEY_ALIAS = "realtime_me_github_token"
         const val TRANSFORMATION = "AES/GCM/NoPadding"
         const val KEY_SIZE_BITS = 256
         const val GCM_TAG_LENGTH_BITS = 128

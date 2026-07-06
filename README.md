@@ -1,8 +1,8 @@
 # realtime-me
 
-Realtime Pixel Watch status publisher for GitHub.
+Realtime Pixel Watch and device status publisher.
 
-The watch does not need internet access. It collects local health/device data and sends the latest snapshot to the paired Android phone through the Wear OS Data Layer. The phone companion stores a GitHub personal access token locally and updates the GitHub user status through the GitHub GraphQL API.
+The watch does not need internet access. It collects local health/device data and sends the latest snapshot to the paired Android phone through the Wear OS Data Layer. The phone only forwards phone/watch status to a self-hosted gateway; the gateway owns GitHub status updates and Prometheus metrics.
 
 ## Architecture
 
@@ -10,46 +10,54 @@ The watch does not need internet access. It collects local health/device data an
   - Requests sensor/background permission once, then exits.
   - Runs a health foreground service for heart rate, daily steps, battery, charging, and wrist state.
   - Restarts collection after boot/package replacement when permissions are still granted.
-  - Publishes watch snapshots to the paired phone over Data Layer, with a one-minute normal refresh loop.
+  - Publishes watch snapshots to the paired phone over Data Layer.
 - `apps/mobile`: Android phone companion.
   - Receives watch snapshots from Data Layer.
-  - Opens GitHub's token request page; no token is typed into the app.
-  - Stores the GitHub token with Android Keystore-backed AES/GCM encrypted shared preferences.
-  - Reads the authenticated GitHub username/current status and calls `changeUserStatus` directly; no Cloudflare or other relay is used.
-  - Keeps a foreground sync service active after token setup; WorkManager is only a 15-minute fallback because Android periodic work cannot run every minute.
+  - Stores only the self-hosted gateway ingest token with Android Keystore-backed AES/GCM encrypted shared preferences.
+  - Pushes phone/watch status to configured gateway endpoints; private LAN/public URLs are build properties, not committed values.
+  - Keeps a foreground sync service active after token setup; WorkManager is only a 15-minute OS-managed recovery fallback.
+- `apps/status-gateway`: Go gateway for mobile/agent ingestion, GitHub `changeUserStatus`, public status JSON, and Prometheus metrics.
+- `apps/status-page`: Vite/React status page using shadcn/ui, Radix, Lucide, and Tailwind.
+- `infra/status-stack`: Prometheus, node-exporter, cAdvisor, status-gateway, and optional cloudflared service definitions.
 - `libs/protocol` and `proto/realtime/me/v1/watch.proto`: shared protobuf contract for the Data Layer payload.
 
 Wear OS Data Layer requires the phone and watch APKs to use the same package name and signing certificate. Both APKs therefore use application ID `me.realtime`, while keeping separate source namespaces for mobile and watch code.
 
-## GitHub token
+## GitHub status
 
-Use a classic personal access token with the smallest GitHub scope that can update user status through GraphQL:
+GitHub is updated by `apps/status-gateway`, not by the phone. Put a classic personal access token in the gateway host `.env`:
 
 - Scope: `user`.
-- Repository permissions: none requested by this app.
-- Used GraphQL operations: `viewer.login`, `viewer.status`, and `changeUserStatus`.
+- Repository permissions: none.
+- GraphQL operation: `changeUserStatus`.
 
-In the phone app:
+No GitHub token is stored on the watch or phone.
 
-1. Tap **Request minimal GitHub token**. The browser opens GitHub's classic token page prefilled with `user`.
-2. Create the token in GitHub and copy it once when GitHub displays it.
-3. Return to the phone app and tap **Save copied token**.
-4. The app shows the connected GitHub account after the token is accepted.
+## Metrics
 
-The app does not use OAuth, a GitHub OAuth client ID, manual token text input, or any repository scope. Tokens are not stored on the watch, committed to this repository, or printed to logs.
+`/metrics` is Prometheus-compatible and uses OpenTelemetry-style metric names/units in the metadata. Examples:
+
+- `realtime.device.battery.level` → `realtime_device_battery_level_ratio`, unit `1`.
+- `realtime.device.last_update` → `realtime_device_last_update_time_seconds`, unit `s`.
+- `realtime.watch.heart_rate` → `realtime_watch_heart_rate_beats_per_minute`, unit `{beat}/min`.
+- `realtime.github.status.sync.state` → `realtime_github_status_sync_state`, unit `1`.
+
+Attributes are exposed as Prometheus labels such as `device_id`, `device_type`, `state`, and `wrist_state`.
 
 ## Sync frequency
 
 - Watch → phone:
   - First snapshot is published immediately after the watch service starts.
   - In normal mode, heart-rate/step/wrist/battery changes can publish after a 2-second minimum interval.
-  - A foreground refresh loop republishes the current watch state about once per minute, even if sensor values do not change.
+  - A foreground refresh loop republishes the current watch state about once per minute.
   - Low-battery or off-wrist mode slows unchanged refreshes to about every 5 minutes; changed values still have a 30-second minimum interval.
-- Phone → GitHub:
+- Phone → status gateway:
   - Incoming watch snapshots are processed immediately.
-  - The phone foreground service runs a one-minute sync loop while a token is configured.
-  - The app keeps a 15-minute WorkManager fallback for OS-managed background recovery.
-  - GitHub writes are throttled to one per minute.
+  - The phone foreground service pushes the latest phone/watch status every 10 seconds while a gateway token is configured.
+  - LAN HTTP and public HTTPS endpoints are build-time configuration. Use LAN first to avoid Cloudflare traffic, and public HTTPS as fallback when configured.
+- Gateway → GitHub:
+  - The gateway formats the latest watch data and updates GitHub status at most once every 10 seconds by default.
+  - Statuses expire after 20 minutes by default so stale status clears naturally.
 
 ## Build
 
@@ -57,45 +65,100 @@ Requirements:
 
 - Android SDK with API 37 installed.
 - JDK 17. This repo pins Gradle to `/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home` in `gradle.properties`; change that path if needed.
+- Go 1.26.
+- Node 22+.
 
 Commands:
 
 ```sh
 ANDROID_HOME=$HOME/Library/Android/sdk ANDROID_SDK_ROOT=$HOME/Library/Android/sdk ./gradlew :libs:protocol:generateDebugProto
 ANDROID_HOME=$HOME/Library/Android/sdk ANDROID_SDK_ROOT=$HOME/Library/Android/sdk ./gradlew :apps:watch:assembleDebug :apps:mobile:assembleDebug
+npm run build:status
 buf lint
 ```
 
-## Debug token fallback
-
-For debug builds, a copied token can be injected over ADB instead of using the phone clipboard:
+To enable the phone app's LAN status gateway without committing a private address:
 
 ```sh
-GITHUB_TOKEN=github_pat_placeholder \
+ANDROID_HOME=$HOME/Library/Android/sdk ANDROID_SDK_ROOT=$HOME/Library/Android/sdk \
+  ./gradlew :apps:mobile:assembleDebug \
+  -PstatusGatewayLanUrl=http://<lan-host>:18080 \
+  -PstatusGatewayAllowCleartext=true
+```
+
+For a public HTTPS fallback:
+
+```sh
+ANDROID_HOME=$HOME/Library/Android/sdk ANDROID_SDK_ROOT=$HOME/Library/Android/sdk \
+  ./gradlew :apps:mobile:assembleDebug \
+  -PstatusGatewayPublicUrl=https://api-status.example.com
+```
+
+## Debug gateway token injection
+
+For debug builds, a copied gateway token can be injected over ADB instead of using the phone clipboard:
+
+```sh
+STATUS_INGEST_TOKEN=replace-with-generated-token \
   $ANDROID_HOME/platform-tools/adb -s <phone-serial> shell am broadcast \
-  -a me.realtime.mobile.debug.SET_GITHUB_TOKEN \
+  -a me.realtime.mobile.debug.SET_STATUS_GATEWAY_TOKEN \
   -n me.realtime/me.realtime.mobile.debug.DebugTokenReceiver \
-  --es token "$GITHUB_TOKEN"
+  --es token "$STATUS_INGEST_TOKEN"
 ```
 
 The debug receiver exists only in debug builds and stores the token through the same encrypted store used by the app UI.
 
+## Self-hosted status stack
+
+The status stack stores raw time-series data in Prometheus on your own host. Cloudflare only needs to expose the public API/page through a Tunnel or Pages.
+
+```sh
+cd infra/status-stack
+cp .env.example .env
+openssl rand -base64 32 # paste into STATUS_INGEST_TOKEN
+```
+
+Set these values in `.env`:
+
+- `STATUS_GATEWAY_BIND`: LAN address that should accept phone updates, or `127.0.0.1` when only Cloudflare Tunnel should reach it.
+- `GITHUB_TOKEN`: GitHub token with the `user` scope.
+- `GITHUB_STATUS_MIN_INTERVAL_SECONDS`: default `10`.
+- `GITHUB_STATUS_TTL_MINUTES`: default `20`.
+
+```sh
+docker compose up -d --build
+```
+
+The public page consumes:
+
+```text
+GET /api/public-status
+```
+
+The phone app publishes:
+
+```text
+POST /api/ingest/mobile
+Authorization: Bearer <STATUS_INGEST_TOKEN>
+```
+
 ## Runtime setup
 
-1. Install `apps/mobile` on the paired Android phone and configure the GitHub token.
-2. Install `apps/watch` on the Pixel Watch.
-3. Open the watch app once and grant the requested sensor/background permissions. The watch activity exits after starting the foreground collection service.
-4. After reboot or app update, collection restarts automatically if permissions remain granted.
+1. Deploy `infra/status-stack` and configure `STATUS_INGEST_TOKEN` plus `GITHUB_TOKEN` on the host.
+2. Build/install `apps/mobile` with gateway endpoint build properties and save the gateway token once.
+3. Install `apps/watch` on the Pixel Watch.
+4. Open the watch app once and grant the requested sensor/background permissions. The watch activity exits after starting the foreground collection service.
+5. After reboot or app update, collection restarts automatically if permissions remain granted.
 
 ## Status format
 
-The phone writes a short public GitHub status such as:
+The gateway writes a short public GitHub status such as:
 
 ```text
 ❤️72 · 👣8.4k · 🔋64%
 ```
 
-The emoji changes for charging, low battery, and off-wrist states. Off-wrist status does not include heart rate. Statuses expire after 20 minutes so a stale status clears naturally if the phone/watch stop syncing.
+The emoji changes for charging, low battery, and off-wrist states. Off-wrist status does not include heart rate.
 
 ## Verification
 
@@ -103,4 +166,6 @@ The emoji changes for charging, low battery, and off-wrist states. Off-wrist sta
 buf lint
 ANDROID_HOME=$HOME/Library/Android/sdk ANDROID_SDK_ROOT=$HOME/Library/Android/sdk ./gradlew :apps:watch:assembleDebug :apps:mobile:assembleDebug --no-daemon
 ANDROID_HOME=$HOME/Library/Android/sdk ANDROID_SDK_ROOT=$HOME/Library/Android/sdk ./gradlew :apps:watch:lintDebug :apps:mobile:lintDebug --no-daemon
+npm run check:status
+npm run build:status
 ```
