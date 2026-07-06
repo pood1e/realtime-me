@@ -231,6 +231,7 @@ function StatusSection({ title, icon, columns = 'md:grid-cols-2 xl:grid-cols-4',
 }
 
 function DeviceCard({ device, title, icon, showChildren = true }: { device: DeviceStatus | null; title: string; icon: ReactElement; showChildren?: boolean }) {
+  const displayName = device?.device_name ?? title;
   const memory = memoryValues(device);
   const disk = diskValues(device);
   const cpuUsage = metricPercent(device, CPU_USAGE);
@@ -242,14 +243,14 @@ function DeviceCard({ device, title, icon, showChildren = true }: { device: Devi
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">{deviceIcon(device, icon)}{title}</CardTitle>
+        <CardTitle className="flex items-center gap-2">{deviceIcon(device, icon)}{displayName}</CardTitle>
         <CardAction className="flex items-center gap-2">
           <InlineTime value={device?.updated_at} />
           <StatusBadge state={device?.state} />
         </CardAction>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <DeviceDetails name={device?.device_name ?? title} model={device?.device_model} />
+        <DeviceModel model={device?.device_model} />
         {showCpuBadge && (
           <MetricBadges>
             <MetricBadge icon={<Cpu />} value={cpuCoreText(device)} title="CPU cores" variant="secondary" />
@@ -267,17 +268,18 @@ function DeviceCard({ device, title, icon, showChildren = true }: { device: Devi
 
 function PhoneCard({ mobile }: { mobile: MobileStatus | null }) {
   const phone = mobile?.phone;
+  const displayName = mobile?.device_name ?? 'Phone';
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><BrandIcon icon={siAndroid} />Phone</CardTitle>
+        <CardTitle className="flex items-center gap-2"><BrandIcon icon={siAndroid} />{displayName}</CardTitle>
         <CardAction className="flex items-center gap-2">
           <InlineTime value={mobile?.received_at} />
           {mobile ? <Badge><CheckCircle2 /></Badge> : <Badge variant="outline">—</Badge>}
         </CardAction>
       </CardHeader>
       <CardContent className="space-y-4">
-        <DeviceDetails name={mobile?.device_name ?? 'Phone'} model={mobile?.device_model} />
+        <DeviceModel model={mobile?.device_model} />
         <MetricBadges>
           <MetricBadge icon={<Battery />} value={formatBattery(phone?.battery_percent)} title="Battery" />
           {phone?.charge_state === 'charging' && <MetricBadge icon={<BatteryCharging />} value="" title="Charging" />}
@@ -291,17 +293,18 @@ function PhoneCard({ mobile }: { mobile: MobileStatus | null }) {
 function WatchCard({ mobile }: { mobile: MobileStatus | null }) {
   const watch = mobile?.watch;
   const offWrist = watch?.wrist_state === 'off_wrist';
+  const displayName = watch?.device_name ?? 'Watch';
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><BrandIcon icon={siWearos} />Watch</CardTitle>
+        <CardTitle className="flex items-center gap-2"><BrandIcon icon={siWearos} />{displayName}</CardTitle>
         <CardAction className="flex items-center gap-2">
           <InlineTime value={mobile?.received_at} />
           <WatchStatusBadge watch={watch} offWrist={offWrist} />
         </CardAction>
       </CardHeader>
       <CardContent className="space-y-4">
-        <DeviceDetails name={watch?.device_name ?? 'Watch'} model={watch?.device_model} />
+        <DeviceModel model={watch?.device_model} />
         <MetricBadges>
           {!offWrist && <MetricBadge icon={<HeartPulse />} value={watch?.heart_rate ? `${watch.heart_rate}` : '—'} title="Heart rate" />}
           <MetricBadge icon={<Activity />} value={watch?.steps?.toLocaleString() ?? '—'} title="Steps" variant="secondary" />
@@ -402,13 +405,9 @@ function BrandIcon({ icon }: { icon: SimpleIcon }) {
   );
 }
 
-function DeviceDetails({ name, model }: { name?: string; model?: string }) {
-  return (
-    <div className="grid gap-1">
-      <span className="font-medium">{name || '—'}</span>
-      {model && <span className="text-xs text-muted-foreground">{model}</span>}
-    </div>
-  );
+function DeviceModel({ model }: { model?: string }) {
+  if (!model) return null;
+  return <p className="text-xs text-muted-foreground">{model}</p>;
 }
 
 function ChildDevices({ devices }: { devices: DeviceStatus[] }) {
