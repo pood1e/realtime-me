@@ -25,7 +25,8 @@ TOKEN_PATTERN = re.compile(r"\b[A-Za-z0-9][A-Za-z0-9_-]{31,}\b")
 CODEX_FAILED_GOAL_STATES = {"blocked", "usage_limited", "budget_limited"}
 CODEX_RUNNING_GOAL_STATES = {"active"}
 CLAUDE_ACTIVE_TASK_STATES = {"in_progress"}
-CLAUDE_WORKING_JOB_STATE = "working"
+CLAUDE_ACTIVE_JOB_STATES = {"working", "blocked"}
+CLAUDE_IN_FLIGHT_JOB_STATE = "working"
 
 
 @dataclass(frozen=True)
@@ -444,7 +445,7 @@ def latest_claude_job(jobs_dir: Path) -> ClaudeTask | None:
         title = str(data.get("name") or data.get("intent") or data.get("sessionId") or "")
         if not title:
             continue
-        state = CLAUDE_WORKING_JOB_STATE if has_in_flight_work(data.get("inFlight")) else str(data.get("state") or "")
+        state = CLAUDE_IN_FLIGHT_JOB_STATE if has_in_flight_work(data.get("inFlight")) else str(data.get("state") or "")
         candidates.append(ClaudeTask(title, state, timestamp_seconds(data.get("updatedAt") or path.stat().st_mtime)))
     candidates.sort(key=lambda item: item.updated_at_seconds, reverse=True)
     return candidates[0] if candidates else None
@@ -453,7 +454,7 @@ def latest_claude_job(jobs_dir: Path) -> ClaudeTask | None:
 def claude_active(session: ClaudeSession | None, task: ClaudeTask | None, job: ClaudeTask | None, now: float, active_window_seconds: int) -> bool:
     if task and task.status in CLAUDE_ACTIVE_TASK_STATES and recent(task.updated_at_seconds, now, active_window_seconds):
         return True
-    if job and job.status == CLAUDE_WORKING_JOB_STATE and recent(job.updated_at_seconds, now, active_window_seconds):
+    if job and job.status in CLAUDE_ACTIVE_JOB_STATES and recent(job.updated_at_seconds, now, active_window_seconds):
         return True
     return False
 
