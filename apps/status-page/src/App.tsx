@@ -45,7 +45,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const POLL_INTERVAL_MS = 10_000;
@@ -145,6 +144,7 @@ export function App() {
   const [failed, setFailed] = useState(false);
   const server = status?.server ?? null;
   const devices = status?.devices ?? [];
+  const agents = status?.agents ?? [];
   const virtualMachines = devices.filter((device) => device.kind === 'virtual_machine' || device.role === 'vm');
   const personalDevices = devices.filter((device) => device.kind !== 'virtual_machine' && device.role !== 'vm');
 
@@ -202,8 +202,8 @@ export function App() {
             <WatchCard mobile={status?.mobile ?? null} github={status?.github ?? null} />
           </StatusSection>
 
-          <StatusSection title="Agents" icon={<Bot className="size-4" />} columns="grid-cols-1">
-            <AgentCard agents={status?.agents ?? []} />
+          <StatusSection title="Agents" icon={<Bot className="size-4" />}>
+            {agents.length === 0 ? <EmptyAgentCard /> : agents.map((agent) => <AgentCard key={agentKey(agent)} agent={agent} />)}
           </StatusSection>
 
           <footer className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -336,38 +336,64 @@ function GitHubStatusBadge({ github }: { github: GitHubStatus | null }) {
   );
 }
 
-function AgentCard({ agents }: { agents: AgentStatus[] }) {
+function EmptyAgentCard() {
   return (
     <Card>
-      <CardContent className="grid gap-3">
-        {agents.length === 0 && <CardDescription>No active agents</CardDescription>}
-        {agents.map((agent, index) => (
-          <div key={agentKey(agent)}>
-            {index > 0 && <Separator className="mb-3" />}
-            <div className="flex items-center justify-between gap-3">
-              <span className="flex min-w-0 items-center gap-2 font-medium">
-                {agentIcon(agent.agent_id)}
-                <span className="truncate">{agentName(agent.agent_id)}</span>
-                <AgentDeviceBadge agent={agent} />
-              </span>
-              <span className="flex items-center gap-2">
-                <InlineTime value={agent.updated_at || agent.received_at} />
-                <Badge variant={agentBadgeVariant(agent.state)} title={agent.state}>{agentStateIcon(agent.state)}</Badge>
-              </span>
-            </div>
-            {agent.budget_remaining_percent !== undefined && (
-              <div className="mt-3 grid gap-2">
-                <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                  <span>Budget</span>
-                  <span>{agent.budget_remaining_percent}%</span>
-                </div>
-                <Progress value={agent.budget_remaining_percent} />
-              </div>
-            )}
-          </div>
-        ))}
+      <CardContent>
+        <CardDescription>No active agents</CardDescription>
       </CardContent>
     </Card>
+  );
+}
+
+function AgentCard({ agent }: { agent: AgentStatus }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex min-w-0 items-center gap-2">
+          {agentIcon(agent.agent_id)}
+          <span className="truncate">{agentName(agent.agent_id)}</span>
+        </CardTitle>
+        <CardAction className="flex items-center gap-2">
+          <InlineTime value={agent.updated_at || agent.received_at} />
+          <Badge variant={agentBadgeVariant(agent.state)} title={agent.state}>{agentStateIcon(agent.state)}</Badge>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        <AgentMotion agent={agent} />
+        <AgentDeviceBadge agent={agent} />
+        {agent.budget_remaining_percent !== undefined && (
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+              <span>Budget</span>
+              <span>{agent.budget_remaining_percent}%</span>
+            </div>
+            <Progress value={agent.budget_remaining_percent} />
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function AgentMotion({ agent }: { agent: AgentStatus }) {
+  const brand = agentBrand(agent.agent_id);
+  const variant = agentMotionVariant(agent);
+  return (
+    <div className={`agent-motion agent-motion-${brand} agent-motion-${variant}`} aria-label={`${agentName(agent.agent_id)} working`}>
+      <div className="agent-motion-scan" />
+      <div className="agent-motion-track">
+        <span />
+        <span />
+        <span />
+      </div>
+      <div className="agent-motion-orb">
+        {agentMotionIcon(agent.agent_id)}
+      </div>
+      <div className="agent-motion-spark agent-motion-spark-one" />
+      <div className="agent-motion-spark agent-motion-spark-two" />
+      <div className="agent-motion-spark agent-motion-spark-three" />
+    </div>
   );
 }
 
@@ -388,9 +414,34 @@ function agentIcon(agentId: string): ReactElement {
   return <Bot className="size-4" />;
 }
 
-function CodexIcon() {
+function agentMotionIcon(agentId: string): ReactElement {
+  if (agentId === 'claude-code') return <BrandIcon icon={siClaude} className="size-10" />;
+  if (agentId === 'codex' || agentId.startsWith('codex:')) return <CodexIcon className="size-10" />;
+  return <Bot className="size-10" />;
+}
+
+function agentBrand(agentId: string): string {
+  if (agentId === 'claude-code') return 'claude';
+  if (agentId === 'codex' || agentId.startsWith('codex:')) return 'codex';
+  return 'default';
+}
+
+function agentMotionVariant(agent: AgentStatus): string {
+  const seed = `${agent.agent_id}:${agent.updated_at || agent.received_at}`;
+  return ['nebula', 'ribbons', 'matrix'][hashString(seed) % 3];
+}
+
+function hashString(value: string): number {
+  let hash = 0;
+  for (const character of value) {
+    hash = Math.imul(31, hash) + character.charCodeAt(0);
+  }
+  return Math.abs(hash);
+}
+
+function CodexIcon({ className = 'size-4' }: { className?: string }) {
   return (
-    <svg aria-label="Codex" className="size-4 shrink-0" fill="currentColor" fillRule="evenodd" role="img" viewBox="0 0 24 24">
+    <svg aria-label="Codex" className={`${className} shrink-0`} fill="currentColor" fillRule="evenodd" role="img" viewBox="0 0 24 24">
       <title>Codex</title>
       <path
         clipRule="evenodd"
@@ -413,7 +464,7 @@ function AgentDeviceBadge({ agent }: { agent: AgentStatus }) {
 
 function agentStateIcon(state: AgentStatus['state']): ReactElement {
   if (state === 'failed') return <AlertTriangle />;
-  if (state === 'running') return <LoaderCircle className="animate-spin" />;
+  if (state === 'running') return <CheckCircle2 />;
   return <CircleOff />;
 }
 
@@ -448,9 +499,9 @@ function osIcon(value: string): SimpleIcon | null {
   return null;
 }
 
-function BrandIcon({ icon }: { icon: SimpleIcon }) {
+function BrandIcon({ icon, className = 'size-4' }: { icon: SimpleIcon; className?: string }) {
   return (
-    <svg aria-label={icon.title} className="size-4 shrink-0" role="img" style={{ color: `#${icon.hex}` }} viewBox="0 0 24 24">
+    <svg aria-label={icon.title} className={`${className} shrink-0`} role="img" style={{ color: `#${icon.hex}` }} viewBox="0 0 24 24">
       <title>{icon.title}</title>
       <path d={icon.path} fill="currentColor" />
     </svg>
