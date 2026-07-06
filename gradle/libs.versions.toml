@@ -1,0 +1,31 @@
+[versions]
+androidGradlePlugin = "9.2.1"
+kotlin = "2.4.0"
+protobufPlugin = "0.10.0"
+protobuf = "4.35.1"
+coroutines = "1.11.0"
+playServicesWearable = "20.0.1"
+composeBom = "2026.06.01"
+activityCompose = "1.13.0"
+wearCompose = "1.6.2"
+workManager = "2.11.2"
+
+[libraries]
+protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobuf" }
+coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+play-services-wearable = { module = "com.google.android.gms:play-services-wearable", version.ref = "playServicesWearable" }
+compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+compose-ui = { module = "androidx.compose.ui:ui" }
+compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+compose-material3 = { module = "androidx.compose.material3:material3" }
+compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
+wear-compose-material3 = { module = "androidx.wear.compose:compose-material3", version.ref = "wearCompose" }
+work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workManager" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
+android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
+protobuf = { id = "com.google.protobuf", version.ref = "protobufPlugin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

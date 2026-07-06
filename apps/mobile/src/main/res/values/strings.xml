@@ -1,0 +1,39 @@
+<resources>
+    <string name="app_name">Realtime Me</string>
+
+    <string name="disconnect_github">Remove token</string>
+    <string name="github_disconnected">GitHub token removed.</string>
+    <string name="github_card_title">GitHub</string>
+    <string name="github_connected_chip">Connected</string>
+    <string name="github_not_connected_chip">Not configured</string>
+    <string name="github_stored_chip">Stored</string>
+    <string name="github_checking_chip">Checking</string>
+    <string name="github_error_chip">Needs attention</string>
+    <string name="github_sync_failed_chip">Sync failed</string>
+    <string name="github_connected_description">%1$s · status updates are on.</string>
+    <string name="github_token_missing_description">Connect once to update your status.</string>
+    <string name="github_token_stored_description">GitHub is ready.</string>
+    <string name="github_token_checking_description">Checking GitHub…</string>
+    <string name="github_token_error_description">Could not connect GitHub. Copy a new access token and try again.</string>
+    <string name="create_github_token">Request minimal GitHub token</string>
+    <string name="save_copied_token">Save copied token</string>
+    <string name="github_token_saved">GitHub token saved.</string>
+    <string name="github_token_clipboard_missing">Clipboard does not contain a GitHub token.</string>
+    <string name="github_token_browser_missing">No browser is available for GitHub token creation.</string>
+    <string name="github_status_empty">No status set</string>
+
+    <string name="current_watch_title">Current watch data</string>
+    <string name="watch_waiting_chip">Waiting</string>
+    <string name="watch_data_empty_title">No watch snapshot yet</string>
+    <string name="watch_data_empty_description">Start sensor sync on the Pixel Watch. The phone will show heart rate, steps, battery, charging, and wrist state after the first snapshot arrives.</string>
+    <string name="watch_metric_heart_rate">Heart rate</string>
+    <string name="watch_metric_heart_rate_value">%1$d</string>
+    <string name="watch_metric_steps">Steps</string>
+    <string name="watch_metric_battery">Battery</string>
+    <string name="watch_metric_battery_value">%1$d%%</string>
+    <string name="watch_metric_charge_state">Charging</string>
+    <string name="watch_metric_wrist_state">Wrist</string>
+    <string name="github_sync_notification_channel">Realtime Me</string>
+    <string name="github_sync_notification_title">Updating GitHub status</string>
+
+</resources>

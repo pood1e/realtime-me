@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Realtime Me Watch</string>
+    <string name="sensor_sync_started">Realtime Me is running.</string>
+    <string name="sensor_permissions_required">Sensor permission is required.</string>
+    <string name="sensor_notification_channel">Realtime Me</string>
+    <string name="sensor_notification_title">Collecting watch data</string>
+</resources>

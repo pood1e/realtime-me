@@ -1,0 +1,4 @@
+<resources>
+    <string name="debug_token_missing">Token broadcast missing token extra</string>
+    <string name="debug_token_saved">Debug token saved</string>
+</resources>
