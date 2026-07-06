@@ -26,6 +26,7 @@ CODEX_FAILED_GOAL_STATES = {"blocked", "usage_limited", "budget_limited"}
 CODEX_RUNNING_GOAL_STATES = {"active"}
 CLAUDE_ACTIVE_TASK_STATES = {"in_progress"}
 CLAUDE_ACTIVE_JOB_STATES = {"working"}
+CLAUDE_ACTIVE_JOB_TEMPOS = {"active", "working"}
 CLAUDE_BUSY_SESSION_STATES = {"busy"}
 CLAUDE_IN_FLIGHT_JOB_STATE = "working"
 
@@ -461,7 +462,10 @@ def read_claude_jobs(jobs_dir: Path) -> list[ClaudeTask]:
         title = str(data.get("name") or data.get("intent") or data.get("sessionId") or "")
         if not title:
             continue
-        state = CLAUDE_IN_FLIGHT_JOB_STATE if has_in_flight_work(data.get("inFlight")) else str(data.get("state") or "")
+        tempo = str(data.get("tempo") or "")
+        state = str(data.get("state") or "")
+        if has_in_flight_work(data.get("inFlight")) or tempo in CLAUDE_ACTIVE_JOB_TEMPOS:
+            state = CLAUDE_IN_FLIGHT_JOB_STATE
         candidates.append(ClaudeTask(title, state, timestamp_seconds(data.get("updatedAt") or path.stat().st_mtime)))
     candidates.sort(key=lambda item: item.updated_at_seconds, reverse=True)
     return candidates
