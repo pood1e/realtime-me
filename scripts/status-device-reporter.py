@@ -35,6 +35,7 @@ class MemoryUsage:
 @dataclass(frozen=True)
 class MediaSnapshot:
     title: str
+    artist: str = ""
     player: str = ""
 
 
@@ -86,7 +87,7 @@ def build_payload(args: argparse.Namespace) -> dict:
     }
     media = current_media()
     if media:
-        payload["media"] = {"title": media.title}
+        payload["media"] = compact_dict({"title": media.title, "artist": media.artist})
     return payload
 
 
@@ -163,7 +164,7 @@ def render_prometheus_metrics() -> str:
     ]
     media = current_media()
     if media:
-        labels = {"title": media.title, "player": media.player}
+        labels = {"title": media.title, "artist": media.artist, "player": media.player}
         lines.append(f"realtime_device_media_playing{label_set(labels)} 1")
     lines.append("")
     return "\n".join(lines)
@@ -192,8 +193,13 @@ def darwin_nowplaying_cli() -> MediaSnapshot | None:
     title = run(["nowplaying-cli", "get", "title"]).strip()
     if not title:
         return None
+    artist = run(["nowplaying-cli", "get", "artist"]).strip()
     player = run(["nowplaying-cli", "get", "bundleIdentifier"]).strip()
-    return MediaSnapshot(title=sanitize_media_text(title), player=sanitize_media_text(player))
+    return MediaSnapshot(
+        title=sanitize_media_text(title),
+        artist=sanitize_media_text(artist),
+        player=sanitize_media_text(player),
+    )
 
 
 def darwin_music_media() -> MediaSnapshot | None:
@@ -202,16 +208,16 @@ tell application "System Events" to set musicRunning to exists (processes where 
 if musicRunning then
   tell application "Music"
     if player state is playing then
-      return name of current track
+      return (name of current track) & linefeed & (artist of current track)
     end if
   end tell
 end if
 return ""
 """
-    title = run_osascript(script).strip()
+    title, artist = media_title_artist(run_osascript(script))
     if not title:
         return None
-    return MediaSnapshot(title=sanitize_media_text(title), player="Music")
+    return MediaSnapshot(title=title, artist=artist, player="Music")
 
 
 def darwin_spotify_media() -> MediaSnapshot | None:
@@ -220,16 +226,16 @@ tell application "System Events" to set spotifyRunning to exists (processes wher
 if spotifyRunning then
   tell application "Spotify"
     if player state is playing then
-      return name of current track
+      return (name of current track) & linefeed & (artist of current track)
     end if
   end tell
 end if
 return ""
 """
-    title = run_osascript(script).strip()
+    title, artist = media_title_artist(run_osascript(script))
     if not title:
         return None
-    return MediaSnapshot(title=sanitize_media_text(title), player="Spotify")
+    return MediaSnapshot(title=title, artist=artist, player="Spotify")
 
 
 def linux_media() -> MediaSnapshot | None:
@@ -241,8 +247,35 @@ def linux_media() -> MediaSnapshot | None:
             continue
         title = run(["playerctl", "--player", player, "metadata", "title"]).strip()
         if title:
-            return MediaSnapshot(title=sanitize_media_text(title), player=sanitize_media_text(player))
+            artist = first_non_empty(
+                run(["playerctl", "--player", player, "metadata", "artist"]).strip(),
+                run(["playerctl", "--player", player, "metadata", "xesam:artist"]).strip(),
+            )
+            return MediaSnapshot(
+                title=sanitize_media_text(title),
+                artist=sanitize_media_text(artist),
+                player=sanitize_media_text(player),
+            )
     return None
+
+
+def media_title_artist(output: str) -> tuple[str, str]:
+    parts = [sanitize_media_text(line) for line in output.splitlines()]
+    parts = [part for part in parts if part]
+    if not parts:
+        return "", ""
+    return parts[0], parts[1] if len(parts) > 1 else ""
+
+
+def first_non_empty(*values: str) -> str:
+    for value in values:
+        if value:
+            return value
+    return ""
+
+
+def compact_dict(values: dict[str, str]) -> dict[str, str]:
+    return {key: value for key, value in values.items() if value}
 
 
 def run_osascript(script: str) -> str:

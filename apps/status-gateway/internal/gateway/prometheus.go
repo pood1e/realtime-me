@@ -7,9 +7,11 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -84,16 +86,19 @@ func (client *PrometheusClient) NodeExporterStatuses(ctx context.Context) []Devi
 		if instance == "" {
 			continue
 		}
+		deviceID, deviceName, ok := prometheusDeviceIdentity(sample.Metric)
+		if !ok {
+			continue
+		}
 		kind := firstNonEmpty(sample.Metric["device_kind"], "host")
 		role := firstNonEmpty(sample.Metric["device_role"], "desktop")
 		if sample.Metric["job"] == "vm-node-exporter" {
 			kind = firstNonEmpty(sample.Metric["device_kind"], "virtual_machine")
 			role = firstNonEmpty(sample.Metric["device_role"], "vm")
 		}
-		deviceID := firstNonEmpty(sample.Metric["device_id"], instance)
 		devices = append(devices, DeviceStatus{
 			DeviceID:    deviceID,
-			DeviceName:  firstNonEmpty(sample.Metric["device_name"], instance),
+			DeviceName:  deviceName,
 			DeviceModel: firstNonEmpty(sample.Metric["device_model"], models[instance]),
 			Kind:        kind,
 			Role:        role,
@@ -128,7 +133,10 @@ func (client *PrometheusClient) DeviceMediaStatuses(ctx context.Context) map[str
 		if deviceID == "" {
 			continue
 		}
-		statuses[deviceID] = &MediaStatus{Title: title}
+		statuses[deviceID] = &MediaStatus{
+			Title:  title,
+			Artist: sample.Metric["artist"],
+		}
 	}
 	return statuses
 }
@@ -347,6 +355,30 @@ func nodeModels(osInfo []prometheusSample, unameInfo []prometheusSample) map[str
 		models[instance] = firstNonEmpty(sample.Metric["pretty_name"], sample.Metric["name"], models[instance])
 	}
 	return models
+}
+
+func prometheusDeviceIdentity(labels map[string]string) (string, string, bool) {
+	deviceID := firstPublicNetworkLabel(labels["device_id"], labels["device_name"], labels["instance"])
+	if deviceID == "" {
+		return "", "", false
+	}
+	deviceName := firstPublicNetworkLabel(labels["device_name"], deviceID)
+	return deviceID, deviceName, true
+}
+
+func firstPublicNetworkLabel(values ...string) string {
+	for _, value := range values {
+		label := strings.TrimSpace(value)
+		if label != "" && !isPrivateNetworkLabel(label) {
+			return label
+		}
+	}
+	return ""
+}
+
+func isPrivateNetworkLabel(value string) bool {
+	address, err := netip.ParseAddr(value)
+	return err == nil && (address.IsPrivate() || address.IsLoopback() || address.IsLinkLocalUnicast())
 }
 
 func subtract(total *float64, available *float64) *float64 {

@@ -53,7 +53,8 @@ type DeviceStatus struct {
 }
 
 type MediaStatus struct {
-	Title string `json:"title"`
+	Title  string `json:"title"`
+	Artist string `json:"artist,omitempty"`
 }
 
 type MetricSample struct {

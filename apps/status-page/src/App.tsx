@@ -99,6 +99,7 @@ type DeviceStatus = {
   metrics?: MetricSample[];
   media?: {
     title: string;
+    artist?: string;
   };
   children?: DeviceStatus[];
 };
@@ -509,7 +510,7 @@ function InternalDeviceCard({ device, icon }: { device: DeviceStatus; icon: Reac
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex min-w-0 items-center gap-2">{deviceIcon(device, icon)}<span className="truncate">{device.device_name || device.device_id}</span></CardTitle>
+        <CardTitle className="flex min-w-0 items-center gap-2">{deviceIcon(device, icon)}<span className="truncate">{deviceDisplayName(device, 'Device')}</span></CardTitle>
         <CardAction className="flex items-center gap-2">
           <InlineTime value={device.updated_at} />
           <StatusBadge state={device.state} />
@@ -518,7 +519,7 @@ function InternalDeviceCard({ device, icon }: { device: DeviceStatus; icon: Reac
       <CardContent className="grid gap-4">
         <DeviceModel model={device.device_model} />
         <MetricBadges>
-          {device.media?.title && <MetricBadge icon={<Music />} value={compactText(device.media.title, 36)} title={`Playing: ${device.media.title}`} variant="secondary" />}
+          {device.media?.title && <MediaBadge media={device.media} />}
           {hasMetric(device, CPU_CORES) && <MetricBadge icon={<Cpu />} value={cpuCoreText(device)} title="CPU cores" variant="secondary" />}
           <MetricBadge icon={<Activity />} value={`${metricCount}`} title="Metrics" variant="outline" />
         </MetricBadges>
@@ -709,7 +710,7 @@ function StatusSection({ title, icon, columns = 'md:grid-cols-2 xl:grid-cols-4',
 }
 
 function DeviceCard({ device, title, icon, showChildren = true }: { device: DeviceStatus | null; title: string; icon: ReactElement; showChildren?: boolean }) {
-  const displayName = device?.device_name ?? title;
+  const displayName = deviceDisplayName(device, title);
   const memory = memoryValues(device);
   const disk = diskValues(device);
   const cpuUsage = metricPercent(device, CPU_USAGE);
@@ -731,13 +732,13 @@ function DeviceCard({ device, title, icon, showChildren = true }: { device: Devi
         <DeviceModel model={device?.device_model} />
         {showCpuBadge && (
           <MetricBadges>
-            {device?.media?.title && <MetricBadge icon={<Music />} value={compactText(device.media.title, 36)} title={`Playing: ${device.media.title}`} variant="secondary" />}
+            {device?.media?.title && <MediaBadge media={device.media} />}
             <MetricBadge icon={<Cpu />} value={cpuCoreText(device)} title="CPU cores" variant="secondary" />
           </MetricBadges>
         )}
         {!showCpuBadge && device?.media?.title && (
           <MetricBadges>
-            <MetricBadge icon={<Music />} value={compactText(device.media.title, 36)} title={`Playing: ${device.media.title}`} variant="secondary" />
+            <MediaBadge media={device.media} />
           </MetricBadges>
         )}
         {cpuUsage !== undefined && <ProgressMetric label="CPU" value={cpuUsage} valueText={cpuText(device)} />}
@@ -792,7 +793,7 @@ function WatchCard({ mobile, github }: { mobile: MobileStatus | null; github: Pu
         <DeviceModel model={watch?.device_model} />
         <MetricBadges>
           {!offWrist && <MetricBadge icon={<HeartPulse />} value={watch?.heart_rate ? `${watch.heart_rate}` : '—'} title="Heart rate" />}
-          <MetricBadge icon={<Footprints />} value={watch?.steps?.toLocaleString() ?? '—'} title="Steps" variant="secondary" />
+          <MetricBadge icon={<Footprints />} value={formatSteps(watch)} title="Steps" variant="secondary" />
           <MetricBadge icon={<Battery />} value={formatBattery(watch?.battery_percent)} title="Battery" />
           {watch?.charge_state === 'charging' && <MetricBadge icon={<BatteryCharging />} value="" title="Charging" />}
           {offWrist && <MetricBadge icon={<CircleOff />} value="" title="Off wrist" variant="secondary" />}
@@ -914,7 +915,7 @@ function chartDefinitions(status: InternalStatus): ChartDefinition[] {
 }
 
 function hostChartDefinitions(device: DeviceStatus): ChartDefinition[] {
-  const identity = device.device_name || device.device_id;
+  const identity = deviceDisplayName(device, 'Device');
   const queries = hostQueries(device);
   const definitions: ChartDefinition[] = [];
   if (queries.cpu && hasMetric(device, CPU_USAGE)) definitions.push({ id: `${device.device_id}:cpu`, title: `${identity} CPU`, query: queries.cpu, unit: 'percent', icon: <Cpu className="size-4" /> });
@@ -1029,7 +1030,7 @@ function CodexIcon({ className = 'size-4' }: { className?: string }) {
 }
 
 function AgentDeviceBadge({ agent }: { agent: AgentStatus }) {
-  const device = agent.device_name || agent.device_id;
+  const device = displayLabel('', agent.device_name, agent.device_id);
   if (!device) return null;
   return (
     <Badge variant="outline" className="min-w-0 shrink" title={device}>
@@ -1097,11 +1098,11 @@ function ChildDevices({ devices }: { devices: DeviceStatus[] }) {
       {devices.map((device) => (
         <div key={device.device_id} className="grid gap-1 rounded-md bg-muted/40 p-2 text-sm">
           <div className="flex items-center justify-between gap-2">
-            <span className="flex min-w-0 items-center gap-2 truncate text-muted-foreground"><Box className="size-3.5" />{device.device_name || device.device_id}</span>
+            <span className="flex min-w-0 items-center gap-2 truncate text-muted-foreground"><Box className="size-3.5" />{deviceDisplayName(device, 'Device')}</span>
             <Badge variant={device.state === 'running' ? 'default' : 'secondary'}>{device.state ?? 'unknown'}</Badge>
           </div>
           <MetricBadges>
-            {device.media?.title && <MetricBadge icon={<Music />} value={compactText(device.media.title, 28)} title={`Playing: ${device.media.title}`} variant="secondary" />}
+            {device.media?.title && <MediaBadge media={device.media} maxLength={28} />}
             {hasMetric(device, CPU_CORES) && <MetricBadge icon={<Cpu />} value={cpuCoreText(device)} title="CPU cores" variant="secondary" />}
             {memoryValues(device).percent !== undefined && <MetricBadge icon={<MemoryStick />} value={memoryValues(device).text} title="Memory" />}
             {diskValues(device).percent !== undefined && <MetricBadge icon={<HardDrive />} value={diskValues(device).text} title="Disk" />}
@@ -1156,6 +1157,15 @@ function MetricBadge({ icon, value, title, variant = 'outline' }: MetricBadgePro
       <TooltipContent>{title}</TooltipContent>
     </Tooltip>
   );
+}
+
+function MediaBadge({ media, maxLength = 36 }: { media: NonNullable<DeviceStatus['media']>; maxLength?: number }) {
+  const text = mediaText(media);
+  return <MetricBadge icon={<Music />} value={compactText(text, maxLength)} title={`Playing: ${text}`} variant="secondary" />;
+}
+
+function mediaText(media: NonNullable<DeviceStatus['media']>): string {
+  return media.artist ? `${media.title} · ${media.artist}` : media.title;
 }
 
 function InlineTime({ value }: { value?: string }) {
@@ -1286,6 +1296,30 @@ function fetchJSON<T>(url: string): Promise<T | null> {
 
 function formatBattery(value: number | undefined): string {
   return value === undefined ? '—' : `${value}%`;
+}
+
+function formatSteps(watch: MobileStatus['watch'] | undefined): string {
+  if (!watch) return '—';
+  return (watch.steps ?? 0).toLocaleString();
+}
+
+function deviceDisplayName(device: DeviceStatus | null | undefined, fallback: string): string {
+  return displayLabel(fallback, device?.device_name, device?.device_id);
+}
+
+function displayLabel(fallback: string, ...values: Array<string | undefined>): string {
+  return values.find((value) => value && !isPrivateIPv4(value)) ?? fallback;
+}
+
+function isPrivateIPv4(value: string): boolean {
+  const octets = value.split('.').map((part) => Number(part));
+  if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
+  const [first, second] = octets;
+  return first === 10 ||
+    first === 127 ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168) ||
+    (first === 169 && second === 254);
 }
 
 function formatPercent(value: number | null | undefined): string {

@@ -99,7 +99,10 @@ func validateDevice(input *DeviceStatus) bool {
 }
 
 func validateMedia(media *MediaStatus) bool {
-	return media != nil && utf8.RuneCountInString(media.Title) > 0 && utf8.RuneCountInString(media.Title) <= 120
+	return media != nil &&
+		utf8.RuneCountInString(media.Title) > 0 &&
+		utf8.RuneCountInString(media.Title) <= 120 &&
+		utf8.RuneCountInString(media.Artist) <= 120
 }
 
 func validateMetric(metric MetricSample) bool {

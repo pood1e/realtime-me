@@ -15,7 +15,7 @@ import me.realtime.protocol.v1.WristState
 import me.realtime.watch.state.WatchSnapshotRepository
 import me.realtime.watch.wear.SnapshotPublisher
 import java.time.Instant
-import java.time.LocalDate
+import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 
@@ -151,7 +151,8 @@ object WatchSensorCollector {
         private fun stepSnapshot(event: SensorEvent): WatchSnapshot? {
             val rawSteps = event.values.firstOrNull()?.roundToInt() ?: return null
             if (rawSteps < 0) return null
-            return repository.updateSteps(todaySteps(rawSteps), event.sampleInstant())
+            val sampleTime = event.sampleInstant()
+            return repository.updateSteps(todaySteps(rawSteps, sampleTime), sampleTime)
         }
 
         private fun wristSnapshot(event: SensorEvent): WatchSnapshot {
@@ -163,8 +164,8 @@ object WatchSensorCollector {
             return repository.updateWristState(wristState)
         }
 
-        private fun todaySteps(rawSteps: Int): Int {
-            val today = LocalDate.now().toString()
+        private fun todaySteps(rawSteps: Int, sampleTime: Instant): Int {
+            val today = sampleTime.atZone(ZoneId.systemDefault()).toLocalDate().toString()
             val preferences = context.getSharedPreferences(STEP_BASELINE_PREFS, Context.MODE_PRIVATE)
             val baselineDate = preferences.getString(BASELINE_DATE_KEY, null)
             val baselineValue = preferences.getInt(BASELINE_VALUE_KEY, rawSteps)

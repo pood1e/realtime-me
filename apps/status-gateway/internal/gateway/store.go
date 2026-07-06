@@ -226,7 +226,7 @@ func agentStoreKey(agent AgentIngest) string {
 }
 
 func prometheusTargetKey(target PrometheusScrapeTarget) string {
-	return target.Job + "/" + firstString(target.Instance, target.Target)
+	return target.Job + "/" + target.Target
 }
 
 func prometheusTargetLabels(target PrometheusScrapeTarget) map[string]string {

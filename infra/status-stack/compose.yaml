@@ -71,4 +71,6 @@ services:
 
 volumes:
   prometheus-data:
+    name: realtime-me-prometheus
   status-gateway-data:
+    name: realtime-me-status-gateway
