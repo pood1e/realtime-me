@@ -25,6 +25,9 @@ TOKEN_PATTERN = re.compile(r"\b[A-Za-z0-9][A-Za-z0-9_-]{31,}\b")
 CODEX_FAILED_GOAL_STATES = {"blocked", "usage_limited", "budget_limited"}
 CODEX_RUNNING_GOAL_STATES = {"active"}
 CLAUDE_OPEN_TASK_STATES = {"in_progress", "pending"}
+CLAUDE_BUSY_SESSION_STATES = {"running", "working", "busy", "in_progress"}
+CLAUDE_VISIBLE_JOB_STATES = {"running", "working", "busy", "in_progress", "blocked"}
+CLAUDE_WORKING_JOB_WINDOW_SECONDS = 900
 
 
 @dataclass(frozen=True)
@@ -94,6 +97,7 @@ class ClaudeSession:
     status: str
     updated_at_seconds: float
     archived: bool
+    process_alive: bool
 
 
 @dataclass(frozen=True)
@@ -411,6 +415,7 @@ def read_claude_sessions(sessions_dir: Path) -> list[ClaudeSession]:
                 status=str(data.get("status") or ""),
                 updated_at_seconds=updated_at,
                 archived=bool(data.get("isArchived")),
+                process_alive=process_alive(data.get("pid")),
             )
         )
     return [session for session in sessions if not session.archived]
@@ -428,7 +433,7 @@ def claude_open_task(task_dir: Path) -> ClaudeTask | None:
         title = str(data.get("activeForm") or data.get("subject") or "")
         if title:
             candidates.append(ClaudeTask(title, status, path.stat().st_mtime))
-    candidates.sort(key=lambda item: item.updated_at_seconds, reverse=True)
+    candidates.sort(key=lambda item: (item.status in CLAUDE_VISIBLE_JOB_STATES, item.updated_at_seconds), reverse=True)
     return candidates[0] if candidates else None
 
 
@@ -444,7 +449,7 @@ def latest_claude_job(jobs_dir: Path) -> ClaudeTask | None:
         if not title:
             continue
         state = str(data.get("state") or "")
-        in_flight = "running" if data.get("inFlight") is True else state
+        in_flight = "running" if has_in_flight_work(data.get("inFlight")) else state
         candidates.append(ClaudeTask(title, in_flight, timestamp_seconds(data.get("updatedAt") or path.stat().st_mtime)))
     candidates.sort(key=lambda item: item.updated_at_seconds, reverse=True)
     return candidates[0] if candidates else None
@@ -453,13 +458,35 @@ def latest_claude_job(jobs_dir: Path) -> ClaudeTask | None:
 def claude_active(session: ClaudeSession | None, task: ClaudeTask | None, job: ClaudeTask | None, now: float, active_window_seconds: int) -> bool:
     if task and task.status in CLAUDE_OPEN_TASK_STATES and now - task.updated_at_seconds <= active_window_seconds:
         return True
-    if job and job.status in {"running", "working", "busy", "in_progress"} and now - job.updated_at_seconds <= active_window_seconds:
+    if job and job.status in CLAUDE_VISIBLE_JOB_STATES and now - job.updated_at_seconds <= max(active_window_seconds, CLAUDE_WORKING_JOB_WINDOW_SECONDS):
         return True
     if not session:
         return False
-    if session.status in {"running", "working", "busy", "in_progress"} and now - session.updated_at_seconds <= active_window_seconds:
+    if session.status in CLAUDE_BUSY_SESSION_STATES and (session.process_alive or now - session.updated_at_seconds <= active_window_seconds):
         return True
     return False
+
+
+def has_in_flight_work(value: Any) -> bool:
+    if value is True:
+        return True
+    if not isinstance(value, dict):
+        return False
+    for key in ("tasks", "queued"):
+        try:
+            if int(value.get(key) or 0) > 0:
+                return True
+        except (TypeError, ValueError):
+            continue
+    return bool(value.get("kinds"))
+
+
+def process_alive(value: Any) -> bool:
+    try:
+        process_id = int(value)
+    except (TypeError, ValueError):
+        return False
+    return process_id > 0 and Path(f"/proc/{process_id}").exists()
 
 
 def query_sqlite(database: Path, statement: str) -> list[sqlite3.Row]:
@@ -554,6 +581,8 @@ def timestamp_seconds(value: Any) -> float:
     try:
         numeric = float(value)
     except (TypeError, ValueError):
+        if isinstance(value, str):
+            return parse_event_timestamp(value, 0)
         return 0
     return numeric / 1000 if numeric > 10_000_000_000 else numeric
 

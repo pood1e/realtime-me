@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" fill="none" shape-rendering="crispEdges">
+  <g opacity=".55" stroke-linecap="square">
+    <path d="M18 42h34v12h36" stroke="#F7B267" stroke-width="6" stroke-dasharray="14 12">
+      <animate attributeName="stroke-dashoffset" values="0;-52" dur="1.8s" repeatCount="indefinite"/>
+    </path>
+    <path d="M222 116h-34v-12h-36" stroke="#E86F4C" stroke-width="6" stroke-dasharray="12 14">
+      <animate attributeName="stroke-dashoffset" values="0;52" dur="2.1s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  <g>
+    <animateTransform attributeName="transform" type="translate" values="0 2;0 -5;0 2" dur="1.4s" repeatCount="indefinite"/>
+    <g stroke="#7C2D12" stroke-width="6" stroke-linecap="square" stroke-linejoin="miter">
+      <path d="M78 88H58V72H42V56h24v14h12" fill="#E86F4C">
+        <animate attributeName="d" values="M78 88H58V72H42V56h24v14h12;M78 86H56V62H36V46h28v16h14;M78 88H58V72H42V56h24v14h12" dur="1.1s" repeatCount="indefinite"/>
+      </path>
+      <path d="M162 88h20V72h16V56h-24v14h-12" fill="#E86F4C">
+        <animate attributeName="d" values="M162 88h20V72h16V56h-24v14h-12;M162 86h22V62h20V46h-28v16h-14;M162 88h20V72h16V56h-24v14h-12" dur="1.1s" repeatCount="indefinite"/>
+      </path>
+      <path d="M84 68h72v52H84z" fill="#D97757"/>
+      <path d="M94 54h52v18H94z" fill="#F7B267"/>
+      <path d="M104 34v20M136 34v20"/>
+      <path d="M78 110 58 126M94 118 82 134M146 118l12 16M162 110l20 16">
+        <animate attributeName="d" values="M78 110 58 126M94 118 82 134M146 118l12 16M162 110l20 16;M78 114 60 134M94 116 88 136M146 116l6 20M162 114l18 20;M78 110 58 126M94 118 82 134M146 118l12 16M162 110l20 16" dur=".8s" repeatCount="indefinite"/>
+      </path>
+    </g>
+    <rect x="96" y="80" width="12" height="12" fill="#0F172A"/>
+    <rect x="132" y="80" width="12" height="12" fill="#0F172A"/>
+    <rect x="99" y="80" width="4" height="4" fill="#FDE68A"/>
+    <rect x="135" y="80" width="4" height="4" fill="#FDE68A"/>
+    <path d="M108 101h24" stroke="#7C2D12" stroke-width="5" stroke-linecap="square"/>
+    <rect x="100" y="24" width="8" height="8" fill="#F7B267"/>
+    <rect x="132" y="24" width="8" height="8" fill="#F7B267"/>
+  </g>
+</svg>

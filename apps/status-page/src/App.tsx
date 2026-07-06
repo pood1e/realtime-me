@@ -41,6 +41,13 @@ import {
 } from 'simple-icons/icons';
 import type { SimpleIcon } from 'simple-icons';
 import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react';
+import agentOrbitUrl from '@/assets/agents/agent-orbit.svg';
+import claudeOrbitUrl from '@/assets/agents/claude-orbit.svg';
+import claudeRibbonsUrl from '@/assets/agents/claude-ribbons.svg';
+import claudeSparksUrl from '@/assets/agents/claude-sparks.svg';
+import codexOrbitUrl from '@/assets/agents/codex-orbit.svg';
+import codexRibbonsUrl from '@/assets/agents/codex-ribbons.svg';
+import codexSparksUrl from '@/assets/agents/codex-sparks.svg';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -377,22 +384,10 @@ function AgentCard({ agent }: { agent: AgentStatus }) {
 }
 
 function AgentMotion({ agent }: { agent: AgentStatus }) {
-  const brand = agentBrand(agent.agent_id);
-  const variant = agentMotionVariant(agent);
+  const image = agentMotionImage(agent);
   return (
-    <div className={`agent-motion agent-motion-${brand} agent-motion-${variant}`} aria-label={`${agentName(agent.agent_id)} working`}>
-      <div className="agent-motion-scan" />
-      <div className="agent-motion-track">
-        <span />
-        <span />
-        <span />
-      </div>
-      <div className="agent-motion-orb">
-        {agentMotionIcon(agent.agent_id)}
-      </div>
-      <div className="agent-motion-spark agent-motion-spark-one" />
-      <div className="agent-motion-spark agent-motion-spark-two" />
-      <div className="agent-motion-spark agent-motion-spark-three" />
+    <div className="agent-motion">
+      <img className="agent-motion-image" src={image} alt={`${agentName(agent.agent_id)} working`} />
     </div>
   );
 }
@@ -414,21 +409,16 @@ function agentIcon(agentId: string): ReactElement {
   return <Bot className="size-4" />;
 }
 
-function agentMotionIcon(agentId: string): ReactElement {
-  if (agentId === 'claude-code') return <BrandIcon icon={siClaude} className="size-10" />;
-  if (agentId === 'codex' || agentId.startsWith('codex:')) return <CodexIcon className="size-10" />;
-  return <Bot className="size-10" />;
-}
-
-function agentBrand(agentId: string): string {
-  if (agentId === 'claude-code') return 'claude';
-  if (agentId === 'codex' || agentId.startsWith('codex:')) return 'codex';
-  return 'default';
-}
-
-function agentMotionVariant(agent: AgentStatus): string {
+function agentMotionImage(agent: AgentStatus): string {
+  const images = agentMotionImages(agent.agent_id);
   const seed = `${agent.agent_id}:${agent.updated_at || agent.received_at}`;
-  return ['nebula', 'ribbons', 'matrix'][hashString(seed) % 3];
+  return images[hashString(seed) % images.length];
+}
+
+function agentMotionImages(agentId: string): string[] {
+  if (agentId === 'claude-code') return [claudeOrbitUrl, claudeRibbonsUrl, claudeSparksUrl];
+  if (agentId === 'codex' || agentId.startsWith('codex:')) return [codexOrbitUrl, codexRibbonsUrl, codexSparksUrl];
+  return [agentOrbitUrl];
 }
 
 function hashString(value: string): number {
