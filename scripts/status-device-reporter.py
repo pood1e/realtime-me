@@ -376,8 +376,21 @@ def darwin_memory_usage() -> MemoryUsage:
             continue
         key, value = line.split(":", 1)
         pages[key.strip()] = int(re.sub(r"[^0-9]", "", value) or "0")
-    free = (pages.get("Pages free", 0) + pages.get("Pages speculative", 0)) * page_size
-    used = max(0, total - free)
+    used_pages = sum(
+        pages.get(key, 0)
+        for key in (
+            "Pages active",
+            "Pages inactive",
+            "Pages throttled",
+            "Pages wired down",
+            "Pages occupied by compressor",
+        )
+    )
+    used = used_pages * page_size
+    if used <= 0:
+        free = (pages.get("Pages free", 0) + pages.get("Pages speculative", 0)) * page_size
+        used = total - free
+    used = max(0, min(used, total))
     return MemoryUsage(used, total)
 
 

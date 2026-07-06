@@ -193,8 +193,12 @@ func (server *Server) metrics(writer http.ResponseWriter, _ *http.Request) {
 
 func (server *Server) status(ctx context.Context) PublicStatus {
 	snapshot := server.store.Snapshot()
-	now := time.Now().UTC().Format(time.RFC3339)
-	agents := publicAgents(server.prometheus.AgentStatuses(ctx))
+	nowTime := time.Now().UTC()
+	now := nowTime.Format(time.RFC3339)
+	agents := publicAgents(mergeAgentStatuses(
+		server.prometheus.AgentStatuses(ctx),
+		runningAgents(snapshot.Agents, nowTime, time.Duration(server.config.AgentFreshSeconds)*time.Second),
+	))
 	if len(agents) == 0 && server.config.PublicAgentPlaceholder {
 		agents = []StoredAgentStatus{{
 			AgentIngest: AgentIngest{
@@ -247,6 +251,28 @@ func (server *Server) internalSnapshot(ctx context.Context) InternalStatus {
 		GitHub:    github,
 		UpdatedAt: public.UpdatedAt,
 	}
+}
+
+func mergeAgentStatuses(primary []StoredAgentStatus, fallback []StoredAgentStatus) []StoredAgentStatus {
+	merged := make(map[string]StoredAgentStatus, len(primary)+len(fallback))
+	for _, agent := range fallback {
+		merged[agentStoreKey(agent.AgentIngest)] = agent
+	}
+	for _, agent := range primary {
+		merged[agentStoreKey(agent.AgentIngest)] = agent
+	}
+
+	result := make([]StoredAgentStatus, 0, len(merged))
+	for _, agent := range merged {
+		result = append(result, agent)
+	}
+	sort.Slice(result, func(left int, right int) bool {
+		if result[left].DeviceID != result[right].DeviceID {
+			return result[left].DeviceID < result[right].DeviceID
+		}
+		return result[left].AgentID < result[right].AgentID
+	})
+	return result
 }
 
 func runningAgents(agents []StoredAgentStatus, now time.Time, freshness time.Duration) []StoredAgentStatus {
