@@ -1,5 +1,4 @@
 import {
-  Activity,
   AlertTriangle,
   Battery,
   BatteryCharging,
@@ -11,6 +10,7 @@ import {
   Cpu,
   HardDrive,
   HeartPulse,
+  Footprints,
   Laptop,
   LoaderCircle,
   MemoryStick,
@@ -198,11 +198,10 @@ export function App() {
               <DeviceCard key={device.device_id} device={device} title={device.role === 'desktop' ? 'Mac' : 'Device'} icon={<Laptop className="size-4" />} />
             ))}
             <PhoneCard mobile={status?.mobile ?? null} />
-            <WatchCard mobile={status?.mobile ?? null} />
+            <WatchCard mobile={status?.mobile ?? null} github={status?.github ?? null} />
           </StatusSection>
 
-          <StatusSection title="Automation" icon={<Bot className="size-4" />} columns="grid-cols-1">
-            <GitHubCard github={status?.github ?? null} />
+          <StatusSection title="Agents" icon={<Bot className="size-4" />} columns="grid-cols-1">
             <AgentCard agents={status?.agents ?? []} />
           </StatusSection>
 
@@ -292,7 +291,7 @@ function PhoneCard({ mobile }: { mobile: MobileStatus | null }) {
   );
 }
 
-function WatchCard({ mobile }: { mobile: MobileStatus | null }) {
+function WatchCard({ mobile, github }: { mobile: MobileStatus | null; github: GitHubStatus | null }) {
   const watch = mobile?.watch;
   const offWrist = watch?.wrist_state === 'off_wrist';
   const displayName = watch?.device_name ?? 'Watch';
@@ -302,6 +301,7 @@ function WatchCard({ mobile }: { mobile: MobileStatus | null }) {
         <CardTitle className="flex items-center gap-2"><BrandIcon icon={siWearos} />{displayName}</CardTitle>
         <CardAction className="flex items-center gap-2">
           <InlineTime value={mobile?.received_at} />
+          <GitHubStatusBadge github={github} />
           <WatchStatusBadge watch={watch} offWrist={offWrist} />
         </CardAction>
       </CardHeader>
@@ -309,7 +309,7 @@ function WatchCard({ mobile }: { mobile: MobileStatus | null }) {
         <DeviceModel model={watch?.device_model} />
         <MetricBadges>
           {!offWrist && <MetricBadge icon={<HeartPulse />} value={watch?.heart_rate ? `${watch.heart_rate}` : '—'} title="Heart rate" />}
-          <MetricBadge icon={<Activity />} value={watch?.steps?.toLocaleString() ?? '—'} title="Steps" variant="secondary" />
+          <MetricBadge icon={<Footprints />} value={watch?.steps?.toLocaleString() ?? '—'} title="Steps" variant="secondary" />
           <MetricBadge icon={<Battery />} value={formatBattery(watch?.battery_percent)} title="Battery" />
           {watch?.charge_state === 'charging' && <MetricBadge icon={<BatteryCharging />} value="" title="Charging" />}
           {offWrist && <MetricBadge icon={<CircleOff />} value="" title="Off wrist" variant="secondary" />}
@@ -319,29 +319,25 @@ function WatchCard({ mobile }: { mobile: MobileStatus | null }) {
   );
 }
 
-function GitHubCard({ github }: { github: GitHubStatus | null }) {
+function GitHubStatusBadge({ github }: { github: GitHubStatus | null }) {
   const state = github?.state;
+  const title = githubStatusTitle(state);
   return (
-    <Card size="sm">
-      <CardContent className="flex items-center gap-2">
-        <BrandIcon icon={siGithub} />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge variant={githubBadgeVariant(state)} title={githubStatusTitle(state)}>{githubIcon(state)}</Badge>
-          </TooltipTrigger>
-          <TooltipContent>{githubStatusTitle(state)}</TooltipContent>
-        </Tooltip>
-      </CardContent>
-    </Card>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge variant={githubBadgeVariant(state)} title={title}>
+          <BrandIcon icon={siGithub} />
+          {githubIcon(state)}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent>{title}</TooltipContent>
+    </Tooltip>
   );
 }
 
 function AgentCard({ agents }: { agents: AgentStatus[] }) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Bot className="size-4" />Agents</CardTitle>
-      </CardHeader>
       <CardContent className="grid gap-3">
         {agents.length === 0 && <CardDescription>No agents yet</CardDescription>}
         {agents.map((agent, index) => (
