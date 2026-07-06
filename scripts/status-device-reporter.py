@@ -25,15 +25,15 @@ FILESYSTEM_UTILIZATION = "system.filesystem.utilization"
 
 def main() -> int:
     args = parse_args()
-    token = args.token or os.getenv("STATUS_INGEST_TOKEN")
-    if not token:
-        print("STATUS_INGEST_TOKEN is required", file=sys.stderr)
-        return 2
-
     payload = build_payload(args)
     if args.print:
         print(json.dumps(payload, indent=2))
         return 0
+
+    token = args.token or os.getenv("STATUS_INGEST_TOKEN")
+    if not token:
+        print("STATUS_INGEST_TOKEN is required", file=sys.stderr)
+        return 2
 
     endpoint = args.url.rstrip("/") + "/api/ingest/host"
     request = urllib.request.Request(
@@ -70,12 +70,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--kind", default=os.getenv("STATUS_DEVICE_KIND", "host"))
     parser.add_argument("--role", default=os.getenv("STATUS_DEVICE_ROLE", "desktop"))
     parser.add_argument("--vm-name-contains", default=os.getenv("STATUS_VM_NAME_CONTAINS", ""))
+    parser.add_argument("--state-file", default=os.getenv("STATUS_DEVICE_REPORTER_STATE_FILE", str(default_state_file())))
     parser.add_argument("--timeout-seconds", type=float, default=5)
     parser.add_argument("--print", action="store_true")
     return parser.parse_args()
 
 
 def build_payload(args: argparse.Namespace) -> dict:
+    state = ReporterState.load(Path(args.state_file))
+    machines = virtual_machines(args.vm_name_contains, state)
+    state.save()
     return {
         "device_id": args.device_id,
         "device_name": args.device_name,
@@ -85,7 +89,7 @@ def build_payload(args: argparse.Namespace) -> dict:
         "state": "online",
         "updated_at": utc_now(),
         "metrics": metrics(),
-        "children": virtual_machines(args.vm_name_contains),
+        "children": machines,
     }
 
 
@@ -159,7 +163,7 @@ def memory_usage() -> tuple[int, int]:
     return 0, 0
 
 
-def virtual_machines(name_contains: str) -> list[dict]:
+def virtual_machines(name_contains: str, reporter_state: "ReporterState") -> list[dict]:
     if not shutil.which("virsh"):
         return []
     output = run(["virsh", "list", "--all"])
@@ -168,7 +172,7 @@ def virtual_machines(name_contains: str) -> list[dict]:
         match = re.match(r"\s*(?:\d+|-)\s+(\S+)\s+(.+?)\s*$", line)
         if not match:
             continue
-        name, state = match.group(1), re.sub(r"\s+", " ", match.group(2).strip())
+        name, vm_state = match.group(1), re.sub(r"\s+", " ", match.group(2).strip())
         if name.lower() in {"name", "----"}:
             continue
         if name_contains and name_contains.lower() not in name.lower():
@@ -177,25 +181,37 @@ def virtual_machines(name_contains: str) -> list[dict]:
             "device_id": f"vm-{name}",
             "device_name": name,
             "kind": "virtual_machine",
-            "state": state,
+            "state": vm_state,
             "updated_at": utc_now(),
-            "metrics": virtual_machine_metrics(name),
+            "metrics": virtual_machine_metrics(name, reporter_state),
         })
     return machines
 
 
-def virtual_machine_metrics(name: str) -> list[dict]:
+def virtual_machine_metrics(name: str, state: "ReporterState") -> list[dict]:
     info = virsh_dominfo(name)
+    memory = virsh_dommemstat(name)
+    stats = virsh_domstats(name)
     metrics = []
     cpus = info.get("CPU(s)")
-    used_memory = kibibytes(info.get("Used memory"))
-    max_memory = kibibytes(info.get("Max memory"))
-    if cpus is not None:
-        metrics.append(sample(CPU_CORES, "{cpu}", float(cpus)))
+    cpu_count = integer(cpus)
+    used_memory, max_memory = virtual_machine_memory(info, memory)
+    disk_usage, disk_limit = virtual_machine_disk(stats)
+    cpu_ratio = state.vm_cpu_ratio(name, nanoseconds(stats.get("cpu.time")), cpu_count)
+    if cpu_count is not None:
+        metrics.append(sample(CPU_CORES, "{cpu}", float(cpu_count)))
+    if cpu_ratio is not None:
+        metrics.append(sample(CPU_USAGE, "1", cpu_ratio))
     if used_memory is not None:
         metrics.append(sample(MEMORY_USAGE, "By", float(used_memory), {"system.memory.state": "used"}))
     if max_memory is not None:
         metrics.append(sample(MEMORY_LIMIT, "By", float(max_memory)))
+    if disk_usage is not None:
+        metrics.append(sample(FILESYSTEM_USAGE, "By", float(disk_usage), {"device": "virtual_disk"}))
+    if disk_limit is not None:
+        metrics.append(sample(FILESYSTEM_LIMIT, "By", float(disk_limit), {"device": "virtual_disk"}))
+    if disk_usage is not None and disk_limit is not None and disk_limit > 0:
+        metrics.append(sample(FILESYSTEM_UTILIZATION, "1", clamp_ratio(disk_usage / disk_limit), {"device": "virtual_disk"}))
     return metrics
 
 
@@ -210,6 +226,57 @@ def virsh_dominfo(name: str) -> dict[str, str]:
     return info
 
 
+def virsh_dommemstat(name: str) -> dict[str, int]:
+    output = run(["virsh", "dommemstat", name])
+    stats = {}
+    for line in output.splitlines():
+        values = line.split()
+        if len(values) != 2:
+            continue
+        try:
+            stats[values[0]] = int(values[1])
+        except ValueError:
+            continue
+    return stats
+
+
+def virsh_domstats(name: str) -> dict[str, str]:
+    output = run(["virsh", "domstats", "--cpu-total", "--balloon", "--block", name])
+    stats = {}
+    for line in output.splitlines():
+        if "=" not in line:
+            continue
+        key, value = line.strip().split("=", 1)
+        stats[key] = value
+    return stats
+
+
+def virtual_machine_memory(info: dict[str, str], memory: dict[str, int]) -> tuple[int | None, int | None]:
+    actual = kibibytes_value(memory.get("actual"))
+    unused = kibibytes_value(memory.get("unused"))
+    if actual is not None and unused is not None:
+        return max(0, actual - unused), actual
+    return kibibytes(info.get("Used memory")), kibibytes(info.get("Max memory"))
+
+
+def virtual_machine_disk(stats: dict[str, str]) -> tuple[int | None, int | None]:
+    allocation = 0
+    capacity = 0
+    for index in range(integer(stats.get("block.count")) or 0):
+        path = stats.get(f"block.{index}.path", "")
+        if path.lower().endswith(".iso"):
+            continue
+        block_allocation = integer(stats.get(f"block.{index}.allocation"))
+        block_capacity = integer(stats.get(f"block.{index}.capacity"))
+        if block_allocation is None or block_capacity is None or block_capacity <= 0:
+            continue
+        allocation += block_allocation
+        capacity += block_capacity
+    if capacity <= 0:
+        return None, None
+    return allocation, capacity
+
+
 def kibibytes(value: str | None) -> int | None:
     if not value:
         return None
@@ -217,6 +284,23 @@ def kibibytes(value: str | None) -> int | None:
     if not match:
         return None
     return int(match.group(1)) * 1024
+
+
+def kibibytes_value(value: int | None) -> int | None:
+    return None if value is None else value * 1024
+
+
+def nanoseconds(value: str | None) -> int | None:
+    return integer(value)
+
+
+def integer(value: str | None) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
 
 
 def device_model() -> str:
@@ -258,6 +342,50 @@ def utc_now() -> str:
 
 def clamp_ratio(value: float) -> float:
     return max(0, min(1, value))
+
+
+def default_state_file() -> Path:
+    return Path.home() / ".cache" / "realtime-me" / "status-device-reporter.json"
+
+
+class ReporterState:
+    def __init__(self, path: Path, data: dict) -> None:
+        self.path = path
+        self.data = data
+        self.now = time.time()
+
+    @classmethod
+    def load(cls, path: Path) -> "ReporterState":
+        try:
+            data = json.loads(path.read_text())
+        except (OSError, json.JSONDecodeError):
+            data = {}
+        return cls(path, data if isinstance(data, dict) else {})
+
+    def save(self) -> None:
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self.path.write_text(json.dumps(self.data), encoding="utf-8")
+        except OSError:
+            return
+
+    def vm_cpu_ratio(self, name: str, cpu_time_ns: int | None, cpu_count: int | None) -> float | None:
+        if cpu_time_ns is None or cpu_count is None or cpu_count < 1:
+            return None
+        key = f"vm:{name}:cpu"
+        previous = self.data.get(key)
+        self.data[key] = {"time": self.now, "cpu_time_ns": cpu_time_ns}
+        if not isinstance(previous, dict):
+            return None
+        previous_time = previous.get("time")
+        previous_cpu_time = previous.get("cpu_time_ns")
+        if not isinstance(previous_time, (int, float)) or not isinstance(previous_cpu_time, int):
+            return None
+        elapsed_seconds = self.now - previous_time
+        elapsed_cpu_seconds = (cpu_time_ns - previous_cpu_time) / 1_000_000_000
+        if elapsed_seconds <= 0 or elapsed_cpu_seconds < 0:
+            return None
+        return clamp_ratio(elapsed_cpu_seconds / elapsed_seconds / cpu_count)
 
 
 if __name__ == "__main__":

@@ -25,6 +25,9 @@ var metricDefinitions = []metricDefinition{
 	{Name: "realtime_host_cpu_usage_ratio", Type: "gauge", Unit: "1", OTelName: "system.cpu.utilization", Description: "Host CPU utilization as a fraction."},
 	{Name: "realtime_host_memory_usage_bytes", Type: "gauge", Unit: "By", OTelName: "system.memory.usage", Description: "Host memory usage in bytes."},
 	{Name: "realtime_host_memory_limit_bytes", Type: "gauge", Unit: "By", OTelName: "system.memory.limit", Description: "Host memory capacity in bytes."},
+	{Name: "realtime_host_filesystem_usage_bytes", Type: "gauge", Unit: "By", OTelName: "system.filesystem.usage", Description: "Host filesystem usage in bytes."},
+	{Name: "realtime_host_filesystem_limit_bytes", Type: "gauge", Unit: "By", OTelName: "system.filesystem.limit", Description: "Host filesystem capacity in bytes."},
+	{Name: "realtime_host_filesystem_usage_ratio", Type: "gauge", Unit: "1", OTelName: "system.filesystem.utilization", Description: "Host filesystem utilization as a fraction."},
 	{Name: "realtime_host_vm_state", Type: "gauge", Unit: "1", OTelName: "realtime.host.vm.state", Description: "Virtual machine state labelled by vm_name and state; current state is 1."},
 	{Name: "realtime_watch_heart_rate_beats_per_minute", Type: "gauge", Unit: "{beat}/min", OTelName: "realtime.watch.heart_rate", Description: "Latest watch heart rate."},
 	{Name: "realtime_watch_steps", Type: "gauge", Unit: "{step}", OTelName: "realtime.watch.steps", Description: "Latest watch local-day step count."},
@@ -118,10 +121,18 @@ func appendReportedDeviceMetrics(lines *[]string, status StoredDeviceStatus) {
 		appendReportedMetric(lines, labels, metric)
 	}
 	for _, child := range status.Children {
-		childLabels := copyLabels(labels)
-		childLabels["child_device_id"] = child.DeviceID
-		childLabels["child_kind"] = child.Kind
+		childLabels := map[string]string{
+			"device_id":        child.DeviceID,
+			"parent_device_id": status.DeviceID,
+		}
+		if child.Kind != "" {
+			childLabels["child_kind"] = child.Kind
+		}
+		appendDeviceTimestamp(lines, child.DeviceID, child.Kind, child.UpdatedAt)
 		appendState(lines, "realtime_host_vm_state", childLabels, "state", child.State, []string{"running", "shut off", "paused", "unknown"})
+		for _, metric := range child.Metrics {
+			appendReportedMetric(lines, childLabels, metric)
+		}
 	}
 }
 
@@ -139,6 +150,12 @@ func appendReportedMetric(lines *[]string, baseLabels map[string]string, metric 
 		appendSample(lines, "realtime_host_memory_usage_bytes", labels, metric.Value)
 	case metricSystemMemoryLimit:
 		appendSample(lines, "realtime_host_memory_limit_bytes", labels, metric.Value)
+	case metricSystemFilesystemUsage:
+		appendSample(lines, "realtime_host_filesystem_usage_bytes", labels, metric.Value)
+	case metricSystemFilesystemLimit:
+		appendSample(lines, "realtime_host_filesystem_limit_bytes", labels, metric.Value)
+	case metricSystemFilesystemUsagePct:
+		appendSample(lines, "realtime_host_filesystem_usage_ratio", labels, metric.Value)
 	}
 }
 
