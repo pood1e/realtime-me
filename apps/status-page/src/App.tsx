@@ -42,9 +42,12 @@ import {
 import type { SimpleIcon } from 'simple-icons';
 import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react';
 import agentOrbitUrl from '@/assets/agents/agent-orbit.svg';
-import claudeOrbitUrl from '@/assets/agents/claude-orbit.svg';
-import claudeRibbonsUrl from '@/assets/agents/claude-ribbons.svg';
-import claudeSparksUrl from '@/assets/agents/claude-sparks.svg';
+import clawdBuildingUrl from '@/assets/agents/clawd-working-building.gif';
+import clawdDebuggerUrl from '@/assets/agents/clawd-working-debugger.gif';
+import clawdJugglingUrl from '@/assets/agents/clawd-working-juggling.gif';
+import clawdSweepingUrl from '@/assets/agents/clawd-working-sweeping.gif';
+import clawdThinkingUrl from '@/assets/agents/clawd-working-thinking.gif';
+import clawdTypingUrl from '@/assets/agents/clawd-working-typing.gif';
 import codexOrbitUrl from '@/assets/agents/codex-orbit.svg';
 import codexRibbonsUrl from '@/assets/agents/codex-ribbons.svg';
 import codexSparksUrl from '@/assets/agents/codex-sparks.svg';
@@ -385,15 +388,16 @@ function AgentCard({ agent }: { agent: AgentStatus }) {
 
 function AgentMotion({ agent }: { agent: AgentStatus }) {
   const image = agentMotionImage(agent);
+  const imageClassName = isClaudeAgent(agent.agent_id) ? 'agent-motion-image agent-motion-image-pixel' : 'agent-motion-image';
   return (
     <div className="agent-motion">
-      <img className="agent-motion-image" src={image} alt={`${agentName(agent.agent_id)} working`} />
+      <img className={imageClassName} src={image} alt={`${agentName(agent.agent_id)} working`} />
     </div>
   );
 }
 
 function agentName(agentId: string): string {
-  if (agentId === 'claude-code') return 'Claude Code';
+  if (isClaudeAgent(agentId)) return 'Claude Code';
   if (agentId === 'codex') return 'Codex';
   if (agentId.startsWith('codex:')) return `Codex · ${agentId.slice('codex:'.length)}`;
   return agentId;
@@ -404,7 +408,7 @@ function agentKey(agent: AgentStatus): string {
 }
 
 function agentIcon(agentId: string): ReactElement {
-  if (agentId === 'claude-code') return <BrandIcon icon={siClaude} />;
+  if (isClaudeAgent(agentId)) return <BrandIcon icon={siClaude} />;
   if (agentId === 'codex' || agentId.startsWith('codex:')) return <CodexIcon />;
   return <Bot className="size-4" />;
 }
@@ -416,9 +420,15 @@ function agentMotionImage(agent: AgentStatus): string {
 }
 
 function agentMotionImages(agentId: string): string[] {
-  if (agentId === 'claude-code') return [claudeOrbitUrl, claudeRibbonsUrl, claudeSparksUrl];
+  if (isClaudeAgent(agentId)) {
+    return [clawdTypingUrl, clawdBuildingUrl, clawdDebuggerUrl, clawdThinkingUrl, clawdSweepingUrl, clawdJugglingUrl];
+  }
   if (agentId === 'codex' || agentId.startsWith('codex:')) return [codexOrbitUrl, codexRibbonsUrl, codexSparksUrl];
   return [agentOrbitUrl];
+}
+
+function isClaudeAgent(agentId: string): boolean {
+  return agentId === 'claude-code';
 }
 
 function hashString(value: string): number {
