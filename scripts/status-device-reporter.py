@@ -179,8 +179,44 @@ def virtual_machines(name_contains: str) -> list[dict]:
             "kind": "virtual_machine",
             "state": state,
             "updated_at": utc_now(),
+            "metrics": virtual_machine_metrics(name),
         })
     return machines
+
+
+def virtual_machine_metrics(name: str) -> list[dict]:
+    info = virsh_dominfo(name)
+    metrics = []
+    cpus = info.get("CPU(s)")
+    used_memory = kibibytes(info.get("Used memory"))
+    max_memory = kibibytes(info.get("Max memory"))
+    if cpus is not None:
+        metrics.append(sample(CPU_CORES, "{cpu}", float(cpus)))
+    if used_memory is not None:
+        metrics.append(sample(MEMORY_USAGE, "By", float(used_memory), {"system.memory.state": "used"}))
+    if max_memory is not None:
+        metrics.append(sample(MEMORY_LIMIT, "By", float(max_memory)))
+    return metrics
+
+
+def virsh_dominfo(name: str) -> dict[str, str]:
+    output = run(["virsh", "dominfo", name])
+    info = {}
+    for line in output.splitlines():
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        info[key.strip()] = value.strip()
+    return info
+
+
+def kibibytes(value: str | None) -> int | None:
+    if not value:
+        return None
+    match = re.search(r"(\d+)", value)
+    if not match:
+        return None
+    return int(match.group(1)) * 1024
 
 
 def device_model() -> str:

@@ -324,9 +324,15 @@ function ChildDevices({ devices }: { devices: DeviceStatus[] }) {
   return (
     <div className="grid gap-2">
       {devices.map((device) => (
-        <div key={device.device_id} className="flex items-center justify-between gap-2 text-sm">
-          <span className="flex min-w-0 items-center gap-2 truncate text-muted-foreground"><Box className="size-3.5" />{device.device_name || device.device_id}</span>
-          <Badge variant={device.state === 'running' ? 'default' : 'secondary'}>{device.state ?? 'unknown'}</Badge>
+        <div key={device.device_id} className="grid gap-1 rounded-md bg-muted/40 p-2 text-sm">
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex min-w-0 items-center gap-2 truncate text-muted-foreground"><Box className="size-3.5" />{device.device_name || device.device_id}</span>
+            <Badge variant={device.state === 'running' ? 'default' : 'secondary'}>{device.state ?? 'unknown'}</Badge>
+          </div>
+          <MetricBadges>
+            <MetricBadge icon={<Cpu />} value={cpuCoreText(device)} title="CPU cores" variant="secondary" />
+            <MetricBadge icon={<MemoryStick />} value={memoryValues(device).text} title="Memory" />
+          </MetricBadges>
         </div>
       ))}
     </div>
