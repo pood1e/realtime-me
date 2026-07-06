@@ -1247,7 +1247,7 @@ function allDevices(status: InternalStatus): DeviceStatus[] {
       device_name: status.mobile.watch.device_name,
       device_model: status.mobile.watch.device_model,
       kind: 'watch',
-      state: status.mobile.watch.wrist_state === 'off_wrist' ? 'offline' : 'online',
+      state: 'online',
       updated_at: status.mobile.received_at,
     });
   }
