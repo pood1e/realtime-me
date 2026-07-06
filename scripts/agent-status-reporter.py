@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 import re
@@ -90,8 +91,16 @@ class ClaudeSession:
     session_id: str
     cli_session_id: str
     title: str
+    status: str
     updated_at_seconds: float
     archived: bool
+
+
+@dataclass(frozen=True)
+class ClaudeTask:
+    title: str
+    status: str
+    updated_at_seconds: float
 
 
 @dataclass(frozen=True)
@@ -102,6 +111,9 @@ class DeviceIdentity:
 
 def main() -> int:
     args = parse_args()
+    if args.serve:
+        return serve(args)
+
     snapshots = build_snapshots(args)
     if args.print:
         print(json.dumps([snapshot.payload() for snapshot in snapshots], indent=2, ensure_ascii=False))
@@ -133,6 +145,10 @@ def parse_args() -> argparse.Namespace:
         default=os.getenv("STATUS_CLAUDE_SESSIONS_DIR", "~/Library/Application Support/Claude/claude-code-sessions"),
     )
     parser.add_argument("--claude-tasks-dir", default=os.getenv("STATUS_CLAUDE_TASKS_DIR", "~/.claude/tasks"))
+    parser.add_argument("--claude-jobs-dir", default=os.getenv("STATUS_CLAUDE_JOBS_DIR", "~/.claude/jobs"))
+    parser.add_argument("--serve", action="store_true")
+    parser.add_argument("--bind", default=os.getenv("STATUS_AGENT_EXPORTER_BIND", "127.0.0.1"))
+    parser.add_argument("--port", type=int, default=int(os.getenv("STATUS_AGENT_EXPORTER_PORT", "18082")))
     parser.add_argument("--print", action="store_true")
     return parser.parse_args()
 
@@ -143,8 +159,46 @@ def build_snapshots(args: argparse.Namespace) -> list[AgentSnapshot]:
     codex_homes = [expand_path(value) for value in re.split(r"[:;,]", args.codex_homes) if value.strip()]
     return [
         *codex_snapshots(codex_homes, now, args.active_window_seconds, device),
-        claude_snapshot(expand_path(args.claude_sessions_dir), expand_path(args.claude_tasks_dir), now, args.active_window_seconds, device),
+        claude_snapshot(
+            expand_path(args.claude_sessions_dir),
+            expand_path(args.claude_tasks_dir),
+            expand_path(args.claude_jobs_dir),
+            now,
+            args.active_window_seconds,
+            device,
+        ),
     ]
+
+
+def serve(args: argparse.Namespace) -> int:
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            if self.path == "/healthz":
+                self.write_json({"ok": True})
+                return
+            if self.path == "/api/agent-status":
+                self.write_json([snapshot.payload() for snapshot in build_snapshots(args)])
+                return
+            self.write_json({"error": "not_found"}, 404)
+
+        def log_message(self, _format: str, *_args: object) -> None:
+            return
+
+        def write_json(self, payload: object, status: int = 200) -> None:
+            data = json.dumps(payload, ensure_ascii=False).encode()
+            self.send_response(status)
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+    server = ThreadingHTTPServer((args.bind, args.port), Handler)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        return 130
+    return 0
 
 
 def codex_snapshots(homes: list[Path], now: float, active_window_seconds: int, device: DeviceIdentity) -> list[AgentSnapshot]:
@@ -310,22 +364,28 @@ def open_files(process_id: int) -> list[Path]:
     return paths
 
 
-def claude_snapshot(sessions_dir: Path, tasks_dir: Path, now: float, active_window_seconds: int, device: DeviceIdentity) -> AgentSnapshot:
+def claude_snapshot(sessions_dir: Path, tasks_dir: Path, jobs_dir: Path, now: float, active_window_seconds: int, device: DeviceIdentity) -> AgentSnapshot:
     sessions = read_claude_sessions(sessions_dir)
-    if not sessions:
+    job = latest_claude_job(jobs_dir)
+    if not sessions and job is None:
         return AgentSnapshot(agent_id="claude-code", state="idle", device_id=device.device_id, device_name=device.device_name, updated_at=utc_now())
 
     sessions.sort(key=lambda item: item.updated_at_seconds, reverse=True)
-    session = sessions[0]
-    open_task = claude_open_task(tasks_dir / session.cli_session_id) if session.cli_session_id else ""
-    active = now - session.updated_at_seconds <= active_window_seconds
+    session = sessions[0] if sessions else None
+    task = claude_open_task(tasks_dir / session.cli_session_id) if session and session.cli_session_id else None
+    updated_at = max(
+        session.updated_at_seconds if session else 0,
+        task.updated_at_seconds if task else 0,
+        job.updated_at_seconds if job else 0,
+    )
+    active = claude_active(session, task, job, now, active_window_seconds)
     return AgentSnapshot(
         agent_id="claude-code",
         state="running" if active else "idle",
         device_id=device.device_id,
         device_name=device.device_name,
-        task=sanitize_task(open_task or session.title),
-        updated_at=iso_time(session.updated_at_seconds),
+        task=sanitize_task((task.title if task else "") or (job.title if job else "") or (session.title if session else "")),
+        updated_at=iso_time(updated_at),
     )
 
 
@@ -333,19 +393,22 @@ def read_claude_sessions(sessions_dir: Path) -> list[ClaudeSession]:
     if not sessions_dir.exists():
         return []
     sessions: list[ClaudeSession] = []
-    for path in sorted(sessions_dir.rglob("local_*.json"), key=lambda item: item.stat().st_mtime, reverse=True)[:100]:
+    for path in sorted(sessions_dir.rglob("*.json"), key=lambda item: item.stat().st_mtime, reverse=True)[:100]:
         data = read_json_object(path)
         if not data:
             continue
-        title = str(data.get("title") or "")
-        if not title:
+        title = str(data.get("title") or data.get("name") or "")
+        session_id = str(data.get("sessionId") or path.stem)
+        cli_session_id = str(data.get("cliSessionId") or data.get("sessionId") or "")
+        if not title and not session_id:
             continue
-        updated_at = timestamp_seconds(data.get("lastActivityAt") or data.get("lastFocusedAt") or path.stat().st_mtime)
+        updated_at = timestamp_seconds(data.get("lastActivityAt") or data.get("lastFocusedAt") or data.get("updatedAt") or data.get("statusUpdatedAt") or path.stat().st_mtime)
         sessions.append(
             ClaudeSession(
-                session_id=str(data.get("sessionId") or path.stem),
-                cli_session_id=str(data.get("cliSessionId") or ""),
-                title=title,
+                session_id=session_id,
+                cli_session_id=cli_session_id,
+                title=title or session_id[:8],
+                status=str(data.get("status") or ""),
                 updated_at_seconds=updated_at,
                 archived=bool(data.get("isArchived")),
             )
@@ -353,19 +416,50 @@ def read_claude_sessions(sessions_dir: Path) -> list[ClaudeSession]:
     return [session for session in sessions if not session.archived]
 
 
-def claude_open_task(task_dir: Path) -> str:
+def claude_open_task(task_dir: Path) -> ClaudeTask | None:
     if not task_dir.exists():
-        return ""
-    candidates: list[tuple[float, str]] = []
+        return None
+    candidates: list[ClaudeTask] = []
     for path in sorted(task_dir.glob("*.json"), key=lambda item: item.stat().st_mtime, reverse=True)[:50]:
         data = read_json_object(path)
-        if not data or str(data.get("status") or "") not in CLAUDE_OPEN_TASK_STATES:
+        status = str(data.get("status") or "")
+        if not data or status not in CLAUDE_OPEN_TASK_STATES:
             continue
         title = str(data.get("activeForm") or data.get("subject") or "")
         if title:
-            candidates.append((path.stat().st_mtime, title))
-    candidates.sort(reverse=True)
-    return candidates[0][1] if candidates else ""
+            candidates.append(ClaudeTask(title, status, path.stat().st_mtime))
+    candidates.sort(key=lambda item: item.updated_at_seconds, reverse=True)
+    return candidates[0] if candidates else None
+
+
+def latest_claude_job(jobs_dir: Path) -> ClaudeTask | None:
+    if not jobs_dir.exists():
+        return None
+    candidates: list[ClaudeTask] = []
+    for path in sorted(jobs_dir.glob("*/state.json"), key=lambda item: item.stat().st_mtime, reverse=True)[:20]:
+        data = read_json_object(path)
+        if not data:
+            continue
+        title = str(data.get("name") or data.get("intent") or data.get("sessionId") or "")
+        if not title:
+            continue
+        state = str(data.get("state") or "")
+        in_flight = "running" if data.get("inFlight") is True else state
+        candidates.append(ClaudeTask(title, in_flight, timestamp_seconds(data.get("updatedAt") or path.stat().st_mtime)))
+    candidates.sort(key=lambda item: item.updated_at_seconds, reverse=True)
+    return candidates[0] if candidates else None
+
+
+def claude_active(session: ClaudeSession | None, task: ClaudeTask | None, job: ClaudeTask | None, now: float, active_window_seconds: int) -> bool:
+    if task and task.status in CLAUDE_OPEN_TASK_STATES and now - task.updated_at_seconds <= active_window_seconds:
+        return True
+    if job and job.status in {"running", "working", "busy", "in_progress"} and now - job.updated_at_seconds <= active_window_seconds:
+        return True
+    if not session:
+        return False
+    if session.status in {"running", "working", "busy", "in_progress"} and now - session.updated_at_seconds <= active_window_seconds:
+        return True
+    return False
 
 
 def query_sqlite(database: Path, statement: str) -> list[sqlite3.Row]:

@@ -13,11 +13,15 @@ scrape_configs:
         labels:
           instance: "server"
 
+  - job_name: vm-node-exporter
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/file_sd/vm-node-exporters.yml
+
   - job_name: cadvisor
-    static_configs:
-      - targets: ["cadvisor:8080"]
-        labels:
-          instance: "server"
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/file_sd/cadvisor.yml
 
   - job_name: status-gateway
     static_configs:

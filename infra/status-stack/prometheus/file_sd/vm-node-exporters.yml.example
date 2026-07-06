@@ -1,0 +1,4 @@
+- targets:
+    - vm-address.example:9100
+  labels:
+    instance: vm-name

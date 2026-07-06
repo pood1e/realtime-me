@@ -221,9 +221,29 @@ func labelSet(labels map[string]string) string {
 	pairs := make([]string, 0, len(keys))
 	for _, key := range keys {
 		value := labels[key]
-		pairs = append(pairs, fmt.Sprintf("%s=%s", key, strconv.Quote(value)))
+		pairs = append(pairs, fmt.Sprintf("%s=%s", prometheusLabelName(key), strconv.Quote(value)))
 	}
 	return "{" + strings.Join(pairs, ",") + "}"
+}
+
+func prometheusLabelName(value string) string {
+	var builder strings.Builder
+	for index, character := range value {
+		valid := character == '_' || character >= 'a' && character <= 'z' || character >= 'A' && character <= 'Z' || index > 0 && character >= '0' && character <= '9'
+		if valid {
+			builder.WriteRune(character)
+		} else {
+			builder.WriteByte('_')
+		}
+	}
+	if builder.Len() == 0 {
+		return "label"
+	}
+	name := builder.String()
+	if name[0] >= '0' && name[0] <= '9' {
+		return "label_" + name
+	}
+	return name
 }
 
 func boolFloat(value bool) float64 {

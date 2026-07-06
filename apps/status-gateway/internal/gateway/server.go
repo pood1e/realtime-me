@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"sort"
 	"time"
 )
 
@@ -132,13 +133,12 @@ func (server *Server) status(ctx context.Context) PublicStatus {
 	snapshot := server.store.Snapshot()
 	nowTime := time.Now().UTC()
 	now := nowTime.Format(time.RFC3339)
-	agents := runningAgents(snapshot.Agents, nowTime, time.Duration(server.config.AgentFreshSeconds)*time.Second)
+	agents := publicAgents(runningAgents(snapshot.Agents, nowTime, time.Duration(server.config.AgentFreshSeconds)*time.Second))
 	if len(agents) == 0 && server.config.PublicAgentPlaceholder {
 		agents = []StoredAgentStatus{{
 			AgentIngest: AgentIngest{
 				AgentID: "agents",
 				State:   "idle",
-				Task:    "not connected",
 			},
 			ReceivedAt: now,
 		}}
@@ -155,7 +155,7 @@ func (server *Server) status(ctx context.Context) PublicStatus {
 	return PublicStatus{
 		Server:  mergeServerStatus(server.prometheus.ServerStatus(ctx), snapshot.Devices),
 		Mobile:  snapshot.Mobile,
-		Devices: nonServerDevices(snapshot.Devices),
+		Devices: mergePrometheusDevices(server.prometheus.VirtualMachineStatuses(ctx), nonServerDevices(snapshot.Devices)),
 		Agents:  agents,
 		GitHub: PublicGitHubStatus{
 			Enabled:   server.config.GitHubToken != "",
@@ -182,6 +182,15 @@ func runningAgents(agents []StoredAgentStatus, now time.Time, freshness time.Dur
 	return result
 }
 
+func publicAgents(agents []StoredAgentStatus) []StoredAgentStatus {
+	result := make([]StoredAgentStatus, 0, len(agents))
+	for _, agent := range agents {
+		agent.Task = ""
+		result = append(result, agent)
+	}
+	return result
+}
+
 func mergeServerStatus(base DeviceStatus, devices []StoredDeviceStatus) DeviceStatus {
 	for _, device := range devices {
 		if device.Role != "server" && device.DeviceID != "server" {
@@ -197,7 +206,6 @@ func mergeServerStatus(base DeviceStatus, devices []StoredDeviceStatus) DeviceSt
 		if len(device.Metrics) > 0 {
 			base.Metrics = device.Metrics
 		}
-		base.Children = device.Children
 		break
 	}
 	if base.DeviceName == "" {
@@ -215,6 +223,40 @@ func nonServerDevices(devices []StoredDeviceStatus) []StoredDeviceStatus {
 		filtered = append(filtered, device)
 	}
 	return filtered
+}
+
+func mergePrometheusDevices(primary []DeviceStatus, stored []StoredDeviceStatus) []StoredDeviceStatus {
+	merged := make(map[string]StoredDeviceStatus, len(primary)+len(stored))
+	for _, device := range primary {
+		merged[device.DeviceID] = StoredDeviceStatus{
+			DeviceStatus: device,
+			ReceivedAt:   device.UpdatedAt,
+		}
+	}
+	for _, device := range stored {
+		existing, ok := merged[device.DeviceID]
+		if !ok {
+			merged[device.DeviceID] = device
+			continue
+		}
+		existing.DeviceName = firstString(device.DeviceName, existing.DeviceName)
+		existing.DeviceModel = firstString(device.DeviceModel, existing.DeviceModel)
+		existing.ReceivedAt = firstString(existing.ReceivedAt, device.ReceivedAt)
+		merged[device.DeviceID] = existing
+	}
+
+	result := make([]StoredDeviceStatus, 0, len(merged))
+	for _, device := range merged {
+		result = append(result, device)
+	}
+	sortDeviceStatuses(result)
+	return result
+}
+
+func sortDeviceStatuses(devices []StoredDeviceStatus) {
+	sort.Slice(devices, func(left int, right int) bool {
+		return devices[left].DeviceID < devices[right].DeviceID
+	})
 }
 
 func firstString(primary string, fallback string) string {

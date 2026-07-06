@@ -144,8 +144,9 @@ export function App() {
   const [status, setStatus] = useState<PublicStatus | null>(null);
   const [failed, setFailed] = useState(false);
   const server = status?.server ?? null;
-  const virtualMachines = server?.children ?? [];
-  const personalDevices = status?.devices ?? [];
+  const devices = status?.devices ?? [];
+  const virtualMachines = devices.filter((device) => device.kind === 'virtual_machine' || device.role === 'vm');
+  const personalDevices = devices.filter((device) => device.kind !== 'virtual_machine' && device.role !== 'vm');
 
   async function refresh() {
     const next = await fetch(`${apiBaseUrl}/api/public-status`, { cache: 'no-store' })
@@ -339,7 +340,7 @@ function AgentCard({ agents }: { agents: AgentStatus[] }) {
   return (
     <Card>
       <CardContent className="grid gap-3">
-        {agents.length === 0 && <CardDescription>No agents yet</CardDescription>}
+        {agents.length === 0 && <CardDescription>No active agents</CardDescription>}
         {agents.map((agent, index) => (
           <div key={agentKey(agent)}>
             {index > 0 && <Separator className="mb-3" />}
@@ -354,7 +355,6 @@ function AgentCard({ agents }: { agents: AgentStatus[] }) {
                 <Badge variant={agentBadgeVariant(agent.state)} title={agent.state}>{agentStateIcon(agent.state)}</Badge>
               </span>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">{agent.task ?? '—'}</p>
             {agent.budget_remaining_percent !== undefined && (
               <div className="mt-3 grid gap-2">
                 <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
