@@ -12,6 +12,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 CPU_CORES = "system.cpu.logical.count"
@@ -21,6 +22,15 @@ MEMORY_LIMIT = "system.memory.limit"
 FILESYSTEM_USAGE = "system.filesystem.usage"
 FILESYSTEM_LIMIT = "system.filesystem.limit"
 FILESYSTEM_UTILIZATION = "system.filesystem.utilization"
+OS_HINTS = (
+    ("kali", "Kali Linux"),
+    ("ubuntu", "Ubuntu"),
+    ("debian", "Debian"),
+    ("fedora", "Fedora"),
+    ("centos", "CentOS"),
+    ("arch", "Arch Linux"),
+    ("windows", "Windows"),
+)
 
 
 def main() -> int:
@@ -180,6 +190,7 @@ def virtual_machines(name_contains: str, reporter_state: "ReporterState") -> lis
         machines.append({
             "device_id": f"vm-{name}",
             "device_name": name,
+            "device_model": virtual_machine_model(name),
             "kind": "virtual_machine",
             "state": vm_state,
             "updated_at": utc_now(),
@@ -251,6 +262,66 @@ def virsh_domstats(name: str) -> dict[str, str]:
     return stats
 
 
+def virtual_machine_model(name: str) -> str:
+    output = run(["virsh", "dumpxml", name])
+    if not output:
+        return ""
+    try:
+        root = ET.fromstring(output)
+    except ET.ParseError:
+        return ""
+    return " · ".join(unique(model_parts(name, root)))[:120]
+
+
+def model_parts(name: str, root: ET.Element) -> list[str]:
+    parts = []
+    os_name = libosinfo_name(root) or guest_os_hint(name, root)
+    if os_name:
+        parts.append(os_name)
+    machine_type = root.find("./os/type")
+    if machine_type is not None:
+        machine = machine_type.attrib.get("machine", "").strip()
+        architecture = machine_type.attrib.get("arch", "").strip()
+        virtualization = (machine_type.text or "").strip()
+        parts.extend([machine, architecture, virtualization])
+    return [part for part in parts if part]
+
+
+def libosinfo_name(root: ET.Element) -> str:
+    for element in root.iter():
+        if not element.tag.endswith("os"):
+            continue
+        os_id = element.attrib.get("id", "")
+        if "/libosinfo.org/" not in os_id:
+            continue
+        return os_id.rstrip("/").rsplit("/", 1)[-1].replace("-", " ").title()
+    return ""
+
+
+def guest_os_hint(name: str, root: ET.Element) -> str:
+    values = [name]
+    for element in root.iter():
+        if element.tag.endswith("title") or element.tag.endswith("description"):
+            values.append(element.text or "")
+        values.extend(element.attrib.values())
+    text = " ".join(values).lower()
+    for marker, label in OS_HINTS:
+        if marker in text:
+            return label
+    return ""
+
+
+def unique(values: list[str]) -> list[str]:
+    result = []
+    seen = set()
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
+    return result
+
+
 def virtual_machine_memory(info: dict[str, str], memory: dict[str, int]) -> tuple[int | None, int | None]:
     actual = kibibytes_value(memory.get("actual"))
     unused = kibibytes_value(memory.get("unused"))
@@ -306,16 +377,31 @@ def integer(value: str | None) -> int | None:
 def device_model() -> str:
     system = platform.system().lower()
     if system == "darwin":
+        os_name = " ".join(part for part in [
+            run(["sw_vers", "-productName"]).strip(),
+            run(["sw_vers", "-productVersion"]).strip(),
+        ] if part)
         model = run(["sysctl", "-n", "hw.model"]).strip()
         cpu = run(["sysctl", "-n", "machdep.cpu.brand_string"]).strip()
-        return " · ".join(part for part in [model, cpu] if part)
+        return " · ".join(part for part in [os_name, model, cpu] if part)[:120]
     if system == "linux":
         parts = [read_first(paths) for paths in [
             ["/sys/class/dmi/id/sys_vendor", "/sys/class/dmi/id/board_vendor"],
             ["/sys/class/dmi/id/product_name", "/sys/class/dmi/id/board_name"],
         ]]
-        return " ".join(part for part in parts if part and not part.startswith("Default")) or platform.machine()
+        hardware = " ".join(part for part in parts if part and not part.startswith("Default"))
+        return " · ".join(part for part in [linux_os_name(), hardware] if part)[:120] or platform.machine()
     return platform.platform()
+
+
+def linux_os_name() -> str:
+    try:
+        for line in Path("/etc/os-release").read_text().splitlines():
+            if line.startswith("PRETTY_NAME="):
+                return line.split("=", 1)[1].strip().strip('"')
+    except OSError:
+        return ""
+    return ""
 
 
 def read_first(paths: list[str]) -> str:

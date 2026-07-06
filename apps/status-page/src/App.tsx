@@ -166,14 +166,14 @@ export function App() {
             </div>
           </header>
 
-          <StatusSection title="Infrastructure" description="Server and local virtual machines" icon={<Server className="size-4" />}>
+          <StatusSection title="Infrastructure" icon={<Server className="size-4" />}>
             <DeviceCard device={server} title="Server" icon={<Server className="size-4" />} showChildren={false} />
             {virtualMachines.map((device) => (
               <DeviceCard key={device.device_id} device={device} title="VM" icon={<Box className="size-4" />} showChildren={false} />
             ))}
           </StatusSection>
 
-          <StatusSection title="Devices" description="Personal devices and wearable telemetry" icon={<Watch className="size-4" />}>
+          <StatusSection title="Devices" icon={<Watch className="size-4" />}>
             {personalDevices.map((device) => (
               <DeviceCard key={device.device_id} device={device} title={device.role === 'desktop' ? 'Mac' : 'Device'} icon={<Laptop className="size-4" />} />
             ))}
@@ -181,7 +181,7 @@ export function App() {
             <WatchCard mobile={status?.mobile ?? null} />
           </StatusSection>
 
-          <StatusSection title="Automation" description="Status publishing and agent activity" icon={<Bot className="size-4" />} columns="md:grid-cols-2">
+          <StatusSection title="Automation" icon={<Bot className="size-4" />} columns="grid-cols-1">
             <GitHubCard github={status?.github ?? null} />
             <AgentCard agents={status?.agents ?? []} />
           </StatusSection>
@@ -196,9 +196,8 @@ export function App() {
   );
 }
 
-function StatusSection({ title, description, icon, columns = 'md:grid-cols-2 xl:grid-cols-4', children }: {
+function StatusSection({ title, icon, columns = 'md:grid-cols-2 xl:grid-cols-4', children }: {
   title: string;
-  description: string;
   icon: ReactElement;
   columns?: string;
   children: ReactNode;
@@ -206,10 +205,7 @@ function StatusSection({ title, description, icon, columns = 'md:grid-cols-2 xl:
   return (
     <section className="grid gap-3">
       <div className="flex items-end justify-between gap-3">
-        <div className="grid gap-1">
-          <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">{icon}{title}</h2>
-          <p className="text-sm text-muted-foreground">{description}</p>
-        </div>
+        <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">{icon}{title}</h2>
       </div>
       <div className={`grid gap-4 ${columns}`}>{children}</div>
     </section>
@@ -223,6 +219,7 @@ function DeviceCard({ device, title, icon, showChildren = true }: { device: Devi
   const hasCpuCores = hasMetric(device, CPU_CORES);
   const hasMemory = memory.percent !== undefined;
   const hasDisk = disk.percent !== undefined;
+  const showCpuBadge = hasCpuCores && cpuUsage === undefined;
   const hasAnyMetric = hasCpuCores || cpuUsage !== undefined || hasMemory || hasDisk;
   return (
     <Card>
@@ -234,11 +231,11 @@ function DeviceCard({ device, title, icon, showChildren = true }: { device: Devi
       </CardHeader>
       <CardContent className="grid gap-4">
         <DeviceDetails name={device?.device_name ?? title} model={device?.device_model} />
-        <MetricBadges>
-          {hasCpuCores && <MetricBadge icon={<Cpu />} value={cpuCoreText(device)} title="CPU cores" variant="secondary" />}
-          {hasMemory && <MetricBadge icon={<MemoryStick />} value={memory.text} title="Memory" />}
-          {hasDisk && <MetricBadge icon={<HardDrive />} value={disk.text} title="Disk" />}
-        </MetricBadges>
+        {showCpuBadge && (
+          <MetricBadges>
+            <MetricBadge icon={<Cpu />} value={cpuCoreText(device)} title="CPU cores" variant="secondary" />
+          </MetricBadges>
+        )}
         {cpuUsage !== undefined && <ProgressMetric label="CPU" value={cpuUsage} valueText={cpuText(device)} />}
         {hasMemory && <ProgressMetric label="Mem" value={memory.percent} valueText={memory.text} />}
         {hasDisk && <ProgressMetric label="Disk" value={disk.percent} valueText={disk.text} />}
@@ -297,14 +294,12 @@ function WatchCard({ mobile }: { mobile: MobileStatus | null }) {
 function GitHubCard({ github }: { github: GitHubStatus | null }) {
   const icon = githubIcon(github?.state);
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2"><GitBranch />GitHub</CardTitle>
-        <CardAction><Badge variant={githubBadgeVariant(github?.state)}>{icon}</Badge></CardAction>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <Card size="sm">
+      <CardContent className="flex flex-wrap items-center justify-between gap-3">
         {github ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <GitBranch className="size-4 text-muted-foreground" />
+            <Badge variant={githubBadgeVariant(github.state)}>{icon}</Badge>
             <Badge variant="secondary">{github.emoji ?? '⌚'}</Badge>
             <Badge variant="outline">{github.message ?? github.state}</Badge>
           </div>
