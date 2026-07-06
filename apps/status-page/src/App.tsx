@@ -70,6 +70,7 @@ const MEMORY_LIMIT = 'system.memory.limit';
 const FILESYSTEM_USAGE = 'system.filesystem.usage';
 const FILESYSTEM_LIMIT = 'system.filesystem.limit';
 const FILESYSTEM_UTILIZATION = 'system.filesystem.utilization';
+const AGENT_MOTION_REPETITIONS = 2;
 const CLAWD_MOTION_ASSETS: AgentMotionAsset[] = [
   { src: clawdTypingUrl, durationMs: 1_440 },
   { src: clawdBuildingUrl, durationMs: 960 },
@@ -420,7 +421,7 @@ function AgentMotion({ agent }: { agent: AgentStatus }) {
     if (assets.length <= 1) return;
     const timeout = window.setTimeout(() => {
       setIndex((current) => (current + 1) % assets.length);
-    }, asset.durationMs);
+    }, asset.durationMs * AGENT_MOTION_REPETITIONS);
     return () => window.clearTimeout(timeout);
   }, [asset.durationMs, assets.length, index]);
 
