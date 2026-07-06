@@ -52,9 +52,9 @@ set_proxy_env_if_missing() {
   local value=$2
   case "$name" in
     http_proxy|https_proxy|all_proxy|no_proxy|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|NO_PROXY) ;;
-    *) return ;;
+    *) return 0 ;;
   esac
-  [[ -n $value ]] || return
+  [[ -n $value ]] || return 0
   if [[ -z ${!name:-} ]]; then
     export "$name=$value"
   fi
@@ -66,7 +66,7 @@ import_proxy_env_from_process() {
   local entry
   local name
   local value
-  [[ -r $environ_file ]] || return
+  [[ -r $environ_file ]] || return 0
   while IFS= read -r -d '' entry; do
     name=${entry%%=*}
     value=${entry#*=}
@@ -75,13 +75,13 @@ import_proxy_env_from_process() {
 }
 
 inherit_proxy_env() {
-  [[ -d /proc ]] || return
+  [[ -d /proc ]] || return 0
   local pid=$PPID
   local depth=0
   while [[ $pid =~ ^[0-9]+$ && $pid -gt 1 && $depth -lt 8 ]]; do
     import_proxy_env_from_process "$pid"
     pid=$(awk '/^PPid:/ { print $2 }' "/proc/$pid/status" 2>/dev/null || true)
-    [[ -n $pid ]] || return
+    [[ -n $pid ]] || return 0
     depth=$((depth + 1))
   done
 }
@@ -124,7 +124,7 @@ remove_legacy_units() {
 
 configure_gateway_url() {
   if [[ -z ${GATEWAY_URL:-} ]]; then
-    return
+    return 0
   fi
   normalize_url "$GATEWAY_URL"
 }
@@ -203,7 +203,7 @@ download_exporters() {
   install -d -m 755 "$INSTALL_DIR"
   download_file status-device-reporter.py "$INSTALL_DIR/status-device-reporter.py"
   chmod 755 "$INSTALL_DIR/status-device-reporter.py"
-  [[ $INSTALL_AGENT == 1 ]] || return
+  [[ $INSTALL_AGENT == 1 ]] || return 0
   download_file agent-status-reporter.py "$INSTALL_DIR/agent-status-reporter.py"
   chmod 755 "$INSTALL_DIR/agent-status-reporter.py"
 }
@@ -248,10 +248,10 @@ install_node_exporter() {
 }
 
 probe_service_directives() {
-  [[ -n ${PROBE_USER:-} && $PROBE_USER != root ]] || return
+  [[ -n ${PROBE_USER:-} && $PROBE_USER != root ]] || return 0
   local uid
   uid=$(id -u "$PROBE_USER" 2>/dev/null || true)
-  [[ -n $uid ]] || return
+  [[ -n $uid ]] || return 0
   printf 'User=%s\n' "$PROBE_USER"
   printf 'Environment=XDG_RUNTIME_DIR=/run/user/%s\n' "$uid"
   printf 'Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%s/bus\n' "$uid"
@@ -294,7 +294,7 @@ RestartSec=5s
 WantedBy=multi-user.target
 SERVICE
 
-  [[ $INSTALL_AGENT == 1 ]] || return
+  [[ $INSTALL_AGENT == 1 ]] || return 0
   cat >/etc/systemd/system/realtime-me-agent-exporter.service <<SERVICE
 [Unit]
 Description=Realtime Me agent exporter
