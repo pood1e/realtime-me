@@ -1,3 +1,12 @@
+FROM node:24-alpine AS page-build
+WORKDIR /src
+COPY package.json package-lock.json ./
+COPY apps/status-page/package.json apps/status-page/package.json
+RUN npm ci --workspace apps/status-page
+COPY apps/status-page apps/status-page
+WORKDIR /src/apps/status-page
+RUN npm run build
+
 FROM golang:1.26-alpine AS build
 WORKDIR /src
 COPY apps/status-gateway/go.mod apps/status-gateway/go.mod
@@ -9,6 +18,8 @@ FROM alpine:3.23
 RUN adduser -D -H -u 10001 appuser
 RUN mkdir -p /data && chown appuser:appuser /data
 COPY --from=build /out/status-gateway /usr/local/bin/status-gateway
+COPY --from=page-build /src/apps/status-page/dist /app/status-page
+ENV STATUS_WEB_DIR=/app/status-page
 USER appuser
 EXPOSE 8080
 ENTRYPOINT ["/usr/local/bin/status-gateway"]

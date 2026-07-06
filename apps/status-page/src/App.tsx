@@ -1,4 +1,5 @@
 import {
+  Activity,
   AlertTriangle,
   Battery,
   BatteryCharging,
@@ -8,15 +9,19 @@ import {
   CircleOff,
   Clock,
   Cpu,
+  Footprints,
+  Gauge,
   HardDrive,
   HeartPulse,
-  Footprints,
+  KeyRound,
   Laptop,
+  LineChart as LineChartIcon,
   LoaderCircle,
+  LogOut,
   MemoryStick,
   RefreshCw,
   Server,
-  Smartphone,
+  ShieldCheck,
   Watch,
   Wifi,
 } from 'lucide-react';
@@ -40,7 +45,7 @@ import {
   siZorin,
 } from 'simple-icons/icons';
 import type { SimpleIcon } from 'simple-icons';
-import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react';
 import agentOrbitUrl from '@/assets/agents/agent-orbit.svg';
 import clawdBuildingUrl from '@/assets/agents/clawd-working-building.gif';
 import clawdDebuggerUrl from '@/assets/agents/clawd-working-debugger.gif';
@@ -54,7 +59,10 @@ import codexSparksUrl from '@/assets/agents/codex-sparks.svg';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type AgentMotionAsset = {
@@ -62,37 +70,17 @@ type AgentMotionAsset = {
   durationMs: number;
 };
 
-const POLL_INTERVAL_MS = 10_000;
-const CPU_CORES = 'system.cpu.logical.count';
-const CPU_USAGE = 'system.cpu.utilization';
-const MEMORY_USAGE = 'system.memory.usage';
-const MEMORY_LIMIT = 'system.memory.limit';
-const FILESYSTEM_USAGE = 'system.filesystem.usage';
-const FILESYSTEM_LIMIT = 'system.filesystem.limit';
-const FILESYSTEM_UTILIZATION = 'system.filesystem.utilization';
-const AGENT_MOTION_MIN_VISIBLE_MS = 10_000;
-const CLAWD_MOTION_ASSETS: AgentMotionAsset[] = [
-  { src: clawdTypingUrl, durationMs: 1_440 },
-  { src: clawdBuildingUrl, durationMs: 960 },
-  { src: clawdDebuggerUrl, durationMs: 2_880 },
-  { src: clawdThinkingUrl, durationMs: 3_840 },
-  { src: clawdSweepingUrl, durationMs: 1_440 },
-  { src: clawdJugglingUrl, durationMs: 1_120 },
-];
-const CODEX_MOTION_ASSETS: AgentMotionAsset[] = [
-  { src: codexOrbitUrl, durationMs: 4_000 },
-  { src: codexRibbonsUrl, durationMs: 4_000 },
-  { src: codexSparksUrl, durationMs: 4_000 },
-];
-const DEFAULT_MOTION_ASSETS: AgentMotionAsset[] = [{ src: agentOrbitUrl, durationMs: 4_000 }];
-
 type PublicStatus = {
   server: DeviceStatus;
   mobile: MobileStatus | null;
   devices: StoredDeviceStatus[];
   agents: AgentStatus[];
-  github: GitHubStatus;
+  github: PublicGitHubStatus;
   updated_at: string;
+};
+
+type InternalStatus = Omit<PublicStatus, 'github'> & {
+  github: InternalGitHubStatus;
 };
 
 type StoredDeviceStatus = DeviceStatus & {
@@ -118,13 +106,27 @@ type MetricSample = {
   attributes?: Record<string, string>;
 };
 
-type GitHubStatus = {
+type PublicGitHubStatus = {
   enabled: boolean;
-  state: 'disabled' | 'pending' | 'ok' | 'error';
+  state: GitHubSyncState;
   updated_at?: string;
   emoji?: string;
   message?: string;
 };
+
+type InternalGitHubStatus = {
+  configured: boolean;
+  state: GitHubSyncState;
+  last_signature?: string;
+  last_attempt_at?: string;
+  last_success_at?: string;
+  last_error_at?: string;
+  last_error?: string;
+  message?: string;
+  emoji?: string;
+};
+
+type GitHubSyncState = 'disabled' | 'pending' | 'ok' | 'error';
 
 type MobileStatus = {
   device_id: string;
@@ -168,81 +170,520 @@ type MetricBadgeProps = {
   variant?: 'default' | 'secondary' | 'destructive' | 'outline';
 };
 
+type ChartRange = {
+  id: string;
+  label: string;
+  durationMs: number;
+  step: string;
+};
+
+type ChartDefinition = {
+  id: string;
+  title: string;
+  query: string;
+  unit: 'percent' | 'bytes' | 'count' | 'rate';
+  icon: ReactElement;
+};
+
+type PrometheusRangeResponse = {
+  status: 'success' | 'error';
+  data?: {
+    result?: Array<{
+      metric: Record<string, string>;
+      values: Array<[number, string]>;
+    }>;
+  };
+  error?: string;
+};
+
+type ChartPoint = {
+  time: number;
+  value: number;
+};
+
+const POLL_INTERVAL_MS = 10_000;
+const INTERNAL_TOKEN_KEY = 'realtime-me.internalToken';
+const CPU_CORES = 'system.cpu.logical.count';
+const CPU_USAGE = 'system.cpu.utilization';
+const MEMORY_USAGE = 'system.memory.usage';
+const MEMORY_LIMIT = 'system.memory.limit';
+const FILESYSTEM_USAGE = 'system.filesystem.usage';
+const FILESYSTEM_LIMIT = 'system.filesystem.limit';
+const FILESYSTEM_UTILIZATION = 'system.filesystem.utilization';
+const AGENT_MOTION_MIN_VISIBLE_MS = 10_000;
+const CHART_RANGES: ChartRange[] = [
+  { id: '15m', label: '15m', durationMs: 15 * 60_000, step: '15s' },
+  { id: '1h', label: '1h', durationMs: 60 * 60_000, step: '30s' },
+  { id: '6h', label: '6h', durationMs: 6 * 60 * 60_000, step: '2m' },
+  { id: '24h', label: '24h', durationMs: 24 * 60 * 60_000, step: '5m' },
+];
+const CLAWD_MOTION_ASSETS: AgentMotionAsset[] = [
+  { src: clawdTypingUrl, durationMs: 1_440 },
+  { src: clawdBuildingUrl, durationMs: 960 },
+  { src: clawdDebuggerUrl, durationMs: 2_880 },
+  { src: clawdThinkingUrl, durationMs: 3_840 },
+  { src: clawdSweepingUrl, durationMs: 1_440 },
+  { src: clawdJugglingUrl, durationMs: 1_120 },
+];
+const CODEX_MOTION_ASSETS: AgentMotionAsset[] = [
+  { src: codexOrbitUrl, durationMs: 4_000 },
+  { src: codexRibbonsUrl, durationMs: 4_000 },
+  { src: codexSparksUrl, durationMs: 4_000 },
+];
+const DEFAULT_MOTION_ASSETS: AgentMotionAsset[] = [{ src: agentOrbitUrl, durationMs: 4_000 }];
+const StatusChart = lazy(() => import('@/components/StatusChart'));
+
 export function App() {
+  return window.location.pathname.startsWith('/internal') ? <InternalStatusApp /> : <PublicStatusApp />;
+}
+
+function PublicStatusApp() {
   const apiBaseUrl = useMemo(statusApiBaseUrl, []);
   const [status, setStatus] = useState<PublicStatus | null>(null);
   const [failed, setFailed] = useState(false);
   const server = status?.server ?? null;
   const devices = status?.devices ?? [];
   const agents = status?.agents ?? [];
-  const virtualMachines = devices.filter((device) => device.kind === 'virtual_machine' || device.role === 'vm');
-  const personalDevices = devices.filter((device) => device.kind !== 'virtual_machine' && device.role !== 'vm');
+  const virtualMachines = devices.filter((device) => isVirtualMachine(device));
+  const personalDevices = devices.filter((device) => !isVirtualMachine(device));
 
-  async function refresh() {
-    const next = await fetch(`${apiBaseUrl}/api/public-status`, { cache: 'no-store' })
-      .then((response) => (response.ok ? response.json() as Promise<PublicStatus> : null))
-      .catch(() => null);
+  const refresh = useCallback(async () => {
+    const next = await fetchJSON<PublicStatus>(`${apiBaseUrl}/api/public-status`);
     setFailed(next === null);
     if (next) setStatus(next);
-  }
+  }, [apiBaseUrl]);
 
   useEffect(() => {
     void refresh();
     const interval = window.setInterval(() => void refresh(), POLL_INTERVAL_MS);
     return () => window.clearInterval(interval);
-  }, [apiBaseUrl]);
+  }, [refresh]);
 
+  return (
+    <PageFrame>
+      <header className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm text-muted-foreground">Realtime Me</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Live status</h1>
+        </div>
+        <HeaderActions failed={failed} refresh={refresh} />
+      </header>
+
+      <StatusSection title="Infrastructure" icon={<Server className="size-4" />}>
+        <DeviceCard device={server} title="Server" icon={<Server className="size-4" />} showChildren={false} />
+        {virtualMachines.map((device) => (
+          <DeviceCard key={device.device_id} device={device} title="VM" icon={<Box className="size-4" />} showChildren={false} />
+        ))}
+      </StatusSection>
+
+      <StatusSection title="Devices" icon={<Watch className="size-4" />}>
+        {personalDevices.map((device) => (
+          <DeviceCard key={device.device_id} device={device} title={device.role === 'desktop' ? 'Mac' : 'Device'} icon={<Laptop className="size-4" />} />
+        ))}
+        <PhoneCard mobile={status?.mobile ?? null} />
+        <WatchCard mobile={status?.mobile ?? null} github={status?.github ?? null} />
+      </StatusSection>
+
+      <StatusSection title="Agents" icon={<Bot className="size-4" />}>
+        {agents.length === 0 ? <EmptyAgentCard /> : agents.map((agent) => <AgentCard key={agentKey(agent)} agent={agent} />)}
+      </StatusSection>
+
+      <PageFooter updatedAt={status?.updated_at} />
+    </PageFrame>
+  );
+}
+
+function InternalStatusApp() {
+  const apiBaseUrl = useMemo(statusApiBaseUrl, []);
+  const [accessToken, setAccessToken] = useState(() => localStorage.getItem(INTERNAL_TOKEN_KEY) ?? '');
+  const [draftToken, setDraftToken] = useState('');
+  const [status, setStatus] = useState<InternalStatus | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [authFailed, setAuthFailed] = useState(false);
+  const token = accessToken.trim();
+
+  const refresh = useCallback(async () => {
+    if (!token) return;
+    const response = await fetch(`${apiBaseUrl}/api/internal/status`, {
+      cache: 'no-store',
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => null);
+    if (!response) {
+      setFailed(true);
+      return;
+    }
+    if (response.status === 401) {
+      setAuthFailed(true);
+      setFailed(false);
+      return;
+    }
+    if (!response.ok) {
+      setFailed(true);
+      return;
+    }
+    const next = await response.json() as InternalStatus;
+    setStatus(next);
+    setFailed(false);
+    setAuthFailed(false);
+  }, [apiBaseUrl, token]);
+
+  useEffect(() => {
+    void refresh();
+    const interval = window.setInterval(() => void refresh(), POLL_INTERVAL_MS);
+    return () => window.clearInterval(interval);
+  }, [refresh]);
+
+  function authorize() {
+    const next = draftToken.trim();
+    if (!next) return;
+    localStorage.setItem(INTERNAL_TOKEN_KEY, next);
+    setAccessToken(next);
+    setDraftToken('');
+    setAuthFailed(false);
+  }
+
+  function clearToken() {
+    localStorage.removeItem(INTERNAL_TOKEN_KEY);
+    setAccessToken('');
+    setStatus(null);
+    setAuthFailed(false);
+  }
+
+  return (
+    <PageFrame maxWidth="max-w-[90rem]">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="text-sm text-muted-foreground">Realtime Me</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Internal status</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={authFailed || failed ? 'destructive' : status ? 'default' : 'secondary'}>
+            {authFailed || failed ? <AlertTriangle /> : status ? <ShieldCheck /> : <KeyRound />}
+            {authFailed ? 'Unauthorized' : failed ? 'API offline' : status ? 'Connected' : 'Locked'}
+          </Badge>
+          {token && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="secondary" size="icon" aria-label="Refresh" title="Refresh" onClick={() => void refresh()}>
+                  <RefreshCw />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Refresh</TooltipContent>
+            </Tooltip>
+          )}
+          {token && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="Lock" title="Lock" onClick={clearToken}>
+                  <LogOut />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Lock</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      </header>
+
+      {!token || authFailed ? (
+        <InternalAccessCard token={draftToken} setToken={setDraftToken} authorize={authorize} authFailed={authFailed} />
+      ) : status ? (
+        <InternalDashboard status={status} apiBaseUrl={apiBaseUrl} token={token} />
+      ) : (
+        <LoadingCard />
+      )}
+
+      <PageFooter updatedAt={status?.updated_at} />
+    </PageFrame>
+  );
+}
+
+function InternalAccessCard({ token, setToken, authorize, authFailed }: {
+  token: string;
+  setToken: (value: string) => void;
+  authorize: () => void;
+  authFailed: boolean;
+}) {
+  return (
+    <Card className="mx-auto w-full max-w-md">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><KeyRound className="size-4" />Internal access</CardTitle>
+        <CardDescription>{authFailed ? 'The saved token was rejected.' : 'Use the LAN status access token.'}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex gap-2">
+        <Input
+          aria-label="Internal access token"
+          autoComplete="current-password"
+          placeholder="Access token"
+          type="password"
+          value={token}
+          onChange={(event) => setToken(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') authorize();
+          }}
+        />
+        <Button aria-label="Unlock" title="Unlock" onClick={authorize}>
+          <KeyRound />
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function InternalDashboard({ status, apiBaseUrl, token }: { status: InternalStatus; apiBaseUrl: string; token: string }) {
+  return (
+    <Tabs defaultValue="overview" className="gap-5">
+      <TabsList className="flex-wrap">
+        <TabsTrigger value="overview"><Gauge />Overview</TabsTrigger>
+        <TabsTrigger value="devices"><Server />Devices</TabsTrigger>
+        <TabsTrigger value="metrics"><LineChartIcon />Metrics</TabsTrigger>
+        <TabsTrigger value="agents"><Bot />Agents</TabsTrigger>
+        <TabsTrigger value="github"><BrandIcon icon={siGithub} />GitHub</TabsTrigger>
+      </TabsList>
+      <TabsContent value="overview"><InternalOverview status={status} /></TabsContent>
+      <TabsContent value="devices"><InternalDevices status={status} /></TabsContent>
+      <TabsContent value="metrics"><MetricsExplorer status={status} apiBaseUrl={apiBaseUrl} token={token} /></TabsContent>
+      <TabsContent value="agents"><InternalAgents agents={status.agents} /></TabsContent>
+      <TabsContent value="github"><GitHubDetails github={status.github} /></TabsContent>
+    </Tabs>
+  );
+}
+
+function InternalOverview({ status }: { status: InternalStatus }) {
+  const resources = allDevices(status);
+  const online = resources.filter((device) => device.state === 'online' || device.state === 'running').length;
+  const watch = status.mobile?.watch;
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <SummaryCard icon={<Server />} title="Devices" value={`${online}/${resources.length}`} detail="online" />
+      <SummaryCard icon={<Bot />} title="Agents" value={`${status.agents.length}`} detail="working" />
+      <SummaryCard icon={<BrandIcon icon={siGithub} />} title="GitHub" value={githubStatusTitle(status.github.state)} detail={status.github.last_success_at ? formatTime(status.github.last_success_at) : '—'} />
+      <SummaryCard icon={<Watch />} title="Watch" value={watch ? 'live' : '—'} detail={status.mobile?.received_at ? formatTime(status.mobile.received_at) : 'waiting'} />
+    </div>
+  );
+}
+
+function SummaryCard({ icon, title, value, detail }: { icon: ReactElement; title: string; value: string; detail: string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-sm text-muted-foreground">{icon}{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-semibold tracking-tight">{value}</div>
+        <div className="mt-1 text-xs text-muted-foreground">{detail}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function InternalDevices({ status }: { status: InternalStatus }) {
+  const virtualMachines = status.devices.filter((device) => isVirtualMachine(device));
+  const hosts = [status.server, ...status.devices.filter((device) => !isVirtualMachine(device))];
+  return (
+    <div className="grid gap-6">
+      <StatusSection title="Hosts" icon={<Server className="size-4" />} columns="md:grid-cols-2 xl:grid-cols-3">
+        {hosts.map((device) => (
+          <InternalDeviceCard key={device.device_id} device={device} icon={<Laptop className="size-4" />} />
+        ))}
+      </StatusSection>
+      <StatusSection title="Virtual machines" icon={<Box className="size-4" />} columns="md:grid-cols-2 xl:grid-cols-3">
+        {virtualMachines.length === 0 ? <EmptyCard text="No VM metrics" /> : virtualMachines.map((device) => <InternalDeviceCard key={device.device_id} device={device} icon={<Box className="size-4" />} />)}
+      </StatusSection>
+      <StatusSection title="Personal devices" icon={<Watch className="size-4" />} columns="md:grid-cols-2 xl:grid-cols-3">
+        <PhoneCard mobile={status.mobile} />
+        <WatchCard mobile={status.mobile} github={publicGitHub(status.github)} />
+      </StatusSection>
+    </div>
+  );
+}
+
+function InternalDeviceCard({ device, icon }: { device: DeviceStatus; icon: ReactElement }) {
+  const memory = memoryValues(device);
+  const disk = diskValues(device);
+  const cpuUsage = metricPercent(device, CPU_USAGE);
+  const metricCount = device.metrics?.length ?? 0;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex min-w-0 items-center gap-2">{deviceIcon(device, icon)}<span className="truncate">{device.device_name || device.device_id}</span></CardTitle>
+        <CardAction className="flex items-center gap-2">
+          <InlineTime value={device.updated_at} />
+          <StatusBadge state={device.state} />
+        </CardAction>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        <DeviceModel model={device.device_model} />
+        <MetricBadges>
+          {hasMetric(device, CPU_CORES) && <MetricBadge icon={<Cpu />} value={cpuCoreText(device)} title="CPU cores" variant="secondary" />}
+          <MetricBadge icon={<Activity />} value={`${metricCount}`} title="Metrics" variant="outline" />
+        </MetricBadges>
+        {cpuUsage !== undefined && <ProgressMetric label="CPU" value={cpuUsage} valueText={cpuText(device)} />}
+        {memory.percent !== undefined && <ProgressMetric label="Mem" value={memory.percent} valueText={memory.text} />}
+        {disk.percent !== undefined && <ProgressMetric label="Disk" value={disk.percent} valueText={disk.text} />}
+        {metricCount === 0 && <CardDescription>No metrics yet</CardDescription>}
+      </CardContent>
+    </Card>
+  );
+}
+
+function MetricsExplorer({ status, apiBaseUrl, token }: { status: InternalStatus; apiBaseUrl: string; token: string }) {
+  const [rangeId, setRangeId] = useState(CHART_RANGES[1].id);
+  const range = CHART_RANGES.find((item) => item.id === rangeId) ?? CHART_RANGES[1];
+  const charts = useMemo(() => chartDefinitions(status), [status]);
+  return (
+    <div className="grid gap-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight"><LineChartIcon className="size-4" />Metrics</h2>
+        <Select value={range.id} onValueChange={setRangeId}>
+          <SelectTrigger size="sm" aria-label="Metric range">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CHART_RANGES.map((item) => <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {charts.length === 0 ? <EmptyCard text="No chartable metrics" /> : charts.map((chart) => (
+          <TimeSeriesCard key={chart.id} chart={chart} range={range} apiBaseUrl={apiBaseUrl} token={token} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TimeSeriesCard({ chart, range, apiBaseUrl, token }: { chart: ChartDefinition; range: ChartRange; apiBaseUrl: string; token: string }) {
+  const { data, failed } = usePrometheusRange(apiBaseUrl, token, chart.query, range);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">{chart.icon}{chart.title}</CardTitle>
+        <CardAction>{failed ? <Badge variant="destructive"><AlertTriangle /></Badge> : <Badge variant="outline">{range.label}</Badge>}</CardAction>
+      </CardHeader>
+      <CardContent>
+        {data.length === 0 ? (
+          <CardDescription>No samples</CardDescription>
+        ) : (
+          <Suspense fallback={<CardDescription>Loading chart</CardDescription>}>
+            <StatusChart data={data} unit={chart.unit} />
+          </Suspense>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function usePrometheusRange(apiBaseUrl: string, token: string, query: string, range: ChartRange): { data: ChartPoint[]; failed: boolean } {
+  const [data, setData] = useState<ChartPoint[]>([]);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const end = Math.floor(Date.now() / 1000);
+    const start = Math.floor((Date.now() - range.durationMs) / 1000);
+    const params = new URLSearchParams({ query, start: `${start}`, end: `${end}`, step: range.step });
+    fetch(`${apiBaseUrl}/api/internal/metrics/query_range?${params.toString()}`, {
+      cache: 'no-store',
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    })
+      .then((response) => response.ok ? response.json() as Promise<PrometheusRangeResponse> : null)
+      .then((payload) => {
+        if (!payload || payload.status !== 'success') {
+          setFailed(true);
+          return;
+        }
+        setData(prometheusPoints(payload));
+        setFailed(false);
+      })
+      .catch((error: unknown) => {
+        if ((error as DOMException).name !== 'AbortError') setFailed(true);
+      });
+    return () => controller.abort();
+  }, [apiBaseUrl, query, range.durationMs, range.step, token]);
+
+  return { data, failed };
+}
+
+function prometheusPoints(payload: PrometheusRangeResponse): ChartPoint[] {
+  const values = payload.data?.result?.[0]?.values ?? [];
+  return values
+    .map(([time, value]) => ({ time: Number(time) * 1000, value: Number(value) }))
+    .filter((point) => Number.isFinite(point.time) && Number.isFinite(point.value));
+}
+
+function InternalAgents({ agents }: { agents: AgentStatus[] }) {
+  return (
+    <StatusSection title="Agents" icon={<Bot className="size-4" />} columns="md:grid-cols-2 xl:grid-cols-4">
+      {agents.length === 0 ? <EmptyAgentCard /> : agents.map((agent) => <AgentCard key={agentKey(agent)} agent={agent} />)}
+    </StatusSection>
+  );
+}
+
+function GitHubDetails({ github }: { github: InternalGitHubStatus }) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><BrandIcon icon={siGithub} />GitHub status sync</CardTitle>
+          <CardAction><Badge variant={githubBadgeVariant(github.state)}>{githubIcon(github.state)}</Badge></CardAction>
+        </CardHeader>
+        <CardContent className="grid gap-3 text-sm">
+          <DetailRow label="State" value={githubStatusTitle(github.state)} />
+          <DetailRow label="Last success" value={github.last_success_at ? formatDateTime(github.last_success_at) : '—'} />
+          <DetailRow label="Last attempt" value={github.last_attempt_at ? formatDateTime(github.last_attempt_at) : '—'} />
+          <DetailRow label="Emoji" value={github.emoji ?? '—'} />
+          <DetailRow label="Message" value={github.message ?? '—'} />
+        </CardContent>
+      </Card>
+      {github.last_error && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive"><AlertTriangle className="size-4" />Last error</CardTitle>
+            <CardAction><InlineTime value={github.last_error_at} /></CardAction>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">{github.last_error}</CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2 last:border-0 last:pb-0">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="min-w-0 truncate text-right font-medium">{value}</span>
+    </div>
+  );
+}
+
+function PageFrame({ maxWidth = 'max-w-7xl', children }: { maxWidth?: string; children: ReactNode }) {
   return (
     <TooltipProvider>
       <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.18),transparent_35rem),radial-gradient(circle_at_top_right,rgba(59,130,246,0.18),transparent_30rem)]">
-        <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-5 py-8">
-          <header className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Realtime Me</p>
-              <h1 className="text-3xl font-semibold tracking-tight">Live status</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={failed ? 'destructive' : 'default'}>
-                {failed ? <AlertTriangle /> : <CheckCircle2 />}
-                {failed ? 'API offline' : 'Live'}
-              </Badge>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="secondary" size="icon" aria-label="Refresh" title="Refresh" onClick={() => void refresh()}>
-                    <RefreshCw />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Refresh</TooltipContent>
-              </Tooltip>
-            </div>
-          </header>
-
-          <StatusSection title="Infrastructure" icon={<Server className="size-4" />}>
-            <DeviceCard device={server} title="Server" icon={<Server className="size-4" />} showChildren={false} />
-            {virtualMachines.map((device) => (
-              <DeviceCard key={device.device_id} device={device} title="VM" icon={<Box className="size-4" />} showChildren={false} />
-            ))}
-          </StatusSection>
-
-          <StatusSection title="Devices" icon={<Watch className="size-4" />}>
-            {personalDevices.map((device) => (
-              <DeviceCard key={device.device_id} device={device} title={device.role === 'desktop' ? 'Mac' : 'Device'} icon={<Laptop className="size-4" />} />
-            ))}
-            <PhoneCard mobile={status?.mobile ?? null} />
-            <WatchCard mobile={status?.mobile ?? null} github={status?.github ?? null} />
-          </StatusSection>
-
-          <StatusSection title="Agents" icon={<Bot className="size-4" />}>
-            {agents.length === 0 ? <EmptyAgentCard /> : agents.map((agent) => <AgentCard key={agentKey(agent)} agent={agent} />)}
-          </StatusSection>
-
-          <footer className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Clock className="size-3.5" />
-            <span>{status ? `Updated ${formatTime(status.updated_at)}` : 'Waiting for first status'}</span>
-          </footer>
-        </div>
+        <div className={`mx-auto flex min-h-screen w-full ${maxWidth} flex-col gap-6 px-5 py-8`}>{children}</div>
       </main>
     </TooltipProvider>
+  );
+}
+
+function HeaderActions({ failed, refresh }: { failed: boolean; refresh: () => Promise<void> }) {
+  return (
+    <div className="flex items-center gap-2">
+      <Badge variant={failed ? 'destructive' : 'default'}>
+        {failed ? <AlertTriangle /> : <CheckCircle2 />}
+        {failed ? 'API offline' : 'Live'}
+      </Badge>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="secondary" size="icon" aria-label="Refresh" title="Refresh" onClick={() => void refresh()}>
+            <RefreshCw />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Refresh</TooltipContent>
+      </Tooltip>
+    </div>
   );
 }
 
@@ -322,7 +763,7 @@ function PhoneCard({ mobile }: { mobile: MobileStatus | null }) {
   );
 }
 
-function WatchCard({ mobile, github }: { mobile: MobileStatus | null; github: GitHubStatus | null }) {
+function WatchCard({ mobile, github }: { mobile: MobileStatus | null; github: PublicGitHubStatus | null }) {
   const watch = mobile?.watch;
   const offWrist = watch?.wrist_state === 'off_wrist';
   const displayName = watch?.device_name ?? 'Watch';
@@ -350,7 +791,7 @@ function WatchCard({ mobile, github }: { mobile: MobileStatus | null; github: Gi
   );
 }
 
-function GitHubStatusBadge({ github }: { github: GitHubStatus | null }) {
+function GitHubStatusBadge({ github }: { github: PublicGitHubStatus | null }) {
   const state = github?.state;
   const title = githubStatusTitle(state);
   return (
@@ -367,10 +808,24 @@ function GitHubStatusBadge({ github }: { github: GitHubStatus | null }) {
 }
 
 function EmptyAgentCard() {
+  return <EmptyCard text="No active agents" />;
+}
+
+function EmptyCard({ text }: { text: string }) {
   return (
     <Card>
       <CardContent>
-        <CardDescription>No active agents</CardDescription>
+        <CardDescription>{text}</CardDescription>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LoadingCard() {
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-2 text-sm text-muted-foreground">
+        <LoaderCircle className="size-4 animate-spin" />Loading
       </CardContent>
     </Card>
   );
@@ -423,13 +878,91 @@ function AgentMotion({ agent }: { agent: AgentStatus }) {
       setIndex((current) => (current + 1) % assets.length);
     }, agentMotionDelayMs(asset));
     return () => window.clearTimeout(timeout);
-  }, [asset.durationMs, assets.length, index]);
+  }, [asset, assets.length, index]);
 
   return (
     <div className="agent-motion">
       <img key={asset.src} className={imageClassName} src={asset.src} alt={`${agentName(agent.agent_id)} working`} />
     </div>
   );
+}
+
+function chartDefinitions(status: InternalStatus): ChartDefinition[] {
+  const definitions: ChartDefinition[] = [];
+  const devices = [status.server, ...status.devices];
+  for (const device of devices) {
+    definitions.push(...hostChartDefinitions(device));
+  }
+  if (status.mobile) {
+    definitions.push(...mobileChartDefinitions(status.mobile));
+  }
+  for (const agent of status.agents) {
+    if (agent.budget_remaining_percent !== undefined) definitions.push(agentBudgetChart(agent));
+  }
+  return definitions;
+}
+
+function hostChartDefinitions(device: DeviceStatus): ChartDefinition[] {
+  const identity = device.device_name || device.device_id;
+  const queries = hostQueries(device);
+  const definitions: ChartDefinition[] = [];
+  if (queries.cpu && hasMetric(device, CPU_USAGE)) definitions.push({ id: `${device.device_id}:cpu`, title: `${identity} CPU`, query: queries.cpu, unit: 'percent', icon: <Cpu className="size-4" /> });
+  if (queries.memory && hasMetric(device, MEMORY_USAGE)) definitions.push({ id: `${device.device_id}:mem`, title: `${identity} memory`, query: queries.memory, unit: 'bytes', icon: <MemoryStick className="size-4" /> });
+  if (queries.disk && hasDiskMetric(device)) definitions.push({ id: `${device.device_id}:disk`, title: `${identity} disk`, query: queries.disk, unit: 'percent', icon: <HardDrive className="size-4" /> });
+  return definitions;
+}
+
+function mobileChartDefinitions(mobile: MobileStatus): ChartDefinition[] {
+  const definitions: ChartDefinition[] = [];
+  if (mobile.phone?.battery_percent !== undefined) {
+    definitions.push({ id: `${mobile.device_id}:phone-battery`, title: `${mobile.device_name || 'Phone'} battery`, query: `realtime_device_battery_level_ratio{device_id=${promLabel(mobile.device_id)},device_type="phone"} * 100`, unit: 'percent', icon: <Battery className="size-4" /> });
+  }
+  const watch = mobile.watch;
+  if (!watch) return definitions;
+  const watchName = watch.device_name || 'Watch';
+  if (watch.wrist_state !== 'off_wrist' && watch.heart_rate !== undefined) {
+    definitions.push({ id: `${mobile.device_id}:watch-hr`, title: `${watchName} heart rate`, query: `realtime_watch_heart_rate_beats_per_minute{device_id=${promLabel(mobile.device_id)}}`, unit: 'rate', icon: <HeartPulse className="size-4" /> });
+  }
+  if (watch.steps !== undefined) {
+    definitions.push({ id: `${mobile.device_id}:watch-steps`, title: `${watchName} steps`, query: `realtime_watch_steps{device_id=${promLabel(mobile.device_id)}}`, unit: 'count', icon: <Footprints className="size-4" /> });
+  }
+  if (watch.battery_percent !== undefined) {
+    definitions.push({ id: `${mobile.device_id}:watch-battery`, title: `${watchName} battery`, query: `realtime_device_battery_level_ratio{device_id=${promLabel(mobile.device_id)},device_type="watch"} * 100`, unit: 'percent', icon: <Battery className="size-4" /> });
+  }
+  return definitions;
+}
+
+function agentBudgetChart(agent: AgentStatus): ChartDefinition {
+  const labels = [`agent_id=${promLabel(agent.agent_id)}`];
+  if (agent.device_id) labels.push(`device_id=${promLabel(agent.device_id)}`);
+  return {
+    id: `${agentKey(agent)}:budget`,
+    title: `${agentName(agent.agent_id)} budget`,
+    query: `realtime_agent_budget_remaining_ratio{${labels.join(',')}} * 100`,
+    unit: 'percent',
+    icon: agentIcon(agent.agent_id),
+  };
+}
+
+function hostQueries(device: DeviceStatus): { cpu?: string; memory?: string; disk?: string } {
+  if (device.role === 'server' || device.device_id === 'server') return nodeExporterQueries('node-exporter', 'server');
+  if (isVirtualMachine(device)) return nodeExporterQueries('vm-node-exporter', device.device_id);
+  const label = `device_id=${promLabel(device.device_id)}`;
+  return {
+    cpu: `realtime_host_cpu_usage_ratio{${label}} * 100`,
+    memory: `realtime_host_memory_usage_bytes{${label}}`,
+    disk: `realtime_host_filesystem_usage_ratio{${label}} * 100`,
+  };
+}
+
+function nodeExporterQueries(job: string, instance: string): { cpu: string; memory: string; disk: string } {
+  const base = `job=${promLabel(job)},instance=${promLabel(instance)}`;
+  const diskBase = `${base},mountpoint="/",fstype!~"tmpfs|overlay|squashfs"`;
+  return {
+    cpu: `100 * (1 - avg(rate(node_cpu_seconds_total{${base},mode="idle"}[2m])))`,
+    memory: `node_memory_MemTotal_bytes{${base}} - node_memory_MemAvailable_bytes{${base}}`,
+    disk: `100 * (1 - node_filesystem_avail_bytes{${diskBase}} / node_filesystem_size_bytes{${diskBase}})`,
+  };
 }
 
 function agentName(agentId: string): string {
@@ -617,21 +1150,30 @@ function InlineTime({ value }: { value?: string }) {
   return <span className="text-xs text-muted-foreground">{value ? formatTime(value) : '—'}</span>;
 }
 
-function githubIcon(state: GitHubStatus['state'] | undefined): ReactElement {
+function PageFooter({ updatedAt }: { updatedAt?: string }) {
+  return (
+    <footer className="flex items-center gap-2 text-xs text-muted-foreground">
+      <Clock className="size-3.5" />
+      <span>{updatedAt ? `Updated ${formatTime(updatedAt)}` : 'Waiting for first status'}</span>
+    </footer>
+  );
+}
+
+function githubIcon(state: GitHubSyncState | undefined): ReactElement {
   if (state === 'error') return <AlertTriangle />;
   if (state === 'pending') return <LoaderCircle className="animate-spin" />;
   if (state === 'ok') return <CheckCircle2 />;
   return <CircleOff />;
 }
 
-function githubBadgeVariant(state: GitHubStatus['state'] | undefined): 'default' | 'secondary' | 'destructive' | 'outline' {
+function githubBadgeVariant(state: GitHubSyncState | undefined): 'default' | 'secondary' | 'destructive' | 'outline' {
   if (state === 'error') return 'destructive';
   if (state === 'ok') return 'default';
   if (state === 'pending') return 'secondary';
   return 'outline';
 }
 
-function githubStatusTitle(state: GitHubStatus['state'] | undefined): string {
+function githubStatusTitle(state: GitHubSyncState | undefined): string {
   if (state === 'ok') return 'Connected';
   if (state === 'pending') return 'Connecting';
   if (state === 'error') return 'Sync failed';
@@ -679,6 +1221,55 @@ function hasMetric(device: DeviceStatus | null | undefined, name: string): boole
   return metricValue(device, name) !== undefined;
 }
 
+function hasDiskMetric(device: DeviceStatus): boolean {
+  return hasMetric(device, FILESYSTEM_UTILIZATION) || hasMetric(device, FILESYSTEM_USAGE);
+}
+
+function isVirtualMachine(device: DeviceStatus): boolean {
+  return device.kind === 'virtual_machine' || device.role === 'vm';
+}
+
+function allDevices(status: InternalStatus): DeviceStatus[] {
+  const devices: DeviceStatus[] = [status.server, ...status.devices];
+  if (status.mobile) {
+    devices.push({
+      device_id: status.mobile.device_id,
+      device_name: status.mobile.device_name,
+      device_model: status.mobile.device_model,
+      kind: 'phone',
+      state: 'online',
+      updated_at: status.mobile.received_at,
+    });
+  }
+  if (status.mobile?.watch) {
+    devices.push({
+      device_id: `${status.mobile.device_id}:watch`,
+      device_name: status.mobile.watch.device_name,
+      device_model: status.mobile.watch.device_model,
+      kind: 'watch',
+      state: status.mobile.watch.wrist_state === 'off_wrist' ? 'offline' : 'online',
+      updated_at: status.mobile.received_at,
+    });
+  }
+  return devices;
+}
+
+function publicGitHub(github: InternalGitHubStatus): PublicGitHubStatus {
+  return {
+    enabled: github.configured,
+    state: github.state,
+    updated_at: github.last_success_at,
+    emoji: github.emoji,
+    message: github.message,
+  };
+}
+
+function fetchJSON<T>(url: string): Promise<T | null> {
+  return fetch(url, { cache: 'no-store' })
+    .then((response) => (response.ok ? response.json() as Promise<T> : null))
+    .catch(() => null);
+}
+
 function formatBattery(value: number | undefined): string {
   return value === undefined ? '—' : `${value}%`;
 }
@@ -693,6 +1284,18 @@ function formatGigabytes(value: number): string {
 
 function formatTime(value: string): string {
   return new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(value));
+}
+
+function formatDateTime(value: string): string {
+  const date = new Date(value);
+  const now = new Date();
+  const sameDay = date.toDateString() === now.toDateString();
+  if (sameDay) return formatTime(value);
+  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date);
+}
+
+function promLabel(value: string): string {
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
 }
 
 function statusApiBaseUrl(): string {

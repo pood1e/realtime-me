@@ -7,7 +7,7 @@ Self-hosted metrics and status gateway for a private metrics host.
 - Prometheus stores raw metrics for 30 days by default.
 - node-exporter exposes host metrics.
 - cAdvisor exposes Docker container metrics when the `containers` profile is enabled.
-- status-gateway receives phone/watch/agent status, updates GitHub status, exposes public JSON and Prometheus metrics.
+- status-gateway receives phone/watch/agent status, updates GitHub status, exposes public JSON, Prometheus metrics, and the LAN-only internal status page.
 - cloudflared is optional and runs only with the `tunnel` compose profile.
 
 ## Setup
@@ -37,8 +37,10 @@ docker compose --profile tunnel up -d --build
 ```sh
 curl http://<STATUS_GATEWAY_BIND>:18080/healthz
 curl http://<STATUS_GATEWAY_BIND>:18080/api/public-status
-curl -H "Authorization: Bearer $STATUS_INGEST_TOKEN" http://<STATUS_GATEWAY_BIND>:18080/api/internal-status
+curl -H "Authorization: Bearer $STATUS_INGEST_TOKEN" http://<STATUS_GATEWAY_BIND>:18080/api/internal/status
 curl http://127.0.0.1:19090/-/ready
 ```
+
+Open `http://<STATUS_GATEWAY_BIND>:18080/internal` on the LAN for detailed device, metric, GitHub sync, and active-agent status. The page stores the internal access token only in browser local storage.
 
 Do not commit `.env`; it contains reusable credentials.

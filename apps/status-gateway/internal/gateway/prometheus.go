@@ -3,6 +3,8 @@ package gateway
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"net/url"
@@ -19,6 +21,7 @@ const (
 	metricSystemFilesystemUsage    = "system.filesystem.usage"
 	metricSystemFilesystemLimit    = "system.filesystem.limit"
 	metricSystemFilesystemUsagePct = "system.filesystem.utilization"
+	maxPrometheusProxyResponseSize = 4 * 1024 * 1024
 )
 
 type PrometheusClient struct {
@@ -100,6 +103,35 @@ func (client *PrometheusClient) VirtualMachineStatuses(ctx context.Context) []De
 		return devices[left].DeviceID < devices[right].DeviceID
 	})
 	return devices
+}
+
+func (client *PrometheusClient) Proxy(ctx context.Context, path string, values url.Values) ([]byte, int, error) {
+	endpoint, err := url.Parse(client.baseURL + path)
+	if err != nil {
+		return nil, http.StatusBadGateway, err
+	}
+	endpoint.RawQuery = values.Encode()
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
+	if err != nil {
+		return nil, http.StatusBadGateway, err
+	}
+	request.Header.Set("Accept", "application/json")
+
+	response, err := client.client.Do(request)
+	if err != nil {
+		return nil, http.StatusBadGateway, err
+	}
+	defer response.Body.Close()
+
+	body, err := io.ReadAll(io.LimitReader(response.Body, maxPrometheusProxyResponseSize+1))
+	if err != nil {
+		return nil, http.StatusBadGateway, err
+	}
+	if len(body) > maxPrometheusProxyResponseSize {
+		return nil, http.StatusBadGateway, fmt.Errorf("prometheus response exceeded %d bytes", maxPrometheusProxyResponseSize)
+	}
+	return body, response.StatusCode, nil
 }
 
 func (client *PrometheusClient) queryRatio(ctx context.Context, query string) *float64 {

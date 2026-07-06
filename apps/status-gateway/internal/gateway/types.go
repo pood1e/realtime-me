@@ -127,3 +127,12 @@ type PublicStatus struct {
 	GitHub    PublicGitHubStatus   `json:"github"`
 	UpdatedAt string               `json:"updated_at"`
 }
+
+type InternalStatus struct {
+	Server    DeviceStatus         `json:"server"`
+	Mobile    *StoredMobileStatus  `json:"mobile"`
+	Devices   []StoredDeviceStatus `json:"devices"`
+	Agents    []StoredAgentStatus  `json:"agents"`
+	GitHub    GitHubSyncStatus     `json:"github"`
+	UpdatedAt string               `json:"updated_at"`
+}

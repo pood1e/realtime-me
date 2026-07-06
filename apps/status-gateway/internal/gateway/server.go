@@ -5,7 +5,11 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -32,8 +36,13 @@ func (server *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/ingest/host", server.ingestDevice)
 	mux.HandleFunc("POST /api/ingest/agent", server.ingestAgent)
 	mux.HandleFunc("GET /api/public-status", server.publicStatus)
-	mux.HandleFunc("GET /api/internal-status", server.internalStatus)
+	mux.HandleFunc("GET /api/internal/status", server.internalStatus)
+	mux.HandleFunc("GET /api/internal/metrics/query", server.internalMetricQuery)
+	mux.HandleFunc("GET /api/internal/metrics/query_range", server.internalMetricQueryRange)
 	mux.HandleFunc("GET /metrics", server.metrics)
+	if server.config.StaticDir != "" {
+		mux.HandleFunc("GET /", server.static)
+	}
 	return cors(mux)
 }
 
@@ -112,16 +121,39 @@ func (server *Server) internalStatus(writer http.ResponseWriter, request *http.R
 		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
-	status := server.status(request.Context())
-	writeJSON(writer, http.StatusOK, map[string]any{
-		"server":     status.Server,
-		"mobile":     status.Mobile,
-		"devices":    status.Devices,
-		"agents":     status.Agents,
-		"github":     status.GitHub,
-		"updated_at": status.UpdatedAt,
-		"raw":        server.store.Snapshot(),
-	})
+	writeJSON(writer, http.StatusOK, server.internalSnapshot(request.Context()))
+}
+
+func (server *Server) internalMetricQuery(writer http.ResponseWriter, request *http.Request) {
+	server.prometheusProxy(writer, request, "/api/v1/query", []string{"query", "time", "timeout"})
+}
+
+func (server *Server) internalMetricQueryRange(writer http.ResponseWriter, request *http.Request) {
+	server.prometheusProxy(writer, request, "/api/v1/query_range", []string{"query", "start", "end", "step", "timeout"})
+}
+
+func (server *Server) prometheusProxy(writer http.ResponseWriter, request *http.Request, path string, allowedParams []string) {
+	if !server.config.Authorized(request.Header.Get("Authorization")) {
+		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	params, ok := prometheusParams(request.URL.Query(), allowedParams)
+	if !ok {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid_query"})
+		return
+	}
+	body, status, err := server.prometheus.Proxy(request.Context(), path, params)
+	if err != nil {
+		slog.Error("prometheus proxy failed", "error", err)
+		writeJSON(writer, http.StatusBadGateway, map[string]string{"error": "prometheus_unavailable"})
+		return
+	}
+
+	writer.Header().Set("Cache-Control", "no-store")
+	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+	writer.WriteHeader(status)
+	_, _ = writer.Write(body)
 }
 
 func (server *Server) metrics(writer http.ResponseWriter, _ *http.Request) {
@@ -165,6 +197,27 @@ func (server *Server) status(ctx context.Context) PublicStatus {
 			Message:   snapshot.GitHub.Message,
 		},
 		UpdatedAt: now,
+	}
+}
+
+func (server *Server) internalSnapshot(ctx context.Context) InternalStatus {
+	public := server.status(ctx)
+	snapshot := server.store.Snapshot()
+	nowTime := time.Now().UTC()
+	github := snapshot.GitHub
+	if server.config.GitHubToken == "" {
+		github.Configured = false
+		github.State = GitHubSyncDisabled
+	} else if !github.Configured {
+		github.State = GitHubSyncPending
+	}
+	return InternalStatus{
+		Server:    public.Server,
+		Mobile:    public.Mobile,
+		Devices:   public.Devices,
+		Agents:    publicAgents(runningAgents(snapshot.Agents, nowTime, time.Duration(server.config.AgentFreshSeconds)*time.Second)),
+		GitHub:    github,
+		UpdatedAt: public.UpdatedAt,
 	}
 }
 
@@ -257,6 +310,41 @@ func sortDeviceStatuses(devices []StoredDeviceStatus) {
 	sort.Slice(devices, func(left int, right int) bool {
 		return devices[left].DeviceID < devices[right].DeviceID
 	})
+}
+
+func prometheusParams(query url.Values, allowed []string) (url.Values, bool) {
+	if len(query.Get("query")) == 0 || len(query.Get("query")) > 4096 {
+		return nil, false
+	}
+	filtered := url.Values{}
+	for _, key := range allowed {
+		value := query.Get(key)
+		if len(value) > 512 {
+			return nil, false
+		}
+		if value != "" {
+			filtered.Set(key, value)
+		}
+	}
+	return filtered, true
+}
+
+func (server *Server) static(writer http.ResponseWriter, request *http.Request) {
+	if strings.HasPrefix(request.URL.Path, "/api/") {
+		writeJSON(writer, http.StatusNotFound, map[string]string{"error": "not_found"})
+		return
+	}
+
+	relativePath := strings.TrimPrefix(filepath.Clean("/"+request.URL.Path), "/")
+	if relativePath == "." {
+		relativePath = ""
+	}
+	filePath := filepath.Join(server.config.StaticDir, relativePath)
+	if info, err := os.Stat(filePath); err == nil && !info.IsDir() {
+		http.ServeFile(writer, request, filePath)
+		return
+	}
+	http.ServeFile(writer, request, filepath.Join(server.config.StaticDir, "index.html"))
 }
 
 func firstString(primary string, fallback string) string {
