@@ -9,6 +9,16 @@ DEVICE_NAME=${STATUS_DEVICE_NAME:-$(hostname 2>/dev/null || echo linux)}
 DEVICE_KIND=${STATUS_DEVICE_KIND:-host}
 DEVICE_ROLE=${STATUS_DEVICE_ROLE:-desktop}
 INSTALL_AGENT=${INSTALL_AGENT:-0}
+PROXY_ENV_NAMES=(
+  http_proxy
+  https_proxy
+  all_proxy
+  no_proxy
+  HTTP_PROXY
+  HTTPS_PROXY
+  ALL_PROXY
+  NO_PROXY
+)
 if [[ -n ${REALTIME_ME_RAW_BASE_URL:-} ]]; then
   RAW_BASE_URLS=("$REALTIME_ME_RAW_BASE_URL")
 elif [[ -n ${REALTIME_ME_RAW_BASE_URLS:-} ]]; then
@@ -31,6 +41,45 @@ require_root() {
 
 log() {
   echo "[realtime-me] $*" >&2
+}
+
+set_proxy_env_if_missing() {
+  local name=$1
+  local value=$2
+  case "$name" in
+    http_proxy|https_proxy|all_proxy|no_proxy|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|NO_PROXY) ;;
+    *) return ;;
+  esac
+  [[ -n $value ]] || return
+  if [[ -z ${!name:-} ]]; then
+    export "$name=$value"
+  fi
+}
+
+import_proxy_env_from_process() {
+  local pid=$1
+  local environ_file=/proc/$pid/environ
+  local entry
+  local name
+  local value
+  [[ -r $environ_file ]] || return
+  while IFS= read -r -d '' entry; do
+    name=${entry%%=*}
+    value=${entry#*=}
+    set_proxy_env_if_missing "$name" "$value"
+  done <"$environ_file"
+}
+
+inherit_proxy_env() {
+  [[ -d /proc ]] || return
+  local pid=$PPID
+  local depth=0
+  while [[ $pid =~ ^[0-9]+$ && $pid -gt 1 && $depth -lt 8 ]]; do
+    import_proxy_env_from_process "$pid"
+    pid=$(awk '/^PPid:/ { print $2 }' "/proc/$pid/status" 2>/dev/null || true)
+    [[ -n $pid ]] || return
+    depth=$((depth + 1))
+  done
 }
 
 require_command() {
@@ -100,7 +149,18 @@ STATUS_DEVICE_KIND=$DEVICE_KIND
 STATUS_DEVICE_ROLE=$DEVICE_ROLE
 STATUS_INGEST_TOKEN=$token
 ENV
+  append_proxy_env_file
   chmod 600 "$ENV_FILE"
+}
+
+append_proxy_env_file() {
+  local name
+  local value
+  for name in "${PROXY_ENV_NAMES[@]}"; do
+    value=${!name:-}
+    [[ -n $value ]] || continue
+    printf '%s=%s\n' "$name" "$value" >>"$ENV_FILE"
+  done
 }
 
 download_reporters() {
@@ -212,6 +272,7 @@ main() {
   require_command "$CURL_BIN"
   require_command "$PYTHON_BIN"
   require_command systemctl
+  inherit_proxy_env
   GATEWAY_URL=$(read_gateway_url)
   local token
   token=$(read_token)
