@@ -11,6 +11,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -54,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -309,7 +311,21 @@ private fun RealtimeMobileScreen(
     MaterialTheme {
         Scaffold(
             topBar = {
-                TopAppBar(title = { Text(text = stringResource(R.string.app_name)) })
+                TopAppBar(
+                    title = {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.ic_launcher),
+                                contentDescription = null,
+                                modifier = Modifier.size(32.dp),
+                            )
+                            Text(text = stringResource(R.string.app_name))
+                        }
+                    },
+                )
             },
         ) { contentPadding ->
             Surface(modifier = Modifier.fillMaxSize()) {

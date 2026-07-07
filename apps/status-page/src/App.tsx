@@ -49,6 +49,7 @@ import {
 import type { SimpleIcon } from 'simple-icons';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react';
 import agentOrbitUrl from '@/assets/agents/agent-orbit.svg';
+import blueberryLogoUrl from '@/assets/blueberry.svg';
 import clawdBuildingUrl from '@/assets/agents/clawd-working-building.gif';
 import clawdDebuggerUrl from '@/assets/agents/clawd-working-debugger.gif';
 import clawdJugglingUrl from '@/assets/agents/clawd-working-juggling.gif';
@@ -277,10 +278,7 @@ function PublicStatusApp() {
   return (
     <PageFrame>
       <header className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">Realtime Me</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Live status</h1>
-        </div>
+        <SiteLogo />
         <HeaderActions failed={failed} refresh={refresh} />
       </header>
 
@@ -367,10 +365,7 @@ function InternalStatusApp() {
   return (
     <PageFrame maxWidth="max-w-[90rem]">
       <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">Realtime Me</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Internal status</h1>
-        </div>
+        <SiteLogo />
         <div className="flex items-center gap-2">
           <Badge variant={authFailed || failed ? 'destructive' : status ? 'default' : 'secondary'}>
             {authFailed || failed ? <AlertTriangle /> : status ? <ShieldCheck /> : <KeyRound />}
@@ -675,6 +670,18 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function SiteLogo() {
+  return (
+    <img
+      src={blueberryLogoUrl}
+      alt="pood1e"
+      className="size-14 rounded-2xl drop-shadow-sm"
+      width={56}
+      height={56}
+    />
+  );
+}
+
 function PageFrame({ maxWidth = 'max-w-7xl', children }: { maxWidth?: string; children: ReactNode }) {
   return (
     <TooltipProvider>
@@ -688,9 +695,8 @@ function PageFrame({ maxWidth = 'max-w-7xl', children }: { maxWidth?: string; ch
 function HeaderActions({ failed, refresh }: { failed: boolean; refresh: () => Promise<void> }) {
   return (
     <div className="flex items-center gap-2">
-      <Badge variant={failed ? 'destructive' : 'default'}>
+      <Badge variant={failed ? 'destructive' : 'default'} aria-label={failed ? 'API offline' : 'Online'} title={failed ? 'API offline' : 'Online'}>
         {failed ? <AlertTriangle /> : <CheckCircle2 />}
-        {failed ? 'API offline' : 'Live'}
       </Badge>
       <Tooltip>
         <TooltipTrigger asChild>
