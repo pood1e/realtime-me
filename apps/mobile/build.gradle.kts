@@ -1,3 +1,6 @@
+import java.io.File
+import java.net.URI
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -11,8 +14,8 @@ fun String.asBuildConfigString(): String = replace("\\", "\\\\").replace("\"", "
 val networkSecurityResDir = layout.buildDirectory.dir("generated/networkSecurity/res").get().asFile
 run {
     val lanHost = providers.gradleProperty("statusGatewayLanUrl").orElse("").get()
-        .let { runCatching { java.net.URI(it).host }.getOrNull().orEmpty() }
-    val configFile = java.io.File(networkSecurityResDir, "xml/network_security_config.xml")
+        .let { runCatching { URI(it).host }.getOrNull().orEmpty() }
+    val configFile = File(networkSecurityResDir, "xml/network_security_config.xml")
     configFile.parentFile.mkdirs()
     configFile.writeText(
         buildString {

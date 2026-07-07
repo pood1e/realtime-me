@@ -10,16 +10,6 @@ android {
     defaultConfig {
         minSdk = 26
     }
-
-    // Generate from the single shared contract in /proto so the Android client
-    // and the Go gateway never drift; there is no per-module copy of the schema.
-    sourceSets {
-        getByName("main") {
-            proto {
-                srcDir("$rootDir/proto")
-            }
-        }
-    }
 }
 
 protobuf {
