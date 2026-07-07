@@ -34,10 +34,16 @@ func main() {
 		slog.Error("failed to load profile config", "error", err)
 	}
 
+	metrics, err := gateway.NewMetricsExporter(store)
+	if err != nil {
+		slog.Error("failed to initialize metrics exporter", "error", err)
+		os.Exit(1)
+	}
+
 	prometheus := gateway.NewPrometheusClient(config.PrometheusURL)
 	github := gateway.NewGitHubStatusPublisher(config, store)
 	profile := gateway.NewProfileService(profileConfig)
-	server := gateway.NewServer(config, store, identity, prometheus, github, profile)
+	server := gateway.NewServer(config, store, identity, prometheus, github, profile, metrics.Handler())
 
 	httpServer := &http.Server{
 		Addr:              ":" + config.Port,

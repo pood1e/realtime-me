@@ -22,9 +22,10 @@ type Server struct {
 	prometheus *PrometheusClient
 	github     *GitHubStatusPublisher
 	profile    *ProfileService
+	metrics    http.Handler
 }
 
-func NewServer(config Config, store *StatusStore, identity *IdentityStore, prometheus *PrometheusClient, github *GitHubStatusPublisher, profile *ProfileService) *Server {
+func NewServer(config Config, store *StatusStore, identity *IdentityStore, prometheus *PrometheusClient, github *GitHubStatusPublisher, profile *ProfileService, metrics http.Handler) *Server {
 	return &Server{
 		config:     config,
 		store:      store,
@@ -32,6 +33,7 @@ func NewServer(config Config, store *StatusStore, identity *IdentityStore, prome
 		prometheus: prometheus,
 		github:     github,
 		profile:    profile,
+		metrics:    metrics,
 	}
 }
 
@@ -48,7 +50,7 @@ func (server *Server) Handler() http.Handler {
 	router.GET("/api/prometheus/http-sd/:job", server.prometheusHTTPDiscovery)
 	router.GET("/api/internal/metrics/query", gin.WrapF(server.internalMetricQuery))
 	router.GET("/api/internal/metrics/query_range", gin.WrapF(server.internalMetricQueryRange))
-	router.GET("/metrics", gin.WrapF(server.metrics))
+	router.GET("/metrics", gin.WrapH(server.metrics))
 
 	server.mountConnectServices(router)
 
@@ -139,11 +141,6 @@ func (server *Server) prometheusProxy(writer http.ResponseWriter, request *http.
 	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	writer.WriteHeader(status)
 	_, _ = writer.Write(body)
-}
-
-func (server *Server) metrics(writer http.ResponseWriter, _ *http.Request) {
-	writer.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
-	_, _ = writer.Write([]byte(RenderMetrics(server.store.Snapshot())))
 }
 
 func prometheusParams(query url.Values, allowed []string) (url.Values, bool) {
