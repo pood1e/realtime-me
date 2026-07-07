@@ -2,20 +2,30 @@
 from __future__ import annotations
 
 import argparse
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 import platform
 import re
 import shutil
 import socket
-import subprocess
 import sys
 import time
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
+
+import status_common
+from status_common import (
+    ONLINE_STATE_ONLINE,
+    ConnectError,
+    device_kind_enum,
+    device_role_enum,
+    ensure_device_uid,
+    json_response,
+    label_set,
+    run,
+    run_server,
+    text_response,
+)
 
 CPU_CORES = "system.cpu.logical.count"
 CPU_USAGE = "system.cpu.utilization"
@@ -52,97 +62,124 @@ def main() -> int:
     if args.serve:
         return serve(args)
 
-    payload = build_payload(args)
-    if args.print:
-        print(json.dumps(payload, indent=2))
+    token = os.getenv("STATUS_INGEST_TOKEN", "").strip()
+    try:
+        device_uid = resolve_device_uid(args, token)
+    except (ConnectError, OSError) as error:
+        print(f"device enrollment failed: {enrollment_reason(error)}", file=sys.stderr)
+        return 1
+
+    if args.print_uid:
+        if not device_uid:
+            print("device is not enrolled; set STATUS_INGEST_TOKEN to enroll", file=sys.stderr)
+            return 1
+        print(device_uid)
         return 0
 
-    token = args.token or os.getenv("STATUS_INGEST_TOKEN")
+    report = build_report(args, device_uid)
+    if args.print:
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+        return 0
+
     if not token:
         print("STATUS_INGEST_TOKEN is required", file=sys.stderr)
         return 2
-
-    return post_status(args.url.rstrip("/") + "/api/ingest/host", token, payload, args.timeout_seconds)
+    if not device_uid:
+        print("device is not enrolled", file=sys.stderr)
+        return 1
+    return push_device_status(args, token, report)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Publish this device status to realtime-me gateway.")
     parser.add_argument("--url", default=os.getenv("STATUS_GATEWAY_URL", "http://127.0.0.1:18080"))
-    parser.add_argument("--token", default="")
-    parser.add_argument("--device-id", default=os.getenv("STATUS_DEVICE_ID", socket.gethostname()))
     parser.add_argument("--device-name", default=os.getenv("STATUS_DEVICE_NAME", socket.gethostname()))
     parser.add_argument("--device-model", default=os.getenv("STATUS_DEVICE_MODEL", device_model()))
     parser.add_argument("--kind", default=os.getenv("STATUS_DEVICE_KIND", "host"))
     parser.add_argument("--role", default=os.getenv("STATUS_DEVICE_ROLE", "desktop"))
+    parser.add_argument("--identity-file", default=os.getenv("STATUS_IDENTITY_FILE", ""))
     parser.add_argument("--timeout-seconds", type=float, default=5)
     parser.add_argument("--serve", action="store_true")
     parser.add_argument("--bind", default=os.getenv("STATUS_DEVICE_EXPORTER_BIND", "127.0.0.1"))
     parser.add_argument("--port", type=int, default=int(os.getenv("STATUS_DEVICE_EXPORTER_PORT", "18083")))
     parser.add_argument("--print", action="store_true")
+    parser.add_argument("--print-uid", action="store_true")
     return parser.parse_args()
 
 
-def build_payload(args: argparse.Namespace) -> dict:
-    payload = {
-        "device_id": args.device_id,
-        "device_name": args.device_name,
-        "device_model": args.device_model,
-        "kind": args.kind,
-        "role": args.role,
-        "state": "online",
-        "updated_at": utc_now(),
+def identity_file(args: argparse.Namespace) -> Path:
+    return Path(args.identity_file) if args.identity_file else status_common.default_identity_file()
+
+
+def resolve_device_uid(args: argparse.Namespace, token: str) -> str:
+    return ensure_device_uid(
+        args.url,
+        token,
+        identity_file(args),
+        device_kind_enum(args.kind),
+        device_role_enum(args.role),
+        args.device_name,
+        args.device_model,
+        args.timeout_seconds,
+    )
+
+
+def build_report(args: argparse.Namespace, device_uid: str) -> dict:
+    report = {
+        "deviceUid": device_uid,
+        "kind": device_kind_enum(args.kind),
+        "role": device_role_enum(args.role),
+        "displayName": args.device_name,
+        "model": args.device_model,
+        "state": ONLINE_STATE_ONLINE,
         "metrics": metrics(),
     }
     media = current_media()
     if media:
-        payload["media"] = compact_dict({"title": media.title, "artist": media.artist})
+        report["media"] = compact_dict({"title": media.title, "artist": media.artist})
     accessories = bluetooth_audio_accessories()
     if accessories:
-        payload["accessories"] = [accessory_payload(accessory) for accessory in accessories]
-    return payload
+        report["accessories"] = [accessory_payload(accessory) for accessory in accessories]
+    return report
 
 
 def serve(args: argparse.Namespace) -> int:
-    class Handler(BaseHTTPRequestHandler):
-        def do_GET(self) -> None:
-            if self.path == "/healthz":
-                self.write_json({"ok": True})
-                return
-            if self.path == "/api/device-status":
-                self.write_json(build_payload(args))
-                return
-            if self.path == "/metrics":
-                self.write_text(render_prometheus_metrics())
-                return
-            self.write_json({"error": "not_found"}, 404)
+    def device_uid() -> str:
+        return read_cached_uid(args)
 
-        def log_message(self, _format: str, *_args: object) -> None:
-            return
+    routes = {
+        "/healthz": lambda: json_response({"ok": True}),
+        "/api/device-status": lambda: json_response(build_report(args, device_uid())),
+        "/metrics": lambda: text_response(render_prometheus_metrics(device_uid())),
+    }
+    return run_server(args.bind, args.port, routes)
 
-        def write_json(self, payload: object, status: int = 200) -> None:
-            data = json.dumps(payload).encode()
-            self.send_response(status)
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            self.wfile.write(data)
 
-        def write_text(self, payload: str, status: int = 200) -> None:
-            data = payload.encode()
-            self.send_response(status)
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            self.wfile.write(data)
+def read_cached_uid(args: argparse.Namespace) -> str:
+    return status_common.read_cached_uid(identity_file(args))
 
-    server = ThreadingHTTPServer((args.bind, args.port), Handler)
+
+def push_device_status(args: argparse.Namespace, token: str, report: dict) -> int:
     try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        return 130
+        status_common.connect_post(
+            args.url,
+            "IngestService",
+            "ReportDeviceStatus",
+            token,
+            {"device": report},
+            args.timeout_seconds,
+        )
+    except ConnectError as error:
+        print(f"gateway rejected device status: {error.code}", file=sys.stderr)
+        return 1
+    except OSError as error:
+        print(f"gateway device status push failed: {error.__class__.__name__}", file=sys.stderr)
+        return 1
     return 0
+
+
+def enrollment_reason(error: Exception) -> str:
+    return error.code if isinstance(error, ConnectError) else error.__class__.__name__
 
 
 def metrics() -> list[dict]:
@@ -167,7 +204,7 @@ def sample(name: str, unit: str, value: float, attributes: dict[str, str] | None
     return payload
 
 
-def render_prometheus_metrics() -> str:
+def render_prometheus_metrics(device_uid: str) -> str:
     lines = [
         "# HELP realtime_device_media_playing Device media playback state. OpenTelemetry name: realtime.device.media.playing.",
         "# TYPE realtime_device_media_playing gauge",
@@ -181,10 +218,10 @@ def render_prometheus_metrics() -> str:
     ]
     media = current_media()
     if media:
-        labels = {"title": media.title, "artist": media.artist, "player": media.player}
+        labels = {"device_uid": device_uid, "title": media.title, "artist": media.artist, "player": media.player}
         lines.append(f"realtime_device_media_playing{label_set(labels)} 1")
     for accessory in bluetooth_audio_accessories():
-        labels = accessory_labels(accessory)
+        labels = accessory_labels(device_uid, accessory)
         lines.append(f"realtime_device_accessory_connected{label_set(labels)} 1")
         if accessory.battery_percent is not None:
             lines.append(f"realtime_device_accessory_battery_level_ratio{label_set(labels)} {accessory.battery_percent / 100:.6g}")
@@ -195,17 +232,18 @@ def render_prometheus_metrics() -> str:
 def accessory_payload(accessory: AccessorySnapshot) -> dict:
     payload: dict[str, str | int] = {
         "kind": accessory.kind,
-        "name": accessory.name,
+        "displayName": accessory.name,
     }
     if accessory.model:
         payload["model"] = accessory.model
     if accessory.battery_percent is not None:
-        payload["battery_percent"] = accessory.battery_percent
+        payload["batteryPercent"] = accessory.battery_percent
     return payload
 
 
-def accessory_labels(accessory: AccessorySnapshot) -> dict[str, str]:
+def accessory_labels(device_uid: str, accessory: AccessorySnapshot) -> dict[str, str]:
     labels = {
+        "device_uid": device_uid,
         "accessory_kind": accessory.kind,
         "accessory_name": accessory.name,
     }
@@ -487,28 +525,6 @@ def sanitize_media_text(value: str) -> str:
     return text[:119].rstrip() + "…"
 
 
-def label_set(labels: dict[str, str]) -> str:
-    pairs = []
-    for key in sorted(labels):
-        value = labels[key]
-        if value:
-            pairs.append(f'{prometheus_label_name(key)}="{escape_label_value(value)}"')
-    return "{" + ",".join(pairs) + "}" if pairs else ""
-
-
-def prometheus_label_name(value: str) -> str:
-    name = re.sub(r"[^A-Za-z0-9_]", "_", value)
-    if not name:
-        return "label"
-    if name[0].isdigit():
-        return f"label_{name}"
-    return name
-
-
-def escape_label_value(value: str) -> str:
-    return value.replace("\\", "\\\\").replace("\n", "\\n").replace('"', '\\"')
-
-
 def cpu_usage() -> float:
     system = platform.system().lower()
     if system == "linux":
@@ -610,42 +626,6 @@ def linux_os_name() -> str:
     except OSError:
         return ""
     return ""
-
-
-def post_status(endpoint: str, token: str, payload: dict, timeout_seconds: float) -> int:
-    request = urllib.request.Request(
-        endpoint,
-        data=json.dumps(payload).encode(),
-        method="POST",
-        headers={
-            "Accept": "application/json",
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json; charset=utf-8",
-        },
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
-            if response.status < 200 or response.status > 299:
-                print(f"gateway rejected device status: HTTP {response.status}", file=sys.stderr)
-                return 1
-    except urllib.error.HTTPError as error:
-        print(f"gateway rejected device status: HTTP {error.code}", file=sys.stderr)
-        return 1
-    except OSError as error:
-        print(f"gateway device status push failed: {error.__class__.__name__}", file=sys.stderr)
-        return 1
-    return 0
-
-
-def run(command: list[str], timeout_seconds: float = 5) -> str:
-    try:
-        return subprocess.check_output(command, text=True, stderr=subprocess.DEVNULL, timeout=timeout_seconds)
-    except (OSError, subprocess.SubprocessError):
-        return ""
-
-
-def utc_now() -> str:
-    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
 def clamp_ratio(value: float) -> float:

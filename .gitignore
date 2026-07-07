@@ -23,3 +23,7 @@ node_modules/
 
 # Generated per-repo project docs (may include private repo internals)
 docs/projects/
+
+# Python
+__pycache__/
+*.pyc

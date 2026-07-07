@@ -2,21 +2,31 @@
 from __future__ import annotations
 
 import argparse
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 import re
 import socket
 import sqlite3
-import subprocess
 import sys
 import time
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+import status_common
+from status_common import (
+    ConnectError,
+    agent_state_enum,
+    device_kind_enum,
+    device_role_enum,
+    ensure_device_uid,
+    json_response,
+    label_set,
+    run,
+    run_server,
+    text_response,
+)
 
 UUID_PATTERN = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.IGNORECASE)
 URL_PATTERN = re.compile(r"https?://\S+")
@@ -30,32 +40,29 @@ CLAUDE_ACTIVE_JOB_TEMPOS = {"active", "working"}
 CLAUDE_BUSY_SESSION_STATES = {"busy"}
 CLAUDE_IN_FLIGHT_JOB_STATE = "working"
 
+CODEX_KIND = "codex"
+CLAUDE_KIND = "claude"
+
 
 @dataclass(frozen=True)
 class AgentSnapshot:
-    agent_id: str
+    kind: str
     state: str
-    device_id: str = ""
+    device_uid: str = ""
     device_name: str = ""
     task: str = ""
-    updated_at: str = ""
     budget_remaining_percent: int | None = None
 
     def payload(self) -> dict[str, Any]:
         data: dict[str, Any] = {
-            "agent_id": self.agent_id,
-            "state": self.state,
+            "deviceUid": self.device_uid,
+            "kind": self.kind,
+            "state": agent_state_enum(self.state),
         }
-        if self.device_id:
-            data["device_id"] = self.device_id
-        if self.device_name:
-            data["device_name"] = self.device_name
         if self.task:
             data["task"] = self.task
-        if self.updated_at:
-            data["updated_at"] = self.updated_at
         if self.budget_remaining_percent is not None:
-            data["budget_remaining_percent"] = self.budget_remaining_percent
+            data["budgetRemainingPercent"] = self.budget_remaining_percent
         return data
 
 
@@ -109,7 +116,7 @@ class ClaudeTask:
 
 @dataclass(frozen=True)
 class DeviceIdentity:
-    device_id: str
+    device_uid: str
     device_name: str
 
 
@@ -118,19 +125,26 @@ def main() -> int:
     if args.serve:
         return serve(args)
 
-    snapshots = build_snapshots(args)
+    token = os.getenv("STATUS_INGEST_TOKEN", "").strip()
+    try:
+        device_uid = resolve_device_uid(args, token)
+    except (ConnectError, OSError) as error:
+        print(f"device enrollment failed: {enrollment_reason(error)}", file=sys.stderr)
+        return 1
+
+    snapshots = build_snapshots(args, device_uid)
     if args.print:
         print(json.dumps([snapshot.payload() for snapshot in snapshots], indent=2, ensure_ascii=False))
         return 0
 
-    token = args.token or os.getenv("STATUS_INGEST_TOKEN")
     if not token:
         print("STATUS_INGEST_TOKEN is required", file=sys.stderr)
         return 2
-
-    endpoint = args.url.rstrip("/") + "/api/ingest/agent"
+    if not device_uid:
+        print("device is not enrolled", file=sys.stderr)
+        return 1
     for snapshot in snapshots:
-        if not post_agent(endpoint, token, snapshot.payload(), args.timeout_seconds):
+        if not push_agent(args, token, snapshot.payload()):
             return 1
     return 0
 
@@ -138,9 +152,11 @@ def main() -> int:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Publish local Claude Code and Codex task titles to realtime-me gateway.")
     parser.add_argument("--url", default=os.getenv("STATUS_GATEWAY_URL", "http://127.0.0.1:18080"))
-    parser.add_argument("--token", default="")
-    parser.add_argument("--device-id", default=os.getenv("STATUS_DEVICE_ID", socket.gethostname()))
     parser.add_argument("--device-name", default=os.getenv("STATUS_DEVICE_NAME", socket.gethostname()))
+    parser.add_argument("--device-model", default=os.getenv("STATUS_DEVICE_MODEL", ""))
+    parser.add_argument("--kind", default=os.getenv("STATUS_DEVICE_KIND", "host"))
+    parser.add_argument("--role", default=os.getenv("STATUS_DEVICE_ROLE", "desktop"))
+    parser.add_argument("--identity-file", default=os.getenv("STATUS_IDENTITY_FILE", ""))
     parser.add_argument("--timeout-seconds", type=float, default=5)
     parser.add_argument("--active-window-seconds", type=int, default=int(os.getenv("STATUS_AGENT_ACTIVE_WINDOW_SECONDS", "300")))
     parser.add_argument("--codex-homes", default=os.getenv("STATUS_CODEX_HOMES", "~/.codex-api:~/.codex"))
@@ -157,12 +173,33 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def build_snapshots(args: argparse.Namespace) -> list[AgentSnapshot]:
+def identity_file(args: argparse.Namespace) -> Path:
+    return Path(args.identity_file) if args.identity_file else status_common.default_identity_file()
+
+
+def resolve_device_uid(args: argparse.Namespace, token: str) -> str:
+    return ensure_device_uid(
+        args.url,
+        token,
+        identity_file(args),
+        device_kind_enum(args.kind),
+        device_role_enum(args.role),
+        args.device_name,
+        args.device_model,
+        args.timeout_seconds,
+    )
+
+
+def enrollment_reason(error: Exception) -> str:
+    return error.code if isinstance(error, ConnectError) else error.__class__.__name__
+
+
+def build_snapshots(args: argparse.Namespace, device_uid: str) -> list[AgentSnapshot]:
     now = time.time()
-    device = DeviceIdentity(args.device_id, args.device_name)
+    device = DeviceIdentity(device_uid, args.device_name)
     codex_homes = [expand_path(value) for value in re.split(r"[:;,]", args.codex_homes) if value.strip()]
     return [
-        *codex_snapshots(codex_homes, now, args.active_window_seconds, device),
+        codex_snapshot(codex_homes, now, args.active_window_seconds, device),
         claude_snapshot(
             expand_path(args.claude_sessions_dir),
             expand_path(args.claude_tasks_dir),
@@ -175,67 +212,44 @@ def build_snapshots(args: argparse.Namespace) -> list[AgentSnapshot]:
 
 
 def serve(args: argparse.Namespace) -> int:
-    class Handler(BaseHTTPRequestHandler):
-        def do_GET(self) -> None:
-            if self.path == "/healthz":
-                self.write_json({"ok": True})
-                return
-            if self.path == "/api/agent-status":
-                self.write_json([snapshot.payload() for snapshot in build_snapshots(args)])
-                return
-            if self.path == "/metrics":
-                self.write_text(render_prometheus_metrics(build_snapshots(args)))
-                return
-            self.write_json({"error": "not_found"}, 404)
+    def device_uid() -> str:
+        return status_common.read_cached_uid(identity_file(args))
 
-        def log_message(self, _format: str, *_args: object) -> None:
-            return
+    routes = {
+        "/healthz": lambda: json_response({"ok": True}),
+        "/api/agent-status": lambda: json_response([snapshot.payload() for snapshot in build_snapshots(args, device_uid())]),
+        "/metrics": lambda: text_response(render_prometheus_metrics(build_snapshots(args, device_uid()))),
+    }
+    return run_server(args.bind, args.port, routes)
 
-        def write_json(self, payload: object, status: int = 200) -> None:
-            data = json.dumps(payload, ensure_ascii=False).encode()
-            self.send_response(status)
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            self.wfile.write(data)
 
-        def write_text(self, payload: str, status: int = 200) -> None:
-            data = payload.encode()
-            self.send_response(status)
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            self.wfile.write(data)
-
-    server = ThreadingHTTPServer((args.bind, args.port), Handler)
+def push_agent(args: argparse.Namespace, token: str, payload: dict[str, Any]) -> bool:
     try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        return 130
-    return 0
+        status_common.connect_post(args.url, "IngestService", "ReportAgentStatus", token, payload, args.timeout_seconds)
+    except ConnectError as error:
+        print(f"gateway rejected agent status: {error.code}", file=sys.stderr)
+        return False
+    except OSError as error:
+        print(f"gateway agent status push failed: {error.__class__.__name__}", file=sys.stderr)
+        return False
+    return True
 
 
-def codex_snapshots(homes: list[Path], now: float, active_window_seconds: int, device: DeviceIdentity) -> list[AgentSnapshot]:
+def codex_snapshot(homes: list[Path], now: float, active_window_seconds: int, device: DeviceIdentity) -> AgentSnapshot:
     open_sessions = codex_open_sessions(homes)
     candidates = codex_candidates(homes, open_sessions, now, active_window_seconds)
     if not candidates:
-        return [AgentSnapshot(agent_id="codex", state="idle", device_id=device.device_id, device_name=device.device_name, updated_at=utc_now())]
+        return AgentSnapshot(kind=CODEX_KIND, state="idle", device_uid=device.device_uid, device_name=device.device_name)
 
     candidates.sort(key=lambda item: (item.state != "idle", item.updated_at_seconds), reverse=True)
-    return [codex_agent_snapshot(candidate, device) for candidate in candidates]
-
-
-def codex_agent_snapshot(candidate: CodexCandidate, device: DeviceIdentity) -> AgentSnapshot:
+    top = candidates[0]
     return AgentSnapshot(
-        agent_id=f"codex:{candidate.thread_id[:8]}",
-        state=candidate.state,
-        device_id=device.device_id,
+        kind=CODEX_KIND,
+        state=top.state,
+        device_uid=device.device_uid,
         device_name=device.device_name,
-        task=sanitize_task(candidate.task),
-        updated_at=iso_time(candidate.updated_at_seconds),
-        budget_remaining_percent=candidate.budget_remaining_percent,
+        task=sanitize_task(top.task),
+        budget_remaining_percent=top.budget_remaining_percent,
     )
 
 
@@ -384,27 +398,21 @@ def claude_snapshot(sessions_dir: Path, tasks_dir: Path, jobs_dir: Path, now: fl
     sessions = read_claude_sessions(sessions_dir)
     jobs = read_claude_jobs(jobs_dir)
     if not sessions and not jobs:
-        return AgentSnapshot(agent_id="claude-code", state="idle", device_id=device.device_id, device_name=device.device_name, updated_at=utc_now())
+        return AgentSnapshot(kind=CLAUDE_KIND, state="idle", device_uid=device.device_uid, device_name=device.device_name)
 
     sessions.sort(key=lambda item: item.updated_at_seconds, reverse=True)
     session = sessions[0] if sessions else None
     task = claude_open_task(tasks_dir / session.cli_session_id) if session and session.cli_session_id else None
     latest_job = latest_item(jobs)
     active_job = latest_item([job for job in jobs if claude_job_active(job, now, active_window_seconds)])
-    updated_at = max(
-        session.updated_at_seconds if session else 0,
-        task.updated_at_seconds if task else 0,
-        latest_job.updated_at_seconds if latest_job else 0,
-    )
     active = claude_active(session, task, active_job, jobs, now, active_window_seconds)
     source = active_job or task or latest_job or session
     return AgentSnapshot(
-        agent_id="claude-code",
+        kind=CLAUDE_KIND,
         state="running" if active else "idle",
-        device_id=device.device_id,
+        device_uid=device.device_uid,
         device_name=device.device_name,
         task=sanitize_task(source.title if source else ""),
-        updated_at=iso_time(updated_at),
     )
 
 
@@ -556,31 +564,6 @@ def tail_lines(path: Path, max_bytes: int = 131_072) -> list[str]:
         return []
 
 
-def post_agent(endpoint: str, token: str, payload: dict[str, Any], timeout_seconds: float) -> bool:
-    request = urllib.request.Request(
-        endpoint,
-        data=json.dumps(payload, ensure_ascii=False).encode(),
-        method="POST",
-        headers={
-            "Accept": "application/json",
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json; charset=utf-8",
-        },
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
-            if response.status < 200 or response.status > 299:
-                print(f"gateway rejected agent status: HTTP {response.status}", file=sys.stderr)
-                return False
-    except urllib.error.HTTPError as error:
-        print(f"gateway rejected agent status: HTTP {error.code}", file=sys.stderr)
-        return False
-    except OSError as error:
-        print(f"gateway agent status push failed: {error.__class__.__name__}", file=sys.stderr)
-        return False
-    return True
-
-
 def render_prometheus_metrics(snapshots: list[AgentSnapshot]) -> str:
     lines = [
         "# HELP realtime_agent_state Agent state labelled by state. OpenTelemetry name: realtime.agent.state.",
@@ -592,8 +575,8 @@ def render_prometheus_metrics(snapshots: list[AgentSnapshot]) -> str:
     ]
     for snapshot in snapshots:
         labels = {
-            "agent_id": snapshot.agent_id,
-            "device_id": snapshot.device_id,
+            "agent_kind": snapshot.kind,
+            "device_uid": snapshot.device_uid,
             "device_name": snapshot.device_name,
         }
         for state in ("idle", "running", "failed"):
@@ -605,28 +588,6 @@ def render_prometheus_metrics(snapshots: list[AgentSnapshot]) -> str:
             )
     lines.append("")
     return "\n".join(lines)
-
-
-def label_set(labels: dict[str, str]) -> str:
-    pairs = []
-    for key in sorted(labels):
-        value = labels[key]
-        if value:
-            pairs.append(f'{prometheus_label_name(key)}="{escape_label_value(value)}"')
-    return "{" + ",".join(pairs) + "}" if pairs else ""
-
-
-def prometheus_label_name(value: str) -> str:
-    name = re.sub(r"[^A-Za-z0-9_]", "_", value)
-    if not name:
-        return "label"
-    if name[0].isdigit():
-        return f"label_{name}"
-    return name
-
-
-def escape_label_value(value: str) -> str:
-    return value.replace("\\", "\\\\").replace("\n", "\\n").replace('"', '\\"')
 
 
 def sanitize_task(value: str) -> str:
@@ -671,16 +632,6 @@ def parse_event_timestamp(value: Any, fallback: float) -> float:
         return fallback
 
 
-def iso_time(timestamp: float) -> str:
-    if timestamp <= 0:
-        return utc_now()
-    return datetime.fromtimestamp(timestamp, timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
 def expand_path(value: str) -> Path:
     return Path(value.strip()).expanduser().resolve()
 
@@ -691,13 +642,6 @@ def is_relative_to(path: Path, parent: Path) -> bool:
         return True
     except ValueError:
         return False
-
-
-def run(command: list[str]) -> str:
-    try:
-        return subprocess.run(command, check=False, capture_output=True, text=True, timeout=2).stdout
-    except (OSError, subprocess.TimeoutExpired):
-        return ""
 
 
 if __name__ == "__main__":

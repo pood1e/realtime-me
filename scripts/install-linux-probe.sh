@@ -5,12 +5,12 @@ INSTALL_DIR=${INSTALL_DIR:-/opt/realtime-me}
 ENV_FILE=${ENV_FILE:-/etc/realtime-me.env}
 GATEWAY_URL=${STATUS_GATEWAY_URL:-}
 REGISTER_TARGETS=${STATUS_REGISTER_TARGETS:-0}
-DEVICE_ID=${STATUS_DEVICE_ID:-$(hostname -s 2>/dev/null || hostname)}
 DEVICE_NAME=${STATUS_DEVICE_NAME:-$(hostname 2>/dev/null || echo linux)}
 DEVICE_MODEL=${STATUS_DEVICE_MODEL:-}
 DEVICE_KIND=${STATUS_DEVICE_KIND:-host}
 DEVICE_ROLE=${STATUS_DEVICE_ROLE:-desktop}
-EXPORTER_BIND=${STATUS_EXPORTER_BIND:-0.0.0.0}
+IDENTITY_FILE=${STATUS_IDENTITY_FILE:-$INSTALL_DIR/identity.json}
+EXPORTER_BIND=${STATUS_EXPORTER_BIND:-127.0.0.1}
 EXPORTER_HOST=${STATUS_EXPORTER_HOST:-}
 NODE_EXPORTER_PORT=${STATUS_NODE_EXPORTER_PORT:-9100}
 DEVICE_EXPORTER_PORT=${STATUS_DEVICE_EXPORTER_PORT:-18083}
@@ -20,6 +20,7 @@ PROBE_USER=${STATUS_PROBE_USER:-${SUDO_USER:-}}
 NODE_EXPORTER_VERSION=${NODE_EXPORTER_VERSION:-1.11.1}
 NODE_EXPORTER_VERSION=${NODE_EXPORTER_VERSION#v}
 NODE_EXPORTER_BIN=${NODE_EXPORTER_BIN:-/usr/local/bin/node_exporter}
+NODE_EXPORTER_SHA256=${NODE_EXPORTER_SHA256:-}
 DOWNLOAD_TIMEOUT_SECONDS=${STATUS_DOWNLOAD_TIMEOUT_SECONDS:-15}
 NODE_EXPORTER_DOWNLOAD_TIMEOUT_SECONDS=${STATUS_NODE_EXPORTER_DOWNLOAD_TIMEOUT_SECONDS:-90}
 CURL_FORCE_IPV4=${STATUS_CURL_FORCE_IPV4:-1}
@@ -162,11 +163,11 @@ read_token() {
 write_env_file() {
   umask 077
   cat >"$ENV_FILE" <<ENV
-STATUS_DEVICE_ID=$DEVICE_ID
 STATUS_DEVICE_NAME=$DEVICE_NAME
 STATUS_DEVICE_MODEL=$DEVICE_MODEL
 STATUS_DEVICE_KIND=$DEVICE_KIND
 STATUS_DEVICE_ROLE=$DEVICE_ROLE
+STATUS_IDENTITY_FILE=$IDENTITY_FILE
 STATUS_DEVICE_EXPORTER_BIND=$EXPORTER_BIND
 STATUS_DEVICE_EXPORTER_PORT=$DEVICE_EXPORTER_PORT
 STATUS_AGENT_EXPORTER_BIND=$EXPORTER_BIND
@@ -201,6 +202,8 @@ download_file() {
 
 download_exporters() {
   install -d -m 755 "$INSTALL_DIR"
+  download_file status_common.py "$INSTALL_DIR/status_common.py"
+  chmod 644 "$INSTALL_DIR/status_common.py"
   download_file status-device-reporter.py "$INSTALL_DIR/status-device-reporter.py"
   chmod 755 "$INSTALL_DIR/status-device-reporter.py"
   [[ $INSTALL_AGENT == 1 ]] || return 0
@@ -226,13 +229,15 @@ install_node_exporter() {
   local archive
   local workdir
   local source_url
+  local filename
   local args
   if [[ -x $NODE_EXPORTER_BIN ]] && "$NODE_EXPORTER_BIN" --version 2>&1 | grep -q "version $NODE_EXPORTER_VERSION"; then
     log "node_exporter v$NODE_EXPORTER_VERSION already installed"
     return
   fi
   arch=$(node_exporter_arch)
-  source_url=${NODE_EXPORTER_URL:-https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXPORTER_VERSION}/node_exporter-${NODE_EXPORTER_VERSION}.linux-${arch}.tar.gz}
+  filename=node_exporter-${NODE_EXPORTER_VERSION}.linux-${arch}.tar.gz
+  source_url=${NODE_EXPORTER_URL:-https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXPORTER_VERSION}/$filename}
   archive=$(mktemp)
   workdir=$(mktemp -d)
   mapfile -d '' -t args < <(curl_download_args "$NODE_EXPORTER_DOWNLOAD_TIMEOUT_SECONDS")
@@ -242,9 +247,53 @@ install_node_exporter() {
     echo "Could not download node_exporter. If this host uses a proxy, preserve proxy env when running sudo." >&2
     exit 1
   fi
+  verify_node_exporter_archive "$archive" "$filename" "$arch" "$workdir"
   tar -xzf "$archive" -C "$workdir"
   install -m 755 "$workdir"/node_exporter-*.linux-*/node_exporter "$NODE_EXPORTER_BIN"
   rm -rf "$archive" "$workdir"
+}
+
+verify_node_exporter_archive() {
+  local archive=$1
+  local filename=$2
+  local arch=$3
+  local workdir=$4
+  local expected
+  local actual
+  expected=$(node_exporter_expected_sha256 "$filename" "$arch")
+  if [[ -z $expected ]]; then
+    rm -rf "$archive" "$workdir"
+    echo "Could not determine node_exporter SHA-256 checksum. Set NODE_EXPORTER_SHA256 to verify manually." >&2
+    exit 1
+  fi
+  actual=$(sha256sum "$archive" | awk '{ print $1 }')
+  if [[ $actual != "$expected" ]]; then
+    rm -rf "$archive" "$workdir"
+    echo "node_exporter checksum mismatch (expected $expected, got $actual)." >&2
+    exit 1
+  fi
+  log "Verified node_exporter SHA-256 checksum"
+}
+
+node_exporter_expected_sha256() {
+  local filename=$1
+  local arch=$2
+  local sums
+  local checksum_url
+  local args
+  if [[ -n $NODE_EXPORTER_SHA256 ]]; then
+    printf '%s' "$NODE_EXPORTER_SHA256"
+    return
+  fi
+  checksum_url=${NODE_EXPORTER_SHA256SUMS_URL:-https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXPORTER_VERSION}/sha256sums.txt}
+  sums=$(mktemp)
+  mapfile -d '' -t args < <(curl_download_args "$DOWNLOAD_TIMEOUT_SECONDS")
+  if ! "$CURL_BIN" "${args[@]}" "$checksum_url" -o "$sums" 2>/dev/null; then
+    rm -f "$sums"
+    return
+  fi
+  awk -v f="$filename" '$2 == f { print $1 }' "$sums"
+  rm -f "$sums"
 }
 
 probe_service_directives() {
@@ -342,58 +391,59 @@ auto_exporter_host() {
 
 json_payload() {
   local host=$1
-  "$PYTHON_BIN" - "$host" "$INSTALL_AGENT" <<'PY'
+  local install_agent=$2
+  local device_uid=$3
+  "$PYTHON_BIN" - "$host" "$install_agent" "$device_uid" "$INSTALL_DIR" <<'PY'
 import json
 import os
 import sys
 
-host = sys.argv[1]
-install_agent = sys.argv[2] == "1"
+host, install_agent_arg, device_uid, install_dir = sys.argv[1:5]
+sys.path.insert(0, install_dir)
+from status_common import device_kind_enum, device_role_enum
+
+install_agent = install_agent_arg == "1"
 node_port = os.environ["STATUS_NODE_EXPORTER_PORT"]
 device_port = os.environ["STATUS_DEVICE_EXPORTER_PORT"]
 agent_port = os.environ["STATUS_AGENT_EXPORTER_PORT"]
-device_id = os.environ["STATUS_DEVICE_ID"]
-device_name = os.environ["STATUS_DEVICE_NAME"]
-device_model = os.environ.get("STATUS_DEVICE_MODEL", "")
 device_kind = os.environ["STATUS_DEVICE_KIND"]
 device_role = os.environ["STATUS_DEVICE_ROLE"]
-node_job = "vm-node-exporter" if device_kind == "virtual_machine" or device_role == "vm" else "node-exporter"
 common = {
-    "instance": device_id,
-    "device_id": device_id,
-    "device_name": device_name,
-    "device_model": device_model,
-    "device_kind": device_kind,
-    "device_role": device_role,
+    "deviceUid": device_uid,
+    "displayName": os.environ["STATUS_DEVICE_NAME"],
+    "model": os.environ.get("STATUS_DEVICE_MODEL", ""),
+    "kind": device_kind_enum(device_kind),
+    "role": device_role_enum(device_role),
 }
+node_job = "SCRAPE_JOB_VM_NODE_EXPORTER" if device_kind == "virtual_machine" or device_role == "vm" else "SCRAPE_JOB_NODE_EXPORTER"
 targets = [
     dict(common, job=node_job, target=f"{host}:{node_port}"),
-    dict(common, job="device-exporter", target=f"{host}:{device_port}"),
+    dict(common, job="SCRAPE_JOB_DEVICE_EXPORTER", target=f"{host}:{device_port}"),
 ]
 if install_agent:
-    targets.append(dict(common, job="agent-exporter", target=f"{host}:{agent_port}"))
+    targets.append(dict(common, job="SCRAPE_JOB_AGENT_EXPORTER", target=f"{host}:{agent_port}"))
 print(json.dumps({"targets": targets}, separators=(",", ":")))
 PY
 }
 
-post_json() {
+post_connect() {
   local endpoint=$1
   local token=$2
   local payload=$3
   local config
   config=$(mktemp)
+  trap 'rm -f "$config"' EXIT
   chmod 600 "$config"
   {
     printf 'header = "Accept: application/json"\n'
     printf 'header = "Authorization: Bearer %s"\n' "$token"
-    printf 'header = "Content-Type: application/json; charset=utf-8"\n'
+    printf 'header = "Connect-Protocol-Version: 1"\n'
+    printf 'header = "Content-Type: application/json"\n'
   } >"$config"
   if ! "$CURL_BIN" -fsSL --connect-timeout 10 --max-time 30 --config "$config" --data-binary "$payload" "$endpoint" >/dev/null; then
-    rm -f "$config"
     echo "Could not register Prometheus scrape targets." >&2
     exit 1
   fi
-  rm -f "$config"
 }
 
 detect_exporter_host() {
@@ -408,9 +458,35 @@ should_register_targets() {
   [[ $REGISTER_TARGETS == 1 || -n ${GATEWAY_URL:-} ]]
 }
 
+chown_identity_file() {
+  [[ -n ${PROBE_USER:-} && $PROBE_USER != root ]] || return 0
+  chown "$PROBE_USER" "$IDENTITY_FILE" 2>/dev/null || true
+}
+
+enroll_device() {
+  local token=$1
+  local device_uid
+  device_uid=$(
+    STATUS_GATEWAY_URL=$GATEWAY_URL \
+    STATUS_INGEST_TOKEN=$token \
+    STATUS_IDENTITY_FILE=$IDENTITY_FILE \
+    STATUS_DEVICE_NAME=$DEVICE_NAME \
+    STATUS_DEVICE_MODEL=$DEVICE_MODEL \
+    STATUS_DEVICE_KIND=$DEVICE_KIND \
+    STATUS_DEVICE_ROLE=$DEVICE_ROLE \
+    "$PYTHON_BIN" "$INSTALL_DIR/status-device-reporter.py" --print-uid
+  ) || true
+  if [[ -z $device_uid ]]; then
+    echo "Device enrollment failed. Check STATUS_GATEWAY_URL and STATUS_INGEST_TOKEN." >&2
+    exit 1
+  fi
+  chown_identity_file
+  printf '%s' "$device_uid"
+}
+
 register_prometheus_targets() {
   if ! should_register_targets; then
-    log "Skipping Prometheus target registration"
+    log "Skipping device enrollment and Prometheus target registration"
     return
   fi
   if [[ -z ${GATEWAY_URL:-} ]]; then
@@ -418,18 +494,21 @@ register_prometheus_targets() {
     exit 2
   fi
   local token
+  local device_uid
   local payload
   token=$(read_token)
+  log "Enrolling device"
+  device_uid=$(enroll_device "$token")
   export STATUS_NODE_EXPORTER_PORT=$NODE_EXPORTER_PORT
   export STATUS_DEVICE_EXPORTER_PORT=$DEVICE_EXPORTER_PORT
   export STATUS_AGENT_EXPORTER_PORT=$AGENT_EXPORTER_PORT
-  export STATUS_DEVICE_ID=$DEVICE_ID
   export STATUS_DEVICE_NAME=$DEVICE_NAME
   export STATUS_DEVICE_MODEL=$DEVICE_MODEL
   export STATUS_DEVICE_KIND=$DEVICE_KIND
   export STATUS_DEVICE_ROLE=$DEVICE_ROLE
-  payload=$(json_payload "$EXPORTER_HOST" "$INSTALL_AGENT")
-  post_json "$GATEWAY_URL/api/prometheus/register" "$token" "$payload"
+  payload=$(json_payload "$EXPORTER_HOST" "$INSTALL_AGENT" "$device_uid")
+  log "Registering Prometheus scrape targets"
+  post_connect "$GATEWAY_URL/realtime.me.v1.IngestService/RegisterScrapeTargets" "$token" "$payload"
 }
 
 print_summary() {
@@ -437,7 +516,7 @@ print_summary() {
   if [[ -n ${GATEWAY_URL:-} ]]; then
     echo "Gateway:         $GATEWAY_URL"
   fi
-  echo "Device:          $DEVICE_NAME ($DEVICE_ID)"
+  echo "Device:          $DEVICE_NAME"
   echo "Node exporter:   $EXPORTER_HOST:$NODE_EXPORTER_PORT"
   echo "Device exporter: $EXPORTER_HOST:$DEVICE_EXPORTER_PORT"
   echo "Agent:    $([[ $INSTALL_AGENT == 1 ]] && printf '%s:%s' "$EXPORTER_HOST" "$AGENT_EXPORTER_PORT" || echo disabled)"
@@ -450,6 +529,7 @@ main() {
   require_command "$PYTHON_BIN"
   require_command systemctl
   require_command tar
+  require_command sha256sum
   inherit_proxy_env
   GATEWAY_URL=$(configure_gateway_url)
   detect_exporter_host
@@ -460,9 +540,9 @@ main() {
   install_node_exporter
   log "Installing systemd units"
   write_systemd_units
+  register_prometheus_targets
   log "Starting exporters"
   start_units
-  register_prometheus_targets
   print_summary
 }
 
