@@ -137,8 +137,8 @@ enum GithubSyncState {
   GITHUB_SYNC_STATE_ERROR = 4;
 }
 
-// GitHubStatus is the public view of GitHub status synchronization.
-message GitHubStatus {
+// GithubStatus is the public view of GitHub status synchronization.
+message GithubStatus {
   // enabled is whether GitHub synchronization is configured.
   bool enabled = 1;
 
@@ -155,8 +155,8 @@ message GitHubStatus {
   google.protobuf.Timestamp update_time = 5;
 }
 
-// GitHubSyncDetail is the authenticated view including error diagnostics.
-message GitHubSyncDetail {
+// GithubSyncDetail is the authenticated view including error diagnostics.
+message GithubSyncDetail {
   // configured is whether a GitHub token is present.
   bool configured = 1;
 
@@ -177,6 +177,14 @@ message GitHubSyncDetail {
 
   // last_error is the most recent synchronization error.
   string last_error = 7;
+
+  // last_attempt_time is when synchronization was last attempted; it drives the
+  // minimum-interval rate limit.
+  google.protobuf.Timestamp last_attempt_time = 8;
+
+  // last_signature is a fingerprint of the last published status used to skip
+  // redundant updates.
+  string last_signature = 9;
 }
 
 // PublicStatus is the unauthenticated status document.
@@ -194,7 +202,7 @@ message PublicStatus {
   repeated Agent agents = 4;
 
   // github is the public GitHub synchronization status.
-  GitHubStatus github = 5;
+  GithubStatus github = 5;
 
   // update_time is when this document was assembled.
   google.protobuf.Timestamp update_time = 6;
@@ -215,7 +223,7 @@ message InternalStatus {
   repeated Agent agents = 4;
 
   // github is the detailed GitHub synchronization status.
-  GitHubSyncDetail github = 5;
+  GithubSyncDetail github = 5;
 
   // update_time is when this document was assembled.
   google.protobuf.Timestamp update_time = 6;

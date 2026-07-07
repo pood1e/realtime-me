@@ -6,30 +6,52 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
-	"time"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
+	mev1 "realtime-me/apps/status-gateway/internal/genproto/realtime/me/v1"
 )
 
+// PrometheusHTTPDiscoveryGroup is one Prometheus HTTP service-discovery group.
+// It is Prometheus's own JSON discovery shape, not part of the wire contract.
+type PrometheusHTTPDiscoveryGroup struct {
+	Targets []string          `json:"targets"`
+	Labels  map[string]string `json:"labels,omitempty"`
+}
+
+// StatusStore holds the gateway's live status plus the durable scrape targets
+// and GitHub sync state. Pushed status (mobile/host/agent) is kept in memory
+// only: it is re-pushed within seconds, so it is not persisted and never shown
+// stale after a restart. Scrape targets and GitHub sync state are durable.
 type StatusStore struct {
-	stateFile         string
-	mutex             sync.Mutex
-	mobile            *StoredMobileStatus
-	agents            map[string]StoredAgentStatus
-	devices           map[string]StoredDeviceStatus
-	prometheusTargets map[string]PrometheusScrapeTarget
-	github            GitHubSyncStatus
+	stateFile string
+	mutex     sync.Mutex
+
+	mobile  *mev1.MobileState
+	hosts   map[string]*mev1.DeviceState
+	agents  map[string]*mev1.Agent
+	targets map[string]*mev1.ScrapeTarget
+	github  *mev1.GithubSyncDetail
 }
 
 func NewStatusStore(stateFile string) *StatusStore {
 	return &StatusStore{
-		stateFile:         stateFile,
-		agents:            map[string]StoredAgentStatus{},
-		devices:           map[string]StoredDeviceStatus{},
-		prometheusTargets: map[string]PrometheusScrapeTarget{},
-		github: GitHubSyncStatus{
+		stateFile: stateFile,
+		hosts:     map[string]*mev1.DeviceState{},
+		agents:    map[string]*mev1.Agent{},
+		targets:   map[string]*mev1.ScrapeTarget{},
+		github: &mev1.GithubSyncDetail{
 			Configured: false,
-			State:      GitHubSyncDisabled,
+			State:      mev1.GithubSyncState_GITHUB_SYNC_STATE_DISABLED,
 		},
 	}
+}
+
+// persistedState is the durable on-disk shape. Proto values are stored as their
+// canonical protojson encoding so the schema stays the single source of truth.
+type persistedState struct {
+	Targets []json.RawMessage `json:"targets,omitempty"`
+	GitHub  json.RawMessage   `json:"github,omitempty"`
 }
 
 func (store *StatusStore) Load() error {
@@ -44,148 +66,167 @@ func (store *StatusStore) Load() error {
 		return err
 	}
 
-	var snapshot GatewayStateSnapshot
+	var snapshot persistedState
 	if err := json.Unmarshal(data, &snapshot); err != nil {
 		return err
 	}
-	store.mobile = snapshot.Mobile
-	for _, agent := range snapshot.Agents {
-		store.agents[agentStoreKey(agent.AgentIngest)] = agent
+	for _, raw := range snapshot.Targets {
+		target := &mev1.ScrapeTarget{}
+		if err := protojson.Unmarshal(raw, target); err != nil {
+			return err
+		}
+		store.targets[scrapeTargetKey(target)] = target
 	}
-	for _, device := range snapshot.Devices {
-		store.devices[device.DeviceID] = device
-	}
-	for _, target := range snapshot.PrometheusTargets {
-		store.prometheusTargets[prometheusTargetKey(target)] = target
-	}
-	if snapshot.GitHub.State != "" {
-		store.github = snapshot.GitHub
+	if len(snapshot.GitHub) > 0 {
+		github := &mev1.GithubSyncDetail{}
+		if err := protojson.Unmarshal(snapshot.GitHub, github); err != nil {
+			return err
+		}
+		store.github = github
 	}
 	return nil
 }
 
-func (store *StatusStore) UpdateMobile(input MobileIngest, receivedAt time.Time) (StoredMobileStatus, error) {
-	if input.UpdatedAt == "" {
-		input.UpdatedAt = receivedAt.UTC().Format(time.RFC3339)
-	}
-	status := StoredMobileStatus{
-		MobileIngest: input,
-		ReceivedAt:   receivedAt.UTC().Format(time.RFC3339),
-	}
-
+func (store *StatusStore) UpdateMobile(mobile *mev1.MobileState) {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
-	store.mobile = &status
-	return status, store.saveLocked()
+	store.mobile = mobile
 }
 
-func (store *StatusStore) UpdateDevice(input DeviceStatus, receivedAt time.Time) (StoredDeviceStatus, error) {
-	if input.UpdatedAt == "" {
-		input.UpdatedAt = receivedAt.UTC().Format(time.RFC3339)
-	}
-	status := StoredDeviceStatus{
-		DeviceStatus: input,
-		ReceivedAt:   receivedAt.UTC().Format(time.RFC3339),
-	}
-
+func (store *StatusStore) UpdateHost(device *mev1.DeviceState) {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
-	store.devices[status.DeviceID] = status
-	return status, store.saveLocked()
+	store.hosts[device.GetDeviceUid()] = device
 }
 
-func (store *StatusStore) RegisterPrometheusTargets(targets []PrometheusScrapeTarget, receivedAt time.Time) error {
-	timestamp := receivedAt.UTC().Format(time.RFC3339)
+func (store *StatusStore) UpdateAgent(agent *mev1.Agent) {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+	store.agents[agentStoreKey(agent)] = agent
+}
 
+func (store *StatusStore) RegisterTargets(targets []*mev1.ScrapeTarget) error {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
 	for _, target := range targets {
-		if target.Instance == "" {
-			target.Instance = firstString(target.DeviceID, target.Target)
-		}
-		if target.DeviceID == "" {
-			target.DeviceID = target.Instance
-		}
-		target.UpdatedAt = timestamp
-		store.prometheusTargets[prometheusTargetKey(target)] = target
+		store.targets[scrapeTargetKey(target)] = target
 	}
 	return store.saveLocked()
 }
 
-func (store *StatusStore) PrometheusHTTPDiscovery(job string) []PrometheusHTTPDiscoveryGroup {
+// PrometheusHTTPDiscovery returns the Prometheus HTTP service-discovery groups
+// for a job, mapping the opaque device uid onto the stable Prometheus labels.
+func (store *StatusStore) PrometheusHTTPDiscovery(job mev1.ScrapeJob) []PrometheusHTTPDiscoveryGroup {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
 
-	targets := make([]PrometheusScrapeTarget, 0, len(store.prometheusTargets))
-	for _, target := range store.prometheusTargets {
-		if target.Job == job {
+	targets := make([]*mev1.ScrapeTarget, 0, len(store.targets))
+	for _, target := range store.targets {
+		if target.GetJob() == job {
 			targets = append(targets, target)
 		}
 	}
 	sort.Slice(targets, func(left, right int) bool {
-		return prometheusTargetKey(targets[left]) < prometheusTargetKey(targets[right])
+		return scrapeTargetKey(targets[left]) < scrapeTargetKey(targets[right])
 	})
 
 	groups := make([]PrometheusHTTPDiscoveryGroup, 0, len(targets))
 	for _, target := range targets {
 		groups = append(groups, PrometheusHTTPDiscoveryGroup{
-			Targets: []string{target.Target},
+			Targets: []string{target.GetTarget()},
 			Labels:  prometheusTargetLabels(target),
 		})
 	}
 	return groups
 }
 
-func (store *StatusStore) UpdateAgent(input AgentIngest, receivedAt time.Time) (StoredAgentStatus, error) {
-	if input.UpdatedAt == "" {
-		input.UpdatedAt = receivedAt.UTC().Format(time.RFC3339)
-	}
-	status := StoredAgentStatus{
-		AgentIngest: input,
-		ReceivedAt:  receivedAt.UTC().Format(time.RFC3339),
-	}
-
+func (store *StatusStore) UpdateGitHub(mutator func(*mev1.GithubSyncDetail)) error {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
-	if status.DeviceID != "" {
-		delete(store.agents, status.AgentID)
-	}
-	store.agents[agentStoreKey(status.AgentIngest)] = status
-	return status, store.saveLocked()
-}
-
-func (store *StatusStore) UpdateGitHub(mutator func(*GitHubSyncStatus)) error {
-	store.mutex.Lock()
-	defer store.mutex.Unlock()
-	mutator(&store.github)
+	mutator(store.github)
 	return store.saveLocked()
 }
 
-func (store *StatusStore) GitHubSnapshot() GitHubSyncStatus {
+func (store *StatusStore) GitHubSnapshot() *mev1.GithubSyncDetail {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
-	return store.github
+	return cloneGithub(store.github)
 }
 
-func (store *StatusStore) Snapshot() GatewayStateSnapshot {
+// StatusSnapshot is a consistent read of the live pushed status.
+type StatusSnapshot struct {
+	Mobile *mev1.MobileState
+	Hosts  []*mev1.DeviceState
+	Agents []*mev1.Agent
+	GitHub *mev1.GithubSyncDetail
+}
+
+func (store *StatusStore) Snapshot() StatusSnapshot {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
-	return store.snapshotLocked()
-}
 
-// saveLocked persists the current snapshot atomically: it writes to a temporary
-// file in the same directory, flushes it, and renames it over the state file so
-// a crash mid-write can never leave a truncated or corrupt state file.
-func (store *StatusStore) saveLocked() error {
-	directory := filepath.Dir(store.stateFile)
-	if err := os.MkdirAll(directory, 0o700); err != nil {
-		return err
+	hosts := make([]*mev1.DeviceState, 0, len(store.hosts))
+	for _, host := range store.hosts {
+		hosts = append(hosts, host)
 	}
-	data, err := json.Marshal(store.snapshotLocked())
+	sort.Slice(hosts, func(left, right int) bool {
+		return hosts[left].GetDeviceUid() < hosts[right].GetDeviceUid()
+	})
+
+	agents := make([]*mev1.Agent, 0, len(store.agents))
+	for _, agent := range store.agents {
+		agents = append(agents, agent)
+	}
+	sort.Slice(agents, func(left, right int) bool {
+		if agents[left].GetDeviceUid() != agents[right].GetDeviceUid() {
+			return agents[left].GetDeviceUid() < agents[right].GetDeviceUid()
+		}
+		return agents[left].GetKind() < agents[right].GetKind()
+	})
+
+	return StatusSnapshot{
+		Mobile: store.mobile,
+		Hosts:  hosts,
+		Agents: agents,
+		GitHub: cloneGithub(store.github),
+	}
+}
+
+// saveLocked persists the durable state atomically (temp file + fsync + rename)
+// so a crash mid-write cannot leave a truncated or corrupt state file.
+func (store *StatusStore) saveLocked() error {
+	snapshot := persistedState{}
+	targets := make([]*mev1.ScrapeTarget, 0, len(store.targets))
+	for _, target := range store.targets {
+		targets = append(targets, target)
+	}
+	sort.Slice(targets, func(left, right int) bool {
+		return scrapeTargetKey(targets[left]) < scrapeTargetKey(targets[right])
+	})
+	for _, target := range targets {
+		raw, err := protojson.Marshal(target)
+		if err != nil {
+			return err
+		}
+		snapshot.Targets = append(snapshot.Targets, raw)
+	}
+	if store.github != nil {
+		raw, err := protojson.Marshal(store.github)
+		if err != nil {
+			return err
+		}
+		snapshot.GitHub = raw
+	}
+
+	data, err := json.Marshal(snapshot)
 	if err != nil {
 		return err
 	}
 
+	directory := filepath.Dir(store.stateFile)
+	if err := os.MkdirAll(directory, 0o700); err != nil {
+		return err
+	}
 	temp, err := os.CreateTemp(directory, ".status-state-*.tmp")
 	if err != nil {
 		return err
@@ -210,70 +251,52 @@ func (store *StatusStore) saveLocked() error {
 	return os.Rename(tempName, store.stateFile)
 }
 
-func (store *StatusStore) snapshotLocked() GatewayStateSnapshot {
-	agents := make([]StoredAgentStatus, 0, len(store.agents))
-	for _, agent := range store.agents {
-		agents = append(agents, agent)
+func agentStoreKey(agent *mev1.Agent) string {
+	if agent.GetDeviceUid() == "" {
+		return agent.GetKind()
 	}
-	sort.Slice(agents, func(left, right int) bool {
-		if agents[left].DeviceID != agents[right].DeviceID {
-			return agents[left].DeviceID < agents[right].DeviceID
-		}
-		return agents[left].AgentID < agents[right].AgentID
-	})
-	devices := make([]StoredDeviceStatus, 0, len(store.devices))
-	for _, device := range store.devices {
-		devices = append(devices, device)
-	}
-	sort.Slice(devices, func(left, right int) bool {
-		return devices[left].DeviceID < devices[right].DeviceID
-	})
-	targets := make([]PrometheusScrapeTarget, 0, len(store.prometheusTargets))
-	for _, target := range store.prometheusTargets {
-		targets = append(targets, target)
-	}
-	sort.Slice(targets, func(left, right int) bool {
-		return prometheusTargetKey(targets[left]) < prometheusTargetKey(targets[right])
-	})
-	return GatewayStateSnapshot{
-		Mobile:            store.mobile,
-		Agents:            agents,
-		Devices:           devices,
-		PrometheusTargets: targets,
-		GitHub:            store.github,
-	}
+	return agent.GetDeviceUid() + "/" + agent.GetKind()
 }
 
-func agentStoreKey(agent AgentIngest) string {
-	if agent.DeviceID == "" {
-		return agent.AgentID
-	}
-	return agent.DeviceID + "/" + agent.AgentID
+func scrapeTargetKey(target *mev1.ScrapeTarget) string {
+	return scrapeJobString(target.GetJob()) + "/" + target.GetTarget()
 }
 
-func prometheusTargetKey(target PrometheusScrapeTarget) string {
-	return target.Job + "/" + target.Target
-}
-
-func prometheusTargetLabels(target PrometheusScrapeTarget) map[string]string {
+func prometheusTargetLabels(target *mev1.ScrapeTarget) map[string]string {
 	labels := map[string]string{}
-	if target.Instance != "" {
-		labels["instance"] = target.Instance
+	instance := firstString(target.GetDeviceUid(), target.GetTarget())
+	if instance != "" {
+		labels["instance"] = instance
 	}
-	if target.DeviceID != "" {
-		labels["device_id"] = target.DeviceID
+	if target.GetDeviceUid() != "" {
+		labels["device_id"] = target.GetDeviceUid()
 	}
-	if target.DeviceName != "" {
-		labels["device_name"] = target.DeviceName
+	if target.GetDisplayName() != "" {
+		labels["device_name"] = target.GetDisplayName()
 	}
-	if target.DeviceModel != "" {
-		labels["device_model"] = target.DeviceModel
+	if target.GetModel() != "" {
+		labels["device_model"] = target.GetModel()
 	}
-	if target.DeviceKind != "" {
-		labels["device_kind"] = target.DeviceKind
+	if kind := deviceKindString(target.GetKind()); kind != "" {
+		labels["device_kind"] = kind
 	}
-	if target.DeviceRole != "" {
-		labels["device_role"] = target.DeviceRole
+	if role := deviceRoleString(target.GetRole()); role != "" {
+		labels["device_role"] = role
 	}
 	return labels
+}
+
+func cloneGithub(github *mev1.GithubSyncDetail) *mev1.GithubSyncDetail {
+	if github == nil {
+		return nil
+	}
+	return &mev1.GithubSyncDetail{
+		Configured:      github.GetConfigured(),
+		State:           github.GetState(),
+		Emoji:           github.GetEmoji(),
+		Message:         github.GetMessage(),
+		LastSuccessTime: github.GetLastSuccessTime(),
+		LastErrorTime:   github.GetLastErrorTime(),
+		LastError:       github.GetLastError(),
+	}
 }

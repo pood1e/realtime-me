@@ -8,6 +8,10 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	mev1 "realtime-me/apps/status-gateway/internal/genproto/realtime/me/v1"
 )
 
 type GitHubStatusPublisher struct {
@@ -31,28 +35,28 @@ func NewGitHubStatusPublisher(config Config, store *StatusStore) *GitHubStatusPu
 	}
 }
 
-func (publisher *GitHubStatusPublisher) Publish(ctx context.Context, mobile StoredMobileStatus) error {
+func (publisher *GitHubStatusPublisher) Publish(ctx context.Context, mobile *mev1.MobileState) error {
 	if publisher.config.GitHubToken == "" {
-		return publisher.store.UpdateGitHub(func(status *GitHubSyncStatus) {
+		return publisher.store.UpdateGitHub(func(status *mev1.GithubSyncDetail) {
 			status.Configured = false
-			status.State = GitHubSyncDisabled
+			status.State = mev1.GithubSyncState_GITHUB_SYNC_STATE_DISABLED
 		})
 	}
 
 	now := time.Now().UTC()
 	status := formatGitHubStatus(mobile, now, publisher.config.GitHubStatusTTLMinutes)
 	current := publisher.store.GitHubSnapshot()
-	if tooSoon(current.LastAttemptAt, now, publisher.config.GitHubStatusMinIntervalSeconds) {
+	if tooSoon(current.GetLastAttemptTime(), now, publisher.config.GitHubStatusMinIntervalSeconds) {
 		return nil
 	}
-	if current.LastSignature == status.Signature && tooSoon(current.LastSuccessAt, now, publisher.config.GitHubStatusMinIntervalSeconds) {
+	if current.GetLastSignature() == status.Signature && tooSoon(current.GetLastSuccessTime(), now, publisher.config.GitHubStatusMinIntervalSeconds) {
 		return nil
 	}
 
-	if err := publisher.store.UpdateGitHub(func(sync *GitHubSyncStatus) {
+	if err := publisher.store.UpdateGitHub(func(sync *mev1.GithubSyncDetail) {
 		sync.Configured = true
-		sync.State = GitHubSyncPending
-		sync.LastAttemptAt = now.Format(time.RFC3339)
+		sync.State = mev1.GithubSyncState_GITHUB_SYNC_STATE_PENDING
+		sync.LastAttemptTime = timestamppb.New(now)
 		sync.Message = status.Message
 		sync.Emoji = status.Emoji
 	}); err != nil {
@@ -61,22 +65,22 @@ func (publisher *GitHubStatusPublisher) Publish(ctx context.Context, mobile Stor
 
 	result := publisher.changeStatus(ctx, status)
 	if result.OK {
-		return publisher.store.UpdateGitHub(func(sync *GitHubSyncStatus) {
+		return publisher.store.UpdateGitHub(func(sync *mev1.GithubSyncDetail) {
 			sync.Configured = true
-			sync.State = GitHubSyncOK
+			sync.State = mev1.GithubSyncState_GITHUB_SYNC_STATE_OK
 			sync.LastSignature = status.Signature
-			sync.LastSuccessAt = now.Format(time.RFC3339)
-			sync.LastErrorAt = ""
+			sync.LastSuccessTime = timestamppb.New(now)
+			sync.LastErrorTime = nil
 			sync.LastError = ""
 			sync.Message = status.Message
 			sync.Emoji = status.Emoji
 		})
 	}
 
-	return publisher.store.UpdateGitHub(func(sync *GitHubSyncStatus) {
+	return publisher.store.UpdateGitHub(func(sync *mev1.GithubSyncDetail) {
 		sync.Configured = true
-		sync.State = GitHubSyncError
-		sync.LastErrorAt = time.Now().UTC().Format(time.RFC3339)
+		sync.State = mev1.GithubSyncState_GITHUB_SYNC_STATE_ERROR
+		sync.LastErrorTime = timestamppb.New(time.Now().UTC())
 		sync.LastError = result.Message
 		sync.Message = status.Message
 		sync.Emoji = status.Emoji
@@ -142,18 +146,19 @@ func (publisher *GitHubStatusPublisher) sendRequest(ctx context.Context, status 
 	}
 }
 
-func formatGitHubStatus(mobile StoredMobileStatus, now time.Time, ttlMinutes int) gitHubStatus {
-	watch := mobile.Watch
-	offWrist := watch != nil && watch.WristState == WristOffWrist
+func formatGitHubStatus(mobile *mev1.MobileState, now time.Time, ttlMinutes int) gitHubStatus {
+	watch := mobile.GetWatch()
+	state := watch.GetWatchState()
+	offWrist := state.GetWristState() == mev1.WristState_WRIST_STATE_OFF_WRIST
 	segments := make([]string, 0, 4)
-	if !offWrist && watch != nil && watch.HeartRate != nil && *watch.HeartRate > 0 {
-		segments = append(segments, fmt.Sprintf("❤️%d", *watch.HeartRate))
+	if !offWrist && watch.GetHeartRate().GetBeatsPerMinute() > 0 {
+		segments = append(segments, fmt.Sprintf("❤️%d", watch.GetHeartRate().GetBeatsPerMinute()))
 	}
-	if watch != nil && watch.Steps != nil && *watch.Steps > 0 {
-		segments = append(segments, "👣"+compactCount(*watch.Steps))
+	if watch.GetActivityTotals().GetSteps() > 0 {
+		segments = append(segments, "👣"+compactCount(int(watch.GetActivityTotals().GetSteps())))
 	}
-	if watch != nil && watch.BatteryPercent != nil && *watch.BatteryPercent > 0 {
-		segments = append(segments, fmt.Sprintf("%s%d%%", batteryEmoji(*watch), *watch.BatteryPercent))
+	if state.GetBatteryPercent() > 0 {
+		segments = append(segments, fmt.Sprintf("%s%d%%", batteryEmoji(state), state.GetBatteryPercent()))
 	}
 	if offWrist {
 		segments = append(segments, "💤")
@@ -175,27 +180,28 @@ func formatGitHubStatus(mobile StoredMobileStatus, now time.Time, ttlMinutes int
 	}
 }
 
-func batteryEmoji(watch WatchStatus) string {
-	if watch.ChargeState == ChargeCharging {
+func batteryEmoji(state *mev1.WatchState) string {
+	if state.GetChargeState() == mev1.ChargeState_CHARGE_STATE_CHARGING {
 		return "🔌"
 	}
-	if watch.BatteryPercent != nil && *watch.BatteryPercent > 0 && *watch.BatteryPercent < 15 {
+	if battery := state.GetBatteryPercent(); battery > 0 && battery < 15 {
 		return "🪫"
 	}
 	return "🔋"
 }
 
-func statusEmoji(watch *WatchStatus) string {
-	if watch == nil {
+func statusEmoji(watch *mev1.WatchSnapshot) string {
+	state := watch.GetWatchState()
+	if watch == nil || state == nil {
 		return "⌚"
 	}
-	if watch.WristState == WristOffWrist {
+	if state.GetWristState() == mev1.WristState_WRIST_STATE_OFF_WRIST {
 		return "💤"
 	}
-	if watch.ChargeState == ChargeCharging {
+	if state.GetChargeState() == mev1.ChargeState_CHARGE_STATE_CHARGING {
 		return "🔌"
 	}
-	if watch.BatteryPercent != nil && *watch.BatteryPercent > 0 && *watch.BatteryPercent < 15 {
+	if battery := state.GetBatteryPercent(); battery > 0 && battery < 15 {
 		return "🪫"
 	}
 	return "⌚"
@@ -216,12 +222,11 @@ func gitHubRejectionMessage(payload gitHubGraphQLResponse, statusCode int) strin
 	return fmt.Sprintf("GitHub rejected the status update (HTTP %d)", statusCode)
 }
 
-func tooSoon(value string, now time.Time, intervalSeconds int) bool {
-	if value == "" {
+func tooSoon(value *timestamppb.Timestamp, now time.Time, intervalSeconds int) bool {
+	if value == nil {
 		return false
 	}
-	parsed, err := time.Parse(time.RFC3339, value)
-	return err == nil && now.Sub(parsed) < time.Duration(intervalSeconds)*time.Second
+	return now.Sub(value.AsTime()) < time.Duration(intervalSeconds)*time.Second
 }
 
 type gitHubGraphQLResponse struct {

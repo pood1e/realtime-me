@@ -577,8 +577,8 @@ func (x *Agent) GetUpdateTime() *timestamppb.Timestamp {
 	return nil
 }
 
-// GitHubStatus is the public view of GitHub status synchronization.
-type GitHubStatus struct {
+// GithubStatus is the public view of GitHub status synchronization.
+type GithubStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// enabled is whether GitHub synchronization is configured.
 	Enabled bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
@@ -594,20 +594,20 @@ type GitHubStatus struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GitHubStatus) Reset() {
-	*x = GitHubStatus{}
+func (x *GithubStatus) Reset() {
+	*x = GithubStatus{}
 	mi := &file_realtime_me_v1_status_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GitHubStatus) String() string {
+func (x *GithubStatus) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GitHubStatus) ProtoMessage() {}
+func (*GithubStatus) ProtoMessage() {}
 
-func (x *GitHubStatus) ProtoReflect() protoreflect.Message {
+func (x *GithubStatus) ProtoReflect() protoreflect.Message {
 	mi := &file_realtime_me_v1_status_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -619,48 +619,48 @@ func (x *GitHubStatus) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GitHubStatus.ProtoReflect.Descriptor instead.
-func (*GitHubStatus) Descriptor() ([]byte, []int) {
+// Deprecated: Use GithubStatus.ProtoReflect.Descriptor instead.
+func (*GithubStatus) Descriptor() ([]byte, []int) {
 	return file_realtime_me_v1_status_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *GitHubStatus) GetEnabled() bool {
+func (x *GithubStatus) GetEnabled() bool {
 	if x != nil {
 		return x.Enabled
 	}
 	return false
 }
 
-func (x *GitHubStatus) GetState() GithubSyncState {
+func (x *GithubStatus) GetState() GithubSyncState {
 	if x != nil {
 		return x.State
 	}
 	return GithubSyncState_GITHUB_SYNC_STATE_UNSPECIFIED
 }
 
-func (x *GitHubStatus) GetEmoji() string {
+func (x *GithubStatus) GetEmoji() string {
 	if x != nil {
 		return x.Emoji
 	}
 	return ""
 }
 
-func (x *GitHubStatus) GetMessage() string {
+func (x *GithubStatus) GetMessage() string {
 	if x != nil {
 		return x.Message
 	}
 	return ""
 }
 
-func (x *GitHubStatus) GetUpdateTime() *timestamppb.Timestamp {
+func (x *GithubStatus) GetUpdateTime() *timestamppb.Timestamp {
 	if x != nil {
 		return x.UpdateTime
 	}
 	return nil
 }
 
-// GitHubSyncDetail is the authenticated view including error diagnostics.
-type GitHubSyncDetail struct {
+// GithubSyncDetail is the authenticated view including error diagnostics.
+type GithubSyncDetail struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// configured is whether a GitHub token is present.
 	Configured bool `protobuf:"varint,1,opt,name=configured,proto3" json:"configured,omitempty"`
@@ -675,25 +675,31 @@ type GitHubSyncDetail struct {
 	// last_error_time is when synchronization last failed.
 	LastErrorTime *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=last_error_time,json=lastErrorTime,proto3" json:"last_error_time,omitempty"`
 	// last_error is the most recent synchronization error.
-	LastError     string `protobuf:"bytes,7,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
+	LastError string `protobuf:"bytes,7,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
+	// last_attempt_time is when synchronization was last attempted; it drives the
+	// minimum-interval rate limit.
+	LastAttemptTime *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=last_attempt_time,json=lastAttemptTime,proto3" json:"last_attempt_time,omitempty"`
+	// last_signature is a fingerprint of the last published status used to skip
+	// redundant updates.
+	LastSignature string `protobuf:"bytes,9,opt,name=last_signature,json=lastSignature,proto3" json:"last_signature,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GitHubSyncDetail) Reset() {
-	*x = GitHubSyncDetail{}
+func (x *GithubSyncDetail) Reset() {
+	*x = GithubSyncDetail{}
 	mi := &file_realtime_me_v1_status_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GitHubSyncDetail) String() string {
+func (x *GithubSyncDetail) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GitHubSyncDetail) ProtoMessage() {}
+func (*GithubSyncDetail) ProtoMessage() {}
 
-func (x *GitHubSyncDetail) ProtoReflect() protoreflect.Message {
+func (x *GithubSyncDetail) ProtoReflect() protoreflect.Message {
 	mi := &file_realtime_me_v1_status_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -705,56 +711,70 @@ func (x *GitHubSyncDetail) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GitHubSyncDetail.ProtoReflect.Descriptor instead.
-func (*GitHubSyncDetail) Descriptor() ([]byte, []int) {
+// Deprecated: Use GithubSyncDetail.ProtoReflect.Descriptor instead.
+func (*GithubSyncDetail) Descriptor() ([]byte, []int) {
 	return file_realtime_me_v1_status_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *GitHubSyncDetail) GetConfigured() bool {
+func (x *GithubSyncDetail) GetConfigured() bool {
 	if x != nil {
 		return x.Configured
 	}
 	return false
 }
 
-func (x *GitHubSyncDetail) GetState() GithubSyncState {
+func (x *GithubSyncDetail) GetState() GithubSyncState {
 	if x != nil {
 		return x.State
 	}
 	return GithubSyncState_GITHUB_SYNC_STATE_UNSPECIFIED
 }
 
-func (x *GitHubSyncDetail) GetEmoji() string {
+func (x *GithubSyncDetail) GetEmoji() string {
 	if x != nil {
 		return x.Emoji
 	}
 	return ""
 }
 
-func (x *GitHubSyncDetail) GetMessage() string {
+func (x *GithubSyncDetail) GetMessage() string {
 	if x != nil {
 		return x.Message
 	}
 	return ""
 }
 
-func (x *GitHubSyncDetail) GetLastSuccessTime() *timestamppb.Timestamp {
+func (x *GithubSyncDetail) GetLastSuccessTime() *timestamppb.Timestamp {
 	if x != nil {
 		return x.LastSuccessTime
 	}
 	return nil
 }
 
-func (x *GitHubSyncDetail) GetLastErrorTime() *timestamppb.Timestamp {
+func (x *GithubSyncDetail) GetLastErrorTime() *timestamppb.Timestamp {
 	if x != nil {
 		return x.LastErrorTime
 	}
 	return nil
 }
 
-func (x *GitHubSyncDetail) GetLastError() string {
+func (x *GithubSyncDetail) GetLastError() string {
 	if x != nil {
 		return x.LastError
+	}
+	return ""
+}
+
+func (x *GithubSyncDetail) GetLastAttemptTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastAttemptTime
+	}
+	return nil
+}
+
+func (x *GithubSyncDetail) GetLastSignature() string {
+	if x != nil {
+		return x.LastSignature
 	}
 	return ""
 }
@@ -771,7 +791,7 @@ type PublicStatus struct {
 	// agents are the currently visible coding agents.
 	Agents []*Agent `protobuf:"bytes,4,rep,name=agents,proto3" json:"agents,omitempty"`
 	// github is the public GitHub synchronization status.
-	Github *GitHubStatus `protobuf:"bytes,5,opt,name=github,proto3" json:"github,omitempty"`
+	Github *GithubStatus `protobuf:"bytes,5,opt,name=github,proto3" json:"github,omitempty"`
 	// update_time is when this document was assembled.
 	UpdateTime    *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -836,7 +856,7 @@ func (x *PublicStatus) GetAgents() []*Agent {
 	return nil
 }
 
-func (x *PublicStatus) GetGithub() *GitHubStatus {
+func (x *PublicStatus) GetGithub() *GithubStatus {
 	if x != nil {
 		return x.Github
 	}
@@ -862,7 +882,7 @@ type InternalStatus struct {
 	// agents are the currently visible coding agents.
 	Agents []*Agent `protobuf:"bytes,4,rep,name=agents,proto3" json:"agents,omitempty"`
 	// github is the detailed GitHub synchronization status.
-	Github *GitHubSyncDetail `protobuf:"bytes,5,opt,name=github,proto3" json:"github,omitempty"`
+	Github *GithubSyncDetail `protobuf:"bytes,5,opt,name=github,proto3" json:"github,omitempty"`
 	// update_time is when this document was assembled.
 	UpdateTime    *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -927,7 +947,7 @@ func (x *InternalStatus) GetAgents() []*Agent {
 	return nil
 }
 
-func (x *InternalStatus) GetGithub() *GitHubSyncDetail {
+func (x *InternalStatus) GetGithub() *GithubSyncDetail {
 	if x != nil {
 		return x.Github
 	}
@@ -987,14 +1007,14 @@ const file_realtime_me_v1_status_proto_rawDesc = "" +
 	"\vupdate_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"updateTimeB\x1b\n" +
 	"\x19_budget_remaining_percent\"\xcc\x01\n" +
-	"\fGitHubStatus\x12\x18\n" +
+	"\fGithubStatus\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x125\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x1f.realtime.me.v1.GithubSyncStateR\x05state\x12\x14\n" +
 	"\x05emoji\x18\x03 \x01(\tR\x05emoji\x12\x18\n" +
 	"\amessage\x18\x04 \x01(\tR\amessage\x12;\n" +
 	"\vupdate_time\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"updateTime\"\xc4\x02\n" +
-	"\x10GitHubSyncDetail\x12\x1e\n" +
+	"updateTime\"\xb3\x03\n" +
+	"\x10GithubSyncDetail\x12\x1e\n" +
 	"\n" +
 	"configured\x18\x01 \x01(\bR\n" +
 	"configured\x125\n" +
@@ -1004,13 +1024,15 @@ const file_realtime_me_v1_status_proto_rawDesc = "" +
 	"\x11last_success_time\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x0flastSuccessTime\x12B\n" +
 	"\x0flast_error_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\rlastErrorTime\x12\x1d\n" +
 	"\n" +
-	"last_error\x18\a \x01(\tR\tlastError\"\xd1\x02\n" +
+	"last_error\x18\a \x01(\tR\tlastError\x12F\n" +
+	"\x11last_attempt_time\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\x0flastAttemptTime\x12%\n" +
+	"\x0elast_signature\x18\t \x01(\tR\rlastSignature\"\xd1\x02\n" +
 	"\fPublicStatus\x123\n" +
 	"\x06server\x18\x01 \x01(\v2\x1b.realtime.me.v1.DeviceStateR\x06server\x123\n" +
 	"\x06mobile\x18\x02 \x01(\v2\x1b.realtime.me.v1.MobileStateR\x06mobile\x125\n" +
 	"\adevices\x18\x03 \x03(\v2\x1b.realtime.me.v1.DeviceStateR\adevices\x12-\n" +
 	"\x06agents\x18\x04 \x03(\v2\x15.realtime.me.v1.AgentR\x06agents\x124\n" +
-	"\x06github\x18\x05 \x01(\v2\x1c.realtime.me.v1.GitHubStatusR\x06github\x12;\n" +
+	"\x06github\x18\x05 \x01(\v2\x1c.realtime.me.v1.GithubStatusR\x06github\x12;\n" +
 	"\vupdate_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"updateTime\"\xd7\x02\n" +
 	"\x0eInternalStatus\x123\n" +
@@ -1018,7 +1040,7 @@ const file_realtime_me_v1_status_proto_rawDesc = "" +
 	"\x06mobile\x18\x02 \x01(\v2\x1b.realtime.me.v1.MobileStateR\x06mobile\x125\n" +
 	"\adevices\x18\x03 \x03(\v2\x1b.realtime.me.v1.DeviceStateR\adevices\x12-\n" +
 	"\x06agents\x18\x04 \x03(\v2\x15.realtime.me.v1.AgentR\x06agents\x128\n" +
-	"\x06github\x18\x05 \x01(\v2 .realtime.me.v1.GitHubSyncDetailR\x06github\x12;\n" +
+	"\x06github\x18\x05 \x01(\v2 .realtime.me.v1.GithubSyncDetailR\x06github\x12;\n" +
 	"\vupdate_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"updateTime*\xaa\x01\n" +
 	"\x0fGithubSyncState\x12!\n" +
@@ -1055,8 +1077,8 @@ var file_realtime_me_v1_status_proto_goTypes = []any{
 	(*DeviceState)(nil),               // 5: realtime.me.v1.DeviceState
 	(*MobileState)(nil),               // 6: realtime.me.v1.MobileState
 	(*Agent)(nil),                     // 7: realtime.me.v1.Agent
-	(*GitHubStatus)(nil),              // 8: realtime.me.v1.GitHubStatus
-	(*GitHubSyncDetail)(nil),          // 9: realtime.me.v1.GitHubSyncDetail
+	(*GithubStatus)(nil),              // 8: realtime.me.v1.GithubStatus
+	(*GithubSyncDetail)(nil),          // 9: realtime.me.v1.GithubSyncDetail
 	(*PublicStatus)(nil),              // 10: realtime.me.v1.PublicStatus
 	(*InternalStatus)(nil),            // 11: realtime.me.v1.InternalStatus
 	(DeviceKind)(0),                   // 12: realtime.me.v1.DeviceKind
@@ -1086,32 +1108,33 @@ var file_realtime_me_v1_status_proto_depIdxs = []int32{
 	18, // 12: realtime.me.v1.MobileState.update_time:type_name -> google.protobuf.Timestamp
 	21, // 13: realtime.me.v1.Agent.state:type_name -> realtime.me.v1.AgentState
 	18, // 14: realtime.me.v1.Agent.update_time:type_name -> google.protobuf.Timestamp
-	0,  // 15: realtime.me.v1.GitHubStatus.state:type_name -> realtime.me.v1.GithubSyncState
-	18, // 16: realtime.me.v1.GitHubStatus.update_time:type_name -> google.protobuf.Timestamp
-	0,  // 17: realtime.me.v1.GitHubSyncDetail.state:type_name -> realtime.me.v1.GithubSyncState
-	18, // 18: realtime.me.v1.GitHubSyncDetail.last_success_time:type_name -> google.protobuf.Timestamp
-	18, // 19: realtime.me.v1.GitHubSyncDetail.last_error_time:type_name -> google.protobuf.Timestamp
-	5,  // 20: realtime.me.v1.PublicStatus.server:type_name -> realtime.me.v1.DeviceState
-	6,  // 21: realtime.me.v1.PublicStatus.mobile:type_name -> realtime.me.v1.MobileState
-	5,  // 22: realtime.me.v1.PublicStatus.devices:type_name -> realtime.me.v1.DeviceState
-	7,  // 23: realtime.me.v1.PublicStatus.agents:type_name -> realtime.me.v1.Agent
-	8,  // 24: realtime.me.v1.PublicStatus.github:type_name -> realtime.me.v1.GitHubStatus
-	18, // 25: realtime.me.v1.PublicStatus.update_time:type_name -> google.protobuf.Timestamp
-	5,  // 26: realtime.me.v1.InternalStatus.server:type_name -> realtime.me.v1.DeviceState
-	6,  // 27: realtime.me.v1.InternalStatus.mobile:type_name -> realtime.me.v1.MobileState
-	5,  // 28: realtime.me.v1.InternalStatus.devices:type_name -> realtime.me.v1.DeviceState
-	7,  // 29: realtime.me.v1.InternalStatus.agents:type_name -> realtime.me.v1.Agent
-	9,  // 30: realtime.me.v1.InternalStatus.github:type_name -> realtime.me.v1.GitHubSyncDetail
-	18, // 31: realtime.me.v1.InternalStatus.update_time:type_name -> google.protobuf.Timestamp
-	1,  // 32: realtime.me.v1.StatusService.GetPublicStatus:input_type -> realtime.me.v1.GetPublicStatusRequest
-	3,  // 33: realtime.me.v1.StatusService.GetInternalStatus:input_type -> realtime.me.v1.GetInternalStatusRequest
-	2,  // 34: realtime.me.v1.StatusService.GetPublicStatus:output_type -> realtime.me.v1.GetPublicStatusResponse
-	4,  // 35: realtime.me.v1.StatusService.GetInternalStatus:output_type -> realtime.me.v1.GetInternalStatusResponse
-	34, // [34:36] is the sub-list for method output_type
-	32, // [32:34] is the sub-list for method input_type
-	32, // [32:32] is the sub-list for extension type_name
-	32, // [32:32] is the sub-list for extension extendee
-	0,  // [0:32] is the sub-list for field type_name
+	0,  // 15: realtime.me.v1.GithubStatus.state:type_name -> realtime.me.v1.GithubSyncState
+	18, // 16: realtime.me.v1.GithubStatus.update_time:type_name -> google.protobuf.Timestamp
+	0,  // 17: realtime.me.v1.GithubSyncDetail.state:type_name -> realtime.me.v1.GithubSyncState
+	18, // 18: realtime.me.v1.GithubSyncDetail.last_success_time:type_name -> google.protobuf.Timestamp
+	18, // 19: realtime.me.v1.GithubSyncDetail.last_error_time:type_name -> google.protobuf.Timestamp
+	18, // 20: realtime.me.v1.GithubSyncDetail.last_attempt_time:type_name -> google.protobuf.Timestamp
+	5,  // 21: realtime.me.v1.PublicStatus.server:type_name -> realtime.me.v1.DeviceState
+	6,  // 22: realtime.me.v1.PublicStatus.mobile:type_name -> realtime.me.v1.MobileState
+	5,  // 23: realtime.me.v1.PublicStatus.devices:type_name -> realtime.me.v1.DeviceState
+	7,  // 24: realtime.me.v1.PublicStatus.agents:type_name -> realtime.me.v1.Agent
+	8,  // 25: realtime.me.v1.PublicStatus.github:type_name -> realtime.me.v1.GithubStatus
+	18, // 26: realtime.me.v1.PublicStatus.update_time:type_name -> google.protobuf.Timestamp
+	5,  // 27: realtime.me.v1.InternalStatus.server:type_name -> realtime.me.v1.DeviceState
+	6,  // 28: realtime.me.v1.InternalStatus.mobile:type_name -> realtime.me.v1.MobileState
+	5,  // 29: realtime.me.v1.InternalStatus.devices:type_name -> realtime.me.v1.DeviceState
+	7,  // 30: realtime.me.v1.InternalStatus.agents:type_name -> realtime.me.v1.Agent
+	9,  // 31: realtime.me.v1.InternalStatus.github:type_name -> realtime.me.v1.GithubSyncDetail
+	18, // 32: realtime.me.v1.InternalStatus.update_time:type_name -> google.protobuf.Timestamp
+	1,  // 33: realtime.me.v1.StatusService.GetPublicStatus:input_type -> realtime.me.v1.GetPublicStatusRequest
+	3,  // 34: realtime.me.v1.StatusService.GetInternalStatus:input_type -> realtime.me.v1.GetInternalStatusRequest
+	2,  // 35: realtime.me.v1.StatusService.GetPublicStatus:output_type -> realtime.me.v1.GetPublicStatusResponse
+	4,  // 36: realtime.me.v1.StatusService.GetInternalStatus:output_type -> realtime.me.v1.GetInternalStatusResponse
+	35, // [35:37] is the sub-list for method output_type
+	33, // [33:35] is the sub-list for method input_type
+	33, // [33:33] is the sub-list for extension type_name
+	33, // [33:33] is the sub-list for extension extendee
+	0,  // [0:33] is the sub-list for field type_name
 }
 
 func init() { file_realtime_me_v1_status_proto_init() }

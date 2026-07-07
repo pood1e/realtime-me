@@ -13,6 +13,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	mev1 "realtime-me/apps/status-gateway/internal/genproto/realtime/me/v1"
 )
 
 const (
@@ -45,7 +49,7 @@ func NewPrometheusClient(baseURL string) *PrometheusClient {
 	}
 }
 
-func (client *PrometheusClient) ServerStatus(ctx context.Context) DeviceStatus {
+func (client *PrometheusClient) ServerStatus(ctx context.Context) *mev1.DeviceState {
 	up := client.queryScalar(ctx, `max(up{job="node-exporter",instance="server"})`)
 	cpuUsage := client.queryRatio(ctx, `1 - avg(rate(node_cpu_seconds_total{job="node-exporter",instance="server",mode="idle"}[2m]))`)
 	cpuCores := client.queryScalar(ctx, `count(count by (cpu) (node_cpu_seconds_total{job="node-exporter",instance="server",mode="idle"}))`)
@@ -56,19 +60,19 @@ func (client *PrometheusClient) ServerStatus(ctx context.Context) DeviceStatus {
 	media := client.DeviceMediaStatuses(ctx)
 	accessories := client.DeviceAccessoryStatuses(ctx)
 
-	return DeviceStatus{
-		DeviceID:    "server",
-		Kind:        "host",
-		Role:        "server",
-		State:       onlineState(up),
-		UpdatedAt:   utcTime(),
+	return &mev1.DeviceState{
+		DeviceUid:   "server",
+		Kind:        mev1.DeviceKind_DEVICE_KIND_HOST,
+		Role:        mev1.DeviceRole_DEVICE_ROLE_SERVER,
+		State:       onlineState(up != nil && *up > 0),
+		UpdateTime:  timestamppb.New(time.Now().UTC()),
 		Metrics:     systemMetrics(cpuCores, cpuUsage, memoryTotal, memoryAvailable, diskTotal, diskAvailable),
 		Media:       media["server"],
 		Accessories: accessories["server"],
 	}
 }
 
-func (client *PrometheusClient) NodeExporterStatuses(ctx context.Context) []DeviceStatus {
+func (client *PrometheusClient) NodeExporterStatuses(ctx context.Context) []*mev1.DeviceState {
 	up := client.queryVector(ctx, `up{job=~"node-exporter|vm-node-exporter",instance!="server"}`)
 	if len(up) == 0 {
 		return nil
@@ -83,30 +87,30 @@ func (client *PrometheusClient) NodeExporterStatuses(ctx context.Context) []Devi
 	media := client.DeviceMediaStatuses(ctx)
 	accessories := client.DeviceAccessoryStatuses(ctx)
 
-	devices := make([]DeviceStatus, 0, len(up))
+	devices := make([]*mev1.DeviceState, 0, len(up))
 	for _, sample := range up {
 		instance := sample.Metric["instance"]
 		if instance == "" {
 			continue
 		}
-		deviceID, deviceName, ok := prometheusDeviceIdentity(sample.Metric)
+		deviceUID, deviceName, ok := prometheusDeviceIdentity(sample.Metric)
 		if !ok {
 			continue
 		}
-		kind := firstNonEmpty(sample.Metric["device_kind"], "host")
-		role := firstNonEmpty(sample.Metric["device_role"], "desktop")
+		kind := parseDeviceKind(firstNonEmpty(sample.Metric["device_kind"], "host"))
+		role := parseDeviceRole(firstNonEmpty(sample.Metric["device_role"], "desktop"))
 		if sample.Metric["job"] == "vm-node-exporter" {
-			kind = firstNonEmpty(sample.Metric["device_kind"], "virtual_machine")
-			role = firstNonEmpty(sample.Metric["device_role"], "vm")
+			kind = parseDeviceKind(firstNonEmpty(sample.Metric["device_kind"], "virtual_machine"))
+			role = parseDeviceRole(firstNonEmpty(sample.Metric["device_role"], "vm"))
 		}
-		devices = append(devices, DeviceStatus{
-			DeviceID:    deviceID,
-			DeviceName:  deviceName,
-			DeviceModel: firstNonEmpty(sample.Metric["device_model"], models[instance]),
+		devices = append(devices, &mev1.DeviceState{
+			DeviceUid:   deviceUID,
+			DisplayName: deviceName,
+			Model:       firstNonEmpty(sample.Metric["device_model"], models[instance]),
 			Kind:        kind,
 			Role:        role,
-			State:       onlineState(&sample.Value),
-			UpdatedAt:   utcTime(),
+			State:       onlineState(sample.Value > 0),
+			UpdateTime:  timestamppb.New(time.Now().UTC()),
 			Metrics: systemMetrics(
 				cpuCores[instance],
 				cpuUsage[instance],
@@ -115,29 +119,29 @@ func (client *PrometheusClient) NodeExporterStatuses(ctx context.Context) []Devi
 				diskTotal[instance],
 				diskAvailable[instance],
 			),
-			Media:       media[deviceID],
-			Accessories: accessories[deviceID],
+			Media:       media[deviceUID],
+			Accessories: accessories[deviceUID],
 		})
 	}
 	sort.Slice(devices, func(left int, right int) bool {
-		return devices[left].DeviceID < devices[right].DeviceID
+		return devices[left].GetDeviceUid() < devices[right].GetDeviceUid()
 	})
 	return devices
 }
 
-func (client *PrometheusClient) DeviceMediaStatuses(ctx context.Context) map[string]*MediaStatus {
+func (client *PrometheusClient) DeviceMediaStatuses(ctx context.Context) map[string]*mev1.MediaStatus {
 	samples := client.queryVector(ctx, `realtime_device_media_playing{job="device-exporter"} == 1`)
-	statuses := make(map[string]*MediaStatus, len(samples))
+	statuses := make(map[string]*mev1.MediaStatus, len(samples))
 	for _, sample := range samples {
 		title := sample.Metric["title"]
 		if title == "" {
 			continue
 		}
-		deviceID := firstNonEmpty(sample.Metric["device_id"], sample.Metric["instance"])
+		deviceID := firstNonEmpty(sample.Metric["device_uid"], sample.Metric["device_id"], sample.Metric["instance"])
 		if deviceID == "" {
 			continue
 		}
-		statuses[deviceID] = &MediaStatus{
+		statuses[deviceID] = &mev1.MediaStatus{
 			Title:  title,
 			Artist: sample.Metric["artist"],
 		}
@@ -145,32 +149,30 @@ func (client *PrometheusClient) DeviceMediaStatuses(ctx context.Context) map[str
 	return statuses
 }
 
-func (client *PrometheusClient) DeviceAccessoryStatuses(ctx context.Context) map[string][]AccessoryStatus {
+func (client *PrometheusClient) DeviceAccessoryStatuses(ctx context.Context) map[string][]*mev1.Accessory {
 	connected := client.queryVector(ctx, `realtime_device_accessory_connected{job="device-exporter"} == 1`)
 	batteries := client.queryVector(ctx, `realtime_device_accessory_battery_level_ratio{job="device-exporter"}`)
-	statuses := make(map[string][]AccessoryStatus, len(connected))
-	byKey := make(map[string]AccessoryStatus, len(connected)+len(batteries))
+	statuses := make(map[string][]*mev1.Accessory, len(connected))
+	byKey := make(map[string]*mev1.Accessory, len(connected)+len(batteries))
 
 	for _, sample := range connected {
 		deviceID, accessory, ok := accessoryFromMetric(sample.Metric)
 		if !ok {
 			continue
 		}
-		key := deviceID + "\x00" + accessoryKey(accessory)
-		byKey[key] = accessory
+		byKey[deviceID+"\x00"+accessoryKey(accessory)] = accessory
 	}
 	for _, sample := range batteries {
 		deviceID, accessory, ok := accessoryFromMetric(sample.Metric)
 		if !ok {
 			continue
 		}
-		percent := int(math.Round(clampRatio(sample.Value) * 100))
-		accessory.BatteryPercent = &percent
+		percent := int32(math.Round(clampRatio(sample.Value) * 100))
 		key := deviceID + "\x00" + accessoryKey(accessory)
 		if existing, exists := byKey[key]; exists {
 			existing.BatteryPercent = &percent
-			byKey[key] = existing
 		} else {
+			accessory.BatteryPercent = &percent
 			byKey[key] = accessory
 		}
 	}
@@ -187,68 +189,67 @@ func (client *PrometheusClient) DeviceAccessoryStatuses(ctx context.Context) map
 	return statuses
 }
 
-func (client *PrometheusClient) AgentStatuses(ctx context.Context) []StoredAgentStatus {
+func (client *PrometheusClient) AgentStatuses(ctx context.Context) []*mev1.Agent {
 	running := client.queryVector(ctx, `realtime_agent_state{job="agent-exporter",state="running"} == 1`)
 	if len(running) == 0 {
 		return nil
 	}
 	budgets := samplesByAgent(client.queryVector(ctx, `realtime_agent_budget_remaining_ratio{job="agent-exporter"}`))
-	now := utcTime()
-	agents := make([]StoredAgentStatus, 0, len(running))
+	now := timestamppb.New(time.Now().UTC())
+	agents := make([]*mev1.Agent, 0, len(running))
 	for _, sample := range running {
-		agentID := sample.Metric["agent_id"]
-		if agentID == "" {
+		kind := firstNonEmpty(sample.Metric["agent_kind"], sample.Metric["agent_id"])
+		if kind == "" {
 			continue
 		}
-		input := AgentIngest{
-			AgentID:    agentID,
-			DeviceID:   sample.Metric["device_id"],
-			DeviceName: sample.Metric["device_name"],
-			UpdatedAt:  now,
-			State:      "running",
+		deviceUID := firstNonEmpty(sample.Metric["device_uid"], sample.Metric["device_id"])
+		agent := &mev1.Agent{
+			Uid:         agentUID(deviceUID, kind),
+			Kind:        kind,
+			DeviceUid:   deviceUID,
+			DisplayName: sample.Metric["device_name"],
+			State:       mev1.AgentState_AGENT_STATE_RUNNING,
+			UpdateTime:  now,
 		}
-		if value, ok := budgets[agentKey(input)]; ok {
-			percent := int(math.Round(clampRatio(value) * 100))
-			input.BudgetRemainingPercent = &percent
+		if value, ok := budgets[deviceUID+"/"+kind]; ok {
+			percent := int32(math.Round(clampRatio(value) * 100))
+			agent.BudgetRemainingPercent = &percent
 		}
-		agents = append(agents, StoredAgentStatus{
-			AgentIngest: input,
-			ReceivedAt:  now,
-		})
+		agents = append(agents, agent)
 	}
 	sort.Slice(agents, func(left int, right int) bool {
-		if agents[left].DeviceID != agents[right].DeviceID {
-			return agents[left].DeviceID < agents[right].DeviceID
+		if agents[left].GetDeviceUid() != agents[right].GetDeviceUid() {
+			return agents[left].GetDeviceUid() < agents[right].GetDeviceUid()
 		}
-		return agents[left].AgentID < agents[right].AgentID
+		return agents[left].GetKind() < agents[right].GetKind()
 	})
 	return agents
 }
 
-func accessoryFromMetric(labels map[string]string) (string, AccessoryStatus, bool) {
-	deviceID := firstNonEmpty(labels["device_id"], labels["instance"])
+func accessoryFromMetric(labels map[string]string) (string, *mev1.Accessory, bool) {
+	deviceID := firstNonEmpty(labels["device_uid"], labels["device_id"], labels["instance"])
 	kind := labels["accessory_kind"]
 	name := labels["accessory_name"]
 	if deviceID == "" || kind == "" || name == "" {
-		return "", AccessoryStatus{}, false
+		return "", nil, false
 	}
-	return deviceID, AccessoryStatus{
-		Kind:  kind,
-		Name:  name,
-		Model: labels["accessory_model"],
+	return deviceID, &mev1.Accessory{
+		Kind:        kind,
+		DisplayName: name,
+		Model:       labels["accessory_model"],
 	}, true
 }
 
-func accessoryKey(accessory AccessoryStatus) string {
-	return accessory.Kind + "\x00" + accessory.Name + "\x00" + accessory.Model
+func accessoryKey(accessory *mev1.Accessory) string {
+	return accessory.GetKind() + "\x00" + accessory.GetDisplayName() + "\x00" + accessory.GetModel()
 }
 
-func sortAccessories(accessories []AccessoryStatus) {
+func sortAccessories(accessories []*mev1.Accessory) {
 	sort.Slice(accessories, func(left int, right int) bool {
-		if accessories[left].Kind != accessories[right].Kind {
-			return accessories[left].Kind < accessories[right].Kind
+		if accessories[left].GetKind() != accessories[right].GetKind() {
+			return accessories[left].GetKind() < accessories[right].GetKind()
 		}
-		return accessories[left].Name < accessories[right].Name
+		return accessories[left].GetDisplayName() < accessories[right].GetDisplayName()
 	})
 }
 
@@ -352,8 +353,8 @@ type prometheusQueryResponse struct {
 	} `json:"data"`
 }
 
-func systemMetrics(cpuCores *float64, cpuUsage *float64, memoryTotal *float64, memoryAvailable *float64, diskTotal *float64, diskAvailable *float64) []MetricSample {
-	metrics := make([]MetricSample, 0, 7)
+func systemMetrics(cpuCores *float64, cpuUsage *float64, memoryTotal *float64, memoryAvailable *float64, diskTotal *float64, diskAvailable *float64) []*mev1.MetricSample {
+	metrics := make([]*mev1.MetricSample, 0, 7)
 	metrics = appendMetric(metrics, metricSystemCPULogicalCount, "{cpu}", cpuCores, nil)
 	metrics = appendMetric(metrics, metricSystemCPUUtilization, "1", clampRatioPointer(cpuUsage), nil)
 	metrics = appendMetric(metrics, metricSystemMemoryUsage, "By", subtract(memoryTotal, memoryAvailable), map[string]string{"system.memory.state": "used"})
@@ -364,11 +365,11 @@ func systemMetrics(cpuCores *float64, cpuUsage *float64, memoryTotal *float64, m
 	return metrics
 }
 
-func appendMetric(metrics []MetricSample, name string, unit string, value *float64, attributes map[string]string) []MetricSample {
+func appendMetric(metrics []*mev1.MetricSample, name string, unit string, value *float64, attributes map[string]string) []*mev1.MetricSample {
 	if value == nil {
 		return metrics
 	}
-	return append(metrics, MetricSample{
+	return append(metrics, &mev1.MetricSample{
 		Name:       name,
 		Unit:       unit,
 		Value:      roundMetric(*value),
@@ -392,23 +393,14 @@ func samplesByInstance(samples []prometheusSample) map[string]*float64 {
 func samplesByAgent(samples []prometheusSample) map[string]float64 {
 	values := make(map[string]float64, len(samples))
 	for _, sample := range samples {
-		agent := AgentIngest{
-			AgentID:  sample.Metric["agent_id"],
-			DeviceID: sample.Metric["device_id"],
-		}
-		if agent.AgentID == "" {
+		kind := firstNonEmpty(sample.Metric["agent_kind"], sample.Metric["agent_id"])
+		if kind == "" {
 			continue
 		}
-		values[agentKey(agent)] = sample.Value
+		deviceUID := firstNonEmpty(sample.Metric["device_uid"], sample.Metric["device_id"])
+		values[deviceUID+"/"+kind] = sample.Value
 	}
 	return values
-}
-
-func agentKey(agent AgentIngest) string {
-	if agent.DeviceID == "" {
-		return agent.AgentID
-	}
-	return agent.DeviceID + "/" + agent.AgentID
 }
 
 func nodeModels(osInfo []prometheusSample, unameInfo []prometheusSample) map[string]string {
@@ -431,7 +423,7 @@ func nodeModels(osInfo []prometheusSample, unameInfo []prometheusSample) map[str
 }
 
 func prometheusDeviceIdentity(labels map[string]string) (string, string, bool) {
-	deviceID := firstPublicNetworkLabel(labels["device_id"], labels["device_name"], labels["instance"])
+	deviceID := firstPublicNetworkLabel(labels["device_uid"], labels["device_id"], labels["device_name"], labels["instance"])
 	if deviceID == "" {
 		return "", "", false
 	}
@@ -470,13 +462,6 @@ func ratio(value *float64, total *float64) *float64 {
 	return &ratio
 }
 
-func onlineState(up *float64) string {
-	if up != nil && *up > 0 {
-		return "online"
-	}
-	return "offline"
-}
-
 func clampRatioPointer(value *float64) *float64 {
 	if value == nil {
 		return nil
@@ -493,10 +478,6 @@ func roundMetric(value float64) float64 {
 	return math.Round(value*1000) / 1000
 }
 
-func utcTime() string {
-	return time.Now().UTC().Format(time.RFC3339)
-}
-
 func joinNonEmpty(separator string, values ...string) string {
 	result := ""
 	for _, value := range values {
@@ -509,13 +490,4 @@ func joinNonEmpty(separator string, values ...string) string {
 		result += value
 	}
 	return result
-}
-
-func firstNonEmpty(values ...string) string {
-	for _, value := range values {
-		if value != "" {
-			return value
-		}
-	}
-	return ""
 }

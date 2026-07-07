@@ -5,7 +5,10 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	mev1 "realtime-me/apps/status-gateway/internal/genproto/realtime/me/v1"
 )
 
 type metricDefinition struct {
@@ -40,16 +43,16 @@ var metricDefinitions = []metricDefinition{
 	{Name: "realtime_github_status_sync_state", Type: "gauge", Unit: "1", OTelName: "realtime.github.status.sync.state", Description: "GitHub status sync state labelled by state; current state is 1."},
 }
 
-func RenderMetrics(snapshot GatewayStateSnapshot) string {
+func RenderMetrics(snapshot StatusSnapshot) string {
 	lines := make([]string, 0, 64)
 	appendMetricMetadata(&lines)
 	if snapshot.Mobile != nil {
-		appendMobileMetrics(&lines, *snapshot.Mobile)
+		appendMobileMetrics(&lines, snapshot.Mobile)
 	}
 	for _, agent := range snapshot.Agents {
 		appendAgentMetrics(&lines, agent)
 	}
-	for _, device := range snapshot.Devices {
+	for _, device := range snapshot.Hosts {
 		appendReportedDeviceMetrics(&lines, device)
 	}
 	appendGitHubMetrics(&lines, snapshot.GitHub)
@@ -66,150 +69,155 @@ func appendMetricMetadata(lines *[]string) {
 	}
 }
 
-func appendMobileMetrics(lines *[]string, status StoredMobileStatus) {
-	appendDeviceTimestamp(lines, status.DeviceID, "phone", status.ReceivedAt)
-	if status.Phone != nil {
-		appendBattery(lines, status.DeviceID, "phone", status.Phone.BatteryPercent)
-		if status.Phone.ChargeState != "" {
-			appendSample(lines, "realtime_device_charging", deviceLabels(status.DeviceID, "phone"), boolFloat(status.Phone.ChargeState == ChargeCharging))
+func appendMobileMetrics(lines *[]string, mobile *mev1.MobileState) {
+	deviceID := mobile.GetDeviceUid()
+	appendDeviceTimestamp(lines, deviceID, "phone", mobile.GetUpdateTime())
+	if phone := mobile.GetPhone(); phone != nil {
+		if phone.BatteryPercent != nil {
+			appendBattery(lines, deviceID, "phone", phone.GetBatteryPercent())
 		}
-		if status.Phone.Network != "" {
-			appendState(lines, "realtime_device_network_state", map[string]string{"device_id": status.DeviceID}, "network_type", status.Phone.Network, []string{"offline", "wifi", "cellular", "vpn", "online", "unknown"})
+		if phone.GetChargeState() != mev1.ChargeState_CHARGE_STATE_UNSPECIFIED {
+			appendSample(lines, "realtime_device_charging", deviceLabels(deviceID, "phone"), boolFloat(phone.GetChargeState() == mev1.ChargeState_CHARGE_STATE_CHARGING))
 		}
-		appendAccessories(lines, deviceLabels(status.DeviceID, "phone"), status.Phone.Accessories)
+		if phone.GetNetwork() != mev1.NetworkState_NETWORK_STATE_UNSPECIFIED {
+			appendState(lines, "realtime_device_network_state", map[string]string{"device_id": deviceID}, "network_type", networkStateString(phone.GetNetwork()), []string{"offline", "wifi", "cellular", "vpn", "online", "unknown"})
+		}
+		appendAccessories(lines, deviceLabels(deviceID, "phone"), phone.GetAccessories())
 	}
-	if status.Watch == nil {
+
+	watch := mobile.GetWatch()
+	if watch == nil {
 		return
 	}
-	appendDeviceTimestamp(lines, status.DeviceID, "watch", status.ReceivedAt)
-	appendBattery(lines, status.DeviceID, "watch", status.Watch.BatteryPercent)
-	if status.Watch.ChargeState != "" {
-		appendSample(lines, "realtime_device_charging", deviceLabels(status.DeviceID, "watch"), boolFloat(status.Watch.ChargeState == ChargeCharging))
+	state := watch.GetWatchState()
+	appendDeviceTimestamp(lines, deviceID, "watch", mobile.GetUpdateTime())
+	if state != nil {
+		appendBattery(lines, deviceID, "watch", state.GetBatteryPercent())
+		if state.GetChargeState() != mev1.ChargeState_CHARGE_STATE_UNSPECIFIED {
+			appendSample(lines, "realtime_device_charging", deviceLabels(deviceID, "watch"), boolFloat(state.GetChargeState() == mev1.ChargeState_CHARGE_STATE_CHARGING))
+		}
 	}
-	if status.Watch.HeartRate != nil && status.Watch.WristState != WristOffWrist {
-		appendSample(lines, "realtime_watch_heart_rate_beats_per_minute", map[string]string{"device_id": status.DeviceID}, float64(*status.Watch.HeartRate))
+	if watch.GetHeartRate() != nil && state.GetWristState() != mev1.WristState_WRIST_STATE_OFF_WRIST {
+		appendSample(lines, "realtime_watch_heart_rate_beats_per_minute", map[string]string{"device_id": deviceID}, float64(watch.GetHeartRate().GetBeatsPerMinute()))
 	}
-	if status.Watch.Steps != nil {
-		appendSample(lines, "realtime_watch_steps", map[string]string{"device_id": status.DeviceID}, float64(*status.Watch.Steps))
+	if watch.GetActivityTotals() != nil {
+		appendSample(lines, "realtime_watch_steps", map[string]string{"device_id": deviceID}, float64(watch.GetActivityTotals().GetSteps()))
 	}
-	if status.Watch.WristState != "" {
-		appendState(lines, "realtime_watch_wrist_state", map[string]string{"device_id": status.DeviceID}, "wrist_state", string(status.Watch.WristState), []string{string(WristUnknown), string(WristOnWrist), string(WristOffWrist)})
-	}
-}
-
-func appendDeviceTimestamp(lines *[]string, deviceID string, deviceType string, receivedAt string) {
-	appendSample(lines, "realtime_device_last_update_time_seconds", deviceLabels(deviceID, deviceType), float64(unixSeconds(receivedAt)))
-}
-
-func appendBattery(lines *[]string, deviceID string, deviceType string, value *int) {
-	if value == nil {
-		return
-	}
-	appendSample(lines, "realtime_device_battery_level_ratio", deviceLabels(deviceID, deviceType), float64(*value)/100)
-}
-
-func appendAgentMetrics(lines *[]string, status StoredAgentStatus) {
-	labels := map[string]string{"agent_id": status.AgentID}
-	if status.DeviceID != "" {
-		labels["device_id"] = status.DeviceID
-	}
-	if status.DeviceName != "" {
-		labels["device_name"] = status.DeviceName
-	}
-	appendState(lines, "realtime_agent_state", labels, "state", status.State, []string{"idle", "running", "failed"})
-	if status.BudgetRemainingPercent != nil {
-		appendSample(lines, "realtime_agent_budget_remaining_ratio", labels, float64(*status.BudgetRemainingPercent)/100)
+	if state.GetWristState() != mev1.WristState_WRIST_STATE_UNSPECIFIED {
+		appendState(lines, "realtime_watch_wrist_state", map[string]string{"device_id": deviceID}, "wrist_state", wristStateString(state.GetWristState()), []string{"unknown", "on_wrist", "off_wrist"})
 	}
 }
 
-func appendReportedDeviceMetrics(lines *[]string, status StoredDeviceStatus) {
-	labels := map[string]string{"device_id": status.DeviceID}
-	if status.Role != "" {
-		labels["role"] = status.Role
+func appendDeviceTimestamp(lines *[]string, deviceID string, deviceType string, updateTime *timestamppb.Timestamp) {
+	appendSample(lines, "realtime_device_last_update_time_seconds", deviceLabels(deviceID, deviceType), float64(unixSeconds(updateTime)))
+}
+
+func appendBattery(lines *[]string, deviceID string, deviceType string, value int32) {
+	appendSample(lines, "realtime_device_battery_level_ratio", deviceLabels(deviceID, deviceType), float64(value)/100)
+}
+
+func appendAgentMetrics(lines *[]string, agent *mev1.Agent) {
+	labels := map[string]string{"agent_id": agent.GetKind()}
+	if agent.GetDeviceUid() != "" {
+		labels["device_id"] = agent.GetDeviceUid()
 	}
-	appendDeviceTimestamp(lines, status.DeviceID, status.Kind, status.ReceivedAt)
-	for _, metric := range status.Metrics {
+	if agent.GetDisplayName() != "" {
+		labels["device_name"] = agent.GetDisplayName()
+	}
+	appendState(lines, "realtime_agent_state", labels, "state", agentStateString(agent.GetState()), []string{"idle", "running", "failed"})
+	if agent.BudgetRemainingPercent != nil {
+		appendSample(lines, "realtime_agent_budget_remaining_ratio", labels, float64(agent.GetBudgetRemainingPercent())/100)
+	}
+}
+
+func appendReportedDeviceMetrics(lines *[]string, device *mev1.DeviceState) {
+	labels := map[string]string{"device_id": device.GetDeviceUid()}
+	if role := deviceRoleString(device.GetRole()); role != "" {
+		labels["role"] = role
+	}
+	appendDeviceTimestamp(lines, device.GetDeviceUid(), deviceKindString(device.GetKind()), device.GetUpdateTime())
+	for _, metric := range device.GetMetrics() {
 		appendReportedMetric(lines, labels, metric)
 	}
-	if status.Media != nil {
-		appendMedia(lines, labels, status.Media)
+	if device.GetMedia() != nil {
+		appendMedia(lines, labels, device.GetMedia())
 	}
-	appendAccessories(lines, labels, status.Accessories)
-	for _, child := range status.Children {
+	appendAccessories(lines, labels, device.GetAccessories())
+	for _, child := range device.GetChildren() {
 		childLabels := map[string]string{
-			"device_id":        child.DeviceID,
-			"parent_device_id": status.DeviceID,
+			"device_id":        child.GetDeviceUid(),
+			"parent_device_id": device.GetDeviceUid(),
 		}
-		if child.Kind != "" {
-			childLabels["child_kind"] = child.Kind
+		if kind := deviceKindString(child.GetKind()); kind != "" {
+			childLabels["child_kind"] = kind
 		}
-		appendDeviceTimestamp(lines, child.DeviceID, child.Kind, child.UpdatedAt)
-		appendState(lines, "realtime_host_vm_state", childLabels, "state", child.State, []string{"running", "shut off", "paused", "unknown"})
-		for _, metric := range child.Metrics {
+		appendDeviceTimestamp(lines, child.GetDeviceUid(), deviceKindString(child.GetKind()), child.GetUpdateTime())
+		appendState(lines, "realtime_host_vm_state", childLabels, "state", onlineStateString(child.GetState()), []string{"online", "offline"})
+		for _, metric := range child.GetMetrics() {
 			appendReportedMetric(lines, childLabels, metric)
 		}
-		if child.Media != nil {
-			appendMedia(lines, childLabels, child.Media)
+		if child.GetMedia() != nil {
+			appendMedia(lines, childLabels, child.GetMedia())
 		}
-		appendAccessories(lines, childLabels, child.Accessories)
+		appendAccessories(lines, childLabels, child.GetAccessories())
 	}
 }
 
-func appendMedia(lines *[]string, baseLabels map[string]string, media *MediaStatus) {
-	if media == nil || media.Title == "" {
+func appendMedia(lines *[]string, baseLabels map[string]string, media *mev1.MediaStatus) {
+	if media == nil || media.GetTitle() == "" {
 		return
 	}
 	labels := copyLabels(baseLabels)
-	labels["title"] = media.Title
-	if media.Artist != "" {
-		labels["artist"] = media.Artist
+	labels["title"] = media.GetTitle()
+	if media.GetArtist() != "" {
+		labels["artist"] = media.GetArtist()
 	}
 	appendSample(lines, "realtime_device_media_playing", labels, 1)
 }
 
-func appendAccessories(lines *[]string, baseLabels map[string]string, accessories []AccessoryStatus) {
+func appendAccessories(lines *[]string, baseLabels map[string]string, accessories []*mev1.Accessory) {
 	for _, accessory := range accessories {
-		if accessory.Kind == "" || accessory.Name == "" {
+		if accessory.GetKind() == "" || accessory.GetDisplayName() == "" {
 			continue
 		}
 		labels := copyLabels(baseLabels)
-		labels["accessory_kind"] = accessory.Kind
-		labels["accessory_name"] = accessory.Name
-		if accessory.Model != "" {
-			labels["accessory_model"] = accessory.Model
+		labels["accessory_kind"] = accessory.GetKind()
+		labels["accessory_name"] = accessory.GetDisplayName()
+		if accessory.GetModel() != "" {
+			labels["accessory_model"] = accessory.GetModel()
 		}
 		appendSample(lines, "realtime_device_accessory_connected", labels, 1)
 		if accessory.BatteryPercent != nil {
-			appendSample(lines, "realtime_device_accessory_battery_level_ratio", labels, float64(*accessory.BatteryPercent)/100)
+			appendSample(lines, "realtime_device_accessory_battery_level_ratio", labels, float64(accessory.GetBatteryPercent())/100)
 		}
 	}
 }
 
-func appendReportedMetric(lines *[]string, baseLabels map[string]string, metric MetricSample) {
+func appendReportedMetric(lines *[]string, baseLabels map[string]string, metric *mev1.MetricSample) {
 	labels := copyLabels(baseLabels)
-	for key, value := range metric.Attributes {
+	for key, value := range metric.GetAttributes() {
 		labels[key] = value
 	}
-	switch metric.Name {
+	switch metric.GetName() {
 	case metricSystemCPULogicalCount:
-		appendSample(lines, "realtime_host_cpu_cores", labels, metric.Value)
+		appendSample(lines, "realtime_host_cpu_cores", labels, metric.GetValue())
 	case metricSystemCPUUtilization:
-		appendSample(lines, "realtime_host_cpu_usage_ratio", labels, metric.Value)
+		appendSample(lines, "realtime_host_cpu_usage_ratio", labels, metric.GetValue())
 	case metricSystemMemoryUsage:
-		appendSample(lines, "realtime_host_memory_usage_bytes", labels, metric.Value)
+		appendSample(lines, "realtime_host_memory_usage_bytes", labels, metric.GetValue())
 	case metricSystemMemoryLimit:
-		appendSample(lines, "realtime_host_memory_limit_bytes", labels, metric.Value)
+		appendSample(lines, "realtime_host_memory_limit_bytes", labels, metric.GetValue())
 	case metricSystemFilesystemUsage:
-		appendSample(lines, "realtime_host_filesystem_usage_bytes", labels, metric.Value)
+		appendSample(lines, "realtime_host_filesystem_usage_bytes", labels, metric.GetValue())
 	case metricSystemFilesystemLimit:
-		appendSample(lines, "realtime_host_filesystem_limit_bytes", labels, metric.Value)
+		appendSample(lines, "realtime_host_filesystem_limit_bytes", labels, metric.GetValue())
 	case metricSystemFilesystemUsagePct:
-		appendSample(lines, "realtime_host_filesystem_usage_ratio", labels, metric.Value)
+		appendSample(lines, "realtime_host_filesystem_usage_ratio", labels, metric.GetValue())
 	}
 }
 
-func appendGitHubMetrics(lines *[]string, status GitHubSyncStatus) {
-	appendState(lines, "realtime_github_status_sync_state", nil, "state", string(status.State), []string{string(GitHubSyncDisabled), string(GitHubSyncPending), string(GitHubSyncOK), string(GitHubSyncError)})
+func appendGitHubMetrics(lines *[]string, status *mev1.GithubSyncDetail) {
+	appendState(lines, "realtime_github_status_sync_state", nil, "state", githubStateString(status.GetState()), []string{"disabled", "pending", "ok", "error"})
 }
 
 func appendState(lines *[]string, metric string, baseLabels map[string]string, stateLabel string, current string, states []string) {
@@ -236,19 +244,18 @@ func deviceLabels(deviceID string, deviceType string) map[string]string {
 }
 
 func copyLabels(labels map[string]string) map[string]string {
-	copy := map[string]string{}
+	clone := map[string]string{}
 	for key, value := range labels {
-		copy[key] = value
+		clone[key] = value
 	}
-	return copy
+	return clone
 }
 
-func unixSeconds(value string) int64 {
-	parsed, err := time.Parse(time.RFC3339, value)
-	if err != nil {
+func unixSeconds(value *timestamppb.Timestamp) int64 {
+	if value == nil {
 		return 0
 	}
-	return parsed.Unix()
+	return value.AsTime().Unix()
 }
 
 func labelSet(labels map[string]string) string {
@@ -293,4 +300,15 @@ func boolFloat(value bool) float64 {
 		return 1
 	}
 	return 0
+}
+
+func wristStateString(state mev1.WristState) string {
+	switch state {
+	case mev1.WristState_WRIST_STATE_ON_WRIST:
+		return "on_wrist"
+	case mev1.WristState_WRIST_STATE_OFF_WRIST:
+		return "off_wrist"
+	default:
+		return "unknown"
+	}
 }
