@@ -19,6 +19,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+.app-password
 
 # Generated per-repo project docs (may include private repo internals)
 docs/projects/
