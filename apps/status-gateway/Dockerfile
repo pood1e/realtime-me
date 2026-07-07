@@ -8,6 +8,10 @@ WORKDIR /src/apps/status-page
 RUN npm run build
 
 FROM golang:1.26-alpine AS build
+# GOPROXY is configurable so regional builds can use a reachable module mirror
+# (e.g. --build-arg GOPROXY=https://goproxy.cn,direct).
+ARG GOPROXY=https://proxy.golang.org,direct
+ENV GOPROXY=${GOPROXY}
 WORKDIR /src
 COPY apps/status-gateway/go.mod apps/status-gateway/go.mod
 COPY apps/status-gateway apps/status-gateway
