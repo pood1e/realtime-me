@@ -24,4 +24,7 @@ dependencies {
     implementation(dependencies.project(mapOf("path" to ":libs:protocol")))
     implementation(libs.coroutines.android)
     implementation(libs.play.services.wearable)
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.health.services.client)
+    implementation(libs.concurrent.futures.ktx)
 }

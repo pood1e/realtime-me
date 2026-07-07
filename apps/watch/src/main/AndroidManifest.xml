@@ -4,7 +4,9 @@
     <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />
 
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
-    <uses-permission android:name="android.permission.BODY_SENSORS" />
+    <uses-permission
+        android:name="android.permission.BODY_SENSORS"
+        android:maxSdkVersion="35" />
     <uses-permission
         android:name="android.permission.BODY_SENSORS_BACKGROUND"
         android:maxSdkVersion="35" />
@@ -43,8 +45,13 @@
             android:foregroundServiceType="health"
             android:stopWithTask="false" />
 
+        <service
+            android:name=".health.PassiveHealthService"
+            android:exported="true"
+            android:permission="com.google.android.wearable.healthservices.permission.PASSIVE_DATA_BINDING" />
+
         <receiver
-            android:name=".boot.SensorStartupReceiver"
+            android:name=".boot.PassiveHealthStartupReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
@@ -52,4 +59,7 @@
             </intent-filter>
         </receiver>
     </application>
+    <queries>
+        <package android:name="com.google.android.wearable.healthservices" />
+    </queries>
 </manifest>

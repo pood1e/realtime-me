@@ -1,11 +1,9 @@
 package me.realtime.watch
 
 import android.app.Activity
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Toast
-import me.realtime.watch.service.SensorCollectionService
-import me.realtime.watch.sensors.WatchSensorCollector
+import me.realtime.watch.health.PassiveHealthRegistration
 
 class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,22 +19,28 @@ class MainActivity : Activity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode != PERMISSIONS_REQUEST_CODE) return finish()
 
-        if (WatchSensorCollector.hasRequiredPermissions(this)) {
-            SensorCollectionService.start(this)
-            Toast.makeText(this, R.string.sensor_sync_started, Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(this, R.string.sensor_permissions_required, Toast.LENGTH_LONG).show()
+        if (PassiveHealthRegistration.hasRequiredPermissions(this)) {
+            PassiveHealthRegistration.enqueue(this)
+            Toast.makeText(this, R.string.passive_sync_enabled, Toast.LENGTH_SHORT).show()
+            finish()
+            return
         }
+
+        val nextPermissions = PassiveHealthRegistration.nextPermissionRequest(this).toTypedArray()
+        if (!permissions.contentEquals(nextPermissions) && nextPermissions.isNotEmpty()) {
+            requestPermissions(nextPermissions, PERMISSIONS_REQUEST_CODE)
+            return
+        }
+
+        Toast.makeText(this, R.string.health_permissions_required, Toast.LENGTH_LONG).show()
         finish()
     }
 
     private fun requestPermissionsOrStart() {
-        val missingPermissions = WatchSensorCollector.requiredPermissions()
-            .filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
-            .toTypedArray()
+        val missingPermissions = PassiveHealthRegistration.nextPermissionRequest(this).toTypedArray()
         if (missingPermissions.isEmpty()) {
-            SensorCollectionService.start(this)
-            Toast.makeText(this, R.string.sensor_sync_started, Toast.LENGTH_SHORT).show()
+            PassiveHealthRegistration.enqueue(this)
+            Toast.makeText(this, R.string.passive_sync_enabled, Toast.LENGTH_SHORT).show()
             finish()
             return
         }

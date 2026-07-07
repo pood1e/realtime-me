@@ -22,6 +22,7 @@ import kotlin.math.roundToInt
 object WatchSensorCollector {
     private const val HEART_RATE_EXTENDED_SENSOR = "com.google.sensor.heart_rate_extended"
     private const val BODY_SENSORS_BACKGROUND_PERMISSION = "android.permission.BODY_SENSORS_BACKGROUND"
+    private const val READ_HEART_RATE_PERMISSION = "android.permission.health.READ_HEART_RATE"
     private const val READ_HEALTH_DATA_IN_BACKGROUND_PERMISSION = "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"
     private const val STEP_BASELINE_PREFS = "step_counter_baseline"
     private const val BASELINE_DATE_KEY = "baseline_date"
@@ -30,7 +31,11 @@ object WatchSensorCollector {
     private val started = AtomicBoolean(false)
 
     fun requiredPermissions(): List<String> = buildList {
-        add(Manifest.permission.BODY_SENSORS)
+        if (Build.VERSION.SDK_INT >= 36) {
+            add(READ_HEART_RATE_PERMISSION)
+        } else {
+            add(Manifest.permission.BODY_SENSORS)
+        }
         add(Manifest.permission.ACTIVITY_RECOGNITION)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             add(Manifest.permission.POST_NOTIFICATIONS)
