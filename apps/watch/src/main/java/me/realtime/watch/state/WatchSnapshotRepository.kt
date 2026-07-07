@@ -50,21 +50,26 @@ class WatchSnapshotRepository(private val context: Context) {
         }.getOrNull()
     }
 
-    private fun updateSnapshot(applyUpdate: (WatchSnapshot.Builder, Instant) -> Unit): WatchSnapshot {
-        val builder = currentSnapshot()?.toBuilder() ?: WatchSnapshot.newBuilder()
-        val now = Instant.now()
-        applyUpdate(builder, now)
-        resetStaleActivityTotals(builder, now)
-        builder.snapshotId = UUID.randomUUID().toString()
-        builder.recordTime = now.toProtoTimestamp()
-        if (!builder.hasWatchState()) {
-            builder.watchState = WatchStateReader.read(context)
-        } else {
-            builder.watchState = WatchStateReader.read(context, builder.watchState.wristState)
+    // Sensor callbacks (main thread) and the periodic refresh (Dispatchers.IO)
+    // both mutate the single persisted snapshot through separate repository
+    // instances that share one SharedPreferences file, so the read-modify-write
+    // is serialized on a process-wide lock to avoid lost updates.
+    private fun updateSnapshot(applyUpdate: (WatchSnapshot.Builder, Instant) -> Unit): WatchSnapshot =
+        synchronized(SNAPSHOT_LOCK) {
+            val builder = currentSnapshot()?.toBuilder() ?: WatchSnapshot.newBuilder()
+            val now = Instant.now()
+            applyUpdate(builder, now)
+            resetStaleActivityTotals(builder, now)
+            builder.snapshotId = UUID.randomUUID().toString()
+            builder.recordTime = now.toProtoTimestamp()
+            if (!builder.hasWatchState()) {
+                builder.watchState = WatchStateReader.read(context)
+            } else {
+                builder.watchState = WatchStateReader.read(context, builder.watchState.wristState)
+            }
+            builder.deviceInfo = DeviceInfoReader.read()
+            builder.build().also(::save)
         }
-        builder.deviceInfo = DeviceInfoReader.read()
-        return builder.build().also(::save)
-    }
 
     private fun save(snapshot: WatchSnapshot) {
         preferences.edit()
@@ -88,5 +93,8 @@ class WatchSnapshotRepository(private val context: Context) {
     private companion object {
         const val PREFS_NAME = "watch_snapshot_repository"
         const val SNAPSHOT_KEY = "latest_snapshot"
+
+        // Guards the persisted-snapshot read-modify-write across all instances.
+        private val SNAPSHOT_LOCK = Any()
     }
 }

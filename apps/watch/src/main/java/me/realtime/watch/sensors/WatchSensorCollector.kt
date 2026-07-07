@@ -29,6 +29,8 @@ object WatchSensorCollector {
     private const val BASELINE_VALUE_KEY = "baseline_value"
     private const val ON_BODY_VALUE = 1.0f
     private val started = AtomicBoolean(false)
+    private var registeredSensorManager: SensorManager? = null
+    private var registeredListener: SensorEventListener? = null
 
     fun requiredPermissions(): List<String> = buildList {
         if (Build.VERSION.SDK_INT >= 36) {
@@ -71,11 +73,25 @@ object WatchSensorCollector {
             started.set(false)
             return SensorStartResult.Failure("No supported watch sensors are available")
         }
+        registeredSensorManager = sensorManager
+        registeredListener = listener
 
         val startupSnapshot = WatchSnapshotRepository(appContext)
             .refreshDeviceState(includeStepTotal = SensorKind.StepCounter in registrations)
         publish(startupSnapshot, appContext)
         return SensorStartResult.Success
+    }
+
+    // Unregisters the sensor listeners and clears the started latch so the
+    // collection service releases sensors on destroy and can re-register on a
+    // later restart. Called from the service's onDestroy.
+    fun stop() {
+        registeredListener?.let { listener ->
+            registeredSensorManager?.unregisterListener(listener)
+        }
+        registeredSensorManager = null
+        registeredListener = null
+        started.set(false)
     }
 
     fun refreshCurrentState(context: Context): SensorStartResult {

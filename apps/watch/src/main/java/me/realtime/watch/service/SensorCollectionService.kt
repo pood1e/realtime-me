@@ -52,6 +52,7 @@ class SensorCollectionService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        WatchSensorCollector.stop()
         scope.cancel()
         super.onDestroy()
     }

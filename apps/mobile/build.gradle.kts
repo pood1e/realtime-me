@@ -5,6 +5,30 @@ plugins {
 
 fun String.asBuildConfigString(): String = replace("\\", "\\\\").replace("\"", "\\\"")
 
+// Generate a network-security-config that permits cleartext for ONLY the
+// configured LAN gateway host (if any), keeping the rest of the app HTTPS-only.
+// This replaces the app-wide usesCleartextTraffic flag.
+val networkSecurityResDir = layout.buildDirectory.dir("generated/networkSecurity/res").get().asFile
+run {
+    val lanHost = providers.gradleProperty("statusGatewayLanUrl").orElse("").get()
+        .let { runCatching { java.net.URI(it).host }.getOrNull().orEmpty() }
+    val configFile = java.io.File(networkSecurityResDir, "xml/network_security_config.xml")
+    configFile.parentFile.mkdirs()
+    configFile.writeText(
+        buildString {
+            append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n")
+            append("<network-security-config>\n")
+            append("    <base-config cleartextTrafficPermitted=\"false\" />\n")
+            if (lanHost.isNotEmpty()) {
+                append("    <domain-config cleartextTrafficPermitted=\"true\">\n")
+                append("        <domain includeSubdomains=\"false\">$lanHost</domain>\n")
+                append("    </domain-config>\n")
+            }
+            append("</network-security-config>\n")
+        },
+    )
+}
+
 android {
     namespace = "me.realtime.mobile"
     compileSdk = 37
@@ -22,6 +46,10 @@ android {
         buildConfig = true
     }
 
+    sourceSets {
+        getByName("main").res.srcDir(networkSecurityResDir)
+    }
+
     buildTypes {
         all {
             buildConfigField(
@@ -34,9 +62,6 @@ android {
                 "STATUS_GATEWAY_PUBLIC_URL",
                 "\"${providers.gradleProperty("statusGatewayPublicUrl").orElse("").get().asBuildConfigString()}\"",
             )
-            manifestPlaceholders["usesCleartextTraffic"] = providers.gradleProperty("statusGatewayAllowCleartext")
-                .orElse("false")
-                .get()
         }
     }
 
