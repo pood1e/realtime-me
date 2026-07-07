@@ -173,15 +173,41 @@ func (store *StatusStore) Snapshot() GatewayStateSnapshot {
 	return store.snapshotLocked()
 }
 
+// saveLocked persists the current snapshot atomically: it writes to a temporary
+// file in the same directory, flushes it, and renames it over the state file so
+// a crash mid-write can never leave a truncated or corrupt state file.
 func (store *StatusStore) saveLocked() error {
-	if err := os.MkdirAll(filepath.Dir(store.stateFile), 0o700); err != nil {
+	directory := filepath.Dir(store.stateFile)
+	if err := os.MkdirAll(directory, 0o700); err != nil {
 		return err
 	}
 	data, err := json.Marshal(store.snapshotLocked())
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(store.stateFile, data, 0o600)
+
+	temp, err := os.CreateTemp(directory, ".status-state-*.tmp")
+	if err != nil {
+		return err
+	}
+	tempName := temp.Name()
+	defer os.Remove(tempName)
+
+	if _, err := temp.Write(data); err != nil {
+		temp.Close()
+		return err
+	}
+	if err := temp.Sync(); err != nil {
+		temp.Close()
+		return err
+	}
+	if err := temp.Close(); err != nil {
+		return err
+	}
+	if err := os.Chmod(tempName, 0o600); err != nil {
+		return err
+	}
+	return os.Rename(tempName, store.stateFile)
 }
 
 func (store *StatusStore) snapshotLocked() GatewayStateSnapshot {
