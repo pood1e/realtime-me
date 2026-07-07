@@ -54,15 +54,17 @@ func (client *PrometheusClient) ServerStatus(ctx context.Context) DeviceStatus {
 	diskTotal := client.queryScalar(ctx, `node_filesystem_size_bytes{job="node-exporter",instance="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`)
 	diskAvailable := client.queryScalar(ctx, `node_filesystem_avail_bytes{job="node-exporter",instance="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`)
 	media := client.DeviceMediaStatuses(ctx)
+	accessories := client.DeviceAccessoryStatuses(ctx)
 
 	return DeviceStatus{
-		DeviceID:  "server",
-		Kind:      "host",
-		Role:      "server",
-		State:     onlineState(up),
-		UpdatedAt: utcTime(),
-		Metrics:   systemMetrics(cpuCores, cpuUsage, memoryTotal, memoryAvailable, diskTotal, diskAvailable),
-		Media:     media["server"],
+		DeviceID:    "server",
+		Kind:        "host",
+		Role:        "server",
+		State:       onlineState(up),
+		UpdatedAt:   utcTime(),
+		Metrics:     systemMetrics(cpuCores, cpuUsage, memoryTotal, memoryAvailable, diskTotal, diskAvailable),
+		Media:       media["server"],
+		Accessories: accessories["server"],
 	}
 }
 
@@ -79,6 +81,7 @@ func (client *PrometheusClient) NodeExporterStatuses(ctx context.Context) []Devi
 	diskAvailable := samplesByInstance(client.queryVector(ctx, `node_filesystem_avail_bytes{job=~"node-exporter|vm-node-exporter",instance!="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`))
 	models := nodeModels(client.queryVector(ctx, `node_os_info{job=~"node-exporter|vm-node-exporter",instance!="server"}`), client.queryVector(ctx, `node_uname_info{job=~"node-exporter|vm-node-exporter",instance!="server"}`))
 	media := client.DeviceMediaStatuses(ctx)
+	accessories := client.DeviceAccessoryStatuses(ctx)
 
 	devices := make([]DeviceStatus, 0, len(up))
 	for _, sample := range up {
@@ -112,7 +115,8 @@ func (client *PrometheusClient) NodeExporterStatuses(ctx context.Context) []Devi
 				diskTotal[instance],
 				diskAvailable[instance],
 			),
-			Media: media[deviceID],
+			Media:       media[deviceID],
+			Accessories: accessories[deviceID],
 		})
 	}
 	sort.Slice(devices, func(left int, right int) bool {
@@ -137,6 +141,48 @@ func (client *PrometheusClient) DeviceMediaStatuses(ctx context.Context) map[str
 			Title:  title,
 			Artist: sample.Metric["artist"],
 		}
+	}
+	return statuses
+}
+
+func (client *PrometheusClient) DeviceAccessoryStatuses(ctx context.Context) map[string][]AccessoryStatus {
+	connected := client.queryVector(ctx, `realtime_device_accessory_connected{job="device-exporter"} == 1`)
+	batteries := client.queryVector(ctx, `realtime_device_accessory_battery_level_ratio{job="device-exporter"}`)
+	statuses := make(map[string][]AccessoryStatus, len(connected))
+	byKey := make(map[string]AccessoryStatus, len(connected)+len(batteries))
+
+	for _, sample := range connected {
+		deviceID, accessory, ok := accessoryFromMetric(sample.Metric)
+		if !ok {
+			continue
+		}
+		key := deviceID + "\x00" + accessoryKey(accessory)
+		byKey[key] = accessory
+	}
+	for _, sample := range batteries {
+		deviceID, accessory, ok := accessoryFromMetric(sample.Metric)
+		if !ok {
+			continue
+		}
+		percent := int(math.Round(clampRatio(sample.Value) * 100))
+		accessory.BatteryPercent = &percent
+		key := deviceID + "\x00" + accessoryKey(accessory)
+		if existing, exists := byKey[key]; exists {
+			existing.BatteryPercent = &percent
+			byKey[key] = existing
+		} else {
+			byKey[key] = accessory
+		}
+	}
+	for key, accessory := range byKey {
+		deviceID, _, ok := strings.Cut(key, "\x00")
+		if !ok || deviceID == "" {
+			continue
+		}
+		statuses[deviceID] = append(statuses[deviceID], accessory)
+	}
+	for deviceID := range statuses {
+		sortAccessories(statuses[deviceID])
 	}
 	return statuses
 }
@@ -177,6 +223,33 @@ func (client *PrometheusClient) AgentStatuses(ctx context.Context) []StoredAgent
 		return agents[left].AgentID < agents[right].AgentID
 	})
 	return agents
+}
+
+func accessoryFromMetric(labels map[string]string) (string, AccessoryStatus, bool) {
+	deviceID := firstNonEmpty(labels["device_id"], labels["instance"])
+	kind := labels["accessory_kind"]
+	name := labels["accessory_name"]
+	if deviceID == "" || kind == "" || name == "" {
+		return "", AccessoryStatus{}, false
+	}
+	return deviceID, AccessoryStatus{
+		Kind:  kind,
+		Name:  name,
+		Model: labels["accessory_model"],
+	}, true
+}
+
+func accessoryKey(accessory AccessoryStatus) string {
+	return accessory.Kind + "\x00" + accessory.Name + "\x00" + accessory.Model
+}
+
+func sortAccessories(accessories []AccessoryStatus) {
+	sort.Slice(accessories, func(left int, right int) bool {
+		if accessories[left].Kind != accessories[right].Kind {
+			return accessories[left].Kind < accessories[right].Kind
+		}
+		return accessories[left].Name < accessories[right].Name
+	})
 }
 
 func (client *PrometheusClient) Proxy(ctx context.Context, path string, values url.Values) ([]byte, int, error) {

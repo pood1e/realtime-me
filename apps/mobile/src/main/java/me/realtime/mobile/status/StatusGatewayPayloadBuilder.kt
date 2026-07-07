@@ -19,6 +19,8 @@ import java.time.Instant
 import kotlin.math.roundToInt
 
 class StatusGatewayPayloadBuilder(private val context: Context) {
+    private val accessoryReader = BluetoothAudioAccessoryReader(context)
+
     fun build(storedWatchSnapshot: StoredWatchSnapshot?): JSONObject {
         return JSONObject()
             .put("device_id", StatusDeviceIdentity(context).id())
@@ -37,6 +39,9 @@ class StatusGatewayPayloadBuilder(private val context: Context) {
             .put("battery_percent", batteryIntent?.batteryPercent() ?: 0)
             .put("charge_state", if (batteryIntent?.charging() == true) "charging" else "not_charging")
             .put("network", networkState())
+            .also { phone ->
+                accessoryReader.read().takeIf { it.length() > 0 }?.let { phone.put("accessories", it) }
+            }
     }
 
     private fun watchState(storedWatchSnapshot: StoredWatchSnapshot): JSONObject {

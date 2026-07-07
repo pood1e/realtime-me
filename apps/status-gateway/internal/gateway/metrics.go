@@ -30,6 +30,8 @@ var metricDefinitions = []metricDefinition{
 	{Name: "realtime_host_filesystem_usage_ratio", Type: "gauge", Unit: "1", OTelName: "system.filesystem.utilization", Description: "Host filesystem utilization as a fraction."},
 	{Name: "realtime_host_vm_state", Type: "gauge", Unit: "1", OTelName: "realtime.host.vm.state", Description: "Virtual machine state labelled by vm_name and state; current state is 1."},
 	{Name: "realtime_device_media_playing", Type: "gauge", Unit: "1", OTelName: "realtime.device.media.playing", Description: "Device media playback state with current title and artist labels when available."},
+	{Name: "realtime_device_accessory_connected", Type: "gauge", Unit: "1", OTelName: "realtime.device.accessory.connected", Description: "Connected accessory state labelled by accessory name and kind."},
+	{Name: "realtime_device_accessory_battery_level_ratio", Type: "gauge", Unit: "1", OTelName: "realtime.device.accessory.battery.level", Description: "Accessory battery level as a fraction of total capacity."},
 	{Name: "realtime_watch_heart_rate_beats_per_minute", Type: "gauge", Unit: "{beat}/min", OTelName: "realtime.watch.heart_rate", Description: "Latest watch heart rate."},
 	{Name: "realtime_watch_steps", Type: "gauge", Unit: "{step}", OTelName: "realtime.watch.steps", Description: "Latest watch local-day step count."},
 	{Name: "realtime_watch_wrist_state", Type: "gauge", Unit: "1", OTelName: "realtime.watch.wrist.state", Description: "Watch wrist state labelled by wrist_state; current state is 1."},
@@ -74,6 +76,7 @@ func appendMobileMetrics(lines *[]string, status StoredMobileStatus) {
 		if status.Phone.Network != "" {
 			appendState(lines, "realtime_device_network_state", map[string]string{"device_id": status.DeviceID}, "network_type", status.Phone.Network, []string{"offline", "wifi", "cellular", "vpn", "online", "unknown"})
 		}
+		appendAccessories(lines, deviceLabels(status.DeviceID, "phone"), status.Phone.Accessories)
 	}
 	if status.Watch == nil {
 		return
@@ -131,6 +134,7 @@ func appendReportedDeviceMetrics(lines *[]string, status StoredDeviceStatus) {
 	if status.Media != nil {
 		appendMedia(lines, labels, status.Media)
 	}
+	appendAccessories(lines, labels, status.Accessories)
 	for _, child := range status.Children {
 		childLabels := map[string]string{
 			"device_id":        child.DeviceID,
@@ -147,6 +151,7 @@ func appendReportedDeviceMetrics(lines *[]string, status StoredDeviceStatus) {
 		if child.Media != nil {
 			appendMedia(lines, childLabels, child.Media)
 		}
+		appendAccessories(lines, childLabels, child.Accessories)
 	}
 }
 
@@ -160,6 +165,24 @@ func appendMedia(lines *[]string, baseLabels map[string]string, media *MediaStat
 		labels["artist"] = media.Artist
 	}
 	appendSample(lines, "realtime_device_media_playing", labels, 1)
+}
+
+func appendAccessories(lines *[]string, baseLabels map[string]string, accessories []AccessoryStatus) {
+	for _, accessory := range accessories {
+		if accessory.Kind == "" || accessory.Name == "" {
+			continue
+		}
+		labels := copyLabels(baseLabels)
+		labels["accessory_kind"] = accessory.Kind
+		labels["accessory_name"] = accessory.Name
+		if accessory.Model != "" {
+			labels["accessory_model"] = accessory.Model
+		}
+		appendSample(lines, "realtime_device_accessory_connected", labels, 1)
+		if accessory.BatteryPercent != nil {
+			appendSample(lines, "realtime_device_accessory_battery_level_ratio", labels, float64(*accessory.BatteryPercent)/100)
+		}
+	}
 }
 
 func appendReportedMetric(lines *[]string, baseLabels map[string]string, metric MetricSample) {

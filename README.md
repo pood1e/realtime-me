@@ -110,7 +110,7 @@ The debug receiver exists only in debug builds and stores the token through the 
 
 ## Self-hosted status stack
 
-The status stack stores raw time-series data in Prometheus on your own host. Cloudflare only needs to expose the public API/page through a Tunnel or Worker custom domain. Linux host and VM metrics are scraped by Prometheus through node-exporter and HTTP service discovery. Extra device signals, such as the currently playing media title on macOS/Linux, are scraped from `status-device-reporter.py --serve`.
+The status stack stores raw time-series data in Prometheus on your own host. Cloudflare only needs to expose the public API/page through a Tunnel or Worker custom domain. Linux host and VM metrics are scraped by Prometheus through node-exporter and HTTP service discovery. Extra device signals, such as the currently playing media title and connected Bluetooth audio accessory battery on macOS/Linux, are scraped from `status-device-reporter.py --serve`.
 
 ```sh
 cd infra/status-stack
@@ -149,7 +149,7 @@ curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-l
   | sudo env STATUS_EXPORTER_HOST=<device-lan-ip> bash
 ```
 
-Register scrape targets centrally on the gateway side. Use `INSTALL_AGENT=1` when the device should also expose Codex/Claude active-agent state. Use `STATUS_DEVICE_ROLE=vm STATUS_DEVICE_KIND=virtual_machine` for VMs. The Linux installer does not hardcode LAN addresses; pass `STATUS_EXPORTER_HOST` when automatic route detection is not suitable. Media title collection on Linux uses `playerctl` when available. On macOS, run `scripts/status-device-reporter.py --serve` under the logged-in user so media session metadata is visible.
+Register scrape targets centrally on the gateway side. Use `INSTALL_AGENT=1` when the device should also expose Codex/Claude active-agent state. Use `STATUS_DEVICE_ROLE=vm STATUS_DEVICE_KIND=virtual_machine` for VMs. The Linux installer does not hardcode LAN addresses; pass `STATUS_EXPORTER_HOST` when automatic route detection is not suitable. Media title collection on Linux uses `playerctl` when available, and Bluetooth audio accessory discovery uses BlueZ `bluetoothctl`. On macOS, run `scripts/status-device-reporter.py --serve` under the logged-in user so media session and Bluetooth accessory metadata are visible.
 
 
 ## Public status page

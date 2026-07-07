@@ -50,7 +50,10 @@ func validatePhone(phone *PhoneStatus) bool {
 	if phone.ChargeState != "" && !validChargeState(phone.ChargeState) {
 		return false
 	}
-	return len(phone.Network) <= 40
+	if len(phone.Network) > 40 {
+		return false
+	}
+	return validateAccessories(phone.Accessories)
 }
 
 func validateWatch(watch *WatchStatus) bool {
@@ -85,6 +88,9 @@ func validateDevice(input *DeviceStatus) bool {
 	if input.Media != nil && !validateMedia(input.Media) {
 		return false
 	}
+	if !validateAccessories(input.Accessories) {
+		return false
+	}
 	for _, metric := range input.Metrics {
 		if !validateMetric(metric) {
 			return false
@@ -103,6 +109,27 @@ func validateMedia(media *MediaStatus) bool {
 		utf8.RuneCountInString(media.Title) > 0 &&
 		utf8.RuneCountInString(media.Title) <= 120 &&
 		utf8.RuneCountInString(media.Artist) <= 120
+}
+
+func validateAccessories(accessories []AccessoryStatus) bool {
+	if len(accessories) > 16 {
+		return false
+	}
+	for _, accessory := range accessories {
+		if !validateAccessory(accessory) {
+			return false
+		}
+	}
+	return true
+}
+
+func validateAccessory(accessory AccessoryStatus) bool {
+	return utf8.RuneCountInString(accessory.Kind) > 0 &&
+		utf8.RuneCountInString(accessory.Kind) <= 40 &&
+		utf8.RuneCountInString(accessory.Name) > 0 &&
+		utf8.RuneCountInString(accessory.Name) <= 120 &&
+		utf8.RuneCountInString(accessory.Model) <= 120 &&
+		(accessory.BatteryPercent == nil || inRange(*accessory.BatteryPercent, 0, 100))
 }
 
 func validateMetric(metric MetricSample) bool {

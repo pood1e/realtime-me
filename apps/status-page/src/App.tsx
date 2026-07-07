@@ -12,6 +12,7 @@ import {
   Footprints,
   Gauge,
   HardDrive,
+  Headphones,
   HeartPulse,
   KeyRound,
   Laptop,
@@ -101,7 +102,15 @@ type DeviceStatus = {
     title: string;
     artist?: string;
   };
+  accessories?: AccessoryStatus[];
   children?: DeviceStatus[];
+};
+
+type AccessoryStatus = {
+  kind: string;
+  name: string;
+  model?: string;
+  battery_percent?: number;
 };
 
 type MetricSample = {
@@ -143,6 +152,7 @@ type MobileStatus = {
     battery_percent?: number;
     charge_state?: ChargeState;
     network?: string;
+    accessories?: AccessoryStatus[];
   };
   watch?: {
     device_name?: string;
@@ -520,13 +530,14 @@ function InternalDeviceCard({ device, icon }: { device: DeviceStatus; icon: Reac
         <DeviceModel model={device.device_model} />
         <MetricBadges>
           {device.media?.title && <MediaBadge media={device.media} />}
+          <AccessoryBadges accessories={device.accessories} />
           {hasMetric(device, CPU_CORES) && <MetricBadge icon={<Cpu />} value={cpuCoreText(device)} title="CPU cores" variant="secondary" />}
           <MetricBadge icon={<Activity />} value={`${metricCount}`} title="Metrics" variant="outline" />
         </MetricBadges>
         {cpuUsage !== undefined && <ProgressMetric label="CPU" value={cpuUsage} valueText={cpuText(device)} />}
         {memory.percent !== undefined && <ProgressMetric label="Mem" value={memory.percent} valueText={memory.text} />}
         {disk.percent !== undefined && <ProgressMetric label="Disk" value={disk.percent} valueText={disk.text} />}
-        {metricCount === 0 && <CardDescription>No metrics yet</CardDescription>}
+        {metricCount === 0 && !device.media?.title && accessoryCount(device.accessories) === 0 && <CardDescription>No metrics yet</CardDescription>}
       </CardContent>
     </Card>
   );
@@ -718,7 +729,7 @@ function DeviceCard({ device, title, icon, showChildren = true }: { device: Devi
   const hasMemory = memory.percent !== undefined;
   const hasDisk = disk.percent !== undefined;
   const showCpuBadge = hasCpuCores && cpuUsage === undefined;
-  const hasAnyMetric = hasCpuCores || cpuUsage !== undefined || hasMemory || hasDisk;
+  const hasAnyMetric = hasCpuCores || cpuUsage !== undefined || hasMemory || hasDisk || !!device?.media?.title || accessoryCount(device?.accessories) > 0;
   return (
     <Card>
       <CardHeader>
@@ -733,12 +744,14 @@ function DeviceCard({ device, title, icon, showChildren = true }: { device: Devi
         {showCpuBadge && (
           <MetricBadges>
             {device?.media?.title && <MediaBadge media={device.media} />}
+            <AccessoryBadges accessories={device?.accessories} />
             <MetricBadge icon={<Cpu />} value={cpuCoreText(device)} title="CPU cores" variant="secondary" />
           </MetricBadges>
         )}
-        {!showCpuBadge && device?.media?.title && (
+        {!showCpuBadge && (device?.media?.title || accessoryCount(device?.accessories) > 0) && (
           <MetricBadges>
-            <MediaBadge media={device.media} />
+            {device?.media?.title && <MediaBadge media={device.media} />}
+            <AccessoryBadges accessories={device?.accessories} />
           </MetricBadges>
         )}
         {cpuUsage !== undefined && <ProgressMetric label="CPU" value={cpuUsage} valueText={cpuText(device)} />}
@@ -766,6 +779,7 @@ function PhoneCard({ mobile }: { mobile: MobileStatus | null }) {
       <CardContent className="space-y-4">
         <DeviceModel model={mobile?.device_model} />
         <MetricBadges>
+          <AccessoryBadges accessories={phone?.accessories} />
           <MetricBadge icon={<Battery />} value={formatBattery(phone?.battery_percent)} title="Battery" />
           {phone?.charge_state === 'charging' && <MetricBadge icon={<BatteryCharging />} value="" title="Charging" />}
           <MetricBadge icon={<Wifi />} value={phone?.network ?? '—'} title="Network" variant="secondary" />
@@ -921,6 +935,7 @@ function hostChartDefinitions(device: DeviceStatus): ChartDefinition[] {
   if (queries.cpu && hasMetric(device, CPU_USAGE)) definitions.push({ id: `${device.device_id}:cpu`, title: `${identity} CPU`, query: queries.cpu, unit: 'percent', icon: <Cpu className="size-4" /> });
   if (queries.memory && hasMetric(device, MEMORY_USAGE)) definitions.push({ id: `${device.device_id}:mem`, title: `${identity} memory`, query: queries.memory, unit: 'bytes', icon: <MemoryStick className="size-4" /> });
   if (queries.disk && hasDiskMetric(device)) definitions.push({ id: `${device.device_id}:disk`, title: `${identity} disk`, query: queries.disk, unit: 'percent', icon: <HardDrive className="size-4" /> });
+  definitions.push(...accessoryBatteryCharts(device.device_id, identity, device.accessories));
   return definitions;
 }
 
@@ -929,6 +944,7 @@ function mobileChartDefinitions(mobile: MobileStatus): ChartDefinition[] {
   if (mobile.phone?.battery_percent !== undefined) {
     definitions.push({ id: `${mobile.device_id}:phone-battery`, title: `${mobile.device_name || 'Phone'} battery`, query: `realtime_device_battery_level_ratio{device_id=${promLabel(mobile.device_id)},device_type="phone"} * 100`, unit: 'percent', icon: <Battery className="size-4" /> });
   }
+  definitions.push(...accessoryBatteryCharts(mobile.device_id, mobile.device_name || 'Phone', mobile.phone?.accessories, 'phone'));
   const watch = mobile.watch;
   if (!watch) return definitions;
   const watchName = watch.device_name || 'Watch';
@@ -942,6 +958,26 @@ function mobileChartDefinitions(mobile: MobileStatus): ChartDefinition[] {
     definitions.push({ id: `${mobile.device_id}:watch-battery`, title: `${watchName} battery`, query: `realtime_device_battery_level_ratio{device_id=${promLabel(mobile.device_id)},device_type="watch"} * 100`, unit: 'percent', icon: <Battery className="size-4" /> });
   }
   return definitions;
+}
+
+function accessoryBatteryCharts(deviceId: string, deviceName: string, accessories: AccessoryStatus[] | undefined, deviceType?: string): ChartDefinition[] {
+  return (accessories ?? [])
+    .filter((accessory) => accessory.name && accessory.battery_percent !== undefined)
+    .map((accessory) => {
+      const labels = [
+        `device_id=${promLabel(deviceId)}`,
+        `accessory_kind=${promLabel(accessory.kind)}`,
+        `accessory_name=${promLabel(accessory.name)}`,
+      ];
+      if (deviceType) labels.push(`device_type=${promLabel(deviceType)}`);
+      return {
+        id: `${deviceId}:${accessory.kind}:${accessory.name}:battery`,
+        title: `${deviceName} ${accessory.name}`,
+        query: `realtime_device_accessory_battery_level_ratio{${labels.join(',')}} * 100`,
+        unit: 'percent',
+        icon: <Headphones className="size-4" />,
+      };
+    });
 }
 
 function agentBudgetChart(agent: AgentStatus): ChartDefinition {
@@ -1103,6 +1139,7 @@ function ChildDevices({ devices }: { devices: DeviceStatus[] }) {
           </div>
           <MetricBadges>
             {device.media?.title && <MediaBadge media={device.media} maxLength={28} />}
+            <AccessoryBadges accessories={device.accessories} maxLength={28} />
             {hasMetric(device, CPU_CORES) && <MetricBadge icon={<Cpu />} value={cpuCoreText(device)} title="CPU cores" variant="secondary" />}
             {memoryValues(device).percent !== undefined && <MetricBadge icon={<MemoryStick />} value={memoryValues(device).text} title="Memory" />}
             {diskValues(device).percent !== undefined && <MetricBadge icon={<HardDrive />} value={diskValues(device).text} title="Disk" />}
@@ -1164,8 +1201,40 @@ function MediaBadge({ media, maxLength = 36 }: { media: NonNullable<DeviceStatus
   return <MetricBadge icon={<Music />} value={compactText(text, maxLength)} title={`Playing: ${text}`} variant="secondary" />;
 }
 
+function AccessoryBadges({ accessories, maxLength = 30 }: { accessories?: AccessoryStatus[]; maxLength?: number }) {
+  const connected = accessories?.filter((accessory) => accessory.name) ?? [];
+  if (connected.length === 0) return null;
+  return (
+    <>
+      {connected.map((accessory) => (
+        <MetricBadge
+          key={`${accessory.kind}:${accessory.name}:${accessory.model ?? ''}`}
+          icon={<Headphones />}
+          value={compactText(accessoryText(accessory), maxLength)}
+          title={accessoryTitle(accessory)}
+          variant="secondary"
+        />
+      ))}
+    </>
+  );
+}
+
 function mediaText(media: NonNullable<DeviceStatus['media']>): string {
   return media.artist ? `${media.title} · ${media.artist}` : media.title;
+}
+
+function accessoryText(accessory: AccessoryStatus): string {
+  return accessory.battery_percent === undefined ? accessory.name : `${accessory.name} · ${accessory.battery_percent}%`;
+}
+
+function accessoryTitle(accessory: AccessoryStatus): string {
+  return [accessory.name, accessory.model, accessory.battery_percent === undefined ? '' : `${accessory.battery_percent}%`]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+function accessoryCount(accessories: AccessoryStatus[] | undefined): number {
+  return accessories?.filter((accessory) => accessory.name).length ?? 0;
 }
 
 function InlineTime({ value }: { value?: string }) {

@@ -24,9 +24,10 @@ type MobileIngest struct {
 }
 
 type PhoneStatus struct {
-	BatteryPercent *int        `json:"battery_percent,omitempty"`
-	ChargeState    ChargeState `json:"charge_state,omitempty"`
-	Network        string      `json:"network,omitempty"`
+	BatteryPercent *int              `json:"battery_percent,omitempty"`
+	ChargeState    ChargeState       `json:"charge_state,omitempty"`
+	Network        string            `json:"network,omitempty"`
+	Accessories    []AccessoryStatus `json:"accessories,omitempty"`
 }
 
 type WatchStatus struct {
@@ -40,21 +41,29 @@ type WatchStatus struct {
 }
 
 type DeviceStatus struct {
-	DeviceID    string         `json:"device_id"`
-	DeviceName  string         `json:"device_name,omitempty"`
-	DeviceModel string         `json:"device_model,omitempty"`
-	Kind        string         `json:"kind,omitempty"`
-	Role        string         `json:"role,omitempty"`
-	State       string         `json:"state,omitempty"`
-	UpdatedAt   string         `json:"updated_at,omitempty"`
-	Metrics     []MetricSample `json:"metrics,omitempty"`
-	Media       *MediaStatus   `json:"media,omitempty"`
-	Children    []DeviceStatus `json:"children,omitempty"`
+	DeviceID    string            `json:"device_id"`
+	DeviceName  string            `json:"device_name,omitempty"`
+	DeviceModel string            `json:"device_model,omitempty"`
+	Kind        string            `json:"kind,omitempty"`
+	Role        string            `json:"role,omitempty"`
+	State       string            `json:"state,omitempty"`
+	UpdatedAt   string            `json:"updated_at,omitempty"`
+	Metrics     []MetricSample    `json:"metrics,omitempty"`
+	Media       *MediaStatus      `json:"media,omitempty"`
+	Accessories []AccessoryStatus `json:"accessories,omitempty"`
+	Children    []DeviceStatus    `json:"children,omitempty"`
 }
 
 type MediaStatus struct {
 	Title  string `json:"title"`
 	Artist string `json:"artist,omitempty"`
+}
+
+type AccessoryStatus struct {
+	Kind           string `json:"kind"`
+	Name           string `json:"name"`
+	Model          string `json:"model,omitempty"`
+	BatteryPercent *int   `json:"battery_percent,omitempty"`
 }
 
 type MetricSample struct {

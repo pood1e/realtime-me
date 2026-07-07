@@ -39,6 +39,14 @@ class MediaSnapshot:
     player: str = ""
 
 
+@dataclass(frozen=True)
+class AccessorySnapshot:
+    kind: str
+    name: str
+    model: str = ""
+    battery_percent: int | None = None
+
+
 def main() -> int:
     args = parse_args()
     if args.serve:
@@ -88,6 +96,9 @@ def build_payload(args: argparse.Namespace) -> dict:
     media = current_media()
     if media:
         payload["media"] = compact_dict({"title": media.title, "artist": media.artist})
+    accessories = bluetooth_audio_accessories()
+    if accessories:
+        payload["accessories"] = [accessory_payload(accessory) for accessory in accessories]
     return payload
 
 
@@ -161,13 +172,181 @@ def render_prometheus_metrics() -> str:
         "# HELP realtime_device_media_playing Device media playback state. OpenTelemetry name: realtime.device.media.playing.",
         "# TYPE realtime_device_media_playing gauge",
         "# UNIT realtime_device_media_playing 1",
+        "# HELP realtime_device_accessory_connected Connected accessory state labelled by accessory name and kind. OpenTelemetry name: realtime.device.accessory.connected.",
+        "# TYPE realtime_device_accessory_connected gauge",
+        "# UNIT realtime_device_accessory_connected 1",
+        "# HELP realtime_device_accessory_battery_level_ratio Accessory battery level as a fraction of total capacity. OpenTelemetry name: realtime.device.accessory.battery.level.",
+        "# TYPE realtime_device_accessory_battery_level_ratio gauge",
+        "# UNIT realtime_device_accessory_battery_level_ratio 1",
     ]
     media = current_media()
     if media:
         labels = {"title": media.title, "artist": media.artist, "player": media.player}
         lines.append(f"realtime_device_media_playing{label_set(labels)} 1")
+    for accessory in bluetooth_audio_accessories():
+        labels = accessory_labels(accessory)
+        lines.append(f"realtime_device_accessory_connected{label_set(labels)} 1")
+        if accessory.battery_percent is not None:
+            lines.append(f"realtime_device_accessory_battery_level_ratio{label_set(labels)} {accessory.battery_percent / 100:.6g}")
     lines.append("")
     return "\n".join(lines)
+
+
+def accessory_payload(accessory: AccessorySnapshot) -> dict:
+    payload: dict[str, str | int] = {
+        "kind": accessory.kind,
+        "name": accessory.name,
+    }
+    if accessory.model:
+        payload["model"] = accessory.model
+    if accessory.battery_percent is not None:
+        payload["battery_percent"] = accessory.battery_percent
+    return payload
+
+
+def accessory_labels(accessory: AccessorySnapshot) -> dict[str, str]:
+    labels = {
+        "accessory_kind": accessory.kind,
+        "accessory_name": accessory.name,
+    }
+    if accessory.model:
+        labels["accessory_model"] = accessory.model
+    return labels
+
+
+def bluetooth_audio_accessories() -> list[AccessorySnapshot]:
+    system = platform.system().lower()
+    if system == "darwin":
+        return darwin_bluetooth_audio_accessories()
+    if system == "linux":
+        return linux_bluetooth_audio_accessories()
+    return []
+
+
+def darwin_bluetooth_audio_accessories() -> list[AccessorySnapshot]:
+    output = run(["system_profiler", "SPBluetoothDataType", "-json"], timeout_seconds=8)
+    if not output:
+        return []
+    try:
+        payload = json.loads(output)
+    except json.JSONDecodeError:
+        return []
+    devices = []
+    for controller in payload.get("SPBluetoothDataType", []):
+        if not isinstance(controller, dict):
+            continue
+        connected = controller.get("device_connected", [])
+        if isinstance(connected, list):
+            devices.extend(darwin_connected_accessories(connected))
+    return unique_accessories(devices)
+
+
+def darwin_connected_accessories(devices: list) -> list[AccessorySnapshot]:
+    accessories = []
+    for item in devices:
+        if not isinstance(item, dict):
+            continue
+        for raw_name, details in item.items():
+            if not isinstance(details, dict):
+                continue
+            name = sanitize_media_text(str(raw_name))
+            minor_type = sanitize_media_text(str(details.get("device_minorType", "")))
+            services = sanitize_media_text(str(details.get("device_services", "")))
+            if not name or not is_audio_accessory(minor_type, services):
+                continue
+            accessories.append(AccessorySnapshot(
+                kind="bluetooth_audio",
+                name=name,
+                model=minor_type if minor_type and minor_type.lower() != "headphones" else "",
+                battery_percent=parse_percent(str(details.get("device_batteryLevelMain", ""))),
+            ))
+    return accessories
+
+
+def linux_bluetooth_audio_accessories() -> list[AccessorySnapshot]:
+    if not command_exists("bluetoothctl"):
+        return []
+    output = run(["bluetoothctl", "devices", "Connected"])
+    devices = parse_bluetoothctl_devices(output)
+    if not devices:
+        devices = parse_bluetoothctl_devices(run(["bluetoothctl", "devices"]))
+    accessories = []
+    for address, fallback_name in devices:
+        info = run(["bluetoothctl", "info", address])
+        if not info or not bluetoothctl_connected(info):
+            continue
+        name = sanitize_media_text(bluetoothctl_field(info, "Name") or fallback_name)
+        icon = bluetoothctl_field(info, "Icon")
+        uuids = " ".join(re.findall(r"UUID: (.+)", info))
+        if not name or not is_audio_accessory(icon, uuids):
+            continue
+        accessories.append(AccessorySnapshot(
+            kind="bluetooth_audio",
+            name=name,
+            model=sanitize_media_text(bluetoothctl_field(info, "Alias")) if bluetoothctl_field(info, "Alias") != name else "",
+            battery_percent=parse_bluetoothctl_battery(info),
+        ))
+    return unique_accessories(accessories)
+
+
+def parse_bluetoothctl_devices(output: str) -> list[tuple[str, str]]:
+    devices = []
+    for line in output.splitlines():
+        match = re.match(r"Device\s+([0-9A-Fa-f:]{17})\s+(.+)", line.strip())
+        if match:
+            devices.append((match.group(1), sanitize_media_text(match.group(2))))
+    return devices
+
+
+def bluetoothctl_connected(info: str) -> bool:
+    connected = bluetoothctl_field(info, "Connected").lower()
+    return connected == "yes" or connected == "true"
+
+
+def bluetoothctl_field(info: str, field: str) -> str:
+    pattern = re.compile(rf"^\s*{re.escape(field)}:\s*(.+?)\s*$", re.MULTILINE)
+    match = pattern.search(info)
+    return sanitize_media_text(match.group(1)) if match else ""
+
+
+def parse_bluetoothctl_battery(info: str) -> int | None:
+    for line in info.splitlines():
+        if "Battery Percentage:" not in line:
+            continue
+        parenthesized = re.search(r"\((\d{1,3})\)", line)
+        if parenthesized:
+            return clamp_percent(int(parenthesized.group(1)))
+        percent = parse_percent(line)
+        if percent is not None:
+            return percent
+    return None
+
+
+def is_audio_accessory(*values: str) -> bool:
+    text = " ".join(values).lower()
+    tokens = ("headphone", "headset", "earbud", "a2dp", "hfp", "avrcp", "audio")
+    return any(token in text for token in tokens)
+
+
+def unique_accessories(accessories: list[AccessorySnapshot]) -> list[AccessorySnapshot]:
+    by_key: dict[tuple[str, str, str], AccessorySnapshot] = {}
+    for accessory in accessories:
+        key = (accessory.kind, accessory.name, accessory.model)
+        existing = by_key.get(key)
+        if existing is None or existing.battery_percent is None:
+            by_key[key] = accessory
+    return sorted(by_key.values(), key=lambda item: (item.kind, item.name, item.model))
+
+
+def parse_percent(value: str) -> int | None:
+    match = re.search(r"(\d{1,3})\s*%", value)
+    if not match:
+        return None
+    return clamp_percent(int(match.group(1)))
+
+
+def clamp_percent(value: int) -> int:
+    return max(0, min(100, value))
 
 
 def current_media() -> MediaSnapshot | None:
@@ -458,9 +637,9 @@ def post_status(endpoint: str, token: str, payload: dict, timeout_seconds: float
     return 0
 
 
-def run(command: list[str]) -> str:
+def run(command: list[str], timeout_seconds: float = 5) -> str:
     try:
-        return subprocess.check_output(command, text=True, stderr=subprocess.DEVNULL, timeout=5)
+        return subprocess.check_output(command, text=True, stderr=subprocess.DEVNULL, timeout=timeout_seconds)
     except (OSError, subprocess.SubprocessError):
         return ""
 

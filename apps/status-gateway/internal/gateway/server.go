@@ -316,6 +316,9 @@ func mergeServerStatus(base DeviceStatus, devices []StoredDeviceStatus) DeviceSt
 		if device.Media != nil {
 			base.Media = device.Media
 		}
+		if len(device.Accessories) > 0 {
+			base.Accessories = device.Accessories
+		}
 		break
 	}
 	if base.DeviceName == "" {
@@ -354,6 +357,9 @@ func mergePrometheusDevices(primary []DeviceStatus, stored []StoredDeviceStatus)
 		existing.ReceivedAt = firstString(existing.ReceivedAt, device.ReceivedAt)
 		if device.Media != nil {
 			existing.Media = device.Media
+		}
+		if len(device.Accessories) > 0 {
+			existing.Accessories = device.Accessories
 		}
 		merged[device.DeviceID] = existing
 	}
