@@ -12,6 +12,7 @@ type Config struct {
 	IdentityStateFile              string
 	StaticDir                      string
 	IngestTokens                   map[string]struct{}
+	QueryTokens                    map[string]struct{}
 	PrometheusURL                  string
 	PublicAgentPlaceholder         bool
 	AgentFreshSeconds              int
@@ -22,12 +23,20 @@ type Config struct {
 }
 
 func LoadConfig() Config {
+	ingestTokens := parseTokens(os.Getenv("STATUS_INGEST_TOKEN"))
+	queryTokens := parseTokens(os.Getenv("STATUS_QUERY_TOKEN"))
+	if len(queryTokens) == 0 {
+		// Reading internal status defaults to the ingest token unless a distinct
+		// read-only query token is configured.
+		queryTokens = ingestTokens
+	}
 	return Config{
 		Port:                           env("PORT", "8080"),
 		StateFile:                      env("STATUS_STATE_FILE", "/data/status-state.json"),
 		IdentityStateFile:              env("STATUS_IDENTITY_STATE_FILE", "/data/identity-state.json"),
 		StaticDir:                      strings.TrimRight(strings.TrimSpace(os.Getenv("STATUS_WEB_DIR")), "/"),
-		IngestTokens:                   parseTokens(os.Getenv("STATUS_INGEST_TOKEN")),
+		IngestTokens:                   ingestTokens,
+		QueryTokens:                    queryTokens,
 		PrometheusURL:                  strings.TrimRight(env("PROMETHEUS_URL", "http://prometheus:9090"), "/"),
 		PublicAgentPlaceholder:         os.Getenv("PUBLIC_AGENT_PLACEHOLDER") == "true",
 		AgentFreshSeconds:              positiveInt("STATUS_AGENT_FRESH_SECONDS", 120),
@@ -38,11 +47,17 @@ func LoadConfig() Config {
 	}
 }
 
-func (config Config) Authorized(header string) bool {
-	if len(config.IngestTokens) == 0 || !strings.HasPrefix(header, "Bearer ") {
+// AuthorizedQuery reports whether the bearer token may read internal status and
+// query metrics.
+func (config Config) AuthorizedQuery(header string) bool {
+	return authorizedWith(config.QueryTokens, header)
+}
+
+func authorizedWith(tokens map[string]struct{}, header string) bool {
+	if len(tokens) == 0 || !strings.HasPrefix(header, "Bearer ") {
 		return false
 	}
-	_, ok := config.IngestTokens[strings.TrimSpace(strings.TrimPrefix(header, "Bearer "))]
+	_, ok := tokens[strings.TrimSpace(strings.TrimPrefix(header, "Bearer "))]
 	return ok
 }
 

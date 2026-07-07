@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -15,9 +17,11 @@ import (
 )
 
 type GitHubStatusPublisher struct {
-	config Config
-	store  *StatusStore
-	client *http.Client
+	config  Config
+	store   *StatusStore
+	client  *http.Client
+	latest  atomic.Pointer[mev1.MobileState]
+	trigger chan struct{}
 }
 
 type gitHubStatus struct {
@@ -29,13 +33,42 @@ type gitHubStatus struct {
 
 func NewGitHubStatusPublisher(config Config, store *StatusStore) *GitHubStatusPublisher {
 	return &GitHubStatusPublisher{
-		config: config,
-		store:  store,
-		client: &http.Client{Timeout: 10 * time.Second},
+		config:  config,
+		store:   store,
+		client:  &http.Client{Timeout: 10 * time.Second},
+		trigger: make(chan struct{}, 1),
 	}
 }
 
-func (publisher *GitHubStatusPublisher) Publish(ctx context.Context, mobile *mev1.MobileState) error {
+// Enqueue records the latest mobile status and wakes the publish worker without
+// blocking the ingest request. Rapid reports coalesce to a single publish of the
+// most recent status.
+func (publisher *GitHubStatusPublisher) Enqueue(mobile *mev1.MobileState) {
+	publisher.latest.Store(mobile)
+	select {
+	case publisher.trigger <- struct{}{}:
+	default:
+	}
+}
+
+// Run is the single publish worker. It owns all GitHub updates so overlapping
+// reports never issue concurrent updates, and it stops when ctx is cancelled.
+func (publisher *GitHubStatusPublisher) Run(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-publisher.trigger:
+			if mobile := publisher.latest.Load(); mobile != nil {
+				if err := publisher.publishOnce(ctx, mobile); err != nil {
+					slog.Error("failed to publish github status", "error", err)
+				}
+			}
+		}
+	}
+}
+
+func (publisher *GitHubStatusPublisher) publishOnce(ctx context.Context, mobile *mev1.MobileState) error {
 	if publisher.config.GitHubToken == "" {
 		return publisher.store.UpdateGitHub(func(status *mev1.GithubSyncDetail) {
 			status.Configured = false

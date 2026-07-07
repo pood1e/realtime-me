@@ -70,15 +70,15 @@ func (server *Server) mountConnectServices(router *gin.Engine) {
 
 	mount(mev1connect.NewEnrollmentServiceHandler(
 		NewEnrollmentServer(server.identity),
-		connect.WithInterceptors(NewAuthInterceptor(server.config)),
+		connect.WithInterceptors(NewAuthInterceptor(server.config.IngestTokens)),
 	))
 	mount(mev1connect.NewIngestServiceHandler(
 		NewIngestServer(server.store, server.identity, server.github),
-		connect.WithInterceptors(NewAuthInterceptor(server.config)),
+		connect.WithInterceptors(NewAuthInterceptor(server.config.IngestTokens)),
 	))
 	mount(mev1connect.NewStatusServiceHandler(
 		NewStatusServer(server.store, server.prometheus, server.config),
-		connect.WithInterceptors(NewAuthInterceptor(server.config, mev1connect.StatusServiceGetPublicStatusProcedure)),
+		connect.WithInterceptors(NewAuthInterceptor(server.config.QueryTokens, mev1connect.StatusServiceGetPublicStatusProcedure)),
 	))
 	mount(mev1connect.NewProfileServiceHandler(
 		NewProfileServer(server.profile),
@@ -120,7 +120,7 @@ func (server *Server) internalMetricQueryRange(writer http.ResponseWriter, reque
 }
 
 func (server *Server) prometheusProxy(writer http.ResponseWriter, request *http.Request, path string, allowedParams []string) {
-	if !server.config.Authorized(request.Header.Get("Authorization")) {
+	if !server.config.AuthorizedQuery(request.Header.Get("Authorization")) {
 		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}

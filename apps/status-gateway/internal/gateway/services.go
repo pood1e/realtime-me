@@ -3,7 +3,6 @@ package gateway
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"strings"
 	"time"
 
@@ -87,9 +86,7 @@ func (server *IngestServer) ReportMobileStatus(
 		UpdateTime:  timestamppb.New(time.Now().UTC()),
 	}
 	server.store.UpdateMobile(mobile)
-	if err := server.github.Publish(ctx, mobile); err != nil {
-		slog.Error("failed to publish github status", "error", err)
-	}
+	server.github.Enqueue(mobile)
 	return connect.NewResponse(&mev1.ReportMobileStatusResponse{}), nil
 }
 
@@ -203,9 +200,9 @@ func (server *ProfileServer) GetProfilePage(
 }
 
 // NewAuthInterceptor rejects unauthenticated server-side calls whose bearer
-// token is not a configured ingest token, except for the listed public
+// token is not in the given scope's token set, except for the listed public
 // procedures.
-func NewAuthInterceptor(config Config, publicProcedures ...string) connect.UnaryInterceptorFunc {
+func NewAuthInterceptor(tokens map[string]struct{}, publicProcedures ...string) connect.UnaryInterceptorFunc {
 	allow := make(map[string]bool, len(publicProcedures))
 	for _, procedure := range publicProcedures {
 		allow[procedure] = true
@@ -215,7 +212,7 @@ func NewAuthInterceptor(config Config, publicProcedures ...string) connect.Unary
 			if request.Spec().IsClient || allow[request.Spec().Procedure] {
 				return next(ctx, request)
 			}
-			if !config.Authorized(request.Header().Get("Authorization")) {
+			if !authorizedWith(tokens, request.Header().Get("Authorization")) {
 				return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthorized"))
 			}
 			return next(ctx, request)
