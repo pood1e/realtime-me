@@ -12,46 +12,85 @@ import (
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
+	"github.com/gin-gonic/gin"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+
+	"realtime-me/apps/status-gateway/internal/genproto/realtime/me/v1/mev1connect"
 )
 
 type Server struct {
 	config     Config
 	store      *StatusStore
+	identity   *IdentityStore
 	prometheus *PrometheusClient
 	github     *GitHubStatusPublisher
 	profile    *ProfileService
 }
 
-func NewServer(config Config, store *StatusStore, prometheus *PrometheusClient, github *GitHubStatusPublisher, profile *ProfileService) *Server {
+func NewServer(config Config, store *StatusStore, identity *IdentityStore, prometheus *PrometheusClient, github *GitHubStatusPublisher, profile *ProfileService) *Server {
 	return &Server{
 		config:     config,
 		store:      store,
+		identity:   identity,
 		prometheus: prometheus,
 		github:     github,
 		profile:    profile,
 	}
 }
 
+// Handler builds the Gin engine. Gin owns routing, CORS, and recovery; the
+// ConnectRPC services are mounted onto it, and the REST/Prometheus/static
+// endpoints are registered as Gin routes.
 func (server *Server) Handler() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", server.health)
-	mux.HandleFunc("POST /api/ingest/mobile", server.ingestMobile)
-	mux.HandleFunc("POST /api/ingest/host", server.ingestDevice)
-	mux.HandleFunc("POST /api/ingest/agent", server.ingestAgent)
-	mux.HandleFunc("POST /api/prometheus/register", server.registerPrometheusTargets)
-	mux.HandleFunc("GET /api/prometheus/http-sd/{job}", server.prometheusHTTPDiscovery)
-	mux.HandleFunc("GET /api/public-status", server.publicStatus)
-	mux.HandleFunc("GET /api/profile", server.profilePage)
-	mux.HandleFunc("GET /api/internal/status", server.internalStatus)
-	mux.HandleFunc("GET /api/internal/metrics/query", server.internalMetricQuery)
-	mux.HandleFunc("GET /api/internal/metrics/query_range", server.internalMetricQueryRange)
-	mux.HandleFunc("GET /metrics", server.metrics)
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.New()
+	router.Use(gin.Recovery(), corsMiddleware())
+
+	router.GET("/healthz", gin.WrapF(server.health))
+	router.POST("/api/ingest/mobile", gin.WrapF(server.ingestMobile))
+	router.POST("/api/ingest/host", gin.WrapF(server.ingestDevice))
+	router.POST("/api/ingest/agent", gin.WrapF(server.ingestAgent))
+	router.POST("/api/prometheus/register", gin.WrapF(server.registerPrometheusTargets))
+	router.GET("/api/prometheus/http-sd/:job", server.prometheusHTTPDiscovery)
+	router.GET("/api/public-status", gin.WrapF(server.publicStatus))
+	router.GET("/api/profile", gin.WrapF(server.profilePage))
+	router.GET("/api/internal/status", gin.WrapF(server.internalStatus))
+	router.GET("/api/internal/metrics/query", gin.WrapF(server.internalMetricQuery))
+	router.GET("/api/internal/metrics/query_range", gin.WrapF(server.internalMetricQueryRange))
+	router.GET("/metrics", gin.WrapF(server.metrics))
+
+	server.mountConnectServices(router)
+
 	if server.config.StaticDir != "" {
-		mux.HandleFunc("GET /", server.static)
+		router.NoRoute(gin.WrapF(server.static))
 	}
-	return cors(mux)
+	return router
+}
+
+// mountConnectServices mounts the ConnectRPC handlers onto the Gin router. The
+// EnrollmentService is authenticated because minting a device identity requires
+// a valid ingest token.
+func (server *Server) mountConnectServices(router *gin.Engine) {
+	enrollPath, enrollHandler := mev1connect.NewEnrollmentServiceHandler(
+		NewEnrollmentServer(server.identity),
+		connect.WithInterceptors(NewAuthInterceptor(server.config)),
+	)
+	router.Any(enrollPath+"*any", gin.WrapH(enrollHandler))
+}
+
+func corsMiddleware() gin.HandlerFunc {
+	return func(context *gin.Context) {
+		context.Header("Access-Control-Allow-Origin", "*")
+		context.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		context.Header("Access-Control-Allow-Headers", "Authorization, Content-Type, Connect-Protocol-Version, Connect-Timeout-Ms")
+		if context.Request.Method == http.MethodOptions {
+			context.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+		context.Next()
+	}
 }
 
 func (server *Server) health(writer http.ResponseWriter, _ *http.Request) {
@@ -139,13 +178,13 @@ func (server *Server) registerPrometheusTargets(writer http.ResponseWriter, requ
 	writeJSON(writer, http.StatusOK, map[string]bool{"ok": true})
 }
 
-func (server *Server) prometheusHTTPDiscovery(writer http.ResponseWriter, request *http.Request) {
-	job := request.PathValue("job")
+func (server *Server) prometheusHTTPDiscovery(context *gin.Context) {
+	job := context.Param("job")
 	if !validPrometheusJob(job) {
-		writeJSON(writer, http.StatusNotFound, map[string]string{"error": "not_found"})
+		writeJSON(context.Writer, http.StatusNotFound, map[string]string{"error": "not_found"})
 		return
 	}
-	writeJSON(writer, http.StatusOK, server.store.PrometheusHTTPDiscovery(job))
+	writeJSON(context.Writer, http.StatusOK, server.store.PrometheusHTTPDiscovery(job))
 }
 
 func (server *Server) publicStatus(writer http.ResponseWriter, request *http.Request) {
@@ -428,19 +467,6 @@ func firstString(primary string, fallback string) string {
 		return primary
 	}
 	return fallback
-}
-
-func cors(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		writer.Header().Set("Access-Control-Allow-Origin", "*")
-		writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-		if request.Method == http.MethodOptions {
-			writer.WriteHeader(http.StatusNoContent)
-			return
-		}
-		next.ServeHTTP(writer, request)
-	})
 }
 
 func writeJSON(writer http.ResponseWriter, status int, value any) {

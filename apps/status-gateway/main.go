@@ -23,6 +23,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	identity := gateway.NewIdentityStore(config.IdentityStateFile)
+	if err := identity.Load(); err != nil {
+		slog.Error("failed to load identity state", "error", err)
+		os.Exit(1)
+	}
+
 	profileConfig, err := gateway.LoadProfileConfig(config.ProfileConfigFile)
 	if err != nil {
 		slog.Error("failed to load profile config", "error", err)
@@ -31,7 +37,7 @@ func main() {
 	prometheus := gateway.NewPrometheusClient(config.PrometheusURL)
 	github := gateway.NewGitHubStatusPublisher(config, store)
 	profile := gateway.NewProfileService(profileConfig)
-	server := gateway.NewServer(config, store, prometheus, github, profile)
+	server := gateway.NewServer(config, store, identity, prometheus, github, profile)
 
 	httpServer := &http.Server{
 		Addr:              ":" + config.Port,

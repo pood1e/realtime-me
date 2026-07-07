@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Port                           string
 	StateFile                      string
+	IdentityStateFile              string
 	StaticDir                      string
 	IngestTokens                   map[string]struct{}
 	PrometheusURL                  string
@@ -24,6 +25,7 @@ func LoadConfig() Config {
 	return Config{
 		Port:                           env("PORT", "8080"),
 		StateFile:                      env("STATUS_STATE_FILE", "/data/status-state.json"),
+		IdentityStateFile:              env("STATUS_IDENTITY_STATE_FILE", "/data/identity-state.json"),
 		StaticDir:                      strings.TrimRight(strings.TrimSpace(os.Getenv("STATUS_WEB_DIR")), "/"),
 		IngestTokens:                   parseTokens(os.Getenv("STATUS_INGEST_TOKEN")),
 		PrometheusURL:                  strings.TrimRight(env("PROMETHEUS_URL", "http://prometheus:9090"), "/"),
