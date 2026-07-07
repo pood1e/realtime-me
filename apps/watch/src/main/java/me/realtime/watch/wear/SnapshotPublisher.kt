@@ -17,9 +17,12 @@ class SnapshotPublisher(private val context: Context) {
     }
 
     fun publish(payload: ReportWatchSnapshotRequest) {
-        val payloadBytes = payload.toByteArray()
+        // Publish over a single transport (the durable Data Layer item). The
+        // per-publish timestamp guarantees the item content changes so delivery
+        // is not suppressed; a parallel MessageClient send would only cause the
+        // phone to process — and forward to the gateway — every snapshot twice.
         val request = PutDataMapRequest.create(DataLayerContract.WATCH_SNAPSHOT_PATH).apply {
-            dataMap.putByteArray(DataLayerContract.SNAPSHOT_BYTES_KEY, payloadBytes)
+            dataMap.putByteArray(DataLayerContract.SNAPSHOT_BYTES_KEY, payload.toByteArray())
             dataMap.putLong(DataLayerContract.PUBLISHED_TIME_KEY, System.currentTimeMillis())
         }.asPutDataRequest().setUrgent()
 
@@ -27,21 +30,6 @@ class SnapshotPublisher(private val context: Context) {
             .putDataItem(request)
             .addOnFailureListener { error ->
                 Log.w(TAG, "Unable to publish watch snapshot as a data item", error)
-            }
-
-        Wearable.getNodeClient(context)
-            .connectedNodes
-            .addOnSuccessListener { nodes ->
-                nodes.forEach { node ->
-                    Wearable.getMessageClient(context)
-                        .sendMessage(node.id, DataLayerContract.WATCH_SNAPSHOT_PATH, payloadBytes)
-                        .addOnFailureListener { error ->
-                            Log.w(TAG, "Unable to publish watch snapshot as a message", error)
-                        }
-                }
-            }
-            .addOnFailureListener { error ->
-                Log.w(TAG, "Unable to resolve connected phone nodes", error)
             }
     }
 

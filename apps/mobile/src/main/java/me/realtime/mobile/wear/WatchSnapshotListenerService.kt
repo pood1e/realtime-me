@@ -3,7 +3,6 @@ package me.realtime.mobile.wear
 import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.DataMapItem
-import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.WearableListenerService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,13 +25,6 @@ class WatchSnapshotListenerService : WearableListenerService() {
             }
         } finally {
             dataEvents.release()
-        }
-    }
-
-    override fun onMessageReceived(messageEvent: MessageEvent) {
-        if (messageEvent.path != DataLayerContract.WATCH_SNAPSHOT_PATH) return
-        scope.launch {
-            StatusSyncRunner(applicationContext).syncPayload(messageEvent.data)
         }
     }
 
