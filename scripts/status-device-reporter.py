@@ -188,13 +188,14 @@ def darwin_media() -> MediaSnapshot | None:
 
 
 def darwin_nowplaying_cli() -> MediaSnapshot | None:
-    if not command_exists("nowplaying-cli"):
+    command = command_path("nowplaying-cli")
+    if not command:
         return None
-    title = run(["nowplaying-cli", "get", "title"]).strip()
+    title = run([command, "get", "title"]).strip()
     if not title:
         return None
-    artist = run(["nowplaying-cli", "get", "artist"]).strip()
-    player = run(["nowplaying-cli", "get", "bundleIdentifier"]).strip()
+    artist = run([command, "get", "artist"]).strip()
+    player = run([command, "get", "bundleIdentifier"]).strip()
     return MediaSnapshot(
         title=sanitize_media_text(title),
         artist=sanitize_media_text(artist),
@@ -283,12 +284,25 @@ def run_osascript(script: str) -> str:
 
 
 def command_exists(name: str) -> bool:
-    return shutil.which(name) is not None
+    return command_path(name) is not None
+
+
+def command_path(name: str) -> str | None:
+    path = shutil.which(name)
+    if path:
+        return path
+    for directory in ("/opt/homebrew/bin", "/usr/local/bin"):
+        candidate = Path(directory) / name
+        if candidate.exists() and os.access(candidate, os.X_OK):
+            return str(candidate)
+    return None
 
 
 def sanitize_media_text(value: str) -> str:
     text = re.sub(r"[\x00-\x1f\x7f]", " ", value)
     text = re.sub(r"\s+", " ", text).strip()
+    if text.lower() == "null":
+        return ""
     if len(text) <= 120:
         return text
     return text[:119].rstrip() + "…"
