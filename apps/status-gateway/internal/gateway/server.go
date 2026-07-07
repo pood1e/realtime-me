@@ -11,6 +11,9 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 type Server struct {
@@ -18,14 +21,16 @@ type Server struct {
 	store      *StatusStore
 	prometheus *PrometheusClient
 	github     *GitHubStatusPublisher
+	profile    *ProfileService
 }
 
-func NewServer(config Config, store *StatusStore, prometheus *PrometheusClient, github *GitHubStatusPublisher) *Server {
+func NewServer(config Config, store *StatusStore, prometheus *PrometheusClient, github *GitHubStatusPublisher, profile *ProfileService) *Server {
 	return &Server{
 		config:     config,
 		store:      store,
 		prometheus: prometheus,
 		github:     github,
+		profile:    profile,
 	}
 }
 
@@ -38,6 +43,7 @@ func (server *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/prometheus/register", server.registerPrometheusTargets)
 	mux.HandleFunc("GET /api/prometheus/http-sd/{job}", server.prometheusHTTPDiscovery)
 	mux.HandleFunc("GET /api/public-status", server.publicStatus)
+	mux.HandleFunc("GET /api/profile", server.profilePage)
 	mux.HandleFunc("GET /api/internal/status", server.internalStatus)
 	mux.HandleFunc("GET /api/internal/metrics/query", server.internalMetricQuery)
 	mux.HandleFunc("GET /api/internal/metrics/query_range", server.internalMetricQueryRange)
@@ -144,6 +150,10 @@ func (server *Server) prometheusHTTPDiscovery(writer http.ResponseWriter, reques
 
 func (server *Server) publicStatus(writer http.ResponseWriter, request *http.Request) {
 	writeJSON(writer, http.StatusOK, server.status(request.Context()))
+}
+
+func (server *Server) profilePage(writer http.ResponseWriter, _ *http.Request) {
+	writeProtoJSON(writer, http.StatusOK, server.profile.Page(time.Now()))
 }
 
 func (server *Server) internalStatus(writer http.ResponseWriter, request *http.Request) {
@@ -437,4 +447,20 @@ func writeJSON(writer http.ResponseWriter, status int, value any) {
 	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	writer.WriteHeader(status)
 	_ = json.NewEncoder(writer).Encode(value)
+}
+
+// writeProtoJSON serializes a protobuf message using the canonical proto3 JSON
+// mapping (camelCase field names, RFC 3339 timestamps, string enums) so the
+// generated client types decode it without any manual mapping.
+func writeProtoJSON(writer http.ResponseWriter, status int, message proto.Message) {
+	data, err := protojson.Marshal(message)
+	if err != nil {
+		slog.Error("failed to encode protobuf response", "error", err)
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "encode_failed"})
+		return
+	}
+	writer.Header().Set("Cache-Control", "no-store")
+	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+	writer.WriteHeader(status)
+	_, _ = writer.Write(data)
 }

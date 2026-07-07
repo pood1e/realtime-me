@@ -7,12 +7,12 @@ type Env = {
   STATUS_API_BASE_URL?: string;
 };
 
-const PUBLIC_STATUS_PATH = '/api/public-status';
+const PUBLIC_API_PATHS = new Set(['/api/public-status', '/api/profile']);
 
 export default {
   fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname === PUBLIC_STATUS_PATH) return proxyStatusApi(url, env);
+    if (PUBLIC_API_PATHS.has(url.pathname)) return proxyStatusApi(url, env);
     return env.ASSETS.fetch(request);
   },
 };
@@ -23,7 +23,7 @@ function proxyStatusApi(url: URL, env: Env): Promise<Response> {
     return Promise.resolve(json({ error: 'status_api_not_configured' }, 503));
   }
 
-  const upstreamUrl = new URL(`${upstreamBaseUrl}${PUBLIC_STATUS_PATH}`);
+  const upstreamUrl = new URL(`${upstreamBaseUrl}${url.pathname}`);
   upstreamUrl.search = url.search;
   return fetch(upstreamUrl, {
     headers: { Accept: 'application/json' },

@@ -17,6 +17,7 @@ type Config struct {
 	GitHubToken                    string
 	GitHubStatusMinIntervalSeconds int
 	GitHubStatusTTLMinutes         int
+	ProfileConfigFile              string
 }
 
 func LoadConfig() Config {
@@ -31,6 +32,7 @@ func LoadConfig() Config {
 		GitHubToken:                    secretEnv("GITHUB_TOKEN"),
 		GitHubStatusMinIntervalSeconds: positiveInt("GITHUB_STATUS_MIN_INTERVAL_SECONDS", 10),
 		GitHubStatusTTLMinutes:         positiveInt("GITHUB_STATUS_TTL_MINUTES", 20),
+		ProfileConfigFile:              strings.TrimSpace(os.Getenv("PROFILE_CONFIG_FILE")),
 	}
 }
 

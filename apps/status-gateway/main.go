@@ -14,9 +14,15 @@ func main() {
 		slog.Error("failed to load state", "error", err)
 	}
 
+	profileConfig, err := gateway.LoadProfileConfig(config.ProfileConfigFile)
+	if err != nil {
+		slog.Error("failed to load profile config", "error", err)
+	}
+
 	prometheus := gateway.NewPrometheusClient(config.PrometheusURL)
 	github := gateway.NewGitHubStatusPublisher(config, store)
-	server := gateway.NewServer(config, store, prometheus, github)
+	profile := gateway.NewProfileService(profileConfig)
+	server := gateway.NewServer(config, store, prometheus, github, profile)
 
 	address := ":" + config.Port
 	slog.Info("status-gateway listening", "address", address)

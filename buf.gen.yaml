@@ -1,0 +1,15 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: realtime-me/apps/status-gateway/internal/genproto
+plugins:
+  - local: protoc-gen-go
+    out: apps/status-gateway/internal/genproto
+    opt: paths=source_relative
+  - local: node_modules/.bin/protoc-gen-es
+    out: apps/status-page/src/gen
+    opt:
+      - target=ts
+      - json_types=true

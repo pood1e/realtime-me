@@ -8,9 +8,12 @@ import {
   CheckCircle2,
   CircleOff,
   Clock,
+  Code,
   Cpu,
+  ExternalLink,
   Footprints,
   Gauge,
+  Globe,
   HardDrive,
   Headphones,
   HeartPulse,
@@ -18,12 +21,16 @@ import {
   Laptop,
   LineChart as LineChartIcon,
   LoaderCircle,
+  Lock,
   LogOut,
+  Mail,
+  MapPin,
   MemoryStick,
   Music,
   RefreshCw,
   Server,
   ShieldCheck,
+  Star,
   Watch,
   Wifi,
 } from 'lucide-react';
@@ -67,6 +74,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { ProfileJson, ProfileLinkJson, ProfilePageJson, ProjectJson } from '@/gen/realtime/me/v1/profile_pb';
 
 type AgentMotionAsset = {
   src: string;
@@ -250,7 +258,10 @@ const DEFAULT_MOTION_ASSETS: AgentMotionAsset[] = [{ src: agentOrbitUrl, duratio
 const StatusChart = lazy(() => import('@/components/StatusChart'));
 
 export function App() {
-  return window.location.pathname.startsWith('/internal') ? <InternalStatusApp /> : <PublicStatusApp />;
+  const path = window.location.pathname;
+  if (path.startsWith('/internal')) return <InternalStatusApp />;
+  if (path.startsWith('/about')) return <ProfileApp />;
+  return <PublicStatusApp />;
 }
 
 function PublicStatusApp() {
@@ -278,7 +289,10 @@ function PublicStatusApp() {
   return (
     <PageFrame>
       <header className="flex items-center justify-between gap-4">
-        <SiteLogo />
+        <div className="flex items-center gap-3">
+          <SiteLogo />
+          <NavLinks />
+        </div>
         <HeaderActions failed={failed} refresh={refresh} />
       </header>
 
@@ -304,6 +318,171 @@ function PublicStatusApp() {
       <PageFooter updatedAt={status?.updated_at} />
     </PageFrame>
   );
+}
+
+function ProfileApp() {
+  const apiBaseUrl = useMemo(statusApiBaseUrl, []);
+  const [page, setPage] = useState<ProfilePageJson | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  const refresh = useCallback(async () => {
+    const next = await fetchJSON<ProfilePageJson>(`${apiBaseUrl}/api/profile`);
+    setFailed(next === null);
+    if (next) setPage(next);
+  }, [apiBaseUrl]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const projects = page?.projects ?? [];
+
+  return (
+    <PageFrame>
+      <header className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <SiteLogo />
+          <NavLinks />
+        </div>
+        <HeaderActions failed={failed} refresh={refresh} />
+      </header>
+
+      <ProfileIntro profile={page?.profile} loaded={page !== null} />
+
+      <StatusSection title="Projects" icon={<BrandIcon icon={siGithub} />} columns="md:grid-cols-2 xl:grid-cols-3">
+        {page === null ? (
+          <LoadingCard />
+        ) : projects.length === 0 ? (
+          <EmptyCard text="No projects yet" />
+        ) : (
+          projects.map((project) => <ProjectCard key={project.uid ?? project.displayName} project={project} />)
+        )}
+      </StatusSection>
+
+      <PageFooter updatedAt={page?.updateTime} />
+    </PageFrame>
+  );
+}
+
+function ProfileIntro({ profile, loaded }: { profile?: ProfileJson; loaded: boolean }) {
+  if (!loaded) return <LoadingCard />;
+  if (!profile) return <EmptyCard text="Profile not configured" />;
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-4">
+          {profile.avatarUrl && (
+            <img src={profile.avatarUrl} alt={profile.displayName ?? 'avatar'} className="size-16 rounded-full border border-border" width={64} height={64} />
+          )}
+          <div className="grid gap-1">
+            <CardTitle className="text-2xl tracking-tight">{profile.displayName || '—'}</CardTitle>
+            {profile.headline && <CardDescription>{profile.headline}</CardDescription>}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        {profile.bio && <p className="whitespace-pre-line text-sm text-muted-foreground">{profile.bio}</p>}
+        <div className="flex flex-wrap items-center gap-2">
+          {profile.location && <Badge variant="outline"><MapPin />{profile.location}</Badge>}
+          {profile.githubLogin && (
+            <a href={`https://github.com/${profile.githubLogin}`} target="_blank" rel="noreferrer" aria-label="GitHub profile">
+              <Badge variant="secondary"><BrandIcon icon={siGithub} />{profile.githubLogin}</Badge>
+            </a>
+          )}
+        </div>
+        <ProfileLinks links={profile.links ?? []} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProfileLinks({ links }: { links: ProfileLinkJson[] }) {
+  if (links.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {links.map((link) => (
+        <Button key={`${link.platform ?? ''}:${link.uri ?? ''}`} asChild variant="outline" size="sm">
+          <a href={link.uri} target="_blank" rel="noreferrer">
+            {linkIcon(link)}
+            {link.label || link.platform || link.uri}
+          </a>
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+function ProjectCard({ project }: { project: ProjectJson }) {
+  const isPrivate = project.visibility === 'PROJECT_VISIBILITY_PRIVATE';
+  const blurb = project.summary || project.description;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex min-w-0 items-center gap-2">
+          <span className="truncate">{project.displayName || '—'}</span>
+        </CardTitle>
+        <CardAction>
+          <Badge variant={isPrivate ? 'secondary' : 'outline'} title={isPrivate ? 'Private' : 'Public'}>
+            {isPrivate ? <Lock /> : <BrandIcon icon={siGithub} />}
+            {isPrivate ? 'Private' : 'Public'}
+          </Badge>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        {blurb && <p className="text-sm text-muted-foreground">{blurb}</p>}
+        {project.topics && project.topics.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {project.topics.map((topic) => <Badge key={topic} variant="outline">{topic}</Badge>)}
+          </div>
+        )}
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+          {project.primaryLanguage && <span className="flex items-center gap-1"><Code className="size-3.5" />{project.primaryLanguage}</span>}
+          {!!project.starCount && <span className="flex items-center gap-1"><Star className="size-3.5" />{project.starCount}</span>}
+          {project.lastPushTime && <span className="flex items-center gap-1"><Clock className="size-3.5" />{formatDateTime(project.lastPushTime)}</span>}
+        </div>
+        <ProjectLinks project={project} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProjectLinks({ project }: { project: ProjectJson }) {
+  if (!project.repositoryUrl && !project.homepageUrl) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {project.repositoryUrl && (
+        <Button asChild variant="outline" size="sm">
+          <a href={project.repositoryUrl} target="_blank" rel="noreferrer"><BrandIcon icon={siGithub} />Repository</a>
+        </Button>
+      )}
+      {project.homepageUrl && (
+        <Button asChild variant="secondary" size="sm">
+          <a href={project.homepageUrl} target="_blank" rel="noreferrer"><ExternalLink />Homepage</a>
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function linkIcon(link: ProfileLinkJson): ReactElement {
+  const platform = (link.platform ?? '').toLowerCase();
+  if (platform === 'github') return <BrandIcon icon={siGithub} />;
+  if (platform === 'email' || (link.uri ?? '').startsWith('mailto:')) return <Mail />;
+  return <Globe />;
+}
+
+function NavLinks() {
+  const onAbout = window.location.pathname.startsWith('/about');
+  return (
+    <nav className="flex items-center gap-1 text-sm">
+      <a href="/" className={navLinkClass(!onAbout)}>Status</a>
+      <a href="/about" className={navLinkClass(onAbout)}>About</a>
+    </nav>
+  );
+}
+
+function navLinkClass(active: boolean): string {
+  return `rounded-md px-2.5 py-1 font-medium transition-colors ${active ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`;
 }
 
 function InternalStatusApp() {

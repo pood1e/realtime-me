@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package realtime.me.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "me.realtime.protocol.v1";
+
+// ProfilePage is the personal profile document served to the status page.
+// It bundles the owner's introduction with the curated set of GitHub projects
+// already projected for public display and ordered for rendering.
+message ProfilePage {
+  // profile is the owner's personal introduction.
+  Profile profile = 1;
+
+  // projects are the curated GitHub projects in display order.
+  repeated Project projects = 2;
+
+  // update_time is when this profile document was last assembled.
+  google.protobuf.Timestamp update_time = 3;
+}
+
+// Profile is the owner's personal introduction shown at the top of the page.
+message Profile {
+  // display_name is the human-readable name shown as the page heading.
+  string display_name = 1;
+
+  // headline is a short one-line tagline shown under the name.
+  string headline = 2;
+
+  // bio is a longer free-form introduction in Markdown.
+  string bio = 3;
+
+  // avatar_url is the URL of the profile picture.
+  string avatar_url = 4;
+
+  // location is a human-readable location label, such as a city.
+  string location = 5;
+
+  // github_login is the GitHub username whose repositories drive the projects.
+  string github_login = 6;
+
+  // links are external profile and contact links.
+  repeated ProfileLink links = 7;
+}
+
+// ProfileLink is one external link shown on the profile, such as a social handle.
+message ProfileLink {
+  // label is the human-readable link text.
+  string label = 1;
+
+  // uri is the link target.
+  string uri = 2;
+
+  // platform is a lowercase platform key used to pick an icon, such as
+  // "github", "x", or "website". Unknown values fall back to a generic icon.
+  string platform = 3;
+}
+
+// Project is one curated GitHub repository presented as a personal project.
+message Project {
+  // uid is the system-assigned opaque identifier for this project.
+  string uid = 1;
+
+  // display_name is the shown project title; it defaults to the repository name.
+  string display_name = 2;
+
+  // description is the repository's own short description from GitHub.
+  string description = 3;
+
+  // summary is the generated per-repository summary shown on the card.
+  // It is empty until the summary has been produced.
+  string summary = 4;
+
+  // visibility indicates whether the source repository is public or private.
+  ProjectVisibility visibility = 5;
+
+  // primary_language is the repository's main programming language.
+  string primary_language = 6;
+
+  // topics are the repository topics used as tags.
+  repeated string topics = 7;
+
+  // star_count is the repository's stargazer count.
+  int32 star_count = 8;
+
+  // repository_url is the GitHub page for the repository. It is omitted for
+  // private projects on the public surface.
+  string repository_url = 9;
+
+  // homepage_url is the project's homepage or live demo, if any.
+  string homepage_url = 10;
+
+  // last_push_time is the most recent push to the repository.
+  google.protobuf.Timestamp last_push_time = 11;
+}
+
+// ProjectVisibility describes the source repository's visibility on GitHub.
+enum ProjectVisibility {
+  // Visibility is not known.
+  PROJECT_VISIBILITY_UNSPECIFIED = 0;
+
+  // The repository is publicly visible on GitHub.
+  PROJECT_VISIBILITY_PUBLIC = 1;
+
+  // The repository is private on GitHub.
+  PROJECT_VISIBILITY_PRIVATE = 2;
+}

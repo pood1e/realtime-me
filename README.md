@@ -164,11 +164,57 @@ npx wrangler deploy --config apps/status-page/wrangler.jsonc \
   --var STATUS_API_BASE_URL:https://api-status.example.com
 ```
 
-The Worker serves the SPA and proxies only `GET /api/public-status` to `STATUS_API_BASE_URL`, so the browser reads status from the same origin:
+The Worker serves the SPA and proxies `GET /api/public-status` and `GET /api/profile` to `STATUS_API_BASE_URL`, so the browser reads both from the same origin:
 
 ```text
 https://me.pood1e.space/api/public-status
+https://me.pood1e.space/api/profile
 ```
+
+## Profile page
+
+`/about` renders a personal profile with GitHub projects. The gateway is passive: it reads a static profile config file (`PROFILE_CONFIG_FILE`) and serves it at `GET /api/profile`. It never calls GitHub or Claude and holds no keys. `GET /api/profile` withholds `repository_url` for `private` projects, which are shown with a badge and no link.
+
+The config holds the bio, contact links, and the projects collected once as data:
+
+```json
+{
+  "profile": {
+    "display_name": "pood1e",
+    "headline": "Realtime device tinkerer",
+    "bio": "I build realtime status pipelines for my devices.",
+    "github_login": "pood1e",
+    "links": [
+      { "label": "Email", "uri": "mailto:me@example.com", "platform": "email" },
+      { "label": "GitHub", "uri": "https://github.com/pood1e", "platform": "github" }
+    ]
+  },
+  "projects": [
+    {
+      "display_name": "Realtime Me",
+      "summary": "A self-hosted pipeline that publishes live device health to a status page.",
+      "visibility": "public",
+      "primary_language": "Go",
+      "repository_url": "https://github.com/pood1e/realtime-me"
+    }
+  ]
+}
+```
+
+### Collecting projects (one-time)
+
+Projects are a one-time collection, not a live feed. `scripts/collect-projects.py` fetches your repositories and, when `ANTHROPIC_API_KEY` is set, writes a short per-repository summary with Claude, then stores them in the config. Re-run it only when you want to refresh.
+
+```sh
+# All owned repos + summaries, written into the gateway's profile config
+GITHUB_TOKEN=... ANTHROPIC_API_KEY=... \
+  ./scripts/collect-projects.py --config /data/profile.json
+
+# Specific repos, printed to stdout (no summaries)
+GITHUB_TOKEN=... ./scripts/collect-projects.py --repos realtime-me,dotfiles
+```
+
+The GitHub token and Anthropic key are used only while the script runs, never by the gateway. Including private repositories needs a token with repository read access (classic `repo`, or a fine-grained token with *Contents* + *Metadata: read*); summaries need `pip install anthropic`.
 
 ## Runtime setup
 
