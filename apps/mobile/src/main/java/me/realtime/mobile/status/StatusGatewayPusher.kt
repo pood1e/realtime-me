@@ -11,6 +11,7 @@ import java.time.Instant
 class StatusGatewayPusher(context: Context) {
     private val appContext = context.applicationContext
     private val tokenStore = StatusGatewayTokenStore(appContext)
+    private val identityStore = StatusDeviceIdentity(appContext)
     private val snapshotStore = WatchSnapshotStore(appContext)
     private val payloadBuilder = StatusGatewayPayloadBuilder(appContext)
     private val client = StatusGatewayClient()
@@ -20,8 +21,21 @@ class StatusGatewayPusher(context: Context) {
             Log.w(TAG, "Status gateway token is not configured")
             return StatusGatewayPushResult.Disabled
         }
-        val payload = payloadBuilder.build(snapshotStore.latest()?.takeIfFresh())
-        return client.push(token, payload)
+        val deviceUid = ensureDeviceUid(token) ?: run {
+            Log.w(TAG, "Status gateway enrollment did not return a device uid")
+            return StatusGatewayPushResult.Failure
+        }
+        val request = payloadBuilder.build(deviceUid, snapshotStore.latest()?.takeIfFresh())
+        return client.reportMobile(token, request)
+    }
+
+    // Enroll once to obtain the gateway-owned device uid, then reuse the cached
+    // value on every subsequent report.
+    private fun ensureDeviceUid(token: String): String? {
+        identityStore.uid()?.let { return it }
+        val uid = client.enroll(token, payloadBuilder.enrollRequest()) ?: return null
+        identityStore.save(uid)
+        return uid
     }
 
     private fun StoredWatchSnapshot.takeIfFresh(now: Instant = Instant.now()): StoredWatchSnapshot? {

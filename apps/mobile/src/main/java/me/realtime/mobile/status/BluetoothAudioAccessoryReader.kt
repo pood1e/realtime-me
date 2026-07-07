@@ -9,15 +9,14 @@ import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import org.json.JSONArray
-import org.json.JSONObject
+import me.realtime.protocol.v1.Accessory
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 class BluetoothAudioAccessoryReader(private val context: Context) {
-    fun read(): JSONArray {
-        if (!hasBluetoothPermission()) return JSONArray()
-        val adapter = context.getSystemService(BluetoothManager::class.java)?.adapter ?: return JSONArray()
+    fun read(): List<Accessory> {
+        if (!hasBluetoothPermission()) return emptyList()
+        val adapter = context.getSystemService(BluetoothManager::class.java)?.adapter ?: return emptyList()
         val devices = linkedMapOf<String, BluetoothDevice>()
         for (profile in audioProfiles()) {
             for (device in connectedDevices(adapter, profile)) {
@@ -27,11 +26,7 @@ class BluetoothAudioAccessoryReader(private val context: Context) {
             }
         }
 
-        return JSONArray().apply {
-            devices.values
-                .mapNotNull { it.toAccessoryJson() }
-                .forEach(::put)
-        }
+        return devices.values.mapNotNull { it.toAccessory() }
     }
 
     private fun hasBluetoothPermission(): Boolean {
@@ -71,15 +66,14 @@ class BluetoothAudioAccessoryReader(private val context: Context) {
         }
     }
 
-    private fun BluetoothDevice.toAccessoryJson(): JSONObject? {
+    private fun BluetoothDevice.toAccessory(): Accessory? {
         val name = displayName()
         if (name.isBlank()) return null
-        return JSONObject()
-            .put("kind", ACCESSORY_KIND)
-            .put("name", name)
-            .also { payload ->
-                batteryPercent()?.let { payload.put("battery_percent", it) }
-            }
+        val builder = Accessory.newBuilder()
+            .setKind(ACCESSORY_KIND)
+            .setDisplayName(name)
+        batteryPercent()?.let { builder.setBatteryPercent(it) }
+        return builder.build()
     }
 
     private fun BluetoothDevice.displayName(): String {

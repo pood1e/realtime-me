@@ -13,52 +13,51 @@ import android.os.Build
 import android.provider.Settings
 import me.realtime.mobile.state.StoredWatchSnapshot
 import me.realtime.protocol.v1.ChargeState
-import me.realtime.protocol.v1.WristState
-import org.json.JSONObject
-import java.time.Instant
+import me.realtime.protocol.v1.DeviceKind
+import me.realtime.protocol.v1.EnrollDeviceRequest
+import me.realtime.protocol.v1.NetworkState
+import me.realtime.protocol.v1.PhoneState
+import me.realtime.protocol.v1.ReportMobileStatusRequest
 import kotlin.math.roundToInt
 
 class StatusGatewayPayloadBuilder(private val context: Context) {
     private val accessoryReader = BluetoothAudioAccessoryReader(context)
 
-    fun build(storedWatchSnapshot: StoredWatchSnapshot?): JSONObject {
-        return JSONObject()
-            .put("device_id", StatusDeviceIdentity(context).id())
-            .put("device_name", deviceName())
-            .put("device_model", deviceModel())
-            .put("updated_at", Instant.now().toString())
-            .put("phone", phoneState())
-            .also { payload ->
-                storedWatchSnapshot?.let { payload.put("watch", watchState(it)) }
-            }
+    /** The one-time enrollment request describing this phone to the gateway. */
+    fun enrollRequest(): EnrollDeviceRequest = EnrollDeviceRequest.newBuilder()
+        .setKind(DeviceKind.DEVICE_KIND_PHONE)
+        .setDisplayName(deviceName())
+        .setModel(deviceModel())
+        .build()
+
+    fun build(deviceUid: String, storedWatchSnapshot: StoredWatchSnapshot?): ReportMobileStatusRequest {
+        val builder = ReportMobileStatusRequest.newBuilder()
+            .setDeviceUid(deviceUid)
+            .setDisplayName(deviceName())
+            .setModel(deviceModel())
+            .setPhone(phoneState())
+        // Forward the watch snapshot verbatim; the gateway applies the off-wrist
+        // heart-rate rule, so it reuses the same WatchSnapshot Data Layer contract.
+        storedWatchSnapshot?.let { builder.setWatch(it.snapshot) }
+        return builder.build()
     }
 
-    private fun phoneState(): JSONObject {
+    private fun phoneState(): PhoneState {
         val batteryIntent = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
-        return JSONObject()
-            .put("battery_percent", batteryIntent?.batteryPercent() ?: 0)
-            .put("charge_state", if (batteryIntent?.charging() == true) "charging" else "not_charging")
-            .put("network", networkState())
-            .also { phone ->
-                accessoryReader.read().takeIf { it.length() > 0 }?.let { phone.put("accessories", it) }
-            }
-    }
-
-    private fun watchState(storedWatchSnapshot: StoredWatchSnapshot): JSONObject {
-        val snapshot = storedWatchSnapshot.snapshot
-        val state = JSONObject()
-            .put("steps", snapshot.activityTotals.steps)
-            .put("battery_percent", snapshot.watchState.batteryPercent)
-            .put("charge_state", snapshot.watchState.chargeState.toWireValue())
-            .put("wrist_state", snapshot.watchState.wristState.toWireValue())
-        if (snapshot.hasDeviceInfo()) {
-            state.put("device_name", snapshot.deviceInfo.displayName)
-            state.put("device_model", snapshot.deviceInfo.model)
+        val builder = PhoneState.newBuilder()
+            .setNetwork(networkState())
+            .addAllAccessories(accessoryReader.read())
+        if (batteryIntent != null) {
+            builder.setBatteryPercent(batteryIntent.batteryPercent())
+            builder.setChargeState(
+                if (batteryIntent.charging()) {
+                    ChargeState.CHARGE_STATE_CHARGING
+                } else {
+                    ChargeState.CHARGE_STATE_NOT_CHARGING
+                },
+            )
         }
-        if (snapshot.watchState.wristState != WristState.WRIST_STATE_OFF_WRIST && snapshot.heartRate.beatsPerMinute > 0) {
-            state.put("heart_rate", snapshot.heartRate.beatsPerMinute)
-        }
-        return state
+        return builder.build()
     }
 
     private fun deviceName(): String = firstNonBlank(
@@ -86,16 +85,18 @@ class StatusGatewayPayloadBuilder(private val context: Context) {
         return values.firstOrNull { !it.isNullOrBlank() && !it.equals("null", ignoreCase = true) }?.trim().orEmpty()
     }
 
-    private fun networkState(): String {
-        val manager = context.getSystemService(ConnectivityManager::class.java) ?: return "unknown"
-        val network = manager.activeNetwork ?: return "offline"
-        val capabilities = manager.getNetworkCapabilities(network) ?: return "unknown"
+    private fun networkState(): NetworkState {
+        val manager = context.getSystemService(ConnectivityManager::class.java)
+            ?: return NetworkState.NETWORK_STATE_UNSPECIFIED
+        val network = manager.activeNetwork ?: return NetworkState.NETWORK_STATE_OFFLINE
+        val capabilities = manager.getNetworkCapabilities(network)
+            ?: return NetworkState.NETWORK_STATE_UNSPECIFIED
         return when {
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "wifi"
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "cellular"
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> "vpn"
-            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) -> "online"
-            else -> "offline"
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> NetworkState.NETWORK_STATE_WIFI
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> NetworkState.NETWORK_STATE_CELLULAR
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> NetworkState.NETWORK_STATE_VPN
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) -> NetworkState.NETWORK_STATE_ONLINE
+            else -> NetworkState.NETWORK_STATE_OFFLINE
         }
     }
 
@@ -112,17 +113,5 @@ class StatusGatewayPayloadBuilder(private val context: Context) {
         return status == BatteryManager.BATTERY_STATUS_CHARGING ||
             status == BatteryManager.BATTERY_STATUS_FULL ||
             plugged != 0
-    }
-
-    private fun ChargeState.toWireValue(): String = when (this) {
-        ChargeState.CHARGE_STATE_CHARGING -> "charging"
-        ChargeState.CHARGE_STATE_NOT_CHARGING -> "not_charging"
-        else -> "unknown"
-    }
-
-    private fun WristState.toWireValue(): String = when (this) {
-        WristState.WRIST_STATE_ON_WRIST -> "on_wrist"
-        WristState.WRIST_STATE_OFF_WRIST -> "off_wrist"
-        else -> "unknown"
     }
 }

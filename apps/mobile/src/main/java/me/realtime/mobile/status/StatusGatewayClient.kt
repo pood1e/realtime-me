@@ -2,52 +2,72 @@ package me.realtime.mobile.status
 
 import android.util.Log
 import me.realtime.mobile.BuildConfig
-import org.json.JSONObject
+import me.realtime.protocol.v1.EnrollDeviceRequest
+import me.realtime.protocol.v1.EnrollDeviceResponse
+import me.realtime.protocol.v1.ReportMobileStatusRequest
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
-import java.nio.charset.StandardCharsets
 
+/**
+ * Talks to the gateway's ConnectRPC services. Unary Connect calls are a plain
+ * POST whose body is the binary-serialized request message (Content-Type
+ * application/proto) and whose 2xx response body is the serialized response
+ * message, so the javalite runtime needs no JSON support.
+ */
 class StatusGatewayClient(
     private val endpoints: List<String> = configuredEndpoints(),
 ) {
-    fun push(token: String, payload: JSONObject): StatusGatewayPushResult {
+    /** Enrolls the phone and returns the gateway-assigned device uid, or null. */
+    fun enroll(token: String, request: EnrollDeviceRequest): String? {
+        for (endpoint in endpoints) {
+            val body = post(endpoint, ENROLL_PROCEDURE, token, request.toByteArray()) ?: continue
+            val uid = runCatching { EnrollDeviceResponse.parseFrom(body).deviceUid }.getOrNull()
+            if (!uid.isNullOrEmpty()) return uid
+        }
+        return null
+    }
+
+    fun reportMobile(token: String, request: ReportMobileStatusRequest): StatusGatewayPushResult {
         if (endpoints.isEmpty()) {
             Log.w(TAG, "Status gateway endpoint is not configured")
             return StatusGatewayPushResult.Disabled
         }
         for (endpoint in endpoints) {
-            if (post(endpoint, token, payload)) return StatusGatewayPushResult.Success
+            if (post(endpoint, REPORT_PROCEDURE, token, request.toByteArray()) != null) {
+                return StatusGatewayPushResult.Success
+            }
         }
         Log.w(TAG, "Status gateway push failed for all configured endpoints")
         return StatusGatewayPushResult.Failure
     }
 
-    private fun post(endpoint: String, token: String, payload: JSONObject): Boolean {
+    private fun post(endpoint: String, procedure: String, token: String, body: ByteArray): ByteArray? {
         var connection: HttpURLConnection? = null
-
         return try {
-            connection = (URL("${endpoint.trimEnd('/')}/api/ingest/mobile").openConnection() as HttpURLConnection).apply {
+            val url = URL("${endpoint.trimEnd('/')}/$procedure")
+            connection = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 connectTimeout = TIMEOUT_MS
                 readTimeout = TIMEOUT_MS
                 doOutput = true
-                setRequestProperty("Accept", "application/json")
-                setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                setRequestProperty("Accept", CONTENT_TYPE)
+                setRequestProperty("Content-Type", CONTENT_TYPE)
                 setRequestProperty("Authorization", "Bearer $token")
             }
-            connection.outputStream.use { output -> output.write(payload.toString().toByteArray(StandardCharsets.UTF_8)) }
+            connection.outputStream.use { it.write(body) }
             val responseCode = connection.responseCode
             if (responseCode !in 200..299) {
-                Log.w(TAG, "Status gateway rejected payload with HTTP $responseCode")
+                Log.w(TAG, "Status gateway rejected $procedure with HTTP $responseCode")
+                return null
             }
-            responseCode in 200..299
+            connection.inputStream.use { it.readBytes() }
         } catch (exception: IOException) {
             Log.w(TAG, "Status gateway network error: ${exception.javaClass.simpleName}")
-            false
+            null
         } catch (exception: RuntimeException) {
             Log.w(TAG, "Status gateway request error: ${exception.javaClass.simpleName}")
-            false
+            null
         } finally {
             connection?.disconnect()
         }
@@ -56,6 +76,9 @@ class StatusGatewayClient(
     private companion object {
         const val TAG = "RealtimeStatus"
         const val TIMEOUT_MS = 5_000
+        const val CONTENT_TYPE = "application/proto"
+        const val ENROLL_PROCEDURE = "realtime.me.v1.EnrollmentService/EnrollDevice"
+        const val REPORT_PROCEDURE = "realtime.me.v1.IngestService/ReportMobileStatus"
 
         fun configuredEndpoints(): List<String> = buildList {
             BuildConfig.STATUS_GATEWAY_LAN_URL.trim().takeIf { it.isNotEmpty() }?.let(::add)
