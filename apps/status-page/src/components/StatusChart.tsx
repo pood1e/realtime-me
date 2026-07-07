@@ -1,12 +1,6 @@
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
-
-type ChartUnit = 'percent' | 'bytes' | 'count' | 'rate';
-
-type ChartPoint = {
-  time: number;
-  value: number;
-};
+import { chartValue, formatChartTime, type ChartPoint, type ChartUnit } from '@/lib/format';
 
 const AREA_CHART_CONFIG = {
   value: {
@@ -27,22 +21,4 @@ export default function StatusChart({ data, unit }: { data: ChartPoint[]; unit: 
       </AreaChart>
     </ChartContainer>
   );
-}
-
-function chartValue(unit: ChartUnit, value: number): string {
-  if (unit === 'bytes') return formatGigabytes(value);
-  if (unit === 'percent') return formatPercent(value);
-  return Math.round(value).toLocaleString();
-}
-
-function formatPercent(value: number | null | undefined): string {
-  return value === null || value === undefined ? '—' : `${Math.round(value)}%`;
-}
-
-function formatGigabytes(value: number): string {
-  return `${(value / 1024 / 1024 / 1024).toFixed(1)}GB`;
-}
-
-function formatChartTime(value: number): string {
-  return new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 }

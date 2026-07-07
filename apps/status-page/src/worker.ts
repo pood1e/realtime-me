@@ -7,17 +7,21 @@ type Env = {
   STATUS_API_BASE_URL?: string;
 };
 
-const PUBLIC_API_PATHS = new Set(['/api/public-status', '/api/profile']);
+// ConnectRPC calls are POSTed to /<proto package>.<Service>/<Method>; the
+// internal dashboard also reads the Prometheus metrics proxy under /api/.
+const PROXY_PREFIXES = ['/realtime.me.v1.', '/api/'];
 
 export default {
   fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    if (PUBLIC_API_PATHS.has(url.pathname)) return proxyStatusApi(url, env);
+    if (PROXY_PREFIXES.some((prefix) => url.pathname.startsWith(prefix))) {
+      return proxyStatusApi(request, url, env);
+    }
     return env.ASSETS.fetch(request);
   },
 };
 
-function proxyStatusApi(url: URL, env: Env): Promise<Response> {
+function proxyStatusApi(request: Request, url: URL, env: Env): Promise<Response> {
   const upstreamBaseUrl = env.STATUS_API_BASE_URL?.trim().replace(/\/+$/, '');
   if (!upstreamBaseUrl) {
     return Promise.resolve(json({ error: 'status_api_not_configured' }, 503));
@@ -25,9 +29,7 @@ function proxyStatusApi(url: URL, env: Env): Promise<Response> {
 
   const upstreamUrl = new URL(`${upstreamBaseUrl}${url.pathname}`);
   upstreamUrl.search = url.search;
-  return fetch(upstreamUrl, {
-    headers: { Accept: 'application/json' },
-  }).then((response) => withNoStore(response));
+  return fetch(new Request(upstreamUrl, request)).then((response) => withNoStore(response));
 }
 
 function withNoStore(response: Response): Response {

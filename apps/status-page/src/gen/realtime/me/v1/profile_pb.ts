@@ -2,8 +2,8 @@
 // @generated from file realtime/me/v1/profile.proto (package realtime.me.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
-import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp, TimestampJson } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,7 +12,65 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file realtime/me/v1/profile.proto.
  */
 export const file_realtime_me_v1_profile: GenFile = /*@__PURE__*/
-  fileDesc("ChxyZWFsdGltZS9tZS92MS9wcm9maWxlLnByb3RvEg5yZWFsdGltZS5tZS52MSKTAQoLUHJvZmlsZVBhZ2USKAoHcHJvZmlsZRgBIAEoCzIXLnJlYWx0aW1lLm1lLnYxLlByb2ZpbGUSKQoIcHJvamVjdHMYAiADKAsyFy5yZWFsdGltZS5tZS52MS5Qcm9qZWN0Ei8KC3VwZGF0ZV90aW1lGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKmAQoHUHJvZmlsZRIUCgxkaXNwbGF5X25hbWUYASABKAkSEAoIaGVhZGxpbmUYAiABKAkSCwoDYmlvGAMgASgJEhIKCmF2YXRhcl91cmwYBCABKAkSEAoIbG9jYXRpb24YBSABKAkSFAoMZ2l0aHViX2xvZ2luGAYgASgJEioKBWxpbmtzGAcgAygLMhsucmVhbHRpbWUubWUudjEuUHJvZmlsZUxpbmsiOwoLUHJvZmlsZUxpbmsSDQoFbGFiZWwYASABKAkSCwoDdXJpGAIgASgJEhAKCHBsYXRmb3JtGAMgASgJIqkCCgdQcm9qZWN0EgsKA3VpZBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSDwoHc3VtbWFyeRgEIAEoCRI1Cgp2aXNpYmlsaXR5GAUgASgOMiEucmVhbHRpbWUubWUudjEuUHJvamVjdFZpc2liaWxpdHkSGAoQcHJpbWFyeV9sYW5ndWFnZRgGIAEoCRIOCgZ0b3BpY3MYByADKAkSEgoKc3Rhcl9jb3VudBgIIAEoBRIWCg5yZXBvc2l0b3J5X3VybBgJIAEoCRIUCgxob21lcGFnZV91cmwYCiABKAkSMgoObGFzdF9wdXNoX3RpbWUYCyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wKnYKEVByb2plY3RWaXNpYmlsaXR5EiIKHlBST0pFQ1RfVklTSUJJTElUWV9VTlNQRUNJRklFRBAAEh0KGVBST0pFQ1RfVklTSUJJTElUWV9QVUJMSUMQARIeChpQUk9KRUNUX1ZJU0lCSUxJVFlfUFJJVkFURRACQsMBChJjb20ucmVhbHRpbWUubWUudjFCDFByb2ZpbGVQcm90b1ABWkVyZWFsdGltZS1tZS9hcHBzL3N0YXR1cy1nYXRld2F5L2ludGVybmFsL2dlbnByb3RvL3JlYWx0aW1lL21lL3YxO21ldjGiAgNSTViqAg5SZWFsdGltZS5NZS5WMcoCDlJlYWx0aW1lXE1lXFYx4gIaUmVhbHRpbWVcTWVcVjFcR1BCTWV0YWRhdGHqAhBSZWFsdGltZTo6TWU6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("ChxyZWFsdGltZS9tZS92MS9wcm9maWxlLnByb3RvEg5yZWFsdGltZS5tZS52MSIXChVHZXRQcm9maWxlUGFnZVJlcXVlc3QiQwoWR2V0UHJvZmlsZVBhZ2VSZXNwb25zZRIpCgRwYWdlGAEgASgLMhsucmVhbHRpbWUubWUudjEuUHJvZmlsZVBhZ2UikwEKC1Byb2ZpbGVQYWdlEigKB3Byb2ZpbGUYASABKAsyFy5yZWFsdGltZS5tZS52MS5Qcm9maWxlEikKCHByb2plY3RzGAIgAygLMhcucmVhbHRpbWUubWUudjEuUHJvamVjdBIvCgt1cGRhdGVfdGltZRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAipgEKB1Byb2ZpbGUSFAoMZGlzcGxheV9uYW1lGAEgASgJEhAKCGhlYWRsaW5lGAIgASgJEgsKA2JpbxgDIAEoCRISCgphdmF0YXJfdXJsGAQgASgJEhAKCGxvY2F0aW9uGAUgASgJEhQKDGdpdGh1Yl9sb2dpbhgGIAEoCRIqCgVsaW5rcxgHIAMoCzIbLnJlYWx0aW1lLm1lLnYxLlByb2ZpbGVMaW5rIjsKC1Byb2ZpbGVMaW5rEg0KBWxhYmVsGAEgASgJEgsKA3VyaRgCIAEoCRIQCghwbGF0Zm9ybRgDIAEoCSKpAgoHUHJvamVjdBILCgN1aWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEg8KB3N1bW1hcnkYBCABKAkSNQoKdmlzaWJpbGl0eRgFIAEoDjIhLnJlYWx0aW1lLm1lLnYxLlByb2plY3RWaXNpYmlsaXR5EhgKEHByaW1hcnlfbGFuZ3VhZ2UYBiABKAkSDgoGdG9waWNzGAcgAygJEhIKCnN0YXJfY291bnQYCCABKAUSFgoOcmVwb3NpdG9yeV91cmwYCSABKAkSFAoMaG9tZXBhZ2VfdXJsGAogASgJEjIKDmxhc3RfcHVzaF90aW1lGAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCp2ChFQcm9qZWN0VmlzaWJpbGl0eRIiCh5QUk9KRUNUX1ZJU0lCSUxJVFlfVU5TUEVDSUZJRUQQABIdChlQUk9KRUNUX1ZJU0lCSUxJVFlfUFVCTElDEAESHgoaUFJPSkVDVF9WSVNJQklMSVRZX1BSSVZBVEUQAjJxCg5Qcm9maWxlU2VydmljZRJfCg5HZXRQcm9maWxlUGFnZRIlLnJlYWx0aW1lLm1lLnYxLkdldFByb2ZpbGVQYWdlUmVxdWVzdBomLnJlYWx0aW1lLm1lLnYxLkdldFByb2ZpbGVQYWdlUmVzcG9uc2VCwwEKEmNvbS5yZWFsdGltZS5tZS52MUIMUHJvZmlsZVByb3RvUAFaRXJlYWx0aW1lLW1lL2FwcHMvc3RhdHVzLWdhdGV3YXkvaW50ZXJuYWwvZ2VucHJvdG8vcmVhbHRpbWUvbWUvdjE7bWV2MaICA1JNWKoCDlJlYWx0aW1lLk1lLlYxygIOUmVhbHRpbWVcTWVcVjHiAhpSZWFsdGltZVxNZVxWMVxHUEJNZXRhZGF0YeoCEFJlYWx0aW1lOjpNZTo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
+
+/**
+ * GetProfilePageRequest is the request for the profile document.
+ *
+ * @generated from message realtime.me.v1.GetProfilePageRequest
+ */
+export type GetProfilePageRequest = Message<"realtime.me.v1.GetProfilePageRequest"> & {
+};
+
+/**
+ * GetProfilePageRequest is the request for the profile document.
+ *
+ * @generated from message realtime.me.v1.GetProfilePageRequest
+ */
+export type GetProfilePageRequestJson = {
+};
+
+/**
+ * Describes the message realtime.me.v1.GetProfilePageRequest.
+ * Use `create(GetProfilePageRequestSchema)` to create a new message.
+ */
+export const GetProfilePageRequestSchema: GenMessage<GetProfilePageRequest, {jsonType: GetProfilePageRequestJson}> = /*@__PURE__*/
+  messageDesc(file_realtime_me_v1_profile, 0);
+
+/**
+ * GetProfilePageResponse carries the profile document.
+ *
+ * @generated from message realtime.me.v1.GetProfilePageResponse
+ */
+export type GetProfilePageResponse = Message<"realtime.me.v1.GetProfilePageResponse"> & {
+  /**
+   * page is the public profile document.
+   *
+   * @generated from field: realtime.me.v1.ProfilePage page = 1;
+   */
+  page?: ProfilePage | undefined;
+};
+
+/**
+ * GetProfilePageResponse carries the profile document.
+ *
+ * @generated from message realtime.me.v1.GetProfilePageResponse
+ */
+export type GetProfilePageResponseJson = {
+  /**
+   * page is the public profile document.
+   *
+   * @generated from field: realtime.me.v1.ProfilePage page = 1;
+   */
+  page?: ProfilePageJson;
+};
+
+/**
+ * Describes the message realtime.me.v1.GetProfilePageResponse.
+ * Use `create(GetProfilePageResponseSchema)` to create a new message.
+ */
+export const GetProfilePageResponseSchema: GenMessage<GetProfilePageResponse, {jsonType: GetProfilePageResponseJson}> = /*@__PURE__*/
+  messageDesc(file_realtime_me_v1_profile, 1);
 
 /**
  * ProfilePage is the personal profile document served to the status page.
@@ -79,7 +137,7 @@ export type ProfilePageJson = {
  * Use `create(ProfilePageSchema)` to create a new message.
  */
 export const ProfilePageSchema: GenMessage<ProfilePage, {jsonType: ProfilePageJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_profile, 0);
+  messageDesc(file_realtime_me_v1_profile, 2);
 
 /**
  * Profile is the owner's personal introduction shown at the top of the page.
@@ -198,7 +256,7 @@ export type ProfileJson = {
  * Use `create(ProfileSchema)` to create a new message.
  */
 export const ProfileSchema: GenMessage<Profile, {jsonType: ProfileJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_profile, 1);
+  messageDesc(file_realtime_me_v1_profile, 3);
 
 /**
  * ProfileLink is one external link shown on the profile, such as a social handle.
@@ -263,7 +321,7 @@ export type ProfileLinkJson = {
  * Use `create(ProfileLinkSchema)` to create a new message.
  */
 export const ProfileLinkSchema: GenMessage<ProfileLink, {jsonType: ProfileLinkJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_profile, 2);
+  messageDesc(file_realtime_me_v1_profile, 4);
 
 /**
  * Project is one curated GitHub repository presented as a personal project.
@@ -442,7 +500,7 @@ export type ProjectJson = {
  * Use `create(ProjectSchema)` to create a new message.
  */
 export const ProjectSchema: GenMessage<Project, {jsonType: ProjectJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_profile, 3);
+  messageDesc(file_realtime_me_v1_profile, 5);
 
 /**
  * ProjectVisibility describes the source repository's visibility on GitHub.
@@ -484,4 +542,23 @@ export type ProjectVisibilityJson = "PROJECT_VISIBILITY_UNSPECIFIED" | "PROJECT_
  */
 export const ProjectVisibilitySchema: GenEnum<ProjectVisibility, ProjectVisibilityJson> = /*@__PURE__*/
   enumDesc(file_realtime_me_v1_profile, 0);
+
+/**
+ * ProfileService serves the personal profile page document.
+ *
+ * @generated from service realtime.me.v1.ProfileService
+ */
+export const ProfileService: GenService<{
+  /**
+   * GetProfilePage returns the public profile document.
+   *
+   * @generated from rpc realtime.me.v1.ProfileService.GetProfilePage
+   */
+  getProfilePage: {
+    methodKind: "unary";
+    input: typeof GetProfilePageRequestSchema;
+    output: typeof GetProfilePageResponseSchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_realtime_me_v1_profile, 0);
 
