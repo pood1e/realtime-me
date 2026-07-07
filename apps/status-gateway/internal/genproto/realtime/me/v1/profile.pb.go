@@ -75,6 +75,89 @@ func (ProjectVisibility) EnumDescriptor() ([]byte, []int) {
 	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{0}
 }
 
+// GetProfilePageRequest is the request for the profile document.
+type GetProfilePageRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetProfilePageRequest) Reset() {
+	*x = GetProfilePageRequest{}
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetProfilePageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetProfilePageRequest) ProtoMessage() {}
+
+func (x *GetProfilePageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetProfilePageRequest.ProtoReflect.Descriptor instead.
+func (*GetProfilePageRequest) Descriptor() ([]byte, []int) {
+	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{0}
+}
+
+// GetProfilePageResponse carries the profile document.
+type GetProfilePageResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// page is the public profile document.
+	Page          *ProfilePage `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetProfilePageResponse) Reset() {
+	*x = GetProfilePageResponse{}
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetProfilePageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetProfilePageResponse) ProtoMessage() {}
+
+func (x *GetProfilePageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetProfilePageResponse.ProtoReflect.Descriptor instead.
+func (*GetProfilePageResponse) Descriptor() ([]byte, []int) {
+	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GetProfilePageResponse) GetPage() *ProfilePage {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
 // ProfilePage is the personal profile document served to the status page.
 // It bundles the owner's introduction with the curated set of GitHub projects
 // already projected for public display and ordered for rendering.
@@ -92,7 +175,7 @@ type ProfilePage struct {
 
 func (x *ProfilePage) Reset() {
 	*x = ProfilePage{}
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[0]
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -104,7 +187,7 @@ func (x *ProfilePage) String() string {
 func (*ProfilePage) ProtoMessage() {}
 
 func (x *ProfilePage) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[0]
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -117,7 +200,7 @@ func (x *ProfilePage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProfilePage.ProtoReflect.Descriptor instead.
 func (*ProfilePage) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{0}
+	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ProfilePage) GetProfile() *Profile {
@@ -164,7 +247,7 @@ type Profile struct {
 
 func (x *Profile) Reset() {
 	*x = Profile{}
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[1]
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -176,7 +259,7 @@ func (x *Profile) String() string {
 func (*Profile) ProtoMessage() {}
 
 func (x *Profile) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[1]
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -189,7 +272,7 @@ func (x *Profile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Profile.ProtoReflect.Descriptor instead.
 func (*Profile) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{1}
+	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Profile) GetDisplayName() string {
@@ -257,7 +340,7 @@ type ProfileLink struct {
 
 func (x *ProfileLink) Reset() {
 	*x = ProfileLink{}
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[2]
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -269,7 +352,7 @@ func (x *ProfileLink) String() string {
 func (*ProfileLink) ProtoMessage() {}
 
 func (x *ProfileLink) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[2]
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -282,7 +365,7 @@ func (x *ProfileLink) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProfileLink.ProtoReflect.Descriptor instead.
 func (*ProfileLink) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{2}
+	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ProfileLink) GetLabel() string {
@@ -339,7 +422,7 @@ type Project struct {
 
 func (x *Project) Reset() {
 	*x = Project{}
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[3]
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -351,7 +434,7 @@ func (x *Project) String() string {
 func (*Project) ProtoMessage() {}
 
 func (x *Project) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[3]
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -364,7 +447,7 @@ func (x *Project) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Project.ProtoReflect.Descriptor instead.
 func (*Project) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{3}
+	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Project) GetUid() string {
@@ -448,7 +531,10 @@ var File_realtime_me_v1_profile_proto protoreflect.FileDescriptor
 
 const file_realtime_me_v1_profile_proto_rawDesc = "" +
 	"\n" +
-	"\x1crealtime/me/v1/profile.proto\x12\x0erealtime.me.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb2\x01\n" +
+	"\x1crealtime/me/v1/profile.proto\x12\x0erealtime.me.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x17\n" +
+	"\x15GetProfilePageRequest\"I\n" +
+	"\x16GetProfilePageResponse\x12/\n" +
+	"\x04page\x18\x01 \x01(\v2\x1b.realtime.me.v1.ProfilePageR\x04page\"\xb2\x01\n" +
 	"\vProfilePage\x121\n" +
 	"\aprofile\x18\x01 \x01(\v2\x17.realtime.me.v1.ProfileR\aprofile\x123\n" +
 	"\bprojects\x18\x02 \x03(\v2\x17.realtime.me.v1.ProjectR\bprojects\x12;\n" +
@@ -486,7 +572,9 @@ const file_realtime_me_v1_profile_proto_rawDesc = "" +
 	"\x11ProjectVisibility\x12\"\n" +
 	"\x1ePROJECT_VISIBILITY_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19PROJECT_VISIBILITY_PUBLIC\x10\x01\x12\x1e\n" +
-	"\x1aPROJECT_VISIBILITY_PRIVATE\x10\x02B\xc3\x01\n" +
+	"\x1aPROJECT_VISIBILITY_PRIVATE\x10\x022q\n" +
+	"\x0eProfileService\x12_\n" +
+	"\x0eGetProfilePage\x12%.realtime.me.v1.GetProfilePageRequest\x1a&.realtime.me.v1.GetProfilePageResponseB\xc3\x01\n" +
 	"\x12com.realtime.me.v1B\fProfileProtoP\x01ZErealtime-me/apps/status-gateway/internal/genproto/realtime/me/v1;mev1\xa2\x02\x03RMX\xaa\x02\x0eRealtime.Me.V1\xca\x02\x0eRealtime\\Me\\V1\xe2\x02\x1aRealtime\\Me\\V1\\GPBMetadata\xea\x02\x10Realtime::Me::V1b\x06proto3"
 
 var (
@@ -502,27 +590,32 @@ func file_realtime_me_v1_profile_proto_rawDescGZIP() []byte {
 }
 
 var file_realtime_me_v1_profile_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_realtime_me_v1_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_realtime_me_v1_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_realtime_me_v1_profile_proto_goTypes = []any{
-	(ProjectVisibility)(0),        // 0: realtime.me.v1.ProjectVisibility
-	(*ProfilePage)(nil),           // 1: realtime.me.v1.ProfilePage
-	(*Profile)(nil),               // 2: realtime.me.v1.Profile
-	(*ProfileLink)(nil),           // 3: realtime.me.v1.ProfileLink
-	(*Project)(nil),               // 4: realtime.me.v1.Project
-	(*timestamppb.Timestamp)(nil), // 5: google.protobuf.Timestamp
+	(ProjectVisibility)(0),         // 0: realtime.me.v1.ProjectVisibility
+	(*GetProfilePageRequest)(nil),  // 1: realtime.me.v1.GetProfilePageRequest
+	(*GetProfilePageResponse)(nil), // 2: realtime.me.v1.GetProfilePageResponse
+	(*ProfilePage)(nil),            // 3: realtime.me.v1.ProfilePage
+	(*Profile)(nil),                // 4: realtime.me.v1.Profile
+	(*ProfileLink)(nil),            // 5: realtime.me.v1.ProfileLink
+	(*Project)(nil),                // 6: realtime.me.v1.Project
+	(*timestamppb.Timestamp)(nil),  // 7: google.protobuf.Timestamp
 }
 var file_realtime_me_v1_profile_proto_depIdxs = []int32{
-	2, // 0: realtime.me.v1.ProfilePage.profile:type_name -> realtime.me.v1.Profile
-	4, // 1: realtime.me.v1.ProfilePage.projects:type_name -> realtime.me.v1.Project
-	5, // 2: realtime.me.v1.ProfilePage.update_time:type_name -> google.protobuf.Timestamp
-	3, // 3: realtime.me.v1.Profile.links:type_name -> realtime.me.v1.ProfileLink
-	0, // 4: realtime.me.v1.Project.visibility:type_name -> realtime.me.v1.ProjectVisibility
-	5, // 5: realtime.me.v1.Project.last_push_time:type_name -> google.protobuf.Timestamp
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	3, // 0: realtime.me.v1.GetProfilePageResponse.page:type_name -> realtime.me.v1.ProfilePage
+	4, // 1: realtime.me.v1.ProfilePage.profile:type_name -> realtime.me.v1.Profile
+	6, // 2: realtime.me.v1.ProfilePage.projects:type_name -> realtime.me.v1.Project
+	7, // 3: realtime.me.v1.ProfilePage.update_time:type_name -> google.protobuf.Timestamp
+	5, // 4: realtime.me.v1.Profile.links:type_name -> realtime.me.v1.ProfileLink
+	0, // 5: realtime.me.v1.Project.visibility:type_name -> realtime.me.v1.ProjectVisibility
+	7, // 6: realtime.me.v1.Project.last_push_time:type_name -> google.protobuf.Timestamp
+	1, // 7: realtime.me.v1.ProfileService.GetProfilePage:input_type -> realtime.me.v1.GetProfilePageRequest
+	2, // 8: realtime.me.v1.ProfileService.GetProfilePage:output_type -> realtime.me.v1.GetProfilePageResponse
+	8, // [8:9] is the sub-list for method output_type
+	7, // [7:8] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_realtime_me_v1_profile_proto_init() }
@@ -536,9 +629,9 @@ func file_realtime_me_v1_profile_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_realtime_me_v1_profile_proto_rawDesc), len(file_realtime_me_v1_profile_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
-			NumServices:   0,
+			NumServices:   1,
 		},
 		GoTypes:           file_realtime_me_v1_profile_proto_goTypes,
 		DependencyIndexes: file_realtime_me_v1_profile_proto_depIdxs,

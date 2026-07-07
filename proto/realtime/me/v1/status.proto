@@ -1,0 +1,222 @@
+syntax = "proto3";
+
+package realtime.me.v1;
+
+import "google/protobuf/timestamp.proto";
+import "realtime/me/v1/status_types.proto";
+import "realtime/me/v1/watch.proto";
+
+option java_multiple_files = true;
+option java_package = "me.realtime.protocol.v1";
+
+// StatusService serves the aggregated status surfaces.
+service StatusService {
+  // GetPublicStatus returns the unauthenticated status document.
+  rpc GetPublicStatus(GetPublicStatusRequest) returns (GetPublicStatusResponse);
+
+  // GetInternalStatus returns the authenticated status document with sync
+  // diagnostics.
+  rpc GetInternalStatus(GetInternalStatusRequest) returns (GetInternalStatusResponse);
+}
+
+// GetPublicStatusRequest is the request for the public status document.
+message GetPublicStatusRequest {}
+
+// GetPublicStatusResponse carries the public status document.
+message GetPublicStatusResponse {
+  // status is the public status document.
+  PublicStatus status = 1;
+}
+
+// GetInternalStatusRequest is the request for the internal status document.
+message GetInternalStatusRequest {}
+
+// GetInternalStatusResponse carries the internal status document.
+message GetInternalStatusResponse {
+  // status is the internal status document.
+  InternalStatus status = 1;
+}
+
+// DeviceState is a device's current status on a read surface.
+message DeviceState {
+  // device_uid is the gateway-assigned device identity.
+  string device_uid = 1;
+
+  // display_name is the human-readable device label.
+  string display_name = 2;
+
+  // model is the device hardware model.
+  string model = 3;
+
+  // kind is the device category.
+  DeviceKind kind = 4;
+
+  // role is the device's operational role.
+  DeviceRole role = 5;
+
+  // state is the device's reachability.
+  OnlineState state = 6;
+
+  // metrics are the device's latest OpenTelemetry-named metrics.
+  repeated MetricSample metrics = 7;
+
+  // media is the currently playing media, if any.
+  MediaStatus media = 8;
+
+  // accessories are connected peripherals.
+  repeated Accessory accessories = 9;
+
+  // children are virtual machines running under this host.
+  repeated DeviceState children = 10;
+
+  // update_time is when this device's status was last refreshed.
+  google.protobuf.Timestamp update_time = 11;
+}
+
+// MobileState is the phone-and-watch pair's current status.
+message MobileState {
+  // device_uid is the gateway-assigned phone identity.
+  string device_uid = 1;
+
+  // display_name is the human-readable phone label.
+  string display_name = 2;
+
+  // model is the phone hardware model.
+  string model = 3;
+
+  // phone is the phone's own device state.
+  PhoneState phone = 4;
+
+  // watch is the latest paired-watch snapshot.
+  WatchSnapshot watch = 5;
+
+  // update_time is when this status was last refreshed.
+  google.protobuf.Timestamp update_time = 6;
+}
+
+// Agent is a coding agent's current status on a read surface. It never exposes
+// the underlying task text or any internal session identifier.
+message Agent {
+  // uid is the gateway-assigned opaque agent identity.
+  string uid = 1;
+
+  // kind is the agent kind, such as "codex" or "claude".
+  string kind = 2;
+
+  // device_uid is the host the agent runs on.
+  string device_uid = 3;
+
+  // display_name is the human-readable host label.
+  string display_name = 4;
+
+  // state is the agent's run state.
+  AgentState state = 5;
+
+  // budget_remaining_percent is the remaining budget from 0 to 100, if known.
+  optional int32 budget_remaining_percent = 6;
+
+  // update_time is when this agent's status was last refreshed.
+  google.protobuf.Timestamp update_time = 7;
+}
+
+// GitHubSyncState is the state of GitHub status synchronization.
+enum GithubSyncState {
+  // State is not known.
+  GITHUB_SYNC_STATE_UNSPECIFIED = 0;
+
+  // Synchronization is disabled because no token is configured.
+  GITHUB_SYNC_STATE_DISABLED = 1;
+
+  // A synchronization attempt is in progress.
+  GITHUB_SYNC_STATE_PENDING = 2;
+
+  // The last synchronization succeeded.
+  GITHUB_SYNC_STATE_OK = 3;
+
+  // The last synchronization failed.
+  GITHUB_SYNC_STATE_ERROR = 4;
+}
+
+// GitHubStatus is the public view of GitHub status synchronization.
+message GitHubStatus {
+  // enabled is whether GitHub synchronization is configured.
+  bool enabled = 1;
+
+  // state is the current synchronization state.
+  GithubSyncState state = 2;
+
+  // emoji is the emoji shown on the current GitHub status.
+  string emoji = 3;
+
+  // message is the message shown on the current GitHub status.
+  string message = 4;
+
+  // update_time is when the GitHub status last synchronized successfully.
+  google.protobuf.Timestamp update_time = 5;
+}
+
+// GitHubSyncDetail is the authenticated view including error diagnostics.
+message GitHubSyncDetail {
+  // configured is whether a GitHub token is present.
+  bool configured = 1;
+
+  // state is the current synchronization state.
+  GithubSyncState state = 2;
+
+  // emoji is the emoji on the current GitHub status.
+  string emoji = 3;
+
+  // message is the message on the current GitHub status.
+  string message = 4;
+
+  // last_success_time is when synchronization last succeeded.
+  google.protobuf.Timestamp last_success_time = 5;
+
+  // last_error_time is when synchronization last failed.
+  google.protobuf.Timestamp last_error_time = 6;
+
+  // last_error is the most recent synchronization error.
+  string last_error = 7;
+}
+
+// PublicStatus is the unauthenticated status document.
+message PublicStatus {
+  // server is the always-on server's status.
+  DeviceState server = 1;
+
+  // mobile is the phone-and-watch pair's status.
+  MobileState mobile = 2;
+
+  // devices are the non-server devices' statuses.
+  repeated DeviceState devices = 3;
+
+  // agents are the currently visible coding agents.
+  repeated Agent agents = 4;
+
+  // github is the public GitHub synchronization status.
+  GitHubStatus github = 5;
+
+  // update_time is when this document was assembled.
+  google.protobuf.Timestamp update_time = 6;
+}
+
+// InternalStatus is the authenticated status document with sync diagnostics.
+message InternalStatus {
+  // server is the always-on server's status.
+  DeviceState server = 1;
+
+  // mobile is the phone-and-watch pair's status.
+  MobileState mobile = 2;
+
+  // devices are the non-server devices' statuses.
+  repeated DeviceState devices = 3;
+
+  // agents are the currently visible coding agents.
+  repeated Agent agents = 4;
+
+  // github is the detailed GitHub synchronization status.
+  GitHubSyncDetail github = 5;
+
+  // update_time is when this document was assembled.
+  google.protobuf.Timestamp update_time = 6;
+}

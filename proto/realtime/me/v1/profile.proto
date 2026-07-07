@@ -7,6 +7,21 @@ import "google/protobuf/timestamp.proto";
 option java_multiple_files = true;
 option java_package = "me.realtime.protocol.v1";
 
+// ProfileService serves the personal profile page document.
+service ProfileService {
+  // GetProfilePage returns the public profile document.
+  rpc GetProfilePage(GetProfilePageRequest) returns (GetProfilePageResponse);
+}
+
+// GetProfilePageRequest is the request for the profile document.
+message GetProfilePageRequest {}
+
+// GetProfilePageResponse carries the profile document.
+message GetProfilePageResponse {
+  // page is the public profile document.
+  ProfilePage page = 1;
+}
+
 // ProfilePage is the personal profile document served to the status page.
 // It bundles the owner's introduction with the curated set of GitHub projects
 // already projected for public display and ordered for rendering.

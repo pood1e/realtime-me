@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+package realtime.me.v1;
+
+import "realtime/me/v1/watch.proto";
+
+option java_multiple_files = true;
+option java_package = "me.realtime.protocol.v1";
+
+// DeviceKind is the broad category of a reporting device.
+enum DeviceKind {
+  // Kind is not known.
+  DEVICE_KIND_UNSPECIFIED = 0;
+
+  // A physical host machine.
+  DEVICE_KIND_HOST = 1;
+
+  // A virtual machine running on a host.
+  DEVICE_KIND_VIRTUAL_MACHINE = 2;
+
+  // A phone companion.
+  DEVICE_KIND_PHONE = 3;
+
+  // A watch paired to a phone.
+  DEVICE_KIND_WATCH = 4;
+}
+
+// DeviceRole is the operational role a device plays on the status surface.
+enum DeviceRole {
+  // Role is not known.
+  DEVICE_ROLE_UNSPECIFIED = 0;
+
+  // The always-on server that also hosts the gateway.
+  DEVICE_ROLE_SERVER = 1;
+
+  // A personal desktop or laptop.
+  DEVICE_ROLE_DESKTOP = 2;
+
+  // A virtual machine guest.
+  DEVICE_ROLE_VM = 3;
+}
+
+// OnlineState is whether a device is currently reachable.
+enum OnlineState {
+  // Reachability is not known.
+  ONLINE_STATE_UNSPECIFIED = 0;
+
+  // The device is reachable.
+  ONLINE_STATE_ONLINE = 1;
+
+  // The device is not reachable.
+  ONLINE_STATE_OFFLINE = 2;
+}
+
+// NetworkState is a phone's current network transport.
+enum NetworkState {
+  // Transport is not known.
+  NETWORK_STATE_UNSPECIFIED = 0;
+
+  // No network is available.
+  NETWORK_STATE_OFFLINE = 1;
+
+  // Connected over Wi-Fi.
+  NETWORK_STATE_WIFI = 2;
+
+  // Connected over a cellular network.
+  NETWORK_STATE_CELLULAR = 3;
+
+  // Connected through a VPN.
+  NETWORK_STATE_VPN = 4;
+
+  // Online over an unspecified transport.
+  NETWORK_STATE_ONLINE = 5;
+}
+
+// AgentState is the run state of a coding agent.
+enum AgentState {
+  // State is not known.
+  AGENT_STATE_UNSPECIFIED = 0;
+
+  // The agent is idle.
+  AGENT_STATE_IDLE = 1;
+
+  // The agent is actively running a task.
+  AGENT_STATE_RUNNING = 2;
+
+  // The agent's last task failed.
+  AGENT_STATE_FAILED = 3;
+}
+
+// Accessory is a connected peripheral, such as a Bluetooth audio device.
+message Accessory {
+  // kind is a lowercase accessory category key, such as "bluetooth_audio".
+  string kind = 1;
+
+  // display_name is the human-readable accessory label.
+  string display_name = 2;
+
+  // model is the accessory hardware model, if known.
+  string model = 3;
+
+  // battery_percent is the accessory battery level from 0 to 100, if reported.
+  optional int32 battery_percent = 4;
+}
+
+// MediaStatus is the media item a device is currently playing.
+message MediaStatus {
+  // title is the track or media title.
+  string title = 1;
+
+  // artist is the performing artist, if known.
+  string artist = 2;
+}
+
+// MetricSample is one OpenTelemetry-named numeric sample reported by a host.
+message MetricSample {
+  // name is the OpenTelemetry metric name, such as "system.cpu.utilization".
+  string name = 1;
+
+  // unit is the UCUM unit annotation, such as "By" or "1".
+  string unit = 2;
+
+  // value is the sample value.
+  double value = 3;
+
+  // attributes are OpenTelemetry attributes attached to the sample.
+  map<string, string> attributes = 4;
+}
+
+// PhoneState is the phone's own device state, excluding the paired watch.
+message PhoneState {
+  // battery_percent is the phone battery level from 0 to 100, if reported.
+  optional int32 battery_percent = 1;
+
+  // charge_state is the phone charging state.
+  ChargeState charge_state = 2;
+
+  // network is the phone's current network transport.
+  NetworkState network = 3;
+
+  // accessories are peripherals connected to the phone.
+  repeated Accessory accessories = 4;
+}

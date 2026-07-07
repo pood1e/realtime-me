@@ -1,0 +1,191 @@
+syntax = "proto3";
+
+package realtime.me.v1;
+
+import "realtime/me/v1/status_types.proto";
+import "realtime/me/v1/watch.proto";
+
+option java_multiple_files = true;
+option java_package = "me.realtime.protocol.v1";
+
+// EnrollmentService mints the opaque device identifiers the gateway owns.
+service EnrollmentService {
+  // EnrollDevice registers a device and returns its gateway-assigned uid. The
+  // caller persists the uid and presents it on every subsequent report; it must
+  // never construct the identifier itself.
+  rpc EnrollDevice(EnrollDeviceRequest) returns (EnrollDeviceResponse);
+}
+
+// EnrollDeviceRequest describes the device seeking a gateway identity.
+message EnrollDeviceRequest {
+  // kind is the broad device category being enrolled.
+  DeviceKind kind = 1;
+
+  // role is the device's operational role.
+  DeviceRole role = 2;
+
+  // display_name is the human-readable device label.
+  string display_name = 3;
+
+  // model is the hardware model reported by the operating system.
+  string model = 4;
+}
+
+// EnrollDeviceResponse returns the gateway-owned device identity.
+message EnrollDeviceResponse {
+  // device_uid is the gateway-assigned opaque device identifier.
+  string device_uid = 1;
+}
+
+// IngestService accepts device, phone, agent, and scrape-target reports.
+service IngestService {
+  // ReportMobileStatus records the latest phone-and-watch status.
+  rpc ReportMobileStatus(ReportMobileStatusRequest) returns (ReportMobileStatusResponse);
+
+  // ReportDeviceStatus records the latest host or virtual-machine status.
+  rpc ReportDeviceStatus(ReportDeviceStatusRequest) returns (ReportDeviceStatusResponse);
+
+  // ReportAgentStatus records the latest coding-agent status.
+  rpc ReportAgentStatus(ReportAgentStatusRequest) returns (ReportAgentStatusResponse);
+
+  // RegisterScrapeTargets advertises Prometheus scrape targets for discovery.
+  rpc RegisterScrapeTargets(RegisterScrapeTargetsRequest) returns (RegisterScrapeTargetsResponse);
+}
+
+// ReportMobileStatusRequest carries the phone's own state and the paired watch
+// snapshot, keyed by the gateway-assigned device uid.
+message ReportMobileStatusRequest {
+  // device_uid is the enrolled phone identity.
+  string device_uid = 1;
+
+  // display_name is the human-readable phone label.
+  string display_name = 2;
+
+  // model is the phone hardware model.
+  string model = 3;
+
+  // phone is the phone's own device state.
+  PhoneState phone = 4;
+
+  // watch is the latest paired-watch snapshot, reusing the Data Layer contract.
+  WatchSnapshot watch = 5;
+}
+
+// ReportMobileStatusResponse is the acknowledgement of a mobile report.
+message ReportMobileStatusResponse {}
+
+// ReportDeviceStatusRequest carries a host or virtual-machine report.
+message ReportDeviceStatusRequest {
+  // device is the reported host, with any nested virtual machines as children.
+  DeviceReport device = 1;
+}
+
+// ReportDeviceStatusResponse is the acknowledgement of a device report.
+message ReportDeviceStatusResponse {}
+
+// DeviceReport is a host or virtual-machine status report. Children carry nested
+// virtual machines running under a host.
+message DeviceReport {
+  // device_uid is the enrolled device identity.
+  string device_uid = 1;
+
+  // kind is the device category.
+  DeviceKind kind = 2;
+
+  // role is the device's operational role.
+  DeviceRole role = 3;
+
+  // display_name is the human-readable device label.
+  string display_name = 4;
+
+  // model is the hardware model.
+  string model = 5;
+
+  // state is the device's reachability.
+  OnlineState state = 6;
+
+  // metrics are OpenTelemetry-named host metrics.
+  repeated MetricSample metrics = 7;
+
+  // media is the currently playing media, if any.
+  MediaStatus media = 8;
+
+  // accessories are connected peripherals.
+  repeated Accessory accessories = 9;
+
+  // children are virtual machines running under this host.
+  repeated DeviceReport children = 10;
+}
+
+// ReportAgentStatusRequest carries a coding-agent status report.
+message ReportAgentStatusRequest {
+  // device_uid is the enrolled host the agent runs on.
+  string device_uid = 1;
+
+  // kind is the agent kind, such as "codex" or "claude"; it must never be an
+  // internal session, thread, or job identifier.
+  string kind = 2;
+
+  // state is the agent's run state.
+  AgentState state = 3;
+
+  // task is a short, redacted description of the current task.
+  string task = 4;
+
+  // budget_remaining_percent is the remaining budget from 0 to 100, if known.
+  optional int32 budget_remaining_percent = 5;
+}
+
+// ReportAgentStatusResponse is the acknowledgement of an agent report.
+message ReportAgentStatusResponse {}
+
+// RegisterScrapeTargetsRequest advertises Prometheus scrape targets.
+message RegisterScrapeTargetsRequest {
+  // targets are the scrape targets to register for discovery.
+  repeated ScrapeTarget targets = 1;
+}
+
+// RegisterScrapeTargetsResponse is the acknowledgement of a registration.
+message RegisterScrapeTargetsResponse {}
+
+// ScrapeTarget is a Prometheus scrape target advertised for HTTP service discovery.
+message ScrapeTarget {
+  // job is the Prometheus job the target belongs to.
+  ScrapeJob job = 1;
+
+  // target is the host:port endpoint Prometheus scrapes.
+  string target = 2;
+
+  // device_uid is the enrolled device the target belongs to.
+  string device_uid = 3;
+
+  // display_name is the human-readable device label.
+  string display_name = 4;
+
+  // model is the device hardware model.
+  string model = 5;
+
+  // kind is the device category.
+  DeviceKind kind = 6;
+
+  // role is the device's operational role.
+  DeviceRole role = 7;
+}
+
+// ScrapeJob is the Prometheus job a scrape target belongs to.
+enum ScrapeJob {
+  // Job is not known.
+  SCRAPE_JOB_UNSPECIFIED = 0;
+
+  // Linux node-exporter on a physical host.
+  SCRAPE_JOB_NODE_EXPORTER = 1;
+
+  // Linux node-exporter on a virtual machine.
+  SCRAPE_JOB_VM_NODE_EXPORTER = 2;
+
+  // Device exporter for media and accessory signals.
+  SCRAPE_JOB_DEVICE_EXPORTER = 3;
+
+  // Coding-agent exporter.
+  SCRAPE_JOB_AGENT_EXPORTER = 4;
+}
