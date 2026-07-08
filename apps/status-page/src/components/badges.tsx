@@ -63,6 +63,49 @@ export function AccessoryBadges({ accessories, maxLength = 30 }: { accessories?:
   );
 }
 
+export function RingGauge({ value, label, detail }: { value: number | null | undefined; label: string; detail?: string }) {
+  const radius = 15.5;
+  const circumference = 2 * Math.PI * radius;
+  const pct = Math.max(0, Math.min(100, value ?? 0));
+  const offset = circumference * (1 - pct / 100);
+  const tone = pct >= 90 ? 'stroke-red-500' : pct >= 75 ? 'stroke-amber-500' : 'stroke-primary';
+  return (
+    <div className="flex flex-col items-center gap-1.5" title={detail ? `${label}: ${detail}` : label}>
+      <div className="relative size-[3.25rem]">
+        <svg viewBox="0 0 40 40" className="size-full -rotate-90">
+          <circle cx="20" cy="20" r={radius} fill="none" strokeWidth="3.5" className="stroke-muted" />
+          <circle
+            cx="20"
+            cy="20"
+            r={radius}
+            fill="none"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            className={`${tone} transition-[stroke-dashoffset] duration-700`}
+            style={{ strokeDasharray: circumference, strokeDashoffset: offset }}
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold tabular-nums">
+          {Math.round(pct)}
+          <span className="text-[9px] text-muted-foreground">%</span>
+        </span>
+      </div>
+      <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</span>
+    </div>
+  );
+}
+
+export function StatCell({ icon, value, label }: { icon: ReactElement; value: string; label: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1.5" title={label}>
+      <div className="flex size-[3.25rem] items-center justify-center rounded-full border border-border/70 bg-muted/40 text-primary [&_svg]:size-5">
+        {icon}
+      </div>
+      <span className="text-center text-[11px] font-semibold tabular-nums leading-tight">{value}</span>
+    </div>
+  );
+}
+
 export function ProgressMetric({ label, value, valueText }: { label: string; value: number | null | undefined; valueText?: string }) {
   const safeValue = Math.max(0, Math.min(100, value ?? 0));
   return (

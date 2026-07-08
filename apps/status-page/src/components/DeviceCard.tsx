@@ -13,6 +13,8 @@ import {
   MetricBadges,
   NoMetrics,
   ProgressMetric,
+  RingGauge,
+  StatCell,
   StatusBadge,
   accessoryCount,
 } from '@/components/badges';
@@ -53,24 +55,22 @@ export function DeviceCard({ device, title, icon, showChildren = true }: {
           <StatusBadge state={device?.state} />
         </CardAction>
       </CardHeader>
-      <CardContent className="grid gap-4">
+      <CardContent className="flex h-full flex-col gap-4">
         <DeviceModel model={device?.model} />
-        {showCpuBadge && (
+        {(cpuUsage !== undefined || hasMemory || hasDisk || showCpuBadge) && (
+          <div className="flex flex-wrap items-start justify-around gap-x-2 gap-y-3 py-1">
+            {cpuUsage !== undefined && <RingGauge value={cpuUsage} label="CPU" detail={cpuText(device)} />}
+            {hasMemory && <RingGauge value={memory.percent} label="Mem" detail={memory.text} />}
+            {hasDisk && <RingGauge value={disk.percent} label="Disk" detail={disk.text} />}
+            {showCpuBadge && cpuUsage === undefined && <StatCell icon={<Cpu />} value={cpuCoreText(device)} label="CPU" />}
+          </div>
+        )}
+        {(device?.media?.title || accessoryCount(device?.accessories) > 0) && (
           <MetricBadges>
             {device?.media?.title && <MediaBadge media={device.media} />}
             <AccessoryBadges accessories={device?.accessories} />
-            <MetricBadge icon={<Cpu />} value={cpuCoreText(device)} title="CPU cores" variant="secondary" />
           </MetricBadges>
         )}
-        {!showCpuBadge && (device?.media?.title || accessoryCount(device?.accessories) > 0) && (
-          <MetricBadges>
-            {device?.media?.title && <MediaBadge media={device.media} />}
-            <AccessoryBadges accessories={device?.accessories} />
-          </MetricBadges>
-        )}
-        {cpuUsage !== undefined && <ProgressMetric label="CPU" value={cpuUsage} valueText={cpuText(device)} />}
-        {hasMemory && <ProgressMetric label="Mem" value={memory.percent} valueText={memory.text} />}
-        {hasDisk && <ProgressMetric label="Disk" value={disk.percent} valueText={disk.text} />}
         {!hasAnyMetric && <NoMetrics />}
         {showChildren && <ChildDevices devices={device?.children ?? []} />}
       </CardContent>

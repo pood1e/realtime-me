@@ -6,7 +6,7 @@ import type { WatchSnapshot } from '@/gen/realtime/me/v1/watch_pb';
 import { ChargeState, WristState } from '@/gen/realtime/me/v1/watch_pb';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AccessoryBadges, DeviceModel, MetricBadge, MetricBadges } from '@/components/badges';
+import { AccessoryBadges, DeviceModel, MetricBadges, StatCell } from '@/components/badges';
 import { BrandIcon } from '@/components/brand';
 import { GitHubStatusBadge } from '@/components/github';
 import { InlineTime } from '@/components/layout';
@@ -25,14 +25,21 @@ export function PhoneCard({ mobile }: { mobile: MobileState | null }) {
           {mobile ? <Badge aria-label="Online"><CheckCircle2 /></Badge> : <Badge variant="outline" aria-label="No data">—</Badge>}
         </CardAction>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex h-full flex-col gap-4">
         <DeviceModel model={mobile?.model} />
-        <MetricBadges>
-          <AccessoryBadges accessories={phone?.accessories} />
-          <MetricBadge icon={<Battery />} value={formatBattery(phone?.batteryPercent)} title="Battery" />
-          {phone?.chargeState === ChargeState.CHARGING && <MetricBadge icon={<BatteryCharging />} value="" title="Charging" />}
-          <MetricBadge icon={<Wifi />} value={phone ? networkLabel(phone.network) : '—'} title="Network" variant="secondary" />
-        </MetricBadges>
+        <div className="flex flex-wrap items-start justify-around gap-x-2 gap-y-3 py-1">
+          <StatCell
+            icon={phone?.chargeState === ChargeState.CHARGING ? <BatteryCharging /> : <Battery />}
+            value={formatBattery(phone?.batteryPercent)}
+            label={phone?.chargeState === ChargeState.CHARGING ? 'Charging' : 'Battery'}
+          />
+          <StatCell icon={<Wifi />} value={phone ? networkLabel(phone.network) : '—'} label="Network" />
+        </div>
+        {(phone?.accessories?.length ?? 0) > 0 && (
+          <MetricBadges>
+            <AccessoryBadges accessories={phone?.accessories} />
+          </MetricBadges>
+        )}
       </CardContent>
     </Card>
   );
@@ -55,15 +62,17 @@ export function WatchCard({ mobile, githubState }: { mobile: MobileState | null;
           <WatchStatusBadge watch={watch} offWrist={offWrist} />
         </CardAction>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex h-full flex-col gap-4">
         <DeviceModel model={info?.model} />
-        <MetricBadges>
-          {!offWrist && <MetricBadge icon={<HeartPulse />} value={heartRate ? `${heartRate}` : '—'} title="Heart rate" />}
-          <MetricBadge icon={<Footprints />} value={formatSteps(watch)} title="Steps" variant="secondary" />
-          <MetricBadge icon={<Battery />} value={formatBattery(watchState?.batteryPercent)} title="Battery" />
-          {watchState?.chargeState === ChargeState.CHARGING && <MetricBadge icon={<BatteryCharging />} value="" title="Charging" />}
-          {offWrist && <MetricBadge icon={<CircleOff />} value="" title="Off wrist" variant="secondary" />}
-        </MetricBadges>
+        <div className="flex flex-wrap items-start justify-around gap-x-2 gap-y-3 py-1">
+          <StatCell icon={<HeartPulse />} value={!offWrist && heartRate ? `${heartRate}` : '—'} label="BPM" />
+          <StatCell icon={<Footprints />} value={formatSteps(watch)} label="Steps" />
+          <StatCell
+            icon={watchState?.chargeState === ChargeState.CHARGING ? <BatteryCharging /> : <Battery />}
+            value={formatBattery(watchState?.batteryPercent)}
+            label={watchState?.chargeState === ChargeState.CHARGING ? 'Charging' : 'Battery'}
+          />
+        </div>
       </CardContent>
     </Card>
   );

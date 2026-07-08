@@ -1,15 +1,12 @@
-import { Bot, Box, Laptop, Server, Smartphone } from 'lucide-react';
+import { Bot, Box, Laptop, MonitorSmartphone, Server } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 import { DeviceRole } from '@/gen/realtime/me/v1/status_types_pb';
 import { AgentCard, EmptyAgentCard, agentKey } from '@/components/AgentCard';
 import type { ShellContext } from '@/components/AppShell';
 import { DeviceCard } from '@/components/DeviceCard';
-import { EmptyCard } from '@/components/layout';
+import { StatusSection } from '@/components/layout';
 import { PhoneCard, WatchCard } from '@/components/MobileCards';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { isVirtualMachine } from '@/lib/status';
-
-const GRID = 'grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3';
 
 export function PublicStatusApp() {
   const { status } = useOutletContext<ShellContext>();
@@ -20,39 +17,28 @@ export function PublicStatusApp() {
   const personalDevices = devices.filter((device) => !isVirtualMachine(device));
 
   return (
-    <Tabs defaultValue="infrastructure" className="gap-6">
-      <TabsList variant="line" className="h-auto flex-wrap gap-4">
-        <TabsTrigger value="infrastructure"><Server />Infrastructure</TabsTrigger>
-        <TabsTrigger value="devices"><Laptop />Devices</TabsTrigger>
-        <TabsTrigger value="mobile"><Smartphone />Mobile</TabsTrigger>
-        <TabsTrigger value="agents"><Bot />Agents</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="infrastructure" className={GRID}>
-        <DeviceCard device={server} title="Server" icon={<Server className="size-4" />} showChildren={false} />
-        {virtualMachines.map((device) => (
-          <DeviceCard key={device.deviceUid} device={device} title="VM" icon={<Box className="size-4" />} showChildren={false} />
-        ))}
-      </TabsContent>
-
-      <TabsContent value="devices" className={GRID}>
-        {personalDevices.length === 0 ? (
-          <EmptyCard text="No devices" />
-        ) : (
-          personalDevices.map((device) => (
+    <div className="grid gap-9">
+      <section className="grid gap-3.5">
+        <h2 className="flex items-center gap-2 text-xl font-semibold tracking-tight text-muted-foreground">
+          <span className="text-primary"><MonitorSmartphone className="size-4" /></span>
+          Devices
+        </h2>
+        <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <DeviceCard device={server} title="Server" icon={<Server className="size-4" />} showChildren={false} />
+          {virtualMachines.map((device) => (
+            <DeviceCard key={device.deviceUid} device={device} title="VM" icon={<Box className="size-4" />} showChildren={false} />
+          ))}
+          {personalDevices.map((device) => (
             <DeviceCard key={device.deviceUid} device={device} title={device.role === DeviceRole.DESKTOP ? 'Mac' : 'Device'} icon={<Laptop className="size-4" />} />
-          ))
-        )}
-      </TabsContent>
+          ))}
+          <PhoneCard mobile={status?.mobile ?? null} />
+          <WatchCard mobile={status?.mobile ?? null} githubState={status?.github?.state} />
+        </div>
+      </section>
 
-      <TabsContent value="mobile" className="grid items-start gap-4 sm:grid-cols-2">
-        <PhoneCard mobile={status?.mobile ?? null} />
-        <WatchCard mobile={status?.mobile ?? null} githubState={status?.github?.state} />
-      </TabsContent>
-
-      <TabsContent value="agents" className={GRID}>
+      <StatusSection title="Agents" icon={<Bot className="size-4" />}>
         {agents.length === 0 ? <EmptyAgentCard /> : agents.map((agent) => <AgentCard key={agentKey(agent)} agent={agent} />)}
-      </TabsContent>
-    </Tabs>
+      </StatusSection>
+    </div>
   );
 }
