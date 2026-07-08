@@ -25,21 +25,19 @@ export function AppShell() {
       <div className="flex min-h-screen flex-col bg-[radial-gradient(46rem_30rem_at_50%_-6rem,color-mix(in_oklab,var(--primary)_12%,transparent),transparent)]">
         <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-md">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-5 py-2.5">
-            <div className="flex items-center gap-4 sm:gap-6">
-              <Link to="/" className="flex items-center gap-2.5" aria-label="Home">
-                <img
-                  src={profile?.avatarUrl || blueberryLogoUrl}
-                  alt=""
-                  className="size-9 rounded-full border border-border object-cover"
-                  width={36}
-                  height={36}
-                />
-                <span className="font-heading text-lg font-semibold tracking-tight">{profile?.displayName || 'pood1e'}</span>
-              </Link>
-              <NavTabs />
-            </div>
-            <div className="flex items-center gap-2">
+            <Link to="/" className="flex items-center gap-2.5" aria-label="Home">
+              <img
+                src={profile?.avatarUrl || blueberryLogoUrl}
+                alt=""
+                className="size-9 rounded-full border border-border object-cover"
+                width={36}
+                height={36}
+              />
+              <span className="font-heading text-lg font-semibold tracking-tight">{profile?.displayName || 'pood1e'}</span>
+            </Link>
+            <div className="flex items-center gap-2 sm:gap-4">
               <Presence status={status} />
+              <NavTabs />
               <div className="flex items-center gap-0.5">
                 <ContactLinks links={profile?.links} />
                 <ThemeToggle />
