@@ -57,6 +57,10 @@ func (client *PrometheusClient) ServerStatus(ctx context.Context) *mev1.DeviceSt
 	memoryAvailable := client.queryScalar(ctx, `node_memory_MemAvailable_bytes{job="node-exporter",instance="server"}`)
 	diskTotal := client.queryScalar(ctx, `node_filesystem_size_bytes{job="node-exporter",instance="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`)
 	diskAvailable := client.queryScalar(ctx, `node_filesystem_avail_bytes{job="node-exporter",instance="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`)
+	models := nodeModels(
+		client.queryVector(ctx, `node_os_info{job="node-exporter",instance="server"}`),
+		client.queryVector(ctx, `node_uname_info{job="node-exporter",instance="server"}`),
+	)
 	media := client.DeviceMediaStatuses(ctx)
 	accessories := client.DeviceAccessoryStatuses(ctx)
 
@@ -66,6 +70,7 @@ func (client *PrometheusClient) ServerStatus(ctx context.Context) *mev1.DeviceSt
 		Role:        mev1.DeviceRole_DEVICE_ROLE_SERVER,
 		State:       onlineState(up != nil && *up > 0),
 		UpdateTime:  timestamppb.New(time.Now().UTC()),
+		Model:       models["server"],
 		Metrics:     systemMetrics(cpuCores, cpuUsage, memoryTotal, memoryAvailable, diskTotal, diskAvailable),
 		Media:       media["server"],
 		Accessories: accessories["server"],
