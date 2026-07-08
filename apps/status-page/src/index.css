@@ -142,7 +142,7 @@
 
 .agent-motion {
   display: grid;
-  min-height: 8rem;
+  min-height: 4.5rem;
   place-items: center;
   overflow: hidden;
   border-radius: var(--radius-xl);
@@ -150,10 +150,10 @@
 }
 
 .agent-motion-image {
-  width: min(100%, 15rem);
-  height: 9rem;
+  width: min(100%, 9rem);
+  height: 5.5rem;
   object-fit: contain;
-  filter: drop-shadow(0 0 1.5rem oklch(0.64 0.128 44 / 0.2));
+  filter: drop-shadow(0 0 1rem oklch(0.64 0.128 44 / 0.2));
 }
 
 .agent-motion-image-pixel {

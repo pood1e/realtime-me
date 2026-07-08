@@ -45,7 +45,7 @@ export function DeviceCard({ device, title, icon, showChildren = true }: {
   const hasMemory = memory.percent !== undefined;
   const hasDisk = disk.percent !== undefined;
   const showCpuBadge = hasCpuCores && cpuUsage === undefined;
-  const hasAnyMetric = hasCpuCores || cpuUsage !== undefined || hasMemory || hasDisk || !!device?.media?.title || accessoryCount(device?.accessories) > 0;
+  const hasAnyMetric = hasCpuCores || cpuUsage !== undefined || hasMemory || hasDisk || accessoryCount(device?.accessories) > 0;
   return (
     <Card>
       <CardHeader>
@@ -56,7 +56,6 @@ export function DeviceCard({ device, title, icon, showChildren = true }: {
         </CardAction>
       </CardHeader>
       <CardContent className="flex h-full flex-col gap-4">
-        <DeviceModel model={device?.model} />
         {(cpuUsage !== undefined || hasMemory || hasDisk || showCpuBadge) && (
           <div className="flex flex-wrap items-start justify-around gap-x-2 gap-y-3 py-1">
             {cpuUsage !== undefined && <RingGauge value={cpuUsage} label="CPU" detail={cpuText(device)} />}
@@ -65,9 +64,8 @@ export function DeviceCard({ device, title, icon, showChildren = true }: {
             {showCpuBadge && cpuUsage === undefined && <StatCell icon={<Cpu />} value={cpuCoreText(device)} label="CPU" />}
           </div>
         )}
-        {(device?.media?.title || accessoryCount(device?.accessories) > 0) && (
+        {accessoryCount(device?.accessories) > 0 && (
           <MetricBadges>
-            {device?.media?.title && <MediaBadge media={device.media} />}
             <AccessoryBadges accessories={device?.accessories} />
           </MetricBadges>
         )}
