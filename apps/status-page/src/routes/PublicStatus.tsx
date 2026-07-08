@@ -1,19 +1,15 @@
 import { Bot, Box, Laptop, Server, Smartphone } from 'lucide-react';
-import { useCallback } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { DeviceRole } from '@/gen/realtime/me/v1/status_types_pb';
 import { AgentCard, EmptyAgentCard, agentKey } from '@/components/AgentCard';
+import type { ShellContext } from '@/components/AppShell';
 import { DeviceCard } from '@/components/DeviceCard';
 import { StatusSection } from '@/components/layout';
 import { PhoneCard, WatchCard } from '@/components/MobileCards';
-import { usePolling } from '@/hooks/usePolling';
 import { isVirtualMachine } from '@/lib/status';
-import { POLL_INTERVAL_MS, statusClient } from '@/lib/transport';
 
 export function PublicStatusApp() {
-  const fetchPublic = useCallback(async (signal: AbortSignal) => {
-    return (await statusClient.getPublicStatus({}, { signal })).status;
-  }, []);
-  const { data: status } = usePolling(fetchPublic, { intervalMs: POLL_INTERVAL_MS });
+  const { status } = useOutletContext<ShellContext>();
   const server = status?.server ?? null;
   const devices = status?.devices ?? [];
   const agents = status?.agents ?? [];

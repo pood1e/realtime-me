@@ -2,18 +2,22 @@ import { useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import type { ProfilePage } from '@/gen/realtime/me/v1/profile_pb';
+import type { PublicStatus } from '@/gen/realtime/me/v1/status_pb';
 import blueberryLogoUrl from '@/assets/blueberry.svg';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ContactLinks } from '@/components/ContactLinks';
+import { Presence } from '@/components/Presence';
 import { ThemeToggle } from '@/components/theme';
 import { usePolling } from '@/hooks/usePolling';
-import { profileClient } from '@/lib/transport';
+import { POLL_INTERVAL_MS, profileClient, statusClient } from '@/lib/transport';
 
-export type ShellContext = { page?: ProfilePage | null };
+export type ShellContext = { page?: ProfilePage | null; status?: PublicStatus | null };
 
 export function AppShell() {
   const fetchProfile = useCallback(async (signal: AbortSignal) => (await profileClient.getProfilePage({}, { signal })).page, []);
   const { data: page } = usePolling(fetchProfile, { intervalMs: 0 });
+  const fetchStatus = useCallback(async (signal: AbortSignal) => (await statusClient.getPublicStatus({}, { signal })).status, []);
+  const { data: status } = usePolling(fetchStatus, { intervalMs: POLL_INTERVAL_MS });
   const profile = page?.profile;
 
   return (
@@ -34,15 +38,18 @@ export function AppShell() {
               </Link>
               <NavTabs />
             </div>
-            <div className="flex items-center gap-0.5">
-              <ContactLinks links={profile?.links} />
-              <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <Presence status={status} />
+              <div className="flex items-center gap-0.5">
+                <ContactLinks links={profile?.links} />
+                <ThemeToggle />
+              </div>
             </div>
           </div>
         </header>
 
         <main className="mx-auto w-full max-w-6xl grow px-5 py-8 md:py-10">
-          <Outlet context={{ page } satisfies ShellContext} />
+          <Outlet context={{ page, status } satisfies ShellContext} />
         </main>
 
         <footer className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-5 py-6 text-xs text-muted-foreground">
