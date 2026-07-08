@@ -79,8 +79,11 @@ func (client *PrometheusClient) NodeExporterStatuses(ctx context.Context) []*mev
 	}
 	cpuUsage := samplesByInstance(client.queryVector(ctx, `1 - avg by (instance) (rate(node_cpu_seconds_total{job=~"node-exporter|vm-node-exporter",instance!="server",mode="idle"}[2m]))`))
 	cpuCores := samplesByInstance(client.queryVector(ctx, `count by (instance) (count by (instance, cpu) (node_cpu_seconds_total{job=~"node-exporter|vm-node-exporter",instance!="server",mode="idle"}))`))
-	memoryTotal := samplesByInstance(client.queryVector(ctx, `node_memory_MemTotal_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"}`))
-	memoryAvailable := samplesByInstance(client.queryVector(ctx, `node_memory_MemAvailable_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"}`))
+	// Linux node_exporter names come from /proc/meminfo; the darwin build uses
+	// its own metric names, so fall back to those for macOS nodes. MemAvailable
+	// has no darwin equivalent, so approximate it from reclaimable memory.
+	memoryTotal := samplesByInstance(client.queryVector(ctx, `node_memory_MemTotal_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"} or node_memory_total_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"}`))
+	memoryAvailable := samplesByInstance(client.queryVector(ctx, `node_memory_MemAvailable_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"} or (node_memory_free_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"} + ignoring(__name__) node_memory_inactive_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"})`))
 	diskTotal := samplesByInstance(client.queryVector(ctx, `node_filesystem_size_bytes{job=~"node-exporter|vm-node-exporter",instance!="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`))
 	diskAvailable := samplesByInstance(client.queryVector(ctx, `node_filesystem_avail_bytes{job=~"node-exporter|vm-node-exporter",instance!="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`))
 	models := nodeModels(client.queryVector(ctx, `node_os_info{job=~"node-exporter|vm-node-exporter",instance!="server"}`), client.queryVector(ctx, `node_uname_info{job=~"node-exporter|vm-node-exporter",instance!="server"}`))
