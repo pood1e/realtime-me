@@ -129,17 +129,15 @@ Set these values in `.env`:
 docker compose up -d --build
 ```
 
-The public page consumes:
+The gateway speaks ConnectRPC (`POST /realtime.me.v1.<Service>/<Method>`, JSON or binary protobuf). The main procedures:
 
 ```text
-GET /api/public-status
-```
-
-The phone app publishes:
-
-```text
-POST /api/ingest/mobile
-Authorization: Bearer <STATUS_INGEST_TOKEN>
+StatusService/GetPublicStatus       # public, unauthenticated — what the page reads
+StatusService/GetInternalStatus     # Bearer <STATUS_QUERY_TOKEN>
+ProfileService/GetProfilePage       # public — the /about page
+EnrollmentService/EnrollDevice      # Bearer <STATUS_INGEST_TOKEN> — mints the device uid
+IngestService/ReportMobileStatus    # Bearer <STATUS_INGEST_TOKEN> — phone push
+IngestService/RegisterScrapeTargets # Bearer <STATUS_INGEST_TOKEN> — central device registration
 ```
 
 Probe hosts run only Prometheus exporters and stay unaware of the gateway. Prometheus discovers and pulls them through the gateway's HTTP service discovery, so the probe host needs no gateway URL or ingest token. Install the exporters on the host:
@@ -174,16 +172,16 @@ npx wrangler deploy --config apps/status-page/wrangler.jsonc \
   --var STATUS_API_BASE_URL:https://api-status.example.com
 ```
 
-The Worker serves the SPA and proxies `GET /api/public-status` and `GET /api/profile` to `STATUS_API_BASE_URL`, so the browser reads both from the same origin:
+The Worker serves the SPA and proxies the ConnectRPC calls (`/realtime.me.v1.*`) and `/api/*` to `STATUS_API_BASE_URL`, so the browser reads status and profile from the same origin:
 
 ```text
-https://me.pood1e.space/api/public-status
-https://me.pood1e.space/api/profile
+https://me.pood1e.space/realtime.me.v1.StatusService/GetPublicStatus
+https://me.pood1e.space/realtime.me.v1.ProfileService/GetProfilePage
 ```
 
 ## Profile page
 
-`/about` renders a personal profile with GitHub projects. The gateway is passive: it reads a static profile config file (`PROFILE_CONFIG_FILE`) and serves it at `GET /api/profile`. It never calls GitHub or Claude and holds no keys. `GET /api/profile` withholds `repository_url` for `private` projects, which are shown with a badge and no link.
+`/about` renders a personal profile with GitHub projects. The gateway is passive: it reads a static profile config file (`PROFILE_CONFIG_FILE`) and serves it at `ProfileService/GetProfilePage`. It never calls GitHub or Claude and holds no keys. The response withholds `repository_url` for `private` projects, which are shown with a badge and no link.
 
 The config holds the bio, contact links, and the projects collected once as data:
 
