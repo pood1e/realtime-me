@@ -37,16 +37,17 @@ class StatusForegroundService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val pushRequests = Channel<Unit>(Channel.CONFLATED)
     private var started = false
+    private var foregroundActive = false
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private var chargingReceiver: BroadcastReceiver? = null
 
     override fun onCreate() {
         super.onCreate()
-        startForegroundNotification()
+        foregroundActive = startForegroundNotification()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (!hasSyncToken()) {
+        if (!foregroundActive || !hasSyncToken()) {
             stopSelf(startId)
             return START_NOT_STICKY
         }
@@ -123,7 +124,11 @@ class StatusForegroundService : Service() {
 
     private fun hasSyncToken(): Boolean = StatusGatewayTokenStore(this).hasToken()
 
-    private fun startForegroundNotification() {
+    // The OS can recreate this sticky service in the background, where starting a
+    // foreground service is disallowed and startForeground() throws. Treat that as
+    // a soft failure and let the service go — the periodic worker keeps reporting
+    // until the app is foregrounded and can arm the service again.
+    private fun startForegroundNotification(): Boolean = runCatching {
         createNotificationChannel()
         val notification = Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher)
@@ -133,11 +138,11 @@ class StatusForegroundService : Service() {
             .build()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
-    }
+    }.isSuccess
 
     private fun createNotificationChannel() {
         val manager = getSystemService(NotificationManager::class.java)
