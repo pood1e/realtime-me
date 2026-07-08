@@ -88,7 +88,8 @@ require_command() {
 }
 
 curl_download_args() {
-  local timeout=$1 args=(-fsSL --connect-timeout 5 --max-time "$timeout" --speed-time 5 --speed-limit 1 --retry 0)
+  local timeout=$1
+  local args=(-fsSL --connect-timeout 5 --max-time "$timeout" --speed-time 5 --speed-limit 1 --retry 0)
   [[ $CURL_FORCE_IPV4 == 1 ]] && args=(-4 "${args[@]}")
   printf '%s\0' "${args[@]}"
 }

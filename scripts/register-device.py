@@ -56,10 +56,9 @@ def main() -> int:
         if args.kind == "virtual_machine" or args.role == "vm"
         else "SCRAPE_JOB_NODE_EXPORTER"
     )
-    targets = [
-        dict(common, job=node_job, target=f"{args.host}:{args.node_port}"),
-        dict(common, job="SCRAPE_JOB_DEVICE_EXPORTER", target=f"{args.host}:{args.device_port}"),
-    ]
+    targets = [dict(common, job=node_job, target=f"{args.host}:{args.node_port}")]
+    if not args.no_device:
+        targets.append(dict(common, job="SCRAPE_JOB_DEVICE_EXPORTER", target=f"{args.host}:{args.device_port}"))
     if args.install_agent:
         targets.append(dict(common, job="SCRAPE_JOB_AGENT_EXPORTER", target=f"{args.host}:{args.agent_port}"))
 
@@ -96,6 +95,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device-port", type=int, default=int(os.getenv("STATUS_DEVICE_EXPORTER_PORT", "18083")))
     parser.add_argument("--agent-port", type=int, default=int(os.getenv("STATUS_AGENT_EXPORTER_PORT", "18082")))
     parser.add_argument("--install-agent", action="store_true", help="Also register the agent exporter target.")
+    parser.add_argument("--no-device", action="store_true", help="Skip the device exporter target (headless hosts with no media/Bluetooth).")
     parser.add_argument(
         "--identity-file",
         default=os.getenv("STATUS_IDENTITY_FILE", ""),
