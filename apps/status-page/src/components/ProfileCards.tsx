@@ -1,7 +1,6 @@
-import { Clock, Code, ExternalLink, Globe, Lock, Mail, MapPin, Star } from 'lucide-react';
-import type { ReactElement } from 'react';
-import { siDiscord, siGithub, siGmail, siTelegram } from 'simple-icons/icons';
-import type { Profile, ProfileLink, Project } from '@/gen/realtime/me/v1/profile_pb';
+import { Clock, Code, ExternalLink, Lock, MapPin, Star } from 'lucide-react';
+import { siGithub } from 'simple-icons/icons';
+import type { Profile, Project } from '@/gen/realtime/me/v1/profile_pb';
 import { ProjectVisibility } from '@/gen/realtime/me/v1/profile_pb';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,25 +35,8 @@ export function ProfileIntro({ profile, loaded }: { profile?: Profile; loaded: b
             </a>
           )}
         </div>
-        <ProfileLinks links={profile.links} />
       </CardContent>
     </Card>
-  );
-}
-
-function ProfileLinks({ links }: { links: ProfileLink[] }) {
-  if (links.length === 0) return null;
-  return (
-    <div className="flex flex-wrap gap-2">
-      {links.map((link) => (
-        <Button key={`${link.platform}:${link.uri}`} asChild variant="outline" size="sm">
-          <a href={link.uri} target="_blank" rel="noreferrer">
-            {linkIcon(link)}
-            {link.label || link.platform || link.uri}
-          </a>
-        </Button>
-      ))}
-    </div>
   );
 }
 
@@ -110,13 +92,3 @@ function ProjectLinks({ project }: { project: Project }) {
   );
 }
 
-function linkIcon(link: ProfileLink): ReactElement {
-  const platform = link.platform.toLowerCase();
-  if (platform === 'github') return <BrandIcon icon={siGithub} />;
-  if (platform === 'telegram') return <BrandIcon icon={siTelegram} />;
-  if (platform === 'discord') return <BrandIcon icon={siDiscord} />;
-  if (platform === 'email' || link.uri.startsWith('mailto:')) {
-    return link.uri.includes('gmail') ? <BrandIcon icon={siGmail} /> : <Mail />;
-  }
-  return <Globe />;
-}
