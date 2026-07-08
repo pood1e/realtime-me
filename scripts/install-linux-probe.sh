@@ -55,7 +55,12 @@ set_proxy_env_if_missing() {
     *) return 0 ;;
   esac
   [[ -n $value ]] || return 0
-  [[ -z ${!name:-} ]] && export "$name=$value"
+  # Use an if-block, not `[[ ]] && export`: when the proxy var is already set the
+  # test is false and a trailing `&&` would make this function return non-zero,
+  # which `set -e` turns into a silent early exit.
+  if [[ -z ${!name:-} ]]; then
+    export "$name=$value"
+  fi
 }
 
 import_proxy_env_from_process() {
