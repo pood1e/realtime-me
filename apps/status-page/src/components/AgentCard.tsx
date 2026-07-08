@@ -2,12 +2,6 @@ import { AlertTriangle, Bot, CheckCircle2, CircleOff, Laptop } from 'lucide-reac
 import { useEffect, useState, type ReactElement } from 'react';
 import { siClaude } from 'simple-icons/icons';
 import agentOrbitUrl from '@/assets/agents/agent-orbit.svg';
-import clawdBuildingUrl from '@/assets/agents/clawd-working-building.gif';
-import clawdDebuggerUrl from '@/assets/agents/clawd-working-debugger.gif';
-import clawdJugglingUrl from '@/assets/agents/clawd-working-juggling.gif';
-import clawdSweepingUrl from '@/assets/agents/clawd-working-sweeping.gif';
-import clawdThinkingUrl from '@/assets/agents/clawd-working-thinking.gif';
-import clawdTypingUrl from '@/assets/agents/clawd-working-typing.gif';
 import codexOrbitUrl from '@/assets/agents/codex-orbit.svg';
 import codexRibbonsUrl from '@/assets/agents/codex-ribbons.svg';
 import codexSparksUrl from '@/assets/agents/codex-sparks.svg';
@@ -17,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { BrandIcon } from '@/components/brand';
+import { ClawdMascot } from '@/components/ClawdMascot';
 import { EmptyCard, InlineTime } from '@/components/layout';
 import { agentDeviceLabel } from '@/lib/status';
 
@@ -26,14 +21,6 @@ type AgentMotionAsset = {
 };
 
 const AGENT_MOTION_MIN_VISIBLE_MS = 10_000;
-const CLAWD_MOTION_ASSETS: AgentMotionAsset[] = [
-  { src: clawdTypingUrl, durationMs: 1_440 },
-  { src: clawdBuildingUrl, durationMs: 960 },
-  { src: clawdDebuggerUrl, durationMs: 2_880 },
-  { src: clawdThinkingUrl, durationMs: 3_840 },
-  { src: clawdSweepingUrl, durationMs: 1_440 },
-  { src: clawdJugglingUrl, durationMs: 1_120 },
-];
 const CODEX_MOTION_ASSETS: AgentMotionAsset[] = [
   { src: codexOrbitUrl, durationMs: 4_000 },
   { src: codexRibbonsUrl, durationMs: 4_000 },
@@ -93,11 +80,21 @@ export function agentIcon(kind: string): ReactElement {
 }
 
 function AgentMotion({ agent }: { agent: Agent }) {
+  if (isClaudeAgent(agent.kind)) {
+    return (
+      <div className="agent-motion">
+        <ClawdMascot />
+      </div>
+    );
+  }
+  return <AgentGifMotion agent={agent} />;
+}
+
+function AgentGifMotion({ agent }: { agent: Agent }) {
   const assets = agentMotionAssets(agent.kind);
   const initialIndex = hashString(agent.uid) % assets.length;
   const [index, setIndex] = useState(initialIndex);
   const asset = assets[index % assets.length];
-  const imageClassName = isClaudeAgent(agent.kind) ? 'agent-motion-image agent-motion-image-pixel' : 'agent-motion-image';
 
   useEffect(() => {
     setIndex(initialIndex);
@@ -113,7 +110,7 @@ function AgentMotion({ agent }: { agent: Agent }) {
 
   return (
     <div className="agent-motion">
-      <img key={asset.src} className={imageClassName} src={asset.src} alt={`${agentName(agent.kind)} working`} />
+      <img key={asset.src} className="agent-motion-image" src={asset.src} alt={`${agentName(agent.kind)} working`} />
     </div>
   );
 }
@@ -130,7 +127,6 @@ function AgentDeviceBadge({ agent }: { agent: Agent }) {
 }
 
 function agentMotionAssets(kind: string): AgentMotionAsset[] {
-  if (isClaudeAgent(kind)) return CLAWD_MOTION_ASSETS;
   if (kind === 'codex') return CODEX_MOTION_ASSETS;
   return DEFAULT_MOTION_ASSETS;
 }

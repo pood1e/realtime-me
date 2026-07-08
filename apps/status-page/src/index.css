@@ -159,3 +159,57 @@
 .agent-motion-image-pixel {
   image-rendering: pixelated;
 }
+
+.clawd-svg {
+  width: min(100%, 7rem);
+  height: 5.5rem;
+  overflow: visible;
+  filter: drop-shadow(0 0.35rem 0.3rem oklch(0 0 0 / 0.16));
+}
+
+.clawd-body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: clawd-hop 1.3s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  will-change: transform;
+}
+
+@keyframes clawd-hop {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1) scaleX(1);
+  }
+  28% {
+    transform: translateY(-12%) scaleY(1.05) scaleX(0.97);
+  }
+  52% {
+    transform: translateY(0) scaleY(0.92) scaleX(1.08);
+  }
+  70% {
+    transform: translateY(0) scaleY(1.02) scaleX(0.99);
+  }
+}
+
+.clawd-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: clawd-blink 3.4s ease-in-out infinite;
+}
+
+@keyframes clawd-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clawd-body,
+  .clawd-eye {
+    animation: none;
+  }
+}
