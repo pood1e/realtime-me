@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file realtime/me/v1/profile.proto.
  */
 export const file_realtime_me_v1_profile: GenFile = /*@__PURE__*/
-  fileDesc("ChxyZWFsdGltZS9tZS92MS9wcm9maWxlLnByb3RvEg5yZWFsdGltZS5tZS52MSIXChVHZXRQcm9maWxlUGFnZVJlcXVlc3QiQwoWR2V0UHJvZmlsZVBhZ2VSZXNwb25zZRIpCgRwYWdlGAEgASgLMhsucmVhbHRpbWUubWUudjEuUHJvZmlsZVBhZ2UikwEKC1Byb2ZpbGVQYWdlEigKB3Byb2ZpbGUYASABKAsyFy5yZWFsdGltZS5tZS52MS5Qcm9maWxlEikKCHByb2plY3RzGAIgAygLMhcucmVhbHRpbWUubWUudjEuUHJvamVjdBIvCgt1cGRhdGVfdGltZRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAipgEKB1Byb2ZpbGUSFAoMZGlzcGxheV9uYW1lGAEgASgJEhAKCGhlYWRsaW5lGAIgASgJEgsKA2JpbxgDIAEoCRISCgphdmF0YXJfdXJsGAQgASgJEhAKCGxvY2F0aW9uGAUgASgJEhQKDGdpdGh1Yl9sb2dpbhgGIAEoCRIqCgVsaW5rcxgHIAMoCzIbLnJlYWx0aW1lLm1lLnYxLlByb2ZpbGVMaW5rIjsKC1Byb2ZpbGVMaW5rEg0KBWxhYmVsGAEgASgJEgsKA3VyaRgCIAEoCRIQCghwbGF0Zm9ybRgDIAEoCSKpAgoHUHJvamVjdBILCgN1aWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEg8KB3N1bW1hcnkYBCABKAkSNQoKdmlzaWJpbGl0eRgFIAEoDjIhLnJlYWx0aW1lLm1lLnYxLlByb2plY3RWaXNpYmlsaXR5EhgKEHByaW1hcnlfbGFuZ3VhZ2UYBiABKAkSDgoGdG9waWNzGAcgAygJEhIKCnN0YXJfY291bnQYCCABKAUSFgoOcmVwb3NpdG9yeV91cmwYCSABKAkSFAoMaG9tZXBhZ2VfdXJsGAogASgJEjIKDmxhc3RfcHVzaF90aW1lGAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCp2ChFQcm9qZWN0VmlzaWJpbGl0eRIiCh5QUk9KRUNUX1ZJU0lCSUxJVFlfVU5TUEVDSUZJRUQQABIdChlQUk9KRUNUX1ZJU0lCSUxJVFlfUFVCTElDEAESHgoaUFJPSkVDVF9WSVNJQklMSVRZX1BSSVZBVEUQAjJxCg5Qcm9maWxlU2VydmljZRJfCg5HZXRQcm9maWxlUGFnZRIlLnJlYWx0aW1lLm1lLnYxLkdldFByb2ZpbGVQYWdlUmVxdWVzdBomLnJlYWx0aW1lLm1lLnYxLkdldFByb2ZpbGVQYWdlUmVzcG9uc2VCwwEKEmNvbS5yZWFsdGltZS5tZS52MUIMUHJvZmlsZVByb3RvUAFaRXJlYWx0aW1lLW1lL2FwcHMvc3RhdHVzLWdhdGV3YXkvaW50ZXJuYWwvZ2VucHJvdG8vcmVhbHRpbWUvbWUvdjE7bWV2MaICA1JNWKoCDlJlYWx0aW1lLk1lLlYxygIOUmVhbHRpbWVcTWVcVjHiAhpSZWFsdGltZVxNZVxWMVxHUEJNZXRhZGF0YeoCEFJlYWx0aW1lOjpNZTo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
+  fileDesc("ChxyZWFsdGltZS9tZS92MS9wcm9maWxlLnByb3RvEg5yZWFsdGltZS5tZS52MSIXChVHZXRQcm9maWxlUGFnZVJlcXVlc3QiQwoWR2V0UHJvZmlsZVBhZ2VSZXNwb25zZRIpCgRwYWdlGAEgASgLMhsucmVhbHRpbWUubWUudjEuUHJvZmlsZVBhZ2UikwEKC1Byb2ZpbGVQYWdlEigKB3Byb2ZpbGUYASABKAsyFy5yZWFsdGltZS5tZS52MS5Qcm9maWxlEikKCHByb2plY3RzGAIgAygLMhcucmVhbHRpbWUubWUudjEuUHJvamVjdBIvCgt1cGRhdGVfdGltZRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAipgEKB1Byb2ZpbGUSFAoMZGlzcGxheV9uYW1lGAEgASgJEhAKCGhlYWRsaW5lGAIgASgJEgsKA2JpbxgDIAEoCRISCgphdmF0YXJfdXJsGAQgASgJEhAKCGxvY2F0aW9uGAUgASgJEhQKDGdpdGh1Yl9sb2dpbhgGIAEoCRIqCgVsaW5rcxgHIAMoCzIbLnJlYWx0aW1lLm1lLnYxLlByb2ZpbGVMaW5rIjsKC1Byb2ZpbGVMaW5rEg0KBWxhYmVsGAEgASgJEgsKA3VyaRgCIAEoCRIQCghwbGF0Zm9ybRgDIAEoCSK3AwoHUHJvamVjdBILCgN1aWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEg8KB3N1bW1hcnkYBCABKAkSNQoKdmlzaWJpbGl0eRgFIAEoDjIhLnJlYWx0aW1lLm1lLnYxLlByb2plY3RWaXNpYmlsaXR5EhgKEHByaW1hcnlfbGFuZ3VhZ2UYBiABKAkSDgoGdG9waWNzGAcgAygJEhIKCnN0YXJfY291bnQYCCABKAUSFgoOcmVwb3NpdG9yeV91cmwYCSABKAkSFAoMaG9tZXBhZ2VfdXJsGAogASgJEjIKDmxhc3RfcHVzaF90aW1lGAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtjcmVhdGVfdGltZRgMIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIYXJjaGl2ZWQYDSABKAgSMAoJbGFuZ3VhZ2VzGA4gAygLMh0ucmVhbHRpbWUubWUudjEuTGFuZ3VhZ2VTaGFyZRIXCg9jb21taXRfYWN0aXZpdHkYDyADKAUiLAoNTGFuZ3VhZ2VTaGFyZRIMCgRuYW1lGAEgASgJEg0KBWJ5dGVzGAIgASgDKnYKEVByb2plY3RWaXNpYmlsaXR5EiIKHlBST0pFQ1RfVklTSUJJTElUWV9VTlNQRUNJRklFRBAAEh0KGVBST0pFQ1RfVklTSUJJTElUWV9QVUJMSUMQARIeChpQUk9KRUNUX1ZJU0lCSUxJVFlfUFJJVkFURRACMnEKDlByb2ZpbGVTZXJ2aWNlEl8KDkdldFByb2ZpbGVQYWdlEiUucmVhbHRpbWUubWUudjEuR2V0UHJvZmlsZVBhZ2VSZXF1ZXN0GiYucmVhbHRpbWUubWUudjEuR2V0UHJvZmlsZVBhZ2VSZXNwb25zZULDAQoSY29tLnJlYWx0aW1lLm1lLnYxQgxQcm9maWxlUHJvdG9QAVpFcmVhbHRpbWUtbWUvYXBwcy9zdGF0dXMtZ2F0ZXdheS9pbnRlcm5hbC9nZW5wcm90by9yZWFsdGltZS9tZS92MTttZXYxogIDUk1YqgIOUmVhbHRpbWUuTWUuVjHKAg5SZWFsdGltZVxNZVxWMeICGlJlYWx0aW1lXE1lXFYxXEdQQk1ldGFkYXRh6gIQUmVhbHRpbWU6Ok1lOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * GetProfilePageRequest is the request for the profile document.
@@ -407,6 +407,36 @@ export type Project = Message<"realtime.me.v1.Project"> & {
    * @generated from field: google.protobuf.Timestamp last_push_time = 11;
    */
   lastPushTime?: Timestamp | undefined;
+
+  /**
+   * create_time is when the repository was created on GitHub.
+   *
+   * @generated from field: google.protobuf.Timestamp create_time = 12;
+   */
+  createTime?: Timestamp | undefined;
+
+  /**
+   * archived is true when the source repository is archived (read-only) on GitHub.
+   *
+   * @generated from field: bool archived = 13;
+   */
+  archived: boolean;
+
+  /**
+   * languages is the repository's language breakdown by source bytes, ordered
+   * from the largest share to the smallest.
+   *
+   * @generated from field: repeated realtime.me.v1.LanguageShare languages = 14;
+   */
+  languages: LanguageShare[];
+
+  /**
+   * commit_activity is the weekly commit counts for roughly the last year,
+   * oldest week first, used to draw a contribution sparkline.
+   *
+   * @generated from field: repeated int32 commit_activity = 15;
+   */
+  commitActivity: number[];
 };
 
 /**
@@ -493,6 +523,36 @@ export type ProjectJson = {
    * @generated from field: google.protobuf.Timestamp last_push_time = 11;
    */
   lastPushTime?: TimestampJson;
+
+  /**
+   * create_time is when the repository was created on GitHub.
+   *
+   * @generated from field: google.protobuf.Timestamp create_time = 12;
+   */
+  createTime?: TimestampJson;
+
+  /**
+   * archived is true when the source repository is archived (read-only) on GitHub.
+   *
+   * @generated from field: bool archived = 13;
+   */
+  archived?: boolean;
+
+  /**
+   * languages is the repository's language breakdown by source bytes, ordered
+   * from the largest share to the smallest.
+   *
+   * @generated from field: repeated realtime.me.v1.LanguageShare languages = 14;
+   */
+  languages?: LanguageShareJson[];
+
+  /**
+   * commit_activity is the weekly commit counts for roughly the last year,
+   * oldest week first, used to draw a contribution sparkline.
+   *
+   * @generated from field: repeated int32 commit_activity = 15;
+   */
+  commitActivity?: number[];
 };
 
 /**
@@ -501,6 +561,57 @@ export type ProjectJson = {
  */
 export const ProjectSchema: GenMessage<Project, {jsonType: ProjectJson}> = /*@__PURE__*/
   messageDesc(file_realtime_me_v1_profile, 5);
+
+/**
+ * LanguageShare is one programming language's share of a repository, measured
+ * in source bytes.
+ *
+ * @generated from message realtime.me.v1.LanguageShare
+ */
+export type LanguageShare = Message<"realtime.me.v1.LanguageShare"> & {
+  /**
+   * name is the language name, for example "TypeScript".
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * bytes is the amount of source attributed to this language, in bytes.
+   *
+   * @generated from field: int64 bytes = 2;
+   */
+  bytes: bigint;
+};
+
+/**
+ * LanguageShare is one programming language's share of a repository, measured
+ * in source bytes.
+ *
+ * @generated from message realtime.me.v1.LanguageShare
+ */
+export type LanguageShareJson = {
+  /**
+   * name is the language name, for example "TypeScript".
+   *
+   * @generated from field: string name = 1;
+   */
+  name?: string;
+
+  /**
+   * bytes is the amount of source attributed to this language, in bytes.
+   *
+   * @generated from field: int64 bytes = 2;
+   */
+  bytes?: string;
+};
+
+/**
+ * Describes the message realtime.me.v1.LanguageShare.
+ * Use `create(LanguageShareSchema)` to create a new message.
+ */
+export const LanguageShareSchema: GenMessage<LanguageShare, {jsonType: LanguageShareJson}> = /*@__PURE__*/
+  messageDesc(file_realtime_me_v1_profile, 6);
 
 /**
  * ProjectVisibility describes the source repository's visibility on GitHub.

@@ -109,6 +109,30 @@ message Project {
 
   // last_push_time is the most recent push to the repository.
   google.protobuf.Timestamp last_push_time = 11;
+
+  // create_time is when the repository was created on GitHub.
+  google.protobuf.Timestamp create_time = 12;
+
+  // archived is true when the source repository is archived (read-only) on GitHub.
+  bool archived = 13;
+
+  // languages is the repository's language breakdown by source bytes, ordered
+  // from the largest share to the smallest.
+  repeated LanguageShare languages = 14;
+
+  // commit_activity is the weekly commit counts for roughly the last year,
+  // oldest week first, used to draw a contribution sparkline.
+  repeated int32 commit_activity = 15;
+}
+
+// LanguageShare is one programming language's share of a repository, measured
+// in source bytes.
+message LanguageShare {
+  // name is the language name, for example "TypeScript".
+  string name = 1;
+
+  // bytes is the amount of source attributed to this language, in bytes.
+  int64 bytes = 2;
 }
 
 // ProjectVisibility describes the source repository's visibility on GitHub.

@@ -41,16 +41,26 @@ type ConfiguredLink struct {
 
 // ConfiguredProject is one collected repository, in display order.
 type ConfiguredProject struct {
-	DisplayName     string   `json:"display_name"`
-	Description     string   `json:"description"`
-	Summary         string   `json:"summary"`
-	Visibility      string   `json:"visibility"`
-	PrimaryLanguage string   `json:"primary_language"`
-	Topics          []string `json:"topics"`
-	StarCount       int32    `json:"star_count"`
-	RepositoryURL   string   `json:"repository_url"`
-	HomepageURL     string   `json:"homepage_url"`
-	LastPushTime    string   `json:"last_push_time"`
+	DisplayName     string               `json:"display_name"`
+	Description     string               `json:"description"`
+	Summary         string               `json:"summary"`
+	Visibility      string               `json:"visibility"`
+	PrimaryLanguage string               `json:"primary_language"`
+	Topics          []string             `json:"topics"`
+	StarCount       int32                `json:"star_count"`
+	RepositoryURL   string               `json:"repository_url"`
+	HomepageURL     string               `json:"homepage_url"`
+	LastPushTime    string               `json:"last_push_time"`
+	CreateTime      string               `json:"create_time"`
+	Archived        bool                 `json:"archived"`
+	Languages       []ConfiguredLanguage `json:"languages"`
+	CommitActivity  []int32              `json:"commit_activity"`
+}
+
+// ConfiguredLanguage is one language's source-byte count for a collected repository.
+type ConfiguredLanguage struct {
+	Name  string `json:"name"`
+	Bytes int64  `json:"bytes"`
 }
 
 // LoadProfileConfig reads the profile configuration file. A missing file or empty
@@ -129,7 +139,19 @@ func publicProject(project ConfiguredProject) *mev1.Project {
 		RepositoryUrl:   publicRepositoryURL(project),
 		HomepageUrl:     project.HomepageURL,
 		LastPushTime:    parseTimestamp(project.LastPushTime),
+		CreateTime:      parseTimestamp(project.CreateTime),
+		Archived:        project.Archived,
+		Languages:       projectLanguages(project.Languages),
+		CommitActivity:  project.CommitActivity,
 	}
+}
+
+func projectLanguages(languages []ConfiguredLanguage) []*mev1.LanguageShare {
+	shares := make([]*mev1.LanguageShare, 0, len(languages))
+	for _, language := range languages {
+		shares = append(shares, &mev1.LanguageShare{Name: language.Name, Bytes: language.Bytes})
+	}
+	return shares
 }
 
 func projectVisibility(value string) mev1.ProjectVisibility {

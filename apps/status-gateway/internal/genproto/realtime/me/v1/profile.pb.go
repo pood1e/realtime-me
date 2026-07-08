@@ -415,9 +415,19 @@ type Project struct {
 	// homepage_url is the project's homepage or live demo, if any.
 	HomepageUrl string `protobuf:"bytes,10,opt,name=homepage_url,json=homepageUrl,proto3" json:"homepage_url,omitempty"`
 	// last_push_time is the most recent push to the repository.
-	LastPushTime  *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=last_push_time,json=lastPushTime,proto3" json:"last_push_time,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	LastPushTime *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=last_push_time,json=lastPushTime,proto3" json:"last_push_time,omitempty"`
+	// create_time is when the repository was created on GitHub.
+	CreateTime *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
+	// archived is true when the source repository is archived (read-only) on GitHub.
+	Archived bool `protobuf:"varint,13,opt,name=archived,proto3" json:"archived,omitempty"`
+	// languages is the repository's language breakdown by source bytes, ordered
+	// from the largest share to the smallest.
+	Languages []*LanguageShare `protobuf:"bytes,14,rep,name=languages,proto3" json:"languages,omitempty"`
+	// commit_activity is the weekly commit counts for roughly the last year,
+	// oldest week first, used to draw a contribution sparkline.
+	CommitActivity []int32 `protobuf:"varint,15,rep,packed,name=commit_activity,json=commitActivity,proto3" json:"commit_activity,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Project) Reset() {
@@ -527,6 +537,90 @@ func (x *Project) GetLastPushTime() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Project) GetCreateTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreateTime
+	}
+	return nil
+}
+
+func (x *Project) GetArchived() bool {
+	if x != nil {
+		return x.Archived
+	}
+	return false
+}
+
+func (x *Project) GetLanguages() []*LanguageShare {
+	if x != nil {
+		return x.Languages
+	}
+	return nil
+}
+
+func (x *Project) GetCommitActivity() []int32 {
+	if x != nil {
+		return x.CommitActivity
+	}
+	return nil
+}
+
+// LanguageShare is one programming language's share of a repository, measured
+// in source bytes.
+type LanguageShare struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// name is the language name, for example "TypeScript".
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// bytes is the amount of source attributed to this language, in bytes.
+	Bytes         int64 `protobuf:"varint,2,opt,name=bytes,proto3" json:"bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LanguageShare) Reset() {
+	*x = LanguageShare{}
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LanguageShare) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LanguageShare) ProtoMessage() {}
+
+func (x *LanguageShare) ProtoReflect() protoreflect.Message {
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LanguageShare.ProtoReflect.Descriptor instead.
+func (*LanguageShare) Descriptor() ([]byte, []int) {
+	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *LanguageShare) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *LanguageShare) GetBytes() int64 {
+	if x != nil {
+		return x.Bytes
+	}
+	return 0
+}
+
 var File_realtime_me_v1_profile_proto protoreflect.FileDescriptor
 
 const file_realtime_me_v1_profile_proto_rawDesc = "" +
@@ -552,7 +646,7 @@ const file_realtime_me_v1_profile_proto_rawDesc = "" +
 	"\vProfileLink\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12\x10\n" +
 	"\x03uri\x18\x02 \x01(\tR\x03uri\x12\x1a\n" +
-	"\bplatform\x18\x03 \x01(\tR\bplatform\"\xab\x03\n" +
+	"\bplatform\x18\x03 \x01(\tR\bplatform\"\xea\x04\n" +
 	"\aProject\x12\x10\n" +
 	"\x03uid\x18\x01 \x01(\tR\x03uid\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12 \n" +
@@ -568,7 +662,15 @@ const file_realtime_me_v1_profile_proto_rawDesc = "" +
 	"\x0erepository_url\x18\t \x01(\tR\rrepositoryUrl\x12!\n" +
 	"\fhomepage_url\x18\n" +
 	" \x01(\tR\vhomepageUrl\x12@\n" +
-	"\x0elast_push_time\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\flastPushTime*v\n" +
+	"\x0elast_push_time\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\flastPushTime\x12;\n" +
+	"\vcreate_time\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"createTime\x12\x1a\n" +
+	"\barchived\x18\r \x01(\bR\barchived\x12;\n" +
+	"\tlanguages\x18\x0e \x03(\v2\x1d.realtime.me.v1.LanguageShareR\tlanguages\x12'\n" +
+	"\x0fcommit_activity\x18\x0f \x03(\x05R\x0ecommitActivity\"9\n" +
+	"\rLanguageShare\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05bytes\x18\x02 \x01(\x03R\x05bytes*v\n" +
 	"\x11ProjectVisibility\x12\"\n" +
 	"\x1ePROJECT_VISIBILITY_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19PROJECT_VISIBILITY_PUBLIC\x10\x01\x12\x1e\n" +
@@ -590,7 +692,7 @@ func file_realtime_me_v1_profile_proto_rawDescGZIP() []byte {
 }
 
 var file_realtime_me_v1_profile_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_realtime_me_v1_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_realtime_me_v1_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_realtime_me_v1_profile_proto_goTypes = []any{
 	(ProjectVisibility)(0),         // 0: realtime.me.v1.ProjectVisibility
 	(*GetProfilePageRequest)(nil),  // 1: realtime.me.v1.GetProfilePageRequest
@@ -599,23 +701,26 @@ var file_realtime_me_v1_profile_proto_goTypes = []any{
 	(*Profile)(nil),                // 4: realtime.me.v1.Profile
 	(*ProfileLink)(nil),            // 5: realtime.me.v1.ProfileLink
 	(*Project)(nil),                // 6: realtime.me.v1.Project
-	(*timestamppb.Timestamp)(nil),  // 7: google.protobuf.Timestamp
+	(*LanguageShare)(nil),          // 7: realtime.me.v1.LanguageShare
+	(*timestamppb.Timestamp)(nil),  // 8: google.protobuf.Timestamp
 }
 var file_realtime_me_v1_profile_proto_depIdxs = []int32{
-	3, // 0: realtime.me.v1.GetProfilePageResponse.page:type_name -> realtime.me.v1.ProfilePage
-	4, // 1: realtime.me.v1.ProfilePage.profile:type_name -> realtime.me.v1.Profile
-	6, // 2: realtime.me.v1.ProfilePage.projects:type_name -> realtime.me.v1.Project
-	7, // 3: realtime.me.v1.ProfilePage.update_time:type_name -> google.protobuf.Timestamp
-	5, // 4: realtime.me.v1.Profile.links:type_name -> realtime.me.v1.ProfileLink
-	0, // 5: realtime.me.v1.Project.visibility:type_name -> realtime.me.v1.ProjectVisibility
-	7, // 6: realtime.me.v1.Project.last_push_time:type_name -> google.protobuf.Timestamp
-	1, // 7: realtime.me.v1.ProfileService.GetProfilePage:input_type -> realtime.me.v1.GetProfilePageRequest
-	2, // 8: realtime.me.v1.ProfileService.GetProfilePage:output_type -> realtime.me.v1.GetProfilePageResponse
-	8, // [8:9] is the sub-list for method output_type
-	7, // [7:8] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	3,  // 0: realtime.me.v1.GetProfilePageResponse.page:type_name -> realtime.me.v1.ProfilePage
+	4,  // 1: realtime.me.v1.ProfilePage.profile:type_name -> realtime.me.v1.Profile
+	6,  // 2: realtime.me.v1.ProfilePage.projects:type_name -> realtime.me.v1.Project
+	8,  // 3: realtime.me.v1.ProfilePage.update_time:type_name -> google.protobuf.Timestamp
+	5,  // 4: realtime.me.v1.Profile.links:type_name -> realtime.me.v1.ProfileLink
+	0,  // 5: realtime.me.v1.Project.visibility:type_name -> realtime.me.v1.ProjectVisibility
+	8,  // 6: realtime.me.v1.Project.last_push_time:type_name -> google.protobuf.Timestamp
+	8,  // 7: realtime.me.v1.Project.create_time:type_name -> google.protobuf.Timestamp
+	7,  // 8: realtime.me.v1.Project.languages:type_name -> realtime.me.v1.LanguageShare
+	1,  // 9: realtime.me.v1.ProfileService.GetProfilePage:input_type -> realtime.me.v1.GetProfilePageRequest
+	2,  // 10: realtime.me.v1.ProfileService.GetProfilePage:output_type -> realtime.me.v1.GetProfilePageResponse
+	10, // [10:11] is the sub-list for method output_type
+	9,  // [9:10] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_realtime_me_v1_profile_proto_init() }
@@ -629,7 +734,7 @@ func file_realtime_me_v1_profile_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_realtime_me_v1_profile_proto_rawDesc), len(file_realtime_me_v1_profile_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

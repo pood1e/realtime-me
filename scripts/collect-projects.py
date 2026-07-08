@@ -62,7 +62,9 @@ def main() -> int:
     projects = []
     for repo in repos:
         summary = summarize(repo, fetch_readme(token, repo)) if summarize else ""
-        projects.append(project_entry(repo, summary))
+        languages = fetch_languages(token, repo)
+        commit_activity = fetch_commit_activity(token, repo)
+        projects.append(project_entry(repo, summary, languages, commit_activity))
 
     emit(projects, args)
     print(f"Collected {len(projects)} project(s).", file=sys.stderr)
@@ -89,7 +91,7 @@ def include_repo(repo: dict[str, Any], args: argparse.Namespace) -> bool:
 
 def fetch_repos(token: str, login: str) -> list[dict[str, Any]]:
     if token:
-        base = f"{GITHUB_API}/user/repos?affiliation=owner&visibility=all&sort=pushed"
+        base = f"{GITHUB_API}/user/repos?affiliation=owner,organization_member&visibility=all&sort=pushed"
     else:
         base = f"{GITHUB_API}/users/{login}/repos?type=owner&sort=pushed"
     repos: list[dict[str, Any]] = []
@@ -118,6 +120,34 @@ def fetch_readme(token: str, repo: dict[str, Any]) -> str:
         return ""
 
 
+def fetch_languages(token: str, repo: dict[str, Any]) -> list[dict[str, Any]]:
+    full_name = repo.get("full_name")
+    if not full_name:
+        return []
+    try:
+        data = github_json(f"{GITHUB_API}/repos/{full_name}/languages", token)
+    except (urllib.error.HTTPError, OSError, ValueError):
+        return []
+    if not isinstance(data, dict):
+        return []
+    ranked = sorted(data.items(), key=lambda item: item[1], reverse=True)
+    return [{"name": name, "bytes": int(byte_count)} for name, byte_count in ranked]
+
+
+def fetch_commit_activity(token: str, repo: dict[str, Any]) -> list[int]:
+    full_name = repo.get("full_name")
+    if not full_name:
+        return []
+    try:
+        data = github_json(f"{GITHUB_API}/repos/{full_name}/stats/participation", token)
+    except (urllib.error.HTTPError, OSError, ValueError):
+        return []
+    weeks = data.get("all") if isinstance(data, dict) else None
+    if not isinstance(weeks, list):
+        return []
+    return [int(count) for count in weeks]
+
+
 def github_json(url: str, token: str) -> Any:
     request = urllib.request.Request(url, headers=github_headers(token))
     with urllib.request.urlopen(request, timeout=15) as response:
@@ -135,7 +165,12 @@ def github_headers(token: str, accept: str = "application/vnd.github+json") -> d
     return headers
 
 
-def project_entry(repo: dict[str, Any], summary: str) -> dict[str, Any]:
+def project_entry(
+    repo: dict[str, Any],
+    summary: str,
+    languages: list[dict[str, Any]],
+    commit_activity: list[int],
+) -> dict[str, Any]:
     return {
         "display_name": repo.get("name", ""),
         "description": repo.get("description") or "",
@@ -147,6 +182,10 @@ def project_entry(repo: dict[str, Any], summary: str) -> dict[str, Any]:
         "repository_url": repo.get("html_url") or "",
         "homepage_url": repo.get("homepage") or "",
         "last_push_time": repo.get("pushed_at") or "",
+        "create_time": repo.get("created_at") or "",
+        "archived": bool(repo.get("archived")),
+        "languages": languages,
+        "commit_activity": commit_activity,
     }
 
 

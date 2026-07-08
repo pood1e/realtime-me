@@ -46,6 +46,11 @@ export function formatDateTime(value: Timestamp | undefined): string {
   return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date);
 }
 
+export function formatMonthYear(value: Timestamp | undefined): string {
+  const date = toDate(value);
+  return date ? new Intl.DateTimeFormat(undefined, { month: 'short', year: 'numeric' }).format(date) : '—';
+}
+
 function clockTime(date: Date): string {
   return new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(date);
 }
