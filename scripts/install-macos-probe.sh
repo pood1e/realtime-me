@@ -1,20 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Installs the realtime-me Prometheus probe on macOS. Like the Linux probe, the
-# host is scraped (pull), not pushed: node_exporter (darwin build) publishes host
-# metrics and status-device-reporter.py --serve publishes media/Bluetooth. Both
-# run as LaunchAgents under the logged-in user (so media/Bluetooth are visible)
-# and are registered as gateway scrape targets. Only the phone uses push.
+# Installs the realtime-me Prometheus exporters on macOS. The host is scraped
+# (pull), not pushed, and stays unaware of the gateway: this only runs
+# node_exporter (darwin build) for host metrics and status-device-reporter.py
+# --serve for media/Bluetooth, both as LaunchAgents under the logged-in user
+# (so media/Bluetooth are visible). Register the host centrally with
+# register-device.py; Prometheus stamps the device identity via service
+# discovery, so the exporters need no token or gateway address.
 
 INSTALL_DIR=${INSTALL_DIR:-$HOME/.realtime-me}
-GATEWAY_URL=${STATUS_GATEWAY_URL:-}
-REGISTER_TARGETS=${STATUS_REGISTER_TARGETS:-0}
 DEVICE_NAME=${STATUS_DEVICE_NAME:-$(scutil --get ComputerName 2>/dev/null || hostname -s 2>/dev/null || echo mac)}
-DEVICE_MODEL=${STATUS_DEVICE_MODEL:-$(sysctl -n hw.model 2>/dev/null || echo "")}
 DEVICE_KIND=${STATUS_DEVICE_KIND:-host}
 DEVICE_ROLE=${STATUS_DEVICE_ROLE:-desktop}
-IDENTITY_FILE=${STATUS_IDENTITY_FILE:-$INSTALL_DIR/identity.json}
 EXPORTER_BIND=${STATUS_EXPORTER_BIND:-0.0.0.0}
 EXPORTER_HOST=${STATUS_EXPORTER_HOST:-}
 NODE_EXPORTER_PORT=${STATUS_NODE_EXPORTER_PORT:-9100}
@@ -53,36 +51,6 @@ require_not_root() {
 
 require_command() {
   command -v "$1" >/dev/null 2>&1 || { echo "Missing required command: $1" >&2; exit 2; }
-}
-
-xml_escape() {
-  local value=$1
-  value=${value//&/&amp;}
-  value=${value//</&lt;}
-  value=${value//>/&gt;}
-  printf '%s' "$value"
-}
-
-normalize_url() {
-  local value=${1%/}
-  case "$value" in
-    http://*|https://*) printf '%s' "$value" ;;
-    *) echo "STATUS_GATEWAY_URL must start with http:// or https://." >&2; exit 2 ;;
-  esac
-}
-
-configure_gateway_url() {
-  [[ -z ${GATEWAY_URL:-} ]] && return 0
-  normalize_url "$GATEWAY_URL"
-}
-
-read_token() {
-  if [[ -n ${STATUS_INGEST_TOKEN:-} ]]; then printf '%s' "$STATUS_INGEST_TOKEN"; return; fi
-  if [[ ! -r /dev/tty ]]; then echo "Set STATUS_INGEST_TOKEN or run from an interactive terminal." >&2; exit 2; fi
-  local token
-  read -rsp "STATUS_INGEST_TOKEN: " token </dev/tty; echo >/dev/tty
-  [[ -n $token ]] || { echo "STATUS_INGEST_TOKEN is required." >&2; exit 2; }
-  printf '%s' "$token"
 }
 
 curl_download() {
@@ -170,88 +138,6 @@ detect_exporter_host() {
   [[ -n $EXPORTER_HOST ]] || { echo "Could not detect LAN IP. Set STATUS_EXPORTER_HOST." >&2; exit 2; }
 }
 
-should_register_targets() { [[ $REGISTER_TARGETS == 1 || -n ${GATEWAY_URL:-} ]]; }
-
-enroll_device() {
-  local token=$1 device_uid
-  device_uid=$(
-    STATUS_GATEWAY_URL=$GATEWAY_URL STATUS_INGEST_TOKEN=$token STATUS_IDENTITY_FILE=$IDENTITY_FILE \
-    STATUS_DEVICE_NAME=$DEVICE_NAME STATUS_DEVICE_MODEL=$DEVICE_MODEL \
-    STATUS_DEVICE_KIND=$DEVICE_KIND STATUS_DEVICE_ROLE=$DEVICE_ROLE \
-    "$PYTHON_BIN" "$INSTALL_DIR/status-device-reporter.py" --print-uid
-  ) || true
-  [[ -n $device_uid ]] || { echo "Device enrollment failed. Check STATUS_GATEWAY_URL and STATUS_INGEST_TOKEN." >&2; exit 1; }
-  printf '%s' "$device_uid"
-}
-
-json_payload() {
-  local host=$1 install_agent=$2 device_uid=$3
-  "$PYTHON_BIN" - "$host" "$install_agent" "$device_uid" "$INSTALL_DIR" <<'PY'
-import json, os, sys
-
-host, install_agent_arg, device_uid, install_dir = sys.argv[1:5]
-sys.path.insert(0, install_dir)
-from status_common import device_kind_enum, device_role_enum
-
-install_agent = install_agent_arg == "1"
-node_port = os.environ["STATUS_NODE_EXPORTER_PORT"]
-device_port = os.environ["STATUS_DEVICE_EXPORTER_PORT"]
-agent_port = os.environ["STATUS_AGENT_EXPORTER_PORT"]
-device_kind = os.environ["STATUS_DEVICE_KIND"]
-device_role = os.environ["STATUS_DEVICE_ROLE"]
-common = {
-    "deviceUid": device_uid,
-    "displayName": os.environ["STATUS_DEVICE_NAME"],
-    "model": os.environ.get("STATUS_DEVICE_MODEL", ""),
-    "kind": device_kind_enum(device_kind),
-    "role": device_role_enum(device_role),
-}
-node_job = "SCRAPE_JOB_VM_NODE_EXPORTER" if device_kind == "virtual_machine" or device_role == "vm" else "SCRAPE_JOB_NODE_EXPORTER"
-targets = [
-    dict(common, job=node_job, target=f"{host}:{node_port}"),
-    dict(common, job="SCRAPE_JOB_DEVICE_EXPORTER", target=f"{host}:{device_port}"),
-]
-if install_agent:
-    targets.append(dict(common, job="SCRAPE_JOB_AGENT_EXPORTER", target=f"{host}:{agent_port}"))
-print(json.dumps({"targets": targets}, separators=(",", ":")))
-PY
-}
-
-post_connect() {
-  local endpoint=$1 token=$2 payload=$3 config
-  config=$(mktemp); chmod 600 "$config"
-  {
-    printf 'header = "Accept: application/json"\n'
-    printf 'header = "Authorization: Bearer %s"\n' "$token"
-    printf 'header = "Connect-Protocol-Version: 1"\n'
-    printf 'header = "Content-Type: application/json"\n'
-  } >"$config"
-  if ! "$CURL_BIN" -fsSL --connect-timeout 10 --max-time 30 --config "$config" --data-binary "$payload" "$endpoint" >/dev/null; then
-    rm -f "$config"; echo "Could not register Prometheus scrape targets." >&2; exit 1
-  fi
-  rm -f "$config"
-}
-
-register_prometheus_targets() {
-  if ! should_register_targets; then
-    log "Skipping device enrollment and Prometheus target registration"
-    return
-  fi
-  [[ -n ${GATEWAY_URL:-} ]] || { echo "Set STATUS_GATEWAY_URL when STATUS_REGISTER_TARGETS=1." >&2; exit 2; }
-  local token device_uid payload
-  token=$(read_token)
-  log "Enrolling device"
-  device_uid=$(enroll_device "$token")
-  export STATUS_NODE_EXPORTER_PORT=$NODE_EXPORTER_PORT
-  export STATUS_DEVICE_EXPORTER_PORT=$DEVICE_EXPORTER_PORT
-  export STATUS_AGENT_EXPORTER_PORT=$AGENT_EXPORTER_PORT
-  export STATUS_DEVICE_NAME=$DEVICE_NAME STATUS_DEVICE_MODEL=$DEVICE_MODEL
-  export STATUS_DEVICE_KIND=$DEVICE_KIND STATUS_DEVICE_ROLE=$DEVICE_ROLE
-  payload=$(json_payload "$EXPORTER_HOST" "$INSTALL_AGENT" "$device_uid")
-  log "Registering Prometheus scrape targets"
-  post_connect "$GATEWAY_URL/realtime.me.v1.IngestService/RegisterScrapeTargets" "$token" "$payload"
-}
-
 plist_path() { printf '%s/%s.%s.plist' "$LAUNCH_AGENTS_DIR" "$LABEL_PREFIX" "$1"; }
 
 write_node_exporter_agent() {
@@ -290,14 +176,6 @@ write_device_exporter_agent() {
         <string>--bind</string><string>$EXPORTER_BIND</string>
         <string>--port</string><string>$DEVICE_EXPORTER_PORT</string>
     </array>
-    <key>EnvironmentVariables</key>
-    <dict>
-        <key>STATUS_DEVICE_NAME</key><string>$(xml_escape "$DEVICE_NAME")</string>
-        <key>STATUS_DEVICE_MODEL</key><string>$(xml_escape "$DEVICE_MODEL")</string>
-        <key>STATUS_DEVICE_KIND</key><string>$DEVICE_KIND</string>
-        <key>STATUS_DEVICE_ROLE</key><string>$DEVICE_ROLE</string>
-        <key>STATUS_IDENTITY_FILE</key><string>$IDENTITY_FILE</string>
-    </dict>
     <key>KeepAlive</key><true/>
     <key>RunAtLoad</key><true/>
     <key>StandardErrorPath</key><string>$INSTALL_DIR/device-exporter.log</string>
@@ -322,10 +200,6 @@ write_agent_exporter_agent() {
         <string>--bind</string><string>$EXPORTER_BIND</string>
         <string>--port</string><string>$AGENT_EXPORTER_PORT</string>
     </array>
-    <key>EnvironmentVariables</key>
-    <dict>
-        <key>STATUS_IDENTITY_FILE</key><string>$IDENTITY_FILE</string>
-    </dict>
     <key>KeepAlive</key><true/>
     <key>RunAtLoad</key><true/>
     <key>StandardErrorPath</key><string>$INSTALL_DIR/agent-exporter.log</string>
@@ -344,15 +218,16 @@ load_agent() {
 }
 
 print_summary() {
-  echo "Installed Realtime Me macOS probe."
-  [[ -n ${GATEWAY_URL:-} ]] && echo "Gateway:         $GATEWAY_URL"
-  echo "Device:          $DEVICE_NAME"
+  echo "Installed Realtime Me macOS exporters."
   echo "Node exporter:   $EXPORTER_HOST:$NODE_EXPORTER_PORT"
   echo "Device exporter: $EXPORTER_HOST:$DEVICE_EXPORTER_PORT"
   echo "Agent:           $([[ $INSTALL_AGENT == 1 ]] && printf '%s:%s' "$EXPORTER_HOST" "$AGENT_EXPORTER_PORT" || echo disabled)"
-  echo "Check:           launchctl list | grep $LABEL_PREFIX"
-  echo "Logs:            $INSTALL_DIR/*.log"
-  echo "If the gateway cannot scrape, allow node_exporter/python3 through the macOS firewall (System Settings > Network > Firewall)."
+  echo "Check:           launchctl list | grep $LABEL_PREFIX   (logs in $INSTALL_DIR/*.log)"
+  echo "If the gateway cannot scrape, allow node_exporter/python3 through the macOS firewall."
+  echo
+  echo "Now register this host centrally (where you can reach the gateway):"
+  echo "  STATUS_INGEST_TOKEN=... python3 register-device.py --url <GATEWAY_URL> \\"
+  echo "    --host $EXPORTER_HOST --name \"$DEVICE_NAME\" --kind $DEVICE_KIND --role $DEVICE_ROLE$([[ $INSTALL_AGENT == 1 ]] && printf ' --install-agent')"
 }
 
 main() {
@@ -361,12 +236,10 @@ main() {
   require_command "$PYTHON_BIN"
   require_command tar
   require_command shasum
-  GATEWAY_URL=$(configure_gateway_url)
   detect_exporter_host
   mkdir -p "$INSTALL_DIR" "$LAUNCH_AGENTS_DIR"
   download_exporters
   install_node_exporter
-  register_prometheus_targets
   log "Writing LaunchAgents"
   write_node_exporter_agent
   write_device_exporter_agent

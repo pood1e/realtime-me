@@ -142,14 +142,24 @@ POST /api/ingest/mobile
 Authorization: Bearer <STATUS_INGEST_TOKEN>
 ```
 
-Linux probes only install local exporters. Prometheus discovers and pulls them from the status gateway's HTTP service discovery endpoint, so the probe host does not need the gateway URL or ingest token.
+Probe hosts run only Prometheus exporters and stay unaware of the gateway. Prometheus discovers and pulls them through the gateway's HTTP service discovery, so the probe host needs no gateway URL or ingest token. Install the exporters on the host:
 
 ```sh
-curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-linux-probe.sh \
-  | sudo env STATUS_EXPORTER_HOST=<device-lan-ip> bash
+# Linux (systemd)
+curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-linux-probe.sh | sudo bash
+
+# macOS (run as your login user, not sudo — LaunchAgents and media access are per-user)
+curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-macos-probe.sh | bash
 ```
 
-Register scrape targets centrally on the gateway side. Use `INSTALL_AGENT=1` when the device should also expose Codex/Claude active-agent state. Use `STATUS_DEVICE_ROLE=vm STATUS_DEVICE_KIND=virtual_machine` for VMs. The Linux installer does not hardcode LAN addresses; pass `STATUS_EXPORTER_HOST` when automatic route detection is not suitable. Media title collection on Linux uses `playerctl` when available, and Bluetooth audio accessory discovery uses BlueZ `bluetoothctl`. On macOS, run `scripts/status-device-reporter.py --serve` under the logged-in user so media session and Bluetooth accessory metadata are visible.
+Then register the host once, from anywhere that can reach the gateway (the installer prints this line with the host and ports filled in):
+
+```sh
+STATUS_INGEST_TOKEN=... python3 scripts/register-device.py \
+  --url http://<gateway-host>:18080 --host <device-lan-ip> --name "<name>" --kind host
+```
+
+The gateway mints the device's uid and serves it to Prometheus as a service-discovery target label, so the exporters carry no identity of their own. Use `INSTALL_AGENT=1` (installer) plus `--install-agent` (register) when the device should also expose Codex/Claude active-agent state, and `--kind virtual_machine --role vm` (register) for VMs. Media title collection on Linux uses `playerctl` when available, Bluetooth audio accessory discovery uses BlueZ `bluetoothctl`, and on macOS both come from the logged-in user's session. Exporters bind `0.0.0.0` so the gateway can scrape them across the LAN; set `STATUS_EXPORTER_BIND`/`STATUS_EXPORTER_HOST` to override. Only the phone pushes, since it cannot be scraped.
 
 
 ## Public status page
