@@ -145,8 +145,9 @@ func (client *PrometheusClient) DeviceMediaStatuses(ctx context.Context) map[str
 			continue
 		}
 		statuses[deviceID] = &mev1.MediaStatus{
-			Title:  title,
-			Artist: sample.Metric["artist"],
+			Title:    title,
+			Artist:   sample.Metric["artist"],
+			CoverUrl: sample.Metric["cover_url"],
 		}
 	}
 	return statuses

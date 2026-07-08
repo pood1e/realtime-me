@@ -1,5 +1,6 @@
 import { Footprints, HeartPulse, Music } from 'lucide-react';
 import type { PublicStatus } from '@/gen/realtime/me/v1/status_pb';
+import type { MediaStatus } from '@/gen/realtime/me/v1/status_types_pb';
 import { WristState } from '@/gen/realtime/me/v1/watch_pb';
 
 export function Presence({ status }: { status?: PublicStatus | null }) {
@@ -25,22 +26,31 @@ export function Presence({ status }: { status?: PublicStatus | null }) {
           {steps.toLocaleString()}
         </span>
       )}
-      {media && (
-        <span className="flex max-w-[15rem] items-center gap-1.5 truncate" title={`Now playing: ${media}`}>
-          <Music className="size-3.5 text-primary" />
-          <span className="truncate">{media}</span>
-        </span>
-      )}
+      {media && <NowPlaying media={media} />}
     </div>
   );
 }
 
-function nowPlaying(status?: PublicStatus | null): string | null {
+function NowPlaying({ media }: { media: MediaStatus }) {
+  const cover = media.coverUrl;
+  const text = media.artist ? `${media.title} · ${media.artist}` : media.title;
+  return (
+    <span className="flex max-w-[15rem] items-center gap-1.5" title={`Now playing: ${text}`}>
+      {cover ? (
+        <img src={cover} alt="" className="size-5 rounded object-cover" width={20} height={20} />
+      ) : (
+        <Music className="size-3.5 text-primary" />
+      )}
+      <span className="truncate">{text}</span>
+    </span>
+  );
+}
+
+function nowPlaying(status?: PublicStatus | null): MediaStatus | null {
   if (!status) return null;
   const devices = [status.server, ...(status.devices ?? [])];
   for (const device of devices) {
-    const media = device?.media;
-    if (media?.title) return media.artist ? `${media.title} · ${media.artist}` : media.title;
+    if (device?.media?.title) return device.media;
   }
   return null;
 }

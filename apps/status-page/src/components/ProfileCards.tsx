@@ -1,6 +1,30 @@
 import { Archive, CalendarPlus, Clock, ExternalLink, Loader2, Lock, Star } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { siGithub } from 'simple-icons/icons';
+import type { SimpleIcon } from 'simple-icons';
+import {
+  siC,
+  siCplusplus,
+  siCss,
+  siDart,
+  siDocker,
+  siGithub,
+  siGnubash,
+  siGo,
+  siHtml5,
+  siJavascript,
+  siKotlin,
+  siLua,
+  siNixos,
+  siOpenjdk,
+  siPhp,
+  siPython,
+  siRuby,
+  siRust,
+  siSharp,
+  siSwift,
+  siTypescript,
+  siVuedotjs,
+} from 'simple-icons/icons';
 import type { LanguageShare, Project } from '@/gen/realtime/me/v1/profile_pb';
 import { ProjectVisibility } from '@/gen/realtime/me/v1/profile_pb';
 import { Badge } from '@/components/ui/badge';
@@ -136,13 +160,20 @@ function LanguageBar({ languages }: { languages: LanguageShare[] }) {
         ))}
       </div>
       <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-        {top.map((language) => (
-          <span key={language.name} className="flex items-center gap-1">
-            <span className="size-1.5 rounded-full" style={{ backgroundColor: languageColor(language.name) }} />
-            {language.name}
-            <span className="tabular-nums">{Math.round((Number(language.bytes) / total) * 100)}%</span>
-          </span>
-        ))}
+        {top.map((language) => {
+          const icon = LANGUAGE_ICONS[language.name];
+          return (
+            <span key={language.name} className="flex items-center gap-1">
+              {icon ? (
+                <BrandIcon icon={icon} className="size-3" />
+              ) : (
+                <span className="size-1.5 rounded-full" style={{ backgroundColor: languageColor(language.name) }} />
+              )}
+              {language.name}
+              <span className="tabular-nums">{Math.round((Number(language.bytes) / total) * 100)}%</span>
+            </span>
+          );
+        })}
       </div>
     </div>
   );
@@ -165,6 +196,30 @@ function CommitSparkline({ weeks }: { weeks: number[] }) {
     </div>
   );
 }
+
+const LANGUAGE_ICONS: Record<string, SimpleIcon> = {
+  TypeScript: siTypescript,
+  JavaScript: siJavascript,
+  Go: siGo,
+  Python: siPython,
+  Kotlin: siKotlin,
+  Java: siOpenjdk,
+  Rust: siRust,
+  Ruby: siRuby,
+  Dart: siDart,
+  Swift: siSwift,
+  HTML: siHtml5,
+  CSS: siCss,
+  Vue: siVuedotjs,
+  PHP: siPhp,
+  Shell: siGnubash,
+  Dockerfile: siDocker,
+  Lua: siLua,
+  Nix: siNixos,
+  C: siC,
+  'C++': siCplusplus,
+  'C#': siSharp,
+};
 
 const LANGUAGE_COLORS: Record<string, string> = {
   TypeScript: '#3178c6',
