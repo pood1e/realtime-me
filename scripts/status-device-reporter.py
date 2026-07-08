@@ -408,6 +408,8 @@ def darwin_nowplaying_cli() -> MediaSnapshot | None:
     command = command_path("nowplaying-cli")
     if not command:
         return None
+    if not nowplaying_cli_is_playing(command):
+        return None
     title = run([command, "get", "title"]).strip()
     if not title:
         return None
@@ -418,6 +420,16 @@ def darwin_nowplaying_cli() -> MediaSnapshot | None:
         artist=sanitize_media_text(artist),
         player=sanitize_media_text(player),
     )
+
+
+def nowplaying_cli_is_playing(command: str) -> bool:
+    # nowplaying-cli returns the last item even when paused; a positive playback
+    # rate is the only reliable "actually playing" signal.
+    rate = run([command, "get", "playbackRate"]).strip().lower()
+    try:
+        return float(rate) > 0
+    except ValueError:
+        return False
 
 
 def darwin_music_media() -> MediaSnapshot | None:
