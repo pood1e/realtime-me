@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
@@ -47,6 +48,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,112 +62,61 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import me.realtime.mobile.background.StatusBackgroundSync
-import me.realtime.mobile.state.StatusGatewayTokenStore
-import me.realtime.mobile.state.StoredWatchSnapshot
-import me.realtime.mobile.state.WatchSnapshotProcessor
-import me.realtime.mobile.state.WatchSnapshotStore
-import me.realtime.mobile.wear.WatchSnapshotReader
-import me.realtime.protocol.v1.ChargeState
-import me.realtime.protocol.v1.WatchSnapshot
-import me.realtime.protocol.v1.WristState
-import java.text.NumberFormat
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 class MainActivity : ComponentActivity() {
-    private val scope = MainScope()
-    private val numberFormat = NumberFormat.getIntegerInstance()
-    private val zoneId = ZoneId.systemDefault()
-    private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(zoneId)
-    private val dateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, HH:mm:ss").withZone(zoneId)
-    private var refreshJob: Job? = null
-
-    private var statusGatewayConnected by mutableStateOf(false)
-    private var watchData by mutableStateOf<WatchDataUiState>(WatchDataUiState.Empty)
+    private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestRuntimePermissionsIfNeeded()
         enableEdgeToEdge()
         setContent {
+            val uiState by viewModel.uiState.collectAsState()
+            LaunchedEffect(Unit) {
+                viewModel.uiEvents.collect { event -> handleEvent(event) }
+            }
             RealtimeMobileScreen(
-                statusGatewayConnected = statusGatewayConnected,
-                watchData = watchData,
+                statusGatewayConnected = uiState.statusGatewayConnected,
+                watchData = uiState.watchData,
                 onImportStatusGatewayToken = ::importStatusGatewayToken,
-                onDisconnectStatusGateway = ::disconnectStatusGateway,
+                onDisconnectStatusGateway = viewModel::disconnect,
             )
         }
     }
 
     override fun onStart() {
         super.onStart()
-        startBackgroundSyncIfConfigured()
-        startRefreshLoop()
+        viewModel.onStart()
     }
 
     override fun onResume() {
         super.onResume()
-        refreshStatus()
-    }
-
-    override fun onStop() {
-        refreshJob?.cancel()
-        refreshJob = null
-        super.onStop()
-    }
-
-    override fun onDestroy() {
-        scope.cancel()
-        super.onDestroy()
+        viewModel.refresh()
     }
 
     private fun importStatusGatewayToken() {
-        val clipboard = getSystemService(ClipboardManager::class.java)
-        val token = clipboard?.primaryClip
+        val clipboardToken = getSystemService(ClipboardManager::class.java)
+            ?.primaryClip
             ?.takeIf { it.itemCount > 0 }
             ?.getItemAt(0)
             ?.coerceToText(this)
             ?.toString()
-            ?.trim()
-            .orEmpty()
-        if (token.length < MIN_STATUS_GATEWAY_TOKEN_LENGTH) {
-            Toast.makeText(this, R.string.status_gateway_token_clipboard_missing, Toast.LENGTH_SHORT).show()
-            return
-        }
+        viewModel.importToken(clipboardToken)
+    }
 
-        scope.launch {
-            withContext(Dispatchers.IO) {
-                StatusGatewayTokenStore(applicationContext).save(token)
-                StatusBackgroundSync.ensureActive(applicationContext)
+    private fun handleEvent(event: MainEvent) {
+        when (event) {
+            MainEvent.TokenSaved -> {
+                getSystemService(ClipboardManager::class.java)?.clearToken()
+                toast(R.string.status_gateway_token_saved)
             }
-            clipboard?.clearToken()
-            statusGatewayConnected = true
-            Toast.makeText(this@MainActivity, R.string.status_gateway_token_saved, Toast.LENGTH_SHORT).show()
-            refreshStatus()
+            MainEvent.TokenMissing -> toast(R.string.status_gateway_token_clipboard_missing)
+            MainEvent.Disconnected -> toast(R.string.status_gateway_disconnected)
         }
     }
 
-    private fun disconnectStatusGateway() {
-        scope.launch {
-            withContext(Dispatchers.IO) {
-                StatusGatewayTokenStore(applicationContext).clear()
-                StatusBackgroundSync.ensureActive(applicationContext)
-            }
-            statusGatewayConnected = false
-            Toast.makeText(this@MainActivity, R.string.status_gateway_disconnected, Toast.LENGTH_SHORT).show()
-            refreshStatus()
-        }
+    private fun toast(messageId: Int) {
+        Toast.makeText(this, messageId, Toast.LENGTH_SHORT).show()
     }
 
     private fun requestRuntimePermissionsIfNeeded() {
@@ -185,87 +137,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun startBackgroundSyncIfConfigured() {
-        scope.launch(Dispatchers.IO) {
-            StatusBackgroundSync.ensureActive(applicationContext)
-        }
-    }
-
-    private fun startRefreshLoop() {
-        if (refreshJob?.isActive == true) return
-        refreshJob = scope.launch {
-            while (isActive) {
-                refreshStatusOnce()
-                delay(REFRESH_INTERVAL_MS)
-            }
-        }
-    }
-
-    private fun refreshStatus() {
-        scope.launch { refreshStatusOnce() }
-    }
-
-    private suspend fun refreshStatusOnce() {
-        val state = withContext(Dispatchers.IO) {
-            refreshLatestWatchSnapshot()
-            StatusState(
-                statusGatewayConnected = StatusGatewayTokenStore(applicationContext).hasToken(),
-                watchData = WatchSnapshotStore(applicationContext).latest()?.toUiState() ?: WatchDataUiState.Empty,
-            )
-        }
-        statusGatewayConnected = state.statusGatewayConnected
-        watchData = state.watchData
-    }
-
-    private suspend fun refreshLatestWatchSnapshot() {
-        val payload = runCatching { WatchSnapshotReader(applicationContext).latestPayload() }.getOrNull() ?: return
-        WatchSnapshotProcessor(applicationContext).process(payload)
-    }
-
-    private fun StoredWatchSnapshot.toUiState(): WatchDataUiState.Loaded {
-        val snapshot = snapshot
-        return WatchDataUiState.Loaded(
-            heartRate = formatHeartRate(snapshot),
-            steps = formatSteps(snapshot),
-            battery = formatBattery(snapshot),
-            isCharging = isCharging(snapshot),
-            isOffWrist = isOffWrist(snapshot),
-            updatedAt = formatReceivedAt(receivedAt),
-        )
-    }
-
-    private fun formatHeartRate(snapshot: WatchSnapshot): String {
-        if (!snapshot.hasHeartRate() || snapshot.heartRate.beatsPerMinute <= 0) return MISSING_VALUE
-        return getString(R.string.watch_metric_heart_rate_value, snapshot.heartRate.beatsPerMinute)
-    }
-
-    private fun formatSteps(snapshot: WatchSnapshot): String {
-        if (!snapshot.hasActivityTotals() || snapshot.activityTotals.steps < 0) return MISSING_VALUE
-        return numberFormat.format(snapshot.activityTotals.steps)
-    }
-
-    private fun formatBattery(snapshot: WatchSnapshot): String {
-        if (!snapshot.hasWatchState()) return MISSING_VALUE
-        return getString(R.string.watch_metric_battery_value, snapshot.watchState.batteryPercent)
-    }
-
-    private fun isCharging(snapshot: WatchSnapshot): Boolean {
-        return snapshot.hasWatchState() && snapshot.watchState.chargeState == ChargeState.CHARGE_STATE_CHARGING
-    }
-
-    private fun isOffWrist(snapshot: WatchSnapshot): Boolean {
-        return snapshot.hasWatchState() && snapshot.watchState.wristState == WristState.WRIST_STATE_OFF_WRIST
-    }
-
-    private fun formatReceivedAt(receivedAt: Instant): String {
-        val receivedDate = receivedAt.atZone(zoneId).toLocalDate()
-        return if (receivedDate == LocalDate.now(zoneId)) {
-            timeFormatter.format(receivedAt)
-        } else {
-            dateTimeFormatter.format(receivedAt)
-        }
-    }
-
     private fun ClipboardManager.clearToken() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             clearPrimaryClip()
@@ -274,30 +145,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private data class StatusState(
-        val statusGatewayConnected: Boolean,
-        val watchData: WatchDataUiState,
-    )
-
     private companion object {
-        const val REFRESH_INTERVAL_MS = 2_000L
-        const val MIN_STATUS_GATEWAY_TOKEN_LENGTH = 16
         const val RUNTIME_PERMISSION_REQUEST_CODE = 1002
-        const val MISSING_VALUE = "—"
     }
-}
-
-private sealed interface WatchDataUiState {
-    data object Empty : WatchDataUiState
-
-    data class Loaded(
-        val heartRate: String,
-        val steps: String,
-        val battery: String,
-        val isCharging: Boolean,
-        val isOffWrist: Boolean,
-        val updatedAt: String,
-    ) : WatchDataUiState
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

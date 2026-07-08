@@ -4,15 +4,21 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
+import android.net.ConnectivityManager
+import android.net.Network
 import android.os.Build
 import android.os.IBinder
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -20,9 +26,19 @@ import me.realtime.mobile.R
 import me.realtime.mobile.state.StatusGatewayTokenStore
 import java.time.Duration
 
+/**
+ * Keeps the phone's status fresh on the gateway. Pushes are event-driven — watch
+ * data arrives via [me.realtime.mobile.wear.WatchSnapshotListenerService], and
+ * this service pushes on connectivity and charging changes — with a single
+ * low-frequency heartbeat as the fallback. Every trigger funnels through one
+ * conflated channel so bursts coalesce into a single serialized push.
+ */
 class StatusForegroundService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val pushRequests = Channel<Unit>(Channel.CONFLATED)
     private var started = false
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
+    private var chargingReceiver: BroadcastReceiver? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -37,31 +53,72 @@ class StatusForegroundService : Service() {
 
         if (!started) {
             started = true
-            scope.launch { syncLoop() }
+            registerEventTriggers()
+            scope.launch { pushConsumer() }
+            scope.launch { heartbeat() }
         }
+        requestPush()
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        unregisterEventTriggers()
         scope.cancel()
         super.onDestroy()
     }
 
-    private suspend fun syncLoop() {
-        while (scope.isActive) {
+    // The single push path: coalesced requests are handled one at a time so an
+    // event burst never fans out into overlapping network calls.
+    private suspend fun pushConsumer() {
+        for (request in pushRequests) {
             if (!hasSyncToken()) {
                 stopSelf()
                 return
             }
-            syncOnce()
-            delay(SYNC_INTERVAL.toMillis())
+            StatusSyncRunner(applicationContext).syncLatest()
         }
     }
 
-    private suspend fun syncOnce() {
-        StatusSyncRunner(applicationContext).syncLatest()
+    private suspend fun heartbeat() {
+        while (scope.isActive) {
+            delay(HEARTBEAT_INTERVAL.toMillis())
+            requestPush()
+        }
+    }
+
+    private fun requestPush() {
+        pushRequests.trySend(Unit)
+    }
+
+    private fun registerEventTriggers() {
+        val connectivityManager = getSystemService(ConnectivityManager::class.java)
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) = requestPush()
+            override fun onLost(network: Network) = requestPush()
+        }
+        runCatching { connectivityManager?.registerDefaultNetworkCallback(callback) }
+            .onSuccess { networkCallback = callback }
+
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) = requestPush()
+        }
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_POWER_CONNECTED)
+            addAction(Intent.ACTION_POWER_DISCONNECTED)
+        }
+        ContextCompat.registerReceiver(this, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+        chargingReceiver = receiver
+    }
+
+    private fun unregisterEventTriggers() {
+        networkCallback?.let { callback ->
+            runCatching { getSystemService(ConnectivityManager::class.java)?.unregisterNetworkCallback(callback) }
+        }
+        networkCallback = null
+        chargingReceiver?.let { receiver -> runCatching { unregisterReceiver(receiver) } }
+        chargingReceiver = null
     }
 
     private fun hasSyncToken(): Boolean = StatusGatewayTokenStore(this).hasToken()
@@ -95,7 +152,7 @@ class StatusForegroundService : Service() {
     companion object {
         private const val CHANNEL_ID = "status_gateway_sync"
         private const val NOTIFICATION_ID = 200
-        private val SYNC_INTERVAL: Duration = Duration.ofSeconds(10)
+        private val HEARTBEAT_INTERVAL: Duration = Duration.ofSeconds(30)
 
         fun start(context: Context) {
             runCatching {

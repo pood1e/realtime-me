@@ -1,13 +1,26 @@
 package me.realtime.mobile.state
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.core.content.edit
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import me.realtime.protocol.v1.WatchSnapshot
 import java.time.Instant
 import java.util.Base64
 
 class WatchSnapshotStore(context: Context) {
     private val preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    // Emits the current stored snapshot immediately, then again on every change,
+    // so the UI reacts to new watch data instead of polling on a timer.
+    fun changes(): Flow<StoredWatchSnapshot?> = callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> trySend(latest()) }
+        trySend(latest())
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
 
     fun save(snapshot: WatchSnapshot, receivedAt: Instant) {
         preferences.edit {

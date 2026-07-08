@@ -1,17 +1,20 @@
 package me.realtime.mobile.background
 
 import android.content.Context
-import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import me.realtime.mobile.state.StatusGatewayTokenStore
 import java.util.concurrent.TimeUnit
 
+/**
+ * Arms the phone's background sync. While the app can run a foreground service,
+ * [StatusForegroundService] is the push engine (event-driven + a low-frequency
+ * heartbeat, which also covers the first push on start). The periodic worker is
+ * the safety net that keeps reporting when the OS has torn that service down.
+ */
 object StatusBackgroundSync {
     fun ensureActive(context: Context) {
         val appContext = context.applicationContext
@@ -22,7 +25,6 @@ object StatusBackgroundSync {
         }
 
         ensureScheduled(appContext)
-        enqueueNow(appContext)
         StatusForegroundService.start(appContext)
     }
 
@@ -46,37 +48,14 @@ object StatusBackgroundSync {
             )
     }
 
-    fun enqueueNow(context: Context) {
-        val appContext = context.applicationContext
-        if (!StatusGatewayTokenStore(appContext).hasToken()) return
-
-        WorkManager.getInstance(appContext)
-            .enqueueUniqueWork(
-                IMMEDIATE_WORK_NAME,
-                ExistingWorkPolicy.REPLACE,
-                OneTimeWorkRequestBuilder<StatusSyncWorker>()
-                    .setConstraints(networkConstraints())
-                    .setBackoffCriteria(
-                        BackoffPolicy.EXPONENTIAL,
-                        RETRY_BACKOFF_SECONDS,
-                        TimeUnit.SECONDS,
-                    )
-                    .build(),
-            )
-    }
-
     fun cancel(context: Context) {
-        val workManager = WorkManager.getInstance(context.applicationContext)
-        workManager.cancelUniqueWork(IMMEDIATE_WORK_NAME)
-        workManager.cancelUniqueWork(PERIODIC_WORK_NAME)
+        WorkManager.getInstance(context.applicationContext).cancelUniqueWork(PERIODIC_WORK_NAME)
     }
 
     private fun networkConstraints(): Constraints = Constraints.Builder()
         .setRequiredNetworkType(NetworkType.CONNECTED)
         .build()
 
-    private const val IMMEDIATE_WORK_NAME = "status_gateway_sync_now"
     private const val PERIODIC_WORK_NAME = "status_gateway_sync_periodic"
     private const val PERIODIC_INTERVAL_MINUTES = 15L
-    private const val RETRY_BACKOFF_SECONDS = 30L
 }
