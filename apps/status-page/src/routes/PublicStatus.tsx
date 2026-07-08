@@ -1,4 +1,4 @@
-import { Bot, Box, Laptop, Server, Watch } from 'lucide-react';
+import { Bot, Box, Laptop, Server, Smartphone } from 'lucide-react';
 import { useCallback } from 'react';
 import { DeviceRole } from '@/gen/realtime/me/v1/status_types_pb';
 import { AgentCard, EmptyAgentCard, agentKey } from '@/components/AgentCard';
@@ -38,10 +38,15 @@ export function PublicStatusApp() {
         ))}
       </StatusSection>
 
-      <StatusSection title="Devices" icon={<Watch className="size-4" />}>
-        {personalDevices.map((device) => (
-          <DeviceCard key={device.deviceUid} device={device} title={device.role === DeviceRole.DESKTOP ? 'Mac' : 'Device'} icon={<Laptop className="size-4" />} />
-        ))}
+      {personalDevices.length > 0 && (
+        <StatusSection title="Devices" icon={<Laptop className="size-4" />}>
+          {personalDevices.map((device) => (
+            <DeviceCard key={device.deviceUid} device={device} title={device.role === DeviceRole.DESKTOP ? 'Mac' : 'Device'} icon={<Laptop className="size-4" />} />
+          ))}
+        </StatusSection>
+      )}
+
+      <StatusSection title="Mobile" icon={<Smartphone className="size-4" />} columns="sm:grid-cols-2">
         <PhoneCard mobile={status?.mobile ?? null} />
         <WatchCard mobile={status?.mobile ?? null} githubState={status?.github?.state} />
       </StatusSection>

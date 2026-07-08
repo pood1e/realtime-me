@@ -1,6 +1,7 @@
 import type { Timestamp } from '@bufbuild/protobuf/wkt';
 import { AlertTriangle, CheckCircle2, Clock, LoaderCircle, RefreshCw } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
+import { Link, NavLink } from 'react-router-dom';
 import blueberryLogoUrl from '@/assets/blueberry.svg';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,25 +22,36 @@ export function PageFrame({ maxWidth = 'max-w-6xl', children }: { maxWidth?: str
 
 export function SiteLogo() {
   return (
-    <a href="/" className="flex items-center gap-2.5" aria-label="Home">
+    <Link to="/" className="flex items-center gap-2.5" aria-label="Home">
       <img src={blueberryLogoUrl} alt="" className="size-11 rounded-2xl drop-shadow-sm" width={44} height={44} />
       <span className="font-heading text-xl font-semibold tracking-tight">pood1e</span>
-    </a>
+    </Link>
   );
 }
 
 export function NavLinks() {
-  const onAbout = window.location.pathname.startsWith('/about');
   return (
-    <nav className="flex items-center gap-1 text-sm">
-      <a href="/" className={navLinkClass(!onAbout)}>Status</a>
-      <a href="/about" className={navLinkClass(onAbout)}>About</a>
+    <nav className="flex items-center gap-1 rounded-full border bg-card/70 p-1 text-sm shadow-sm backdrop-blur">
+      <TabLink to="/">Status</TabLink>
+      <TabLink to="/about">About</TabLink>
     </nav>
   );
 }
 
-function navLinkClass(active: boolean): string {
-  return `rounded-md px-2.5 py-1 font-medium transition-colors ${active ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`;
+function TabLink({ to, children }: { to: string; children: ReactNode }) {
+  return (
+    <NavLink
+      to={to}
+      end={to === '/'}
+      className={({ isActive }) =>
+        `rounded-full px-3.5 py-1.5 font-medium transition-colors ${
+          isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+        }`
+      }
+    >
+      {children}
+    </NavLink>
+  );
 }
 
 export function HeaderActions({ failed, refresh }: { failed: boolean; refresh: () => void }) {
@@ -61,18 +73,19 @@ export function HeaderActions({ failed, refresh }: { failed: boolean; refresh: (
   );
 }
 
-export function StatusSection({ title, icon, columns = 'md:grid-cols-2 xl:grid-cols-4', children }: {
+export function StatusSection({ title, icon, columns = 'sm:grid-cols-2 lg:grid-cols-3', children }: {
   title: string;
   icon: ReactElement;
   columns?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="grid gap-3">
-      <div className="flex items-end justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-xl font-semibold tracking-tight">{icon}{title}</h2>
-      </div>
-      <div className={`grid gap-4 ${columns}`}>{children}</div>
+    <section className="grid gap-3.5">
+      <h2 className="flex items-center gap-2 text-xl font-semibold tracking-tight text-muted-foreground">
+        <span className="text-primary">{icon}</span>
+        {title}
+      </h2>
+      <div className={`grid items-start gap-4 ${columns}`}>{children}</div>
     </section>
   );
 }
