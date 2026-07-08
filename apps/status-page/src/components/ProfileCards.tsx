@@ -65,17 +65,32 @@ export function ProjectCard({ project }: { project: Project }) {
         <CardTitle className="flex min-w-0 items-center gap-2">
           <span className="truncate">{project.displayName || '—'}</span>
         </CardTitle>
-        <CardAction className="flex items-center gap-1.5">
+        <CardAction className="flex items-center gap-1">
           {project.archived && (
             <Badge variant="outline" title="Archived">
               <Archive />
               Archived
             </Badge>
           )}
-          <Badge variant={isPrivate ? 'secondary' : 'outline'} title={isPrivate ? 'Private' : 'Public'}>
-            {isPrivate ? <Lock /> : <BrandIcon icon={siGithub} />}
-            {isPrivate ? 'Private' : 'Public'}
-          </Badge>
+          {isPrivate ? (
+            <Badge variant="secondary" title="Private">
+              <Lock />
+              Private
+            </Badge>
+          ) : (
+            <div className="flex items-center gap-0.5 text-muted-foreground">
+              {project.homepageUrl && (
+                <Button asChild variant="ghost" size="icon" aria-label="Homepage" title="Homepage" className="text-muted-foreground hover:text-foreground">
+                  <a href={project.homepageUrl} target="_blank" rel="noreferrer"><ExternalLink /></a>
+                </Button>
+              )}
+              {project.repositoryUrl && (
+                <Button asChild variant="ghost" size="icon" aria-label="Repository" title="Repository" className="text-muted-foreground hover:text-foreground">
+                  <a href={project.repositoryUrl} target="_blank" rel="noreferrer"><BrandIcon icon={siGithub} mono /></a>
+                </Button>
+              )}
+            </div>
+          )}
         </CardAction>
       </CardHeader>
       <CardContent className="grid gap-3">
@@ -100,7 +115,6 @@ export function ProjectCard({ project }: { project: Project }) {
             <span className="flex items-center gap-1" title="Last push"><Clock className="size-3.5" />{formatDateTime(project.lastPushTime)}</span>
           )}
         </div>
-        <ProjectLinks project={project} />
       </CardContent>
     </Card>
   );
@@ -148,24 +162,6 @@ function CommitSparkline({ weeks }: { weeks: number[] }) {
           style={{ height: `${Math.max((count / max) * 100, 6)}%` }}
         />
       ))}
-    </div>
-  );
-}
-
-function ProjectLinks({ project }: { project: Project }) {
-  if (!project.repositoryUrl && !project.homepageUrl) return null;
-  return (
-    <div className="flex flex-wrap gap-2">
-      {project.repositoryUrl && (
-        <Button asChild variant="outline" size="sm">
-          <a href={project.repositoryUrl} target="_blank" rel="noreferrer"><BrandIcon icon={siGithub} />Repository</a>
-        </Button>
-      )}
-      {project.homepageUrl && (
-        <Button asChild variant="secondary" size="sm">
-          <a href={project.homepageUrl} target="_blank" rel="noreferrer"><ExternalLink />Homepage</a>
-        </Button>
-      )}
     </div>
   );
 }
