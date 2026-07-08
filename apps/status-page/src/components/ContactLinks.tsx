@@ -12,7 +12,15 @@ export function ContactLinks({ links }: { links?: ProfileLink[] }) {
       {links.map((link) => {
         const label = link.label || link.platform || 'Link';
         return (
-          <Button key={`${link.platform}:${link.uri}`} asChild variant="ghost" size="icon" aria-label={label} title={label}>
+          <Button
+            key={`${link.platform}:${link.uri}`}
+            asChild
+            variant="ghost"
+            size="icon"
+            aria-label={label}
+            title={label}
+            className="text-muted-foreground hover:text-foreground"
+          >
             <a href={link.uri} target="_blank" rel="noreferrer">{contactIcon(link)}</a>
           </Button>
         );
@@ -23,11 +31,11 @@ export function ContactLinks({ links }: { links?: ProfileLink[] }) {
 
 export function contactIcon(link: ProfileLink): ReactElement {
   const platform = link.platform.toLowerCase();
-  if (platform === 'github') return <BrandIcon icon={siGithub} />;
-  if (platform === 'telegram') return <BrandIcon icon={siTelegram} />;
-  if (platform === 'discord') return <BrandIcon icon={siDiscord} />;
+  if (platform === 'github') return <BrandIcon icon={siGithub} mono />;
+  if (platform === 'telegram') return <BrandIcon icon={siTelegram} mono />;
+  if (platform === 'discord') return <BrandIcon icon={siDiscord} mono />;
   if (platform === 'email' || link.uri.startsWith('mailto:')) {
-    return link.uri.includes('gmail') ? <BrandIcon icon={siGmail} /> : <Mail />;
+    return link.uri.includes('gmail') ? <BrandIcon icon={siGmail} mono /> : <Mail />;
   }
   return <Globe />;
 }

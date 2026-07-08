@@ -19,9 +19,15 @@ import {
 } from 'simple-icons/icons';
 import type { DeviceState } from '@/gen/realtime/me/v1/status_pb';
 
-export function BrandIcon({ icon, className = 'size-4' }: { icon: SimpleIcon; className?: string }) {
+export function BrandIcon({ icon, className = 'size-4', mono = false }: { icon: SimpleIcon; className?: string; mono?: boolean }) {
   return (
-    <svg aria-label={icon.title} className={`${className} shrink-0`} role="img" style={{ color: `#${icon.hex}` }} viewBox="0 0 24 24">
+    <svg
+      aria-label={icon.title}
+      className={`${className} shrink-0`}
+      role="img"
+      style={mono ? undefined : { color: `#${icon.hex}` }}
+      viewBox="0 0 24 24"
+    >
       <title>{icon.title}</title>
       <path d={icon.path} fill="currentColor" />
     </svg>

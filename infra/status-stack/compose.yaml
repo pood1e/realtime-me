@@ -5,6 +5,9 @@ services:
     build:
       context: ../..
       dockerfile: apps/status-gateway/Dockerfile
+      args:
+        # This host cannot reach proxy.golang.org; default to a reachable mirror.
+        GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
     restart: unless-stopped
     env_file:
       - .env

@@ -25,18 +25,20 @@ export function AppShell() {
       <div className="flex min-h-screen flex-col bg-[radial-gradient(46rem_30rem_at_50%_-6rem,color-mix(in_oklab,var(--primary)_12%,transparent),transparent)]">
         <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-md">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-5 py-2.5">
-            <Link to="/" className="flex items-center gap-2.5" aria-label="Home">
-              <img
-                src={profile?.avatarUrl || blueberryLogoUrl}
-                alt=""
-                className="size-9 rounded-full border border-border object-cover"
-                width={36}
-                height={36}
-              />
-              <span className="font-heading text-lg font-semibold tracking-tight">{profile?.displayName || 'pood1e'}</span>
-            </Link>
-            <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-4">
+              <Link to="/" className="flex items-center gap-2.5" aria-label="Home">
+                <img
+                  src={profile?.avatarUrl || blueberryLogoUrl}
+                  alt=""
+                  className="size-9 rounded-full border border-border object-cover"
+                  width={36}
+                  height={36}
+                />
+                <span className="font-heading text-lg font-semibold tracking-tight">{profile?.displayName || 'pood1e'}</span>
+              </Link>
               <Presence status={status} />
+            </div>
+            <div className="flex items-center gap-2 sm:gap-4">
               <NavTabs />
               <div className="flex items-center gap-0.5">
                 <ContactLinks links={profile?.links} />
@@ -61,7 +63,7 @@ export function AppShell() {
 
 function NavTabs() {
   return (
-    <nav className="flex items-center gap-1 rounded-full border bg-card/70 p-1 text-sm shadow-sm">
+    <nav className="flex items-center gap-5 text-sm font-medium">
       <Tab to="/">Status</Tab>
       <Tab to="/about">About</Tab>
     </nav>
@@ -73,13 +75,16 @@ function Tab({ to, children }: { to: string; children: ReactNode }) {
     <NavLink
       to={to}
       end={to === '/'}
-      className={({ isActive }) =>
-        `rounded-full px-3.5 py-1.5 font-medium transition-colors ${
-          isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-        }`
-      }
+      className={({ isActive }) => `relative py-1 transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
     >
-      {children}
+      {({ isActive }) => (
+        <>
+          {children}
+          <span
+            className={`absolute -bottom-0.5 left-0 h-0.5 rounded-full bg-primary transition-all duration-200 ${isActive ? 'w-full opacity-100' : 'w-0 opacity-0'}`}
+          />
+        </>
+      )}
     </NavLink>
   );
 }
