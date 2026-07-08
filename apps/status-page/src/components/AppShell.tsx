@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import type { ProfilePage } from '@/gen/realtime/me/v1/profile_pb';
 import type { PublicStatus } from '@/gen/realtime/me/v1/status_pb';
-import blueberryLogoUrl from '@/assets/blueberry.svg';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ContactLinks } from '@/components/ContactLinks';
 import { Presence } from '@/components/Presence';
@@ -28,7 +27,7 @@ export function AppShell() {
             <div className="flex items-center gap-4">
               <Link to="/" className="flex items-center gap-2.5" aria-label="Home">
                 <img
-                  src={profile?.avatarUrl || blueberryLogoUrl}
+                  src={profile?.avatarUrl || '/scallion.png'}
                   alt=""
                   className="size-9 rounded-full border border-border object-cover"
                   width={36}

@@ -1,4 +1,5 @@
-import { Archive, CalendarPlus, Clock, ExternalLink, Lock, Star } from 'lucide-react';
+import { Archive, CalendarPlus, Clock, ExternalLink, Loader2, Lock, Star } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { siGithub } from 'simple-icons/icons';
 import type { LanguageShare, Project } from '@/gen/realtime/me/v1/profile_pb';
 import { ProjectVisibility } from '@/gen/realtime/me/v1/profile_pb';
@@ -7,6 +8,53 @@ import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BrandIcon } from '@/components/brand';
 import { formatDateTime, formatMonthYear } from '@/lib/format';
+
+const TIMELINE_BATCH = 10;
+
+export function ProjectTimeline({ projects }: { projects: Project[] }) {
+  const [visible, setVisible] = useState(TIMELINE_BATCH);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const hasMore = visible < projects.length;
+
+  useEffect(() => {
+    if (!hasMore) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) setVisible((current) => current + TIMELINE_BATCH);
+      },
+      { rootMargin: '300px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, projects.length]);
+
+  const shown = projects.slice(0, visible);
+  return (
+    <div className="mx-auto w-full max-w-3xl">
+      <ol className="relative ml-2 border-l border-border/70">
+        {shown.map((project, index) => {
+          const label = formatMonthYear(project.lastPushTime);
+          const showDate = index === 0 || label !== formatMonthYear(shown[index - 1].lastPushTime);
+          return (
+            <li key={project.uid || project.displayName} className="relative pb-8 pl-7 last:pb-0">
+              <span className="absolute -left-[5px] top-2 size-2.5 rounded-full border-2 border-background bg-primary" />
+              {showDate && <time className="mb-2 block text-xs font-semibold tracking-wide text-muted-foreground">{label}</time>}
+              <ProjectCard project={project} />
+            </li>
+          );
+        })}
+      </ol>
+      {hasMore && (
+        <div ref={sentinelRef} className="flex items-center justify-center gap-2 py-6 text-xs text-muted-foreground">
+          <Loader2 className="size-3.5 animate-spin" />
+          {projects.length - visible} more
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ProjectCard({ project }: { project: Project }) {
   const isPrivate = project.visibility === ProjectVisibility.PRIVATE;

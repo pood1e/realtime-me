@@ -2,7 +2,6 @@ import type { Timestamp } from '@bufbuild/protobuf/wkt';
 import { AlertTriangle, CheckCircle2, Clock, LoaderCircle, RefreshCw } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import blueberryLogoUrl from '@/assets/blueberry.svg';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,7 +22,7 @@ export function PageFrame({ maxWidth = 'max-w-6xl', children }: { maxWidth?: str
 export function SiteLogo() {
   return (
     <Link to="/" className="flex items-center gap-2.5" aria-label="Home">
-      <img src={blueberryLogoUrl} alt="" className="size-11 rounded-2xl drop-shadow-sm" width={44} height={44} />
+      <img src="/scallion.png" alt="" className="size-11 rounded-2xl drop-shadow-sm" width={44} height={44} />
       <span className="font-heading text-xl font-semibold tracking-tight">pood1e</span>
     </Link>
   );
