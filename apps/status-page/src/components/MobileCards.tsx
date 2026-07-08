@@ -50,7 +50,7 @@ export function WatchCard({ mobile, githubState }: { mobile: MobileState | null;
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><BrandIcon icon={siWearos} />{displayName}</CardTitle>
         <CardAction className="flex items-center gap-2">
-          <InlineTime value={mobile?.updateTime} />
+          <InlineTime value={watch?.recordTime ?? mobile?.updateTime} />
           <GitHubStatusBadge state={githubState} />
           <WatchStatusBadge watch={watch} offWrist={offWrist} />
         </CardAction>

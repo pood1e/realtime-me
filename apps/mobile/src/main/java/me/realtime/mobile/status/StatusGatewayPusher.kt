@@ -3,10 +3,7 @@ package me.realtime.mobile.status
 import android.content.Context
 import android.util.Log
 import me.realtime.mobile.state.StatusGatewayTokenStore
-import me.realtime.mobile.state.StoredWatchSnapshot
 import me.realtime.mobile.state.WatchSnapshotStore
-import java.time.Duration
-import java.time.Instant
 
 class StatusGatewayPusher(context: Context) {
     private val appContext = context.applicationContext
@@ -25,7 +22,10 @@ class StatusGatewayPusher(context: Context) {
             Log.w(TAG, "Status gateway enrollment did not return a device uid")
             return StatusGatewayPushResult.Failure
         }
-        val request = payloadBuilder.build(deviceUid, snapshotStore.latest()?.takeIfFresh())
+        // Always report the latest known watch snapshot; its record_time conveys
+        // freshness, so the page shows last-known state with a timestamp instead
+        // of dropping the watch whenever it goes idle.
+        val request = payloadBuilder.build(deviceUid, snapshotStore.latest())
         return client.reportMobile(token, request)
     }
 
@@ -38,13 +38,7 @@ class StatusGatewayPusher(context: Context) {
         return uid
     }
 
-    private fun StoredWatchSnapshot.takeIfFresh(now: Instant = Instant.now()): StoredWatchSnapshot? {
-        val age = Duration.between(receivedAt, now)
-        return takeIf { age >= Duration.ZERO && age <= MAX_WATCH_SNAPSHOT_AGE }
-    }
-
     private companion object {
         const val TAG = "RealtimeStatus"
-        val MAX_WATCH_SNAPSHOT_AGE: Duration = Duration.ofMinutes(2)
     }
 }

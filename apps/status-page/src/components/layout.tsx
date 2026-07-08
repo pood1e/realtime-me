@@ -6,20 +6,26 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ThemeToggle } from '@/components/theme';
 import { formatTime } from '@/lib/format';
 
-export function PageFrame({ maxWidth = 'max-w-7xl', children }: { maxWidth?: string; children: ReactNode }) {
+export function PageFrame({ maxWidth = 'max-w-6xl', children }: { maxWidth?: string; children: ReactNode }) {
   return (
     <TooltipProvider>
-      <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.18),transparent_35rem),radial-gradient(circle_at_top_right,rgba(59,130,246,0.18),transparent_30rem)]">
-        <div className={`mx-auto flex min-h-screen w-full ${maxWidth} flex-col gap-6 px-5 py-8`}>{children}</div>
+      <main className="min-h-screen bg-[radial-gradient(46rem_30rem_at_50%_-4rem,color-mix(in_oklab,var(--primary)_13%,transparent),transparent)]">
+        <div className={`mx-auto flex min-h-screen w-full ${maxWidth} flex-col gap-8 px-5 py-9`}>{children}</div>
       </main>
     </TooltipProvider>
   );
 }
 
 export function SiteLogo() {
-  return <img src={blueberryLogoUrl} alt="pood1e" className="size-14 rounded-2xl drop-shadow-sm" width={56} height={56} />;
+  return (
+    <a href="/" className="flex items-center gap-2.5" aria-label="Home">
+      <img src={blueberryLogoUrl} alt="" className="size-11 rounded-2xl drop-shadow-sm" width={44} height={44} />
+      <span className="font-heading text-xl font-semibold tracking-tight">pood1e</span>
+    </a>
+  );
 }
 
 export function NavLinks() {
@@ -42,6 +48,7 @@ export function HeaderActions({ failed, refresh }: { failed: boolean; refresh: (
       <Badge variant={failed ? 'destructive' : 'default'} aria-label={failed ? 'API offline' : 'Online'} title={failed ? 'API offline' : 'Online'}>
         {failed ? <AlertTriangle /> : <CheckCircle2 />}
       </Badge>
+      <ThemeToggle />
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="secondary" size="icon" aria-label="Refresh" title="Refresh" onClick={refresh}>
@@ -63,7 +70,7 @@ export function StatusSection({ title, icon, columns = 'md:grid-cols-2 xl:grid-c
   return (
     <section className="grid gap-3">
       <div className="flex items-end justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">{icon}{title}</h2>
+        <h2 className="flex items-center gap-2 text-xl font-semibold tracking-tight">{icon}{title}</h2>
       </div>
       <div className={`grid gap-4 ${columns}`}>{children}</div>
     </section>
