@@ -12,7 +12,7 @@ export function Presence({ status }: { status?: PublicStatus | null }) {
   if (!heartRate && !steps && !media) return null;
 
   return (
-    <div className="hidden items-center gap-3 rounded-full border bg-card/60 px-3 py-1 text-xs text-muted-foreground md:flex">
+    <div className="hidden items-center gap-3.5 text-xs text-muted-foreground md:flex">
       {!!heartRate && (
         <span className="flex items-center gap-1" title="Heart rate">
           <HeartPulse className="size-3.5 text-primary" />
