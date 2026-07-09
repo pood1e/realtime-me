@@ -65,14 +65,19 @@ const CODEX_MOTION_TIERS: AgentMotionAsset[][] = [
 ];
 const CLAWD_MOTION_TIERS: AgentMotionAsset[][] = clawdMotionTiers();
 
-// Every tier needs a clip, so a checkout missing any of the artwork falls back
-// wholesale rather than showing the mascot for some sub-agent counts only.
+// A clip counts only once its loop length, its animation and its reduced-motion
+// still all resolve; a partial clip would either cycle on a NaN delay or animate
+// at a viewer who asked it not to. Leaving any tier empty would then render the
+// mascot at some sub-agent counts and Clawd at others, so the whole set falls
+// back together.
 function clawdMotionTiers(): AgentMotionAsset[][] {
   const tiers = CLAWD_TIER_CLIPS.map((names) =>
     names.flatMap((name) => {
       const src = clawdClipUrls[`../assets/agents/clawd/${name}.gif`];
-      if (!src) return [];
-      return [{ src, durationMs: CLAWD_CLIP_DURATIONS_MS[name], poster: clawdPosterUrls[`../assets/agents/clawd/${name}.png`] }];
+      const poster = clawdPosterUrls[`../assets/agents/clawd/${name}.png`];
+      const durationMs = CLAWD_CLIP_DURATIONS_MS[name];
+      if (!src || !poster || !durationMs) return [];
+      return [{ src, durationMs, poster }];
     }),
   );
   return tiers.every((tier) => tier.length > 0) ? tiers : [];

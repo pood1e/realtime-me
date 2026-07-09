@@ -38,19 +38,22 @@ UUID_PATTERN = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9
 PROCESS_LINE_PATTERN = re.compile(r"\s*(\d+)\s+(.+)$")
 
 CODEX_FAILED_GOAL_STATES = {"blocked", "usage_limited", "budget_limited"}
-CODEX_RUNNING_GOAL_STATES = {"active"}
 # Codex ends a turn with turn_complete, or turn_aborted when it is interrupted.
 CODEX_TURN_END_EVENTS = {"turn_complete", "turn_aborted"}
+# Records Codex only writes while a turn is under way.
+CODEX_TURN_WORK_EVENTS = {"turn_started", "function_call", "function_call_output", "reasoning", "user_message", "agent_message", "message"}
 CODEX_SPAWN_EDGE_OPEN = "open"
 
 CLAUDE_BUSY_SESSION_STATES = {"busy"}
 # A sub-agent that is killed outright is never announced as stopped, so it would
 # read as working forever. Retire one that has not written in this long.
 CLAUDE_SUBAGENT_STALE_AFTER_SECONDS = 900
-# A sub-agent stops writing just before its session announces it, so allow the
-# announcement to trail the last write. A later write means it was resumed.
+# A sub-agent's last write lands just before its session announces it stopped,
+# but the two can tie, so tolerate a write a moment either side. Only a write
+# well after the announcement means the sub-agent was resumed.
 CLAUDE_SUBAGENT_RESUME_EPSILON_SECONDS = 5
-CLAUDE_TASK_ID_PATTERN = re.compile(r"<task-id>([A-Za-z0-9]+)</task-id>")
+# The id is whatever the session names between the tags; never assume a charset.
+CLAUDE_TASK_ID_PATTERN = re.compile(r"<task-id>([^<]+)</task-id>")
 CLAUDE_MODEL_TAIL_BYTES = 96 * 1024
 
 CODEX_KIND = "codex"
@@ -204,20 +207,21 @@ def codex_candidates(
 
 
 def codex_state(goal_status: str, working: bool) -> str:
+    """A goal stays active for its whole life, so it says nothing about whether
+    Codex is computing right now; only the turn does. A goal it cannot pursue is
+    the one thing the turn cannot show."""
     if goal_status in CODEX_FAILED_GOAL_STATES:
         return "failed"
-    if working or goal_status in CODEX_RUNNING_GOAL_STATES:
-        return "running"
-    return "idle"
+    return "running" if working else "idle"
 
 
 def read_codex_threads(database: Path) -> dict[str, CodexThread]:
     rows = query_sqlite(database, "select id, model, updated_at from threads order by updated_at desc limit 50")
     return {
-        str(row["id"]): CodexThread(
-            thread_id=str(row["id"]),
+        str(row["id"]).lower(): CodexThread(
+            thread_id=str(row["id"]).lower(),
             model=str(row["model"] or ""),
-            updated_at_seconds=float(row["updated_at"] or 0),
+            updated_at_seconds=epoch_seconds(row["updated_at"]),
         )
         for row in rows
     }
@@ -229,10 +233,10 @@ def read_codex_goals(database: Path) -> dict[str, CodexGoal]:
         "select thread_id, status, token_budget, tokens_used, updated_at_ms from thread_goals order by updated_at_ms desc limit 50",
     )
     return {
-        str(row["thread_id"]): CodexGoal(
-            thread_id=str(row["thread_id"]),
+        str(row["thread_id"]).lower(): CodexGoal(
+            thread_id=str(row["thread_id"]).lower(),
             status=str(row["status"] or ""),
-            updated_at_seconds=float(row["updated_at_ms"] or 0) / 1000,
+            updated_at_seconds=epoch_seconds(row["updated_at_ms"]),
             budget_remaining_percent=budget_remaining(row["token_budget"], row["tokens_used"]),
         )
         for row in rows
@@ -248,7 +252,7 @@ def codex_open_subagent_ids(homes: list[Path]) -> set[str]:
             "select child_thread_id from thread_spawn_edges where status = ?",
             (CODEX_SPAWN_EDGE_OPEN,),
         )
-        children.update(str(row["child_thread_id"]) for row in rows)
+        children.update(str(row["child_thread_id"]).lower() for row in rows)
     return children
 
 
@@ -265,12 +269,20 @@ def codex_open_threads(homes: list[Path], processes: dict[int, str]) -> dict[str
                 continue
             match = UUID_PATTERN.search(path.name)
             if match:
-                threads[match.group(0)] = path
+                # Thread ids are lowercase in the databases these are joined to.
+                threads[match.group(0).lower()] = path
     return threads
 
 
 def codex_activity(rollout: Path, now: float, active_window_seconds: int) -> tuple[bool, float]:
-    """Whether this thread is mid-turn, and when it last wrote."""
+    """Whether this thread is mid-turn, and when it last wrote.
+
+    Only turn_complete and turn_aborted close a turn. An assistant message does
+    not: Codex interleaves messages with tool calls, so treating one as the end
+    would read a working thread as idle every time it narrated between calls.
+    Everything mid-turn is judged against the window instead, so a thread wedged
+    on a tool call eventually falls idle rather than working forever.
+    """
     fallback = modified_at(rollout)
     for line in reversed(tail_lines(rollout)):
         event = decode_json(line)
@@ -280,14 +292,10 @@ def codex_activity(rollout: Path, now: float, active_window_seconds: int) -> tup
         payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
         payload_type = str(payload.get("type") or "")
         if payload_type == "token_count":
-            continue
-        if payload_type in CODEX_TURN_END_EVENTS or payload_type == "agent_message":
+            continue  # usage accrues throughout a turn and ends none of it
+        if payload_type in CODEX_TURN_END_EVENTS:
             return False, timestamp
-        if str(event.get("type") or "") == "response_item" and payload_type == "message":
-            return False, timestamp
-        if payload_type == "function_call":
-            return True, timestamp
-        if payload_type in {"turn_started", "function_call_output", "reasoning", "user_message"}:
+        if payload_type in CODEX_TURN_WORK_EVENTS:
             return now - timestamp <= active_window_seconds, timestamp
     return False, fallback
 
@@ -305,8 +313,9 @@ def open_files(process_id: int) -> list[Path]:
 # Claude Code appends to its transcripts and closes them again, so no file is
 # ever held open and there is nothing for lsof to find. Instead every live CLI
 # writes sessions/<pid>.json, which points at its transcript and carries its own
-# busy flag. Each sub-agent gets its own transcript beside it, and the session
-# announces the sub-agent's own id when it stops. Neither a tool result nor a
+# busy flag. Each sub-agent gets its own transcript under the session's own
+# directory, `<transcript without .jsonl>/subagents/agent-<id>.jsonl`, and the
+# session announces the sub-agent's id when it stops. Neither a tool result nor a
 # closing record can stand in for that announcement: a background sub-agent is
 # answered the moment it launches, and it writes its thinking and its prose as
 # separate records, so the tail holds no tool call long before it is done.
@@ -521,6 +530,15 @@ def budget_remaining(token_budget: Any, tokens_used: Any) -> int | None:
     if budget <= 0:
         return None
     return max(0, min(100, round(100 - used * 100 / budget)))
+
+
+def epoch_seconds(value: Any) -> float:
+    """Codex stores some columns in seconds and their newer twins in milliseconds."""
+    try:
+        numeric = float(value or 0)
+    except (TypeError, ValueError):
+        return 0
+    return numeric / 1000 if numeric > 10_000_000_000 else numeric
 
 
 def parse_event_timestamp(value: Any, fallback: float) -> float:
