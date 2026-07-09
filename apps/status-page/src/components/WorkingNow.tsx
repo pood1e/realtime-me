@@ -1,5 +1,6 @@
 import type { Agent, Subagent } from '@/gen/realtime/me/v1/status_pb';
 import { AgentClip, agentIcon, agentName, subagentText } from '@/components/AgentCard';
+import { Badge } from '@/components/ui/badge';
 import { agentDeviceLabel } from '@/lib/status';
 
 // Working agents live here rather than on the card of the machine they run on: a
@@ -19,19 +20,14 @@ export function WorkingNow({ agents }: { agents: Agent[] }) {
 }
 
 // One clip for the agent, one for each sub-agent it has out, so the crowd is the
-// count. Each carries its own model, because a sub-agent need not run the model
-// that spawned it.
+// count. A sub-agent need not run the model that spawned it, so the models are
+// named on the page rather than left to a tooltip nobody hovers.
 function WorkingAgent({ agent }: { agent: Agent }) {
+  const device = agentDeviceLabel(agent);
   return (
-    <div className="flex min-w-0 flex-col gap-1">
+    <div className="flex min-w-0 flex-col gap-1.5">
       <div className="flex items-end gap-1">
-        <AgentClip
-          kind={agent.kind}
-          seed={agent.uid}
-          className="working-agent-image"
-          alt={agentTitle(agent)}
-          title={agentTitle(agent)}
-        />
+        <AgentClip kind={agent.kind} seed={agent.uid} className="working-agent-image" alt={agentTitle(agent)} title={agentTitle(agent)} />
         {agent.subagents.map((subagent, index) => (
           <AgentClip
             key={index}
@@ -45,16 +41,28 @@ function WorkingAgent({ agent }: { agent: Agent }) {
       </div>
       <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
         <span className="[&_svg]:size-3.5">{agentIcon(agent.kind)}</span>
-        <span className="truncate">{workingCaption(agent)}</span>
+        <span className="truncate">{[agent.model || agentName(agent.kind), device].filter(Boolean).join(' · ')}</span>
       </div>
+      {agent.subagents.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {subagentModelCounts(agent.subagents).map(({ model, count }) => (
+            <Badge key={model} variant="secondary" className="font-normal">
+              {model ? `${count} × ${model}` : subagentText(count)}
+            </Badge>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function workingCaption(agent: Agent): string {
-  const device = agentDeviceLabel(agent);
-  const subagents = agent.subagents.length > 0 ? subagentText(agent.subagents.length) : '';
-  return [agent.model || agentName(agent.kind), device, subagents].filter(Boolean).join(' · ');
+// The sub-agents an agent has out, grouped by the model each runs, busiest first.
+function subagentModelCounts(subagents: Subagent[]): Array<{ model: string; count: number }> {
+  const counts = new Map<string, number>();
+  for (const subagent of subagents) counts.set(subagent.model, (counts.get(subagent.model) ?? 0) + 1);
+  return [...counts]
+    .map(([model, count]) => ({ model, count }))
+    .sort((left, right) => right.count - left.count || left.model.localeCompare(right.model));
 }
 
 function agentTitle(agent: Agent): string {
