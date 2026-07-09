@@ -133,6 +133,12 @@ run an arbitrary query. Don't reintroduce a `query=` parameter.
   `[]`. cAdvisor sits behind the `containers` Compose profile, so an empty
   file_sd list is the opt-in switch; `cadvisor.yml.example` shows the contents.
   A `static_configs` entry would leave a permanently-down target.
+- The installers try jsdelivr before GitHub raw, and jsdelivr caches a branch ref
+  for hours, so `@main` keeps serving the old file for the rest of the day you
+  push a probe change. Reinstall against the commit instead, keeping raw as the
+  fallback, because raw alone is slow enough on some networks that only the
+  largest probe file times out:
+  `REALTIME_ME_RAW_BASE_URLS="https://cdn.jsdelivr.net/gh/pood1e/realtime-me@<sha>/scripts https://raw.githubusercontent.com/pood1e/realtime-me/main/scripts"`.
 - `GetPublicStatus` is unauthenticated, so its Prometheus fan-out sits behind a
   2-second single-flight cache in `internal/gateway/status.go`. Don't add a query
   to the assembly without checking it runs inside `parallel(...)`.

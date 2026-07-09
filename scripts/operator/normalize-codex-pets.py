@@ -10,7 +10,9 @@ apps/status-page/src/assets/agents/NOTICE.md.
 Each sheet is a static 8x9 grid of 192x208 frames. Row 7 is the "running"
 animation, which is the one that means the agent is working; its six frames run
 at 120ms apiece with a 220ms hold on the last, exactly as
-codex-rs/tui/src/pets/model.rs defines it.
+codex-rs/tui/src/pets/model.rs defines it. The page holds each frame twice that
+long, because it draws the pet far larger than the terminal cell Codex sizes it
+for, and the published rate reads as a blur at that size.
 
 The pets are drawn at their true relative sizes and stand at different heights
 inside the frame, so every clip is scaled by one shared factor rather than being
@@ -44,6 +46,11 @@ RUNNING_FRAMES = 6
 FRAME_DURATION_MS = 120
 FINAL_FRAME_DURATION_MS = 220
 
+# Codex runs the cycle inside a terminal cell. The page draws it many times that
+# size, where a 120ms stride reads as a blur, so every frame is held twice as
+# long. That puts a pet's stride at the cadence of Claw'd's own walk cycle.
+FRAME_DURATION_SCALE = 2
+
 # Shared with the Claw'd clips so both agents render at one size on one baseline.
 CANVAS_WIDTH = 270
 CANVAS_HEIGHT = 180
@@ -63,7 +70,7 @@ def main() -> int:
     source.mkdir(parents=True, exist_ok=True)
     args.target.mkdir(parents=True, exist_ok=True)
 
-    durations = [FRAME_DURATION_MS] * (RUNNING_FRAMES - 1) + [FINAL_FRAME_DURATION_MS]
+    durations = [FRAME_DURATION_MS * FRAME_DURATION_SCALE] * (RUNNING_FRAMES - 1) + [FINAL_FRAME_DURATION_MS * FRAME_DURATION_SCALE]
     scale = (CANVAS_HEIGHT - 2 * BASELINE_MARGIN) / FRAME_HEIGHT
     print(f"  canvas {CANVAS_WIDTH}x{CANVAS_HEIGHT}   scale {scale:.4f}   loop {sum(durations)}ms")
     print(f"  {'pet':14} {'content':>10} {'bytes':>8}")

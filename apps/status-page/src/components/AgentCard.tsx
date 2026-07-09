@@ -36,7 +36,7 @@ const CLIP_LOOPS_BEFORE_ROTATE = 4;
 
 // Every Codex pet runs the same six-frame "running" animation, so they share a
 // loop length. scripts/operator/normalize-codex-pets.py prints it.
-const CODEX_PET_DURATION_MS = 820;
+const CODEX_PET_DURATION_MS = 1_640;
 
 const CLAWD_CLIP_DURATIONS_MS: Record<string, number> = {
   'clawd-laptop': 3_580,
