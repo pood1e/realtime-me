@@ -19,16 +19,25 @@ scrape_configs:
     http_sd_configs:
       - url: http://status-gateway:8080/api/prometheus/http-sd/node-exporter
         refresh_interval: 30s
+        authorization:
+          type: Bearer
+          credentials_file: /etc/prometheus/query_token
 
   - job_name: vm-node-exporter
     http_sd_configs:
       - url: http://status-gateway:8080/api/prometheus/http-sd/vm-node-exporter
         refresh_interval: 30s
+        authorization:
+          type: Bearer
+          credentials_file: /etc/prometheus/query_token
 
   - job_name: device-exporter
     http_sd_configs:
       - url: http://status-gateway:8080/api/prometheus/http-sd/device-exporter
         refresh_interval: 30s
+        authorization:
+          type: Bearer
+          credentials_file: /etc/prometheus/query_token
 
   - job_name: cadvisor
     file_sd_configs:
@@ -39,6 +48,9 @@ scrape_configs:
     http_sd_configs:
       - url: http://status-gateway:8080/api/prometheus/http-sd/agent-exporter
         refresh_interval: 30s
+        authorization:
+          type: Bearer
+          credentials_file: /etc/prometheus/query_token
 
   - job_name: status-gateway
     static_configs:

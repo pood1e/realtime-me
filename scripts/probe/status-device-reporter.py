@@ -145,12 +145,14 @@ def build_report(args: argparse.Namespace, device_uid: str) -> dict:
 
 
 def serve(args: argparse.Namespace) -> int:
+    # The exporter listens on the LAN without authentication, so it serves only
+    # what Prometheus scrapes. A richer JSON view of the same host once lived
+    # here and was read by nothing.
     def device_uid() -> str:
         return read_cached_uid(args)
 
     routes = {
         "/healthz": lambda: json_response({"ok": True}),
-        "/api/device-status": lambda: json_response(build_report(args, device_uid())),
         "/metrics": lambda: text_response(render_prometheus_metrics(device_uid())),
     }
     return run_server(args.bind, args.port, routes)

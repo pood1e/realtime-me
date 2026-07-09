@@ -212,12 +212,14 @@ def build_snapshots(args: argparse.Namespace, device_uid: str) -> list[AgentSnap
 
 
 def serve(args: argparse.Namespace) -> int:
+    # The exporter listens on the LAN without authentication, so it serves only
+    # what Prometheus scrapes. A JSON view that exposed the current task title
+    # once lived here and was read by nothing.
     def device_uid() -> str:
         return status_common.read_cached_uid(identity_file(args))
 
     routes = {
         "/healthz": lambda: json_response({"ok": True}),
-        "/api/agent-status": lambda: json_response([snapshot.payload() for snapshot in build_snapshots(args, device_uid())]),
         "/metrics": lambda: text_response(render_prometheus_metrics(build_snapshots(args, device_uid()))),
     }
     return run_server(args.bind, args.port, routes)

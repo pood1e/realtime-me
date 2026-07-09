@@ -15,6 +15,11 @@ import (
 
 func main() {
 	config := gateway.LoadConfig()
+	if err := config.Validate(); err != nil {
+		slog.Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
+
 	store := gateway.NewStatusStore(config.StateFile)
 	if err := store.Load(); err != nil {
 		// A corrupt or unreadable state file must not be silently overwritten

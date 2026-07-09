@@ -21,6 +21,9 @@ node_modules/
 !.env.example
 .app-password
 
+# Bearer token Prometheus presents to the gateway's scrape-discovery endpoint.
+infra/status-stack/prometheus/query_token
+
 # Generated per-repo project docs (may include private repo internals)
 docs/projects/
 

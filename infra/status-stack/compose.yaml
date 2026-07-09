@@ -23,7 +23,7 @@ services:
       - prometheus
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.13.0
     restart: unless-stopped
     command:
       - --config.file=/etc/prometheus/prometheus.yml
@@ -35,12 +35,16 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./prometheus/file_sd:/etc/prometheus/file_sd:ro
+      # Bearer token Prometheus presents to the gateway's scrape-discovery
+      # endpoint. Create it before the first `up`, or Docker will helpfully
+      # create a directory here and Prometheus will fail to start.
+      - ./prometheus/query_token:/etc/prometheus/query_token:ro
       - prometheus-data:/prometheus
     depends_on:
       - node-exporter
 
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.11.1
     restart: unless-stopped
     command:
       - --path.rootfs=/host
@@ -49,7 +53,7 @@ services:
       - /:/host:ro,rslave
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
     restart: unless-stopped
     profiles:
       - containers
@@ -64,11 +68,15 @@ services:
       - /dev/disk/:/dev/disk:ro
 
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflared:2026.7.0
     restart: unless-stopped
     profiles:
       - tunnel
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    # The token goes through the environment, not argv, so it stays out of
+    # `docker inspect`, `ps` inside the container, and Compose metadata.
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    command: tunnel --no-autoupdate run
     depends_on:
       - status-gateway
 

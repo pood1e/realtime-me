@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"errors"
 	"os"
 	"strconv"
 	"strings"
@@ -22,14 +23,14 @@ type Config struct {
 	ProfileConfigFile              string
 }
 
+// LoadConfig reads the gateway configuration from the environment. The read and
+// write tokens are deliberately separate secrets: a query token grants only the
+// internal status document, metric queries, and scrape discovery, so handing it
+// to a dashboard or to Prometheus never confers the ability to enroll devices or
+// register scrape targets.
 func LoadConfig() Config {
 	ingestTokens := parseTokens(os.Getenv("STATUS_INGEST_TOKEN"))
 	queryTokens := parseTokens(os.Getenv("STATUS_QUERY_TOKEN"))
-	if len(queryTokens) == 0 {
-		// Reading internal status defaults to the ingest token unless a distinct
-		// read-only query token is configured.
-		queryTokens = ingestTokens
-	}
 	return Config{
 		Port:                           env("PORT", "8080"),
 		StateFile:                      env("STATUS_STATE_FILE", "/data/status-state.json"),
@@ -47,8 +48,22 @@ func LoadConfig() Config {
 	}
 }
 
-// AuthorizedQuery reports whether the bearer token may read internal status and
-// query metrics.
+// Validate reports the first configuration error that would leave the gateway
+// unable to authenticate any caller. An empty token set rejects everyone, which
+// reads as a mysterious outage rather than a deliberate lockdown, so both sets
+// must be configured explicitly.
+func (config Config) Validate() error {
+	if len(config.IngestTokens) == 0 {
+		return errors.New("STATUS_INGEST_TOKEN is required")
+	}
+	if len(config.QueryTokens) == 0 {
+		return errors.New("STATUS_QUERY_TOKEN is required")
+	}
+	return nil
+}
+
+// AuthorizedQuery reports whether the bearer token may read internal status,
+// query metrics, and fetch scrape discovery.
 func (config Config) AuthorizedQuery(header string) bool {
 	return authorizedWith(config.QueryTokens, header)
 }

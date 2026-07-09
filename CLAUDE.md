@@ -83,5 +83,12 @@ cannot live in a package because the probe payload must ship flat. Don't
   `[]`. cAdvisor sits behind the `containers` Compose profile, so an empty
   file_sd list is the opt-in switch; `cadvisor.yml.example` shows the contents.
   A `static_configs` entry would leave a permanently-down target.
-- The status page's Worker proxies `/realtime.me.v1.*` and `/api/*` to
-  `STATUS_API_BASE_URL`, so the browser always sees one origin.
+- The status page's Worker proxies `/realtime.me.v1.*` and `/api/internal/*` to
+  `STATUS_API_BASE_URL`, so the browser always sees one origin. It deliberately
+  does **not** proxy all of `/api/*`: scrape discovery lives under
+  `/api/prometheus/` and must never be reachable from a browser.
+- `STATUS_INGEST_TOKEN` (write) and `STATUS_QUERY_TOKEN` (read) are separate
+  secrets and the gateway refuses to start without both. The read token reaches
+  the internal dashboard, the metric proxy, and scrape discovery; Prometheus
+  presents it from `infra/status-stack/prometheus/query_token`, which is
+  gitignored and must exist before the first `docker compose up`.

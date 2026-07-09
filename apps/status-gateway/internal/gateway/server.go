@@ -102,7 +102,21 @@ func (server *Server) health(writer http.ResponseWriter, _ *http.Request) {
 	writeJSON(writer, http.StatusOK, map[string]bool{"ok": true})
 }
 
+// requireQueryToken rejects callers without a read token and reports whether the
+// request may proceed. Scrape discovery is gated alongside the metric proxies
+// because it enumerates every device's name, model, and LAN scrape address.
+func (server *Server) requireQueryToken(writer http.ResponseWriter, request *http.Request) bool {
+	if server.config.AuthorizedQuery(request.Header.Get("Authorization")) {
+		return true
+	}
+	writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	return false
+}
+
 func (server *Server) prometheusHTTPDiscovery(context *gin.Context) {
+	if !server.requireQueryToken(context.Writer, context.Request) {
+		return
+	}
 	job, ok := parseScrapeJob(context.Param("job"))
 	if !ok {
 		writeJSON(context.Writer, http.StatusNotFound, map[string]string{"error": "not_found"})
@@ -120,8 +134,7 @@ func (server *Server) internalMetricQueryRange(writer http.ResponseWriter, reque
 }
 
 func (server *Server) prometheusProxy(writer http.ResponseWriter, request *http.Request, path string, allowedParams []string) {
-	if !server.config.AuthorizedQuery(request.Header.Get("Authorization")) {
-		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	if !server.requireQueryToken(writer, request) {
 		return
 	}
 

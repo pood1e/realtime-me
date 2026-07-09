@@ -15,8 +15,17 @@ Self-hosted metrics and status gateway for a private metrics host.
 ```sh
 cd infra/status-stack
 cp .env.example .env
-openssl rand -base64 32 # paste into STATUS_INGEST_TOKEN
+openssl rand -base64 32 # paste into STATUS_INGEST_TOKEN  (write access)
+openssl rand -base64 32 # paste into STATUS_QUERY_TOKEN   (read access)
+
+# Prometheus authenticates to the gateway's scrape-discovery endpoint with the
+# read token. Write it with no trailing newline, before the first `up`.
+printf %s "<STATUS_QUERY_TOKEN>" > prometheus/query_token
 ```
+
+The gateway refuses to start unless both tokens are set, and they must differ:
+the read token is pasted into a browser and kept in local storage, so it must
+never carry the authority to enroll devices or register scrape targets.
 
 Set `STATUS_GATEWAY_BIND` to the LAN address that should accept local device updates, or keep `127.0.0.1` when only Cloudflare Tunnel should reach the gateway.
 
@@ -35,10 +44,18 @@ docker compose --profile tunnel up -d --build
 ## Verify
 
 ```sh
-curl http://<STATUS_GATEWAY_BIND>:18080/healthz
-curl http://<STATUS_GATEWAY_BIND>:18080/api/public-status
-curl -H "Authorization: Bearer $STATUS_INGEST_TOKEN" http://<STATUS_GATEWAY_BIND>:18080/api/internal/status
+GATEWAY=http://<STATUS_GATEWAY_BIND>:18080
+
+curl "$GATEWAY/healthz"
+curl -X POST -H 'Content-Type: application/json' -d '{}' \
+  "$GATEWAY/realtime.me.v1.StatusService/GetPublicStatus"
+curl -X POST -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $STATUS_QUERY_TOKEN" -d '{}' \
+  "$GATEWAY/realtime.me.v1.StatusService/GetInternalStatus"
 curl http://127.0.0.1:19090/-/ready
+
+# Scrape discovery requires the read token; without it this must return 401.
+curl -o /dev/null -w '%{http_code}\n' "$GATEWAY/api/prometheus/http-sd/node-exporter"
 ```
 
 Install an additional Linux probe on that device; register its scrape targets centrally through the gateway API:
