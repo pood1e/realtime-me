@@ -7,10 +7,17 @@ type Env = {
   STATUS_API_BASE_URL?: string;
 };
 
-// The browser speaks only ConnectRPC, POSTed to /<proto package>.<Service>/<Method>.
-// Nothing under /api/ is proxied: those are the gateway's control-plane routes,
-// such as Prometheus scrape discovery, and the browser must never reach them.
-const PROXY_PREFIXES = ['/realtime.me.v1.'];
+// The browser speaks only ConnectRPC, POSTed to /<proto package>.<Service>/<Method>,
+// and it reads. The three read services are named one by one rather than by their
+// shared package prefix, which would also carry EnrollmentService and IngestService
+// -- the write half of the API, which no browser has any business reaching.
+// Nothing under /api/ is proxied either: those are the gateway's control-plane
+// routes, such as Prometheus scrape discovery.
+const PROXY_PREFIXES = [
+  '/realtime.me.v1.StatusService/',
+  '/realtime.me.v1.ProfileService/',
+  '/realtime.me.v1.MetricsService/',
+];
 
 export default {
   fetch(request: Request, env: Env): Promise<Response> {

@@ -19,6 +19,10 @@ class PublishPolicy(context: Context) {
 
         if (lastPublishMillis == 0L) return true
         if (addsFirstHealthReading(lastSignature, currentSignature)) return true
+        // The last publish is stamped in wall-clock time, so a clock that steps
+        // backwards leaves it in the future. No interval can be measured from
+        // there: publish, and let markPublished re-stamp from the new clock.
+        if (elapsed.isNegative) return true
         if (elapsed < minInterval) return false
         if (elapsed >= maxInterval) return true
         return currentSignature != lastSignature

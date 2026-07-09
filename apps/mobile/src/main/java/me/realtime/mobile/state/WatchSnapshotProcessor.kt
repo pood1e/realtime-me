@@ -22,13 +22,21 @@ class WatchSnapshotProcessor(context: Context) {
         return true
     }
 
+    /**
+     * The watch stamps [WatchSnapshot.getRecordTime] from its own clock, which the
+     * phone only ever approximately agrees with: a watch running seconds ahead
+     * hands the phone a snapshot from its future. Refusing those would silently
+     * discard every reading for as long as the drift pointed that way, so the
+     * window opens a little either side of now and still shuts on a stale one.
+     */
     private fun WatchSnapshot.isFresh(now: Instant): Boolean {
         if (!hasRecordTime()) return true
         val age = Duration.between(recordTime.toJavaInstant(), now)
-        return age >= Duration.ZERO && age <= MAX_SNAPSHOT_AGE
+        return age >= MAX_CLOCK_SKEW.negated() && age <= MAX_SNAPSHOT_AGE
     }
 
     private companion object {
         val MAX_SNAPSHOT_AGE: Duration = Duration.ofMinutes(10)
+        val MAX_CLOCK_SKEW: Duration = Duration.ofMinutes(1)
     }
 }
