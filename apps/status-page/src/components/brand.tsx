@@ -12,6 +12,7 @@ import {
   siLinux,
   siLinuxmint,
   siPopos,
+  siRaspberrypi,
   siRedhat,
   siUbuntu,
   siWearos,
@@ -46,6 +47,10 @@ function osIcon(value: string): SimpleIcon | null {
   if (text.includes('macos') || text.includes('darwin')) return siApple;
   if (text.includes('kali')) return siKalilinux;
   if (text.includes('ubuntu')) return siUbuntu;
+  // Raspberry Pi OS never renames itself in os-release, so it answers "Debian"
+  // and would wear Debian's icon. It is tested first, for the enrollment that
+  // says what the machine really runs.
+  if (text.includes('raspberry')) return siRaspberrypi;
   if (text.includes('debian')) return siDebian;
   if (text.includes('fedora')) return siFedora;
   if (text.includes('arch')) return siArchlinux;
