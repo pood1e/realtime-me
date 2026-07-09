@@ -11,16 +11,44 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { BrandIcon } from '@/components/brand';
-import { ClawdMascot } from '@/components/ClawdMascot';
 import { EmptyCard, InlineTime } from '@/components/layout';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 import { agentDeviceLabel } from '@/lib/status';
 
 type AgentMotionAsset = {
   src: string;
   durationMs: number;
+  // poster is a still frame shown when the viewer asks for reduced motion.
+  poster?: string;
 };
 
 const AGENT_MOTION_MIN_VISIBLE_MS = 10_000;
+
+// The Claw'd clips are Anthropic's artwork and are not distributed with this
+// repository — see src/assets/agents/NOTICE.md. They are discovered at build
+// time, so a checkout without them still builds and the Claude card falls back
+// to the original mascot. durationMs is each clip's own loop length, so a clip
+// is only swapped out on a whole-loop boundary rather than mid-animation.
+const CLAWD_CLIPS: Array<{ name: string; durationMs: number }> = [
+  { name: 'clawd-laptop', durationMs: 3_580 },
+  { name: 'clawd-magnifier', durationMs: 9_410 },
+  { name: 'clawd-crab-walking', durationMs: 1_660 },
+  { name: 'clawd-lurking', durationMs: 5_580 },
+  { name: 'clawd-racing-car', durationMs: 4_010 },
+  { name: 'clawd-soccer', durationMs: 4_880 },
+  { name: 'clawd-dancing', durationMs: 3_330 },
+  { name: 'clawd-jumping-happy', durationMs: 1_760 },
+  { name: 'clawd-waving', durationMs: 1_410 },
+];
+
+const clawdClipUrls = import.meta.glob('../assets/agents/clawd/*.gif', { eager: true, import: 'default' }) as Record<string, string>;
+const clawdPosterUrls = import.meta.glob('../assets/agents/clawd/*.png', { eager: true, import: 'default' }) as Record<string, string>;
+
+const CLAWD_MOTION_ASSETS: AgentMotionAsset[] = CLAWD_CLIPS.flatMap((clip) => {
+  const src = clawdClipUrls[`../assets/agents/clawd/${clip.name}.gif`];
+  if (!src) return [];
+  return [{ src, durationMs: clip.durationMs, poster: clawdPosterUrls[`../assets/agents/clawd/${clip.name}.png`] }];
+});
 const CODEX_MOTION_ASSETS: AgentMotionAsset[] = [
   { src: codexOrbitUrl, durationMs: 4_000 },
   { src: codexRibbonsUrl, durationMs: 4_000 },
@@ -80,18 +108,8 @@ export function agentIcon(kind: string): ReactElement {
 }
 
 function AgentMotion({ agent }: { agent: Agent }) {
-  if (isClaudeAgent(agent.kind)) {
-    return (
-      <div className="agent-motion">
-        <ClawdMascot />
-      </div>
-    );
-  }
-  return <AgentGifMotion agent={agent} />;
-}
-
-function AgentGifMotion({ agent }: { agent: Agent }) {
   const assets = agentMotionAssets(agent.kind);
+  const reducedMotion = usePrefersReducedMotion();
   const initialIndex = hashString(agent.uid) % assets.length;
   const [index, setIndex] = useState(initialIndex);
   const asset = assets[index % assets.length];
@@ -101,16 +119,19 @@ function AgentGifMotion({ agent }: { agent: Agent }) {
   }, [initialIndex]);
 
   useEffect(() => {
-    if (assets.length <= 1) return;
+    if (reducedMotion || assets.length <= 1) return;
     const timeout = window.setTimeout(() => {
       setIndex((current) => (current + 1) % assets.length);
     }, agentMotionDelayMs(asset));
     return () => window.clearTimeout(timeout);
-  }, [asset, assets.length, index]);
+  }, [asset, assets.length, index, reducedMotion]);
 
+  // A GIF animates no matter what the stylesheet says, so a viewer who asked for
+  // reduced motion gets a still frame instead.
+  const src = reducedMotion ? asset.poster ?? asset.src : asset.src;
   return (
     <div className="agent-motion">
-      <img key={asset.src} className="agent-motion-image" src={asset.src} alt={`${agentName(agent.kind)} working`} />
+      <img key={src} className="agent-motion-image" src={src} alt={`${agentName(agent.kind)} working`} />
     </div>
   );
 }
@@ -127,6 +148,7 @@ function AgentDeviceBadge({ agent }: { agent: Agent }) {
 }
 
 function agentMotionAssets(kind: string): AgentMotionAsset[] {
+  if (isClaudeAgent(kind) && CLAWD_MOTION_ASSETS.length > 0) return CLAWD_MOTION_ASSETS;
   if (kind === 'codex') return CODEX_MOTION_ASSETS;
   return DEFAULT_MOTION_ASSETS;
 }
