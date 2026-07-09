@@ -46,7 +46,6 @@ CODEX_FAILED_GOAL_STATES = {"blocked", "usage_limited", "budget_limited"}
 # so a rollout may carry either spelling depending on who wrote it.
 CODEX_TURN_START_EVENTS = {"task_started", "turn_started"}
 CODEX_TURN_END_EVENTS = {"task_complete", "turn_complete", "turn_aborted"}
-CODEX_SPAWN_EDGE_OPEN = "open"
 # The numeric suffix is a schema generation Codex bumps on a breaking rebuild, so
 # match the family rather than pinning the generation this exporter was written
 # against. A newer one must not silently take Codex off the page.
@@ -158,14 +157,14 @@ def running_processes() -> dict[int, str]:
 #
 # Codex holds each thread's rollout .jsonl open for the thread's whole life and
 # flushes every record, so the set of open rollouts is the set of live threads.
-# A thread it spawned is an ordinary thread with an `open` edge back to its
-# parent in the state database, which is what separates a sub-agent from a
-# session the user drove themselves.
+# A thread it spawned names its parent in the session_meta record that heads its
+# own rollout, which is what separates a sub-agent from a session the user drove
+# themselves.
 
 
 def codex_snapshot(homes: list[Path], processes: dict[int, str], now: float, active_window_seconds: int) -> AgentSnapshot:
     open_threads = codex_open_threads(homes, processes)
-    subagent_ids = codex_open_subagent_ids(homes) & set(open_threads)
+    subagent_ids = codex_subagent_ids(open_threads)
     candidates = codex_candidates(homes, open_threads, subagent_ids, now, active_window_seconds)
     if not candidates:
         return AgentSnapshot(kind=CODEX_KIND, state="idle")
@@ -293,18 +292,27 @@ def read_codex_goals(database: Path) -> dict[str, CodexGoal]:
     }
 
 
-def codex_open_subagent_ids(homes: list[Path]) -> set[str]:
-    """Thread ids Codex spawned from another thread and has not yet closed."""
-    children = set()
-    for home in homes:
-        for database in sorted(home.glob(CODEX_STATE_DATABASES)):
-            rows = query_sqlite(
-                database,
-                "select child_thread_id from thread_spawn_edges where status = ?",
-                (CODEX_SPAWN_EDGE_OPEN,),
-            )
-            children.update(str(row["child_thread_id"]).lower() for row in rows)
-    return children
+def codex_subagent_ids(open_threads: dict[str, Path]) -> set[str]:
+    """The live threads that another thread spawned: the sub-agents working now.
+
+    A spawned thread names its parent in the rollout it holds open, so the file
+    that proves it is alive also says whose worker it is. The state database
+    keeps a spawn edge `open` while a finished child is merely resumable, and
+    records no edge at all for an ephemeral one, so the rollout is both the
+    narrower answer and the one that survives a schema this exporter has never
+    seen. Only the parent's id is read: a sub-agent's nickname, its role, and
+    what it was asked to do stay on the host.
+    """
+    return {thread_id for thread_id, rollout in open_threads.items() if codex_rollout_parent(rollout)}
+
+
+def codex_rollout_parent(rollout: Path) -> str:
+    """The thread that spawned this one, named by the rollout's first record."""
+    record = first_record(rollout)
+    if record.get("type") != "session_meta":
+        return ""
+    payload = record.get("payload") if isinstance(record.get("payload"), dict) else {}
+    return str(payload.get("parent_thread_id") or "") if isinstance(payload, dict) else ""
 
 
 def codex_open_threads(homes: list[Path], processes: dict[int, str]) -> dict[str, Path]:
@@ -510,6 +518,15 @@ def decode_json(line: str) -> dict[str, Any]:
     except json.JSONDecodeError:
         return {}
     return data if isinstance(data, dict) else {}
+
+
+def first_record(path: Path) -> dict[str, Any]:
+    """Decode the first JSON record, which for a rollout is its session_meta."""
+    try:
+        with path.open("rb") as handle:
+            return decode_json(handle.readline().decode("utf-8", "replace"))
+    except OSError:
+        return {}
 
 
 def last_record(path: Path) -> dict[str, Any]:

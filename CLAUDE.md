@@ -100,7 +100,10 @@ it; Codex is read from the rollout `.jsonl` its process holds open and from
 is symmetric, so neither detection can be folded into the other: Codex holds its
 rollout open and brackets each turn with `task_started` and `task_complete`
 (Codex serialises those v1 names and reads `turn_*` only as aliases; nothing
-between the brackets is worth reading), while Claude Code appends
+between the brackets is worth reading), and a thread Codex spawned names its
+parent in the `session_meta` record heading its own rollout — never the
+`thread_spawn_edges` table, which keeps an edge `open` for a finished child that
+is merely resumable and records none at all for an ephemeral one — while Claude Code appends
 and closes, answers a background sub-agent the instant it launches, and splits
 one reply across `thinking`/`text`/`tool_use` records. A Claude sub-agent is
 therefore live until its session announces its `<task-id>`, and only a later
