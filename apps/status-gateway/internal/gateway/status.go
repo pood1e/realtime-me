@@ -114,7 +114,7 @@ func (server *StatusServer) visibleAgents(ctx context.Context, now time.Time) []
 	agents := server.prometheus.AgentStatuses(ctx)
 	if len(agents) == 0 && server.config.PublicAgentPlaceholder {
 		return []*mev1.Agent{{
-			Uid:        agentUID("", "agents"),
+			Uid:        agentUID("", "agents", "", 0),
 			Kind:       "agents",
 			State:      mev1.AgentState_AGENT_STATE_IDLE,
 			UpdateTime: timestamppb.New(now),

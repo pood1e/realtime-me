@@ -73,6 +73,10 @@ class AgentSnapshot:
     kind: str
     state: str
     model: str = ""
+    # one entry per top-level agent working right now, holding the model it runs.
+    # A host can have several of one kind out at once -- three codex sessions in
+    # three terminals are three agents, not one -- and the page draws each.
+    agent_models: tuple[str, ...] = ()
     # one entry per sub-agent working right now, holding the model it runs
     subagent_models: tuple[str, ...] = ()
     budget_remaining_percent: int | None = None
@@ -176,6 +180,7 @@ def codex_snapshot(homes: list[Path], processes: dict[int, str], now: float, act
         kind=CODEX_KIND,
         state=top.state,
         model=top.model,
+        agent_models=tuple(sorted(item.model for item in candidates if item.state == "running")),
         subagent_models=tuple(codex_model(threads.get(uid), open_threads[uid]) for uid in sorted(subagent_ids)),
         budget_remaining_percent=top.budget_remaining_percent,
     )
@@ -398,10 +403,19 @@ def claude_snapshot(home: Path, processes: dict[int, str], now: float, active_wi
     # wedged on a tool call retires this one too, and for the same reason.
     working = [session for session in sessions if session.busy and now - session.written_at_seconds <= active_window_seconds]
     newest = max(working or sessions, key=lambda session: session.written_at_seconds)
+    state = "running" if working or subagents else "idle"
+    model = last_model(newest.transcript)
+    # Each working session is its own agent: two Claude sessions in two terminals
+    # are two agents. A session that has gone quiet while its sub-agents work is
+    # still one agent out, so a running kind always names at least one.
+    agent_models = tuple(sorted(last_model(session.transcript) for session in working))
+    if not agent_models and state == "running":
+        agent_models = (model,)
     return AgentSnapshot(
         kind=CLAUDE_KIND,
-        state="running" if working or subagents else "idle",
-        model=last_model(newest.transcript),
+        state=state,
+        model=model,
+        agent_models=agent_models,
         subagent_models=subagents,
     )
 
@@ -578,6 +592,9 @@ def render_prometheus_metrics(snapshots: list[AgentSnapshot]) -> str:
         "# HELP realtime_agent_info Agent metadata as labels, always 1. OpenTelemetry name: realtime.agent.info.",
         "# TYPE realtime_agent_info gauge",
         "# UNIT realtime_agent_info 1",
+        "# HELP realtime_agent_running_count Top-level agents of this kind working right now, by the model each runs. OpenTelemetry name: realtime.agent.running.count.",
+        "# TYPE realtime_agent_running_count gauge",
+        "# UNIT realtime_agent_running_count 1",
         "# HELP realtime_agent_subagents_running Sub-agents the agent has working right now, by the model each runs. OpenTelemetry name: realtime.agent.subagents.running.",
         "# TYPE realtime_agent_subagents_running gauge",
         "# UNIT realtime_agent_subagents_running 1",
@@ -594,9 +611,12 @@ def render_prometheus_metrics(snapshots: list[AgentSnapshot]) -> str:
         # One series per model, so a sub-agent running a different model than the
         # agent that spawned it is still counted under its own name. With none
         # working the bare series still reports zero, which clears the last scrape.
-        counts = Counter(snapshot.subagent_models)
-        for model in sorted(counts) or [""]:
-            lines.append(f"realtime_agent_subagents_running{label_set({**labels, 'model': model})} {counts[model]}")
+        # Agents of one kind are counted the same way: a host can have several out
+        # at once, and each is drawn on the page.
+        for name, models in (("running_count", snapshot.agent_models), ("subagents_running", snapshot.subagent_models)):
+            counts = Counter(models)
+            for model in sorted(counts) or [""]:
+                lines.append(f"realtime_agent_{name}{label_set({**labels, 'model': model})} {counts[model]}")
         if snapshot.budget_remaining_percent is not None:
             lines.append(
                 f"realtime_agent_budget_remaining_ratio{label_set(labels)} "

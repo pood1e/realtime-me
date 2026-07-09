@@ -109,10 +109,16 @@ one reply across `thinking`/`text`/`tool_use` records. A Claude sub-agent is
 therefore live until its session announces its `<task-id>`, and only a later
 write means it was resumed. Prompts, objectives, task titles, sub-agent
 descriptions and `threads.title` are never read into a metric — a `model` and a
-*count* of sub-agents per model are the only things added to `realtime_agent_*`.
-A sub-agent may run a different model from the agent that spawned it, so the
-count is labelled by model and the gateway expands it back into one `Subagent`
-per worker.
+*count*, of agents and of sub-agents per model, are the only things added to
+`realtime_agent_*`. A host runs as many agents of one kind as it likes: three
+codex sessions in three terminals are three agents, counted by
+`realtime_agent_running_count` and expanded by the gateway into one `Agent` each,
+whose uid it mints from the host, the kind, the model and the ordinal so that no
+thread id ever reaches the page. A sub-agent may run a different model from the
+agent that spawned it, so that count is labelled by model too and expands into
+one `Subagent` per worker. Neither count carries an identity, so the budget and
+the sub-agents — which the exporter can only report for a kind — are carried by
+the first agent of that kind.
 
 **Probe exporters cache `/metrics` and serve it from a fixed thread pool.** A
 scrape shells out to `ps`, `lsof` and `bluetoothctl`, so `status_common.cached()`

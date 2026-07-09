@@ -259,58 +259,80 @@ func (client *PrometheusClient) DeviceAccessoryStatuses(ctx context.Context) map
 	return statuses
 }
 
+// AgentStatuses expands the exporter's per-model counts into one Agent per agent
+// working right now. A host can drive several agents of one kind at once, and
+// each is its own card: the exporter counts them, and the gateway names them.
+// The budget and the sub-agents are reported for the kind rather than for one
+// agent among several, so they are carried by the first agent of that kind.
 func (client *PrometheusClient) AgentStatuses(ctx context.Context) []*mev1.Agent {
-	var running, budgetSamples, infoSamples, subagentSamples []prometheusSample
+	var runningCounts, budgetSamples, subagentSamples []prometheusSample
 	parallel(
 		func() {
-			running = client.queryVector(ctx, `realtime_agent_state{job="agent-exporter",state="running"} == 1`)
+			runningCounts = client.queryVector(ctx, `realtime_agent_running_count{job="agent-exporter"} > 0`)
 		},
 		func() {
 			budgetSamples = client.queryVector(ctx, `realtime_agent_budget_remaining_ratio{job="agent-exporter"}`)
 		},
 		func() {
-			infoSamples = client.queryVector(ctx, `realtime_agent_info{job="agent-exporter"}`)
-		},
-		func() {
 			subagentSamples = client.queryVector(ctx, `realtime_agent_subagents_running{job="agent-exporter"}`)
 		},
 	)
-	if len(running) == 0 {
+	if len(runningCounts) == 0 {
 		return nil
 	}
 	budgets := samplesByAgent(budgetSamples)
 	subagents := agentSubagents(subagentSamples)
-	models := agentModels(infoSamples)
 	now := timestamppb.New(time.Now().UTC())
-	agents := make([]*mev1.Agent, 0, len(running))
-	for _, sample := range running {
+
+	agents := make([]*mev1.Agent, 0, len(runningCounts))
+	for _, sample := range runningCounts {
 		kind := firstNonEmpty(sample.Metric["agent_kind"], sample.Metric["agent_id"])
-		if kind == "" {
+		count := int(math.Round(sample.Value))
+		if kind == "" || count <= 0 {
 			continue
 		}
 		deviceUID := firstNonEmpty(sample.Metric["device_uid"], sample.Metric["device_id"])
-		agent := &mev1.Agent{
-			Uid:         agentUID(deviceUID, kind),
-			Kind:        kind,
-			DeviceUid:   deviceUID,
-			DisplayName: sample.Metric["device_name"],
-			State:       mev1.AgentState_AGENT_STATE_RUNNING,
-			UpdateTime:  now,
-			Model:       models[deviceUID+"/"+kind],
-			Subagents:   subagents[deviceUID+"/"+kind],
+		model := sample.Metric["model"]
+		for ordinal := 0; ordinal < count; ordinal++ {
+			agents = append(agents, &mev1.Agent{
+				Uid:         agentUID(deviceUID, kind, model, ordinal),
+				Kind:        kind,
+				DeviceUid:   deviceUID,
+				DisplayName: sample.Metric["device_name"],
+				State:       mev1.AgentState_AGENT_STATE_RUNNING,
+				UpdateTime:  now,
+				Model:       model,
+			})
 		}
-		if value, ok := budgets[deviceUID+"/"+kind]; ok {
-			percent := int32(math.Round(clampRatio(value) * 100))
-			agent.BudgetRemainingPercent = &percent
-		}
-		agents = append(agents, agent)
 	}
 	sort.Slice(agents, func(left int, right int) bool {
 		if agents[left].GetDeviceUid() != agents[right].GetDeviceUid() {
 			return agents[left].GetDeviceUid() < agents[right].GetDeviceUid()
 		}
-		return agents[left].GetKind() < agents[right].GetKind()
+		if agents[left].GetKind() != agents[right].GetKind() {
+			return agents[left].GetKind() < agents[right].GetKind()
+		}
+		if agents[left].GetModel() != agents[right].GetModel() {
+			return agents[left].GetModel() < agents[right].GetModel()
+		}
+		return agents[left].GetUid() < agents[right].GetUid()
 	})
+
+	// Once sorted, the first agent of a kind is the one that carries what the
+	// exporter could only report for the kind as a whole.
+	seen := make(map[string]struct{}, len(agents))
+	for _, agent := range agents {
+		key := agent.GetDeviceUid() + "/" + agent.GetKind()
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		agent.Subagents = subagents[key]
+		if value, ok := budgets[key]; ok {
+			percent := int32(math.Round(clampRatio(value) * 100))
+			agent.BudgetRemainingPercent = &percent
+		}
+	}
 	return agents
 }
 
@@ -547,22 +569,6 @@ func agentSubagents(samples []prometheusSample) map[string][]*mev1.Subagent {
 		})
 	}
 	return subagents
-}
-
-// agentModels reads the model an agent runs from the labels of its info series,
-// which carries the name rather than a value.
-func agentModels(samples []prometheusSample) map[string]string {
-	models := make(map[string]string, len(samples))
-	for _, sample := range samples {
-		kind := firstNonEmpty(sample.Metric["agent_kind"], sample.Metric["agent_id"])
-		model := sample.Metric["model"]
-		if kind == "" || model == "" {
-			continue
-		}
-		deviceUID := firstNonEmpty(sample.Metric["device_uid"], sample.Metric["device_id"])
-		models[deviceUID+"/"+kind] = model
-	}
-	return models
 }
 
 func samplesByAgent(samples []prometheusSample) map[string]float64 {

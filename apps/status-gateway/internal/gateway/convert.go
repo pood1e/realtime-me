@@ -3,14 +3,18 @@ package gateway
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 
 	mev1 "realtime-me/apps/status-gateway/internal/genproto/realtime/me/v1"
 )
 
-// agentUID derives a stable, opaque agent identifier from the host and agent
-// kind so the public surface never exposes an internal session or thread id.
-func agentUID(deviceUID string, kind string) string {
-	sum := sha256.Sum256([]byte("realtime.me.agent:" + deviceUID + "/" + kind))
+// agentUID derives a stable, opaque agent identifier from the host, the agent
+// kind, the model it runs and its ordinal among the agents of that kind, so the
+// public surface never exposes an internal session or thread id. A host can run
+// several agents of one kind at once, and the ordinal is what tells them apart:
+// it is stable while they are, and no agent's own identity ever leaves the host.
+func agentUID(deviceUID string, kind string, model string, ordinal int) string {
+	sum := sha256.Sum256(fmt.Appendf(nil, "realtime.me.agent:%s/%s/%s/%d", deviceUID, kind, model, ordinal))
 	return "agt_" + hex.EncodeToString(sum[:8])
 }
 

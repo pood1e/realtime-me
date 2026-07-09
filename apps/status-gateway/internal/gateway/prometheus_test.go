@@ -1,40 +1,46 @@
 package gateway
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
-// The model an agent runs rides on the labels of its info series, not its value,
-// because a name cannot be a sample. Reading it back has to key on the same
-// device/kind pair the other agent series use, or the join silently drops it.
-func TestAgentModelsKeyOnDeviceAndKind(t *testing.T) {
-	models := agentModels([]prometheusSample{
-		{Metric: map[string]string{"agent_kind": "claude", "device_uid": "dev_1", "model": "claude-opus-4-8"}, Value: 1},
-		{Metric: map[string]string{"agent_kind": "codex", "device_uid": "dev_1", "model": "gpt-5-codex"}, Value: 1},
-		{Metric: map[string]string{"agent_kind": "claude", "device_uid": "dev_2", "model": "claude-haiku-4-5"}, Value: 1},
-	})
-	for key, want := range map[string]string{
-		"dev_1/claude": "claude-opus-4-8",
-		"dev_1/codex":  "gpt-5-codex",
-		"dev_2/claude": "claude-haiku-4-5",
-	} {
-		if got := models[key]; got != want {
-			t.Errorf("agentModels[%q] = %q, want %q", key, got, want)
-		}
+// A host can drive several agents of one kind at once. Each is its own card, so
+// each needs its own opaque identity -- and one that survives the next scrape,
+// because the page keys a mascot on it and remounts the clip when it changes.
+func TestAgentUIDDistinguishesConcurrentAgents(t *testing.T) {
+	first := agentUID("dev_1", "codex", "gpt-5-codex", 0)
+	second := agentUID("dev_1", "codex", "gpt-5-codex", 1)
+	if first == second {
+		t.Errorf("two codex agents on one host share the uid %q", first)
 	}
-	if len(models) != 3 {
-		t.Errorf("agentModels returned %d entries, want 3", len(models))
+	if again := agentUID("dev_1", "codex", "gpt-5-codex", 0); again != first {
+		t.Errorf("agentUID is not stable: %q then %q", first, again)
+	}
+	for _, uid := range []string{first, second} {
+		if len(uid) != len("agt_")+16 || uid[:4] != "agt_" {
+			t.Errorf("uid %q is not an opaque agt_ handle", uid)
+		}
 	}
 }
 
-// An exporter that cannot name the model omits the label rather than exporting
-// an empty one, and a sample without a kind cannot be joined to any agent.
-func TestAgentModelsSkipsUnusableSamples(t *testing.T) {
-	models := agentModels([]prometheusSample{
-		{Metric: map[string]string{"agent_kind": "claude", "device_uid": "dev_1"}, Value: 1},
-		{Metric: map[string]string{"device_uid": "dev_1", "model": "gpt-5-codex"}, Value: 1},
-		{Metric: map[string]string{"agent_kind": "codex", "device_uid": "dev_1", "model": ""}, Value: 1},
-	})
-	if len(models) != 0 {
-		t.Errorf("agentModels kept %v, want nothing usable", models)
+// The ordinal alone must not collide two agents that differ only by model, and
+// neither the host nor the kind may leak into the handle.
+func TestAgentUIDSeparatesModelsAndKinds(t *testing.T) {
+	distinct := map[string]struct{}{}
+	for _, uid := range []string{
+		agentUID("dev_1", "codex", "gpt-5-codex", 0),
+		agentUID("dev_1", "codex", "gpt-5.5", 0),
+		agentUID("dev_1", "claude", "gpt-5-codex", 0),
+		agentUID("dev_2", "codex", "gpt-5-codex", 0),
+	} {
+		distinct[uid] = struct{}{}
+	}
+	if len(distinct) != 4 {
+		t.Errorf("agentUID collided: %v", distinct)
+	}
+	if uid := agentUID("dev_1", "codex", "gpt-5-codex", 0); strings.Contains(uid, "dev_1") || strings.Contains(uid, "codex") {
+		t.Errorf("uid %q leaks the host or the kind", uid)
 	}
 }
 
