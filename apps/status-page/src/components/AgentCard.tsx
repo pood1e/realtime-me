@@ -27,11 +27,17 @@ type AgentMotionAsset = {
 // the swap to a whole number of loops means it never lands mid-animation.
 const CLIP_LOOPS_BEFORE_ROTATE = 4;
 
-// The Claw'd clips are Anthropic's artwork and are not distributed with this
-// repository — see src/assets/agents/NOTICE.md. They are discovered at build
-// time, so a checkout without them still builds and the Claude card falls back
-// to the original mascot. durationMs is each clip's own loop length, so a clip
-// is only swapped out on a whole-loop boundary rather than mid-animation.
+// Neither agent's clips are distributed with this repository: Claw'd is
+// Anthropic's artwork and the Codex pets are OpenAI's — see
+// src/assets/agents/NOTICE.md. Both are discovered at build time, so a checkout
+// without them still builds and each agent falls back to an original mascot.
+// durationMs is each clip's own loop length, so a clip is only swapped out on a
+// whole-loop boundary rather than mid-animation.
+
+// Every Codex pet runs the same six-frame "running" animation, so they share a
+// loop length. scripts/operator/normalize-codex-pets.py prints it.
+const CODEX_PET_DURATION_MS = 820;
+
 const CLAWD_CLIP_DURATIONS_MS: Record<string, number> = {
   'clawd-laptop': 3_580,
   'clawd-magnifier': 9_410,
@@ -46,24 +52,43 @@ const CLAWD_CLIP_DURATIONS_MS: Record<string, number> = {
 
 const clawdClipUrls = import.meta.glob('../assets/agents/clawd/*.gif', { eager: true, import: 'default' }) as Record<string, string>;
 const clawdPosterUrls = import.meta.glob('../assets/agents/clawd/*.png', { eager: true, import: 'default' }) as Record<string, string>;
+const codexClipUrls = import.meta.glob('../assets/agents/codex/*.gif', { eager: true, import: 'default' }) as Record<string, string>;
+const codexPosterUrls = import.meta.glob('../assets/agents/codex/*.png', { eager: true, import: 'default' }) as Record<string, string>;
 
 const DEFAULT_MOTION_ASSETS: AgentMotionAsset[] = [{ src: agentOrbitUrl, durationMs: 4_000 }];
-const CODEX_MOTION_ASSETS: AgentMotionAsset[] = [codexOrbitUrl, codexSparksUrl, codexRibbonsUrl, codexSwarmUrl].map((src) => ({
+const CODEX_FALLBACK_ASSETS: AgentMotionAsset[] = [codexOrbitUrl, codexSparksUrl, codexRibbonsUrl, codexSwarmUrl].map((src) => ({
   src,
   durationMs: 4_000,
 }));
 const CLAWD_MOTION_ASSETS: AgentMotionAsset[] = clawdMotionAssets();
+const CODEX_MOTION_ASSETS: AgentMotionAsset[] = motionAssets(codexClipUrls, codexPosterUrls, () => CODEX_PET_DURATION_MS);
 
 // A clip counts only once its loop length, its animation and its reduced-motion
 // still all resolve; a partial clip would either cycle on a NaN delay or animate
 // at a viewer who asked it not to.
 function clawdMotionAssets(): AgentMotionAsset[] {
-  return Object.keys(CLAWD_CLIP_DURATIONS_MS).flatMap((name) => {
-    const src = clawdClipUrls[`../assets/agents/clawd/${name}.gif`];
-    const poster = clawdPosterUrls[`../assets/agents/clawd/${name}.png`];
-    if (!src || !poster) return [];
-    return [{ src, durationMs: CLAWD_CLIP_DURATIONS_MS[name], poster }];
-  });
+  const urls = Object.fromEntries(
+    Object.keys(CLAWD_CLIP_DURATIONS_MS).map((name) => [`../assets/agents/clawd/${name}.gif`, clawdClipUrls[`../assets/agents/clawd/${name}.gif`]]),
+  );
+  return motionAssets(urls, clawdPosterUrls, (name) => CLAWD_CLIP_DURATIONS_MS[name]);
+}
+
+// Pair each discovered clip with its poster and its loop length, dropping any
+// that is missing either. The clips are keyed by their own file name, so a pet
+// added to the asset directory joins the rotation without further wiring.
+function motionAssets(clipUrls: Record<string, string>, posterUrls: Record<string, string>, durationMs: (name: string) => number): AgentMotionAsset[] {
+  return Object.entries(clipUrls)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .flatMap(([path, src]) => {
+      const poster = posterUrls[path.replace(/\.gif$/, '.png')];
+      const duration = durationMs(clipName(path));
+      if (!src || !poster || !duration) return [];
+      return [{ src, durationMs: duration, poster }];
+    });
+}
+
+function clipName(path: string): string {
+  return path.slice(path.lastIndexOf('/') + 1, -'.gif'.length);
 }
 
 export function AgentCard({ agent }: { agent: Agent }) {
@@ -190,7 +215,7 @@ function AgentDeviceBadge({ agent }: { agent: Agent }) {
 
 function agentMotionAssets(kind: string): AgentMotionAsset[] {
   if (isClaudeAgent(kind) && CLAWD_MOTION_ASSETS.length > 0) return CLAWD_MOTION_ASSETS;
-  if (kind === 'codex') return CODEX_MOTION_ASSETS;
+  if (kind === 'codex') return CODEX_MOTION_ASSETS.length > 0 ? CODEX_MOTION_ASSETS : CODEX_FALLBACK_ASSETS;
   return DEFAULT_MOTION_ASSETS;
 }
 
