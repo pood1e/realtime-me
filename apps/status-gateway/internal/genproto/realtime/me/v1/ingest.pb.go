@@ -321,337 +321,6 @@ func (*ReportMobileStatusResponse) Descriptor() ([]byte, []int) {
 	return file_realtime_me_v1_ingest_proto_rawDescGZIP(), []int{3}
 }
 
-// ReportDeviceStatusRequest carries a host or virtual-machine report.
-type ReportDeviceStatusRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// device is the reported host, with any nested virtual machines as children.
-	Device        *DeviceReport `protobuf:"bytes,1,opt,name=device,proto3" json:"device,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReportDeviceStatusRequest) Reset() {
-	*x = ReportDeviceStatusRequest{}
-	mi := &file_realtime_me_v1_ingest_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReportDeviceStatusRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReportDeviceStatusRequest) ProtoMessage() {}
-
-func (x *ReportDeviceStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_ingest_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReportDeviceStatusRequest.ProtoReflect.Descriptor instead.
-func (*ReportDeviceStatusRequest) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_ingest_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *ReportDeviceStatusRequest) GetDevice() *DeviceReport {
-	if x != nil {
-		return x.Device
-	}
-	return nil
-}
-
-// ReportDeviceStatusResponse is the acknowledgement of a device report.
-type ReportDeviceStatusResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReportDeviceStatusResponse) Reset() {
-	*x = ReportDeviceStatusResponse{}
-	mi := &file_realtime_me_v1_ingest_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReportDeviceStatusResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReportDeviceStatusResponse) ProtoMessage() {}
-
-func (x *ReportDeviceStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_ingest_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReportDeviceStatusResponse.ProtoReflect.Descriptor instead.
-func (*ReportDeviceStatusResponse) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_ingest_proto_rawDescGZIP(), []int{5}
-}
-
-// DeviceReport is a host or virtual-machine status report. Children carry nested
-// virtual machines running under a host.
-type DeviceReport struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// device_uid is the enrolled device identity.
-	DeviceUid string `protobuf:"bytes,1,opt,name=device_uid,json=deviceUid,proto3" json:"device_uid,omitempty"`
-	// kind is the device category.
-	Kind DeviceKind `protobuf:"varint,2,opt,name=kind,proto3,enum=realtime.me.v1.DeviceKind" json:"kind,omitempty"`
-	// role is the device's operational role.
-	Role DeviceRole `protobuf:"varint,3,opt,name=role,proto3,enum=realtime.me.v1.DeviceRole" json:"role,omitempty"`
-	// display_name is the human-readable device label.
-	DisplayName string `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	// model is the hardware model.
-	Model string `protobuf:"bytes,5,opt,name=model,proto3" json:"model,omitempty"`
-	// state is the device's reachability.
-	State OnlineState `protobuf:"varint,6,opt,name=state,proto3,enum=realtime.me.v1.OnlineState" json:"state,omitempty"`
-	// metrics are OpenTelemetry-named host metrics.
-	Metrics []*MetricSample `protobuf:"bytes,7,rep,name=metrics,proto3" json:"metrics,omitempty"`
-	// media is the currently playing media, if any.
-	Media *MediaStatus `protobuf:"bytes,8,opt,name=media,proto3" json:"media,omitempty"`
-	// accessories are connected peripherals.
-	Accessories []*Accessory `protobuf:"bytes,9,rep,name=accessories,proto3" json:"accessories,omitempty"`
-	// children are virtual machines running under this host.
-	Children      []*DeviceReport `protobuf:"bytes,10,rep,name=children,proto3" json:"children,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeviceReport) Reset() {
-	*x = DeviceReport{}
-	mi := &file_realtime_me_v1_ingest_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeviceReport) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeviceReport) ProtoMessage() {}
-
-func (x *DeviceReport) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_ingest_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeviceReport.ProtoReflect.Descriptor instead.
-func (*DeviceReport) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_ingest_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *DeviceReport) GetDeviceUid() string {
-	if x != nil {
-		return x.DeviceUid
-	}
-	return ""
-}
-
-func (x *DeviceReport) GetKind() DeviceKind {
-	if x != nil {
-		return x.Kind
-	}
-	return DeviceKind_DEVICE_KIND_UNSPECIFIED
-}
-
-func (x *DeviceReport) GetRole() DeviceRole {
-	if x != nil {
-		return x.Role
-	}
-	return DeviceRole_DEVICE_ROLE_UNSPECIFIED
-}
-
-func (x *DeviceReport) GetDisplayName() string {
-	if x != nil {
-		return x.DisplayName
-	}
-	return ""
-}
-
-func (x *DeviceReport) GetModel() string {
-	if x != nil {
-		return x.Model
-	}
-	return ""
-}
-
-func (x *DeviceReport) GetState() OnlineState {
-	if x != nil {
-		return x.State
-	}
-	return OnlineState_ONLINE_STATE_UNSPECIFIED
-}
-
-func (x *DeviceReport) GetMetrics() []*MetricSample {
-	if x != nil {
-		return x.Metrics
-	}
-	return nil
-}
-
-func (x *DeviceReport) GetMedia() *MediaStatus {
-	if x != nil {
-		return x.Media
-	}
-	return nil
-}
-
-func (x *DeviceReport) GetAccessories() []*Accessory {
-	if x != nil {
-		return x.Accessories
-	}
-	return nil
-}
-
-func (x *DeviceReport) GetChildren() []*DeviceReport {
-	if x != nil {
-		return x.Children
-	}
-	return nil
-}
-
-// ReportAgentStatusRequest carries a coding-agent status report.
-type ReportAgentStatusRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// device_uid is the enrolled host the agent runs on.
-	DeviceUid string `protobuf:"bytes,1,opt,name=device_uid,json=deviceUid,proto3" json:"device_uid,omitempty"`
-	// kind is the agent kind, such as "codex" or "claude"; it must never be an
-	// internal session, thread, or job identifier.
-	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
-	// state is the agent's run state.
-	State AgentState `protobuf:"varint,3,opt,name=state,proto3,enum=realtime.me.v1.AgentState" json:"state,omitempty"`
-	// task is a short, redacted description of the current task.
-	Task string `protobuf:"bytes,4,opt,name=task,proto3" json:"task,omitempty"`
-	// budget_remaining_percent is the remaining budget from 0 to 100, if known.
-	BudgetRemainingPercent *int32 `protobuf:"varint,5,opt,name=budget_remaining_percent,json=budgetRemainingPercent,proto3,oneof" json:"budget_remaining_percent,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *ReportAgentStatusRequest) Reset() {
-	*x = ReportAgentStatusRequest{}
-	mi := &file_realtime_me_v1_ingest_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReportAgentStatusRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReportAgentStatusRequest) ProtoMessage() {}
-
-func (x *ReportAgentStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_ingest_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReportAgentStatusRequest.ProtoReflect.Descriptor instead.
-func (*ReportAgentStatusRequest) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_ingest_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *ReportAgentStatusRequest) GetDeviceUid() string {
-	if x != nil {
-		return x.DeviceUid
-	}
-	return ""
-}
-
-func (x *ReportAgentStatusRequest) GetKind() string {
-	if x != nil {
-		return x.Kind
-	}
-	return ""
-}
-
-func (x *ReportAgentStatusRequest) GetState() AgentState {
-	if x != nil {
-		return x.State
-	}
-	return AgentState_AGENT_STATE_UNSPECIFIED
-}
-
-func (x *ReportAgentStatusRequest) GetTask() string {
-	if x != nil {
-		return x.Task
-	}
-	return ""
-}
-
-func (x *ReportAgentStatusRequest) GetBudgetRemainingPercent() int32 {
-	if x != nil && x.BudgetRemainingPercent != nil {
-		return *x.BudgetRemainingPercent
-	}
-	return 0
-}
-
-// ReportAgentStatusResponse is the acknowledgement of an agent report.
-type ReportAgentStatusResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReportAgentStatusResponse) Reset() {
-	*x = ReportAgentStatusResponse{}
-	mi := &file_realtime_me_v1_ingest_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReportAgentStatusResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReportAgentStatusResponse) ProtoMessage() {}
-
-func (x *ReportAgentStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_ingest_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReportAgentStatusResponse.ProtoReflect.Descriptor instead.
-func (*ReportAgentStatusResponse) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_ingest_proto_rawDescGZIP(), []int{8}
-}
-
 // RegisterScrapeTargetsRequest advertises Prometheus scrape targets.
 type RegisterScrapeTargetsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -663,7 +332,7 @@ type RegisterScrapeTargetsRequest struct {
 
 func (x *RegisterScrapeTargetsRequest) Reset() {
 	*x = RegisterScrapeTargetsRequest{}
-	mi := &file_realtime_me_v1_ingest_proto_msgTypes[9]
+	mi := &file_realtime_me_v1_ingest_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -675,7 +344,7 @@ func (x *RegisterScrapeTargetsRequest) String() string {
 func (*RegisterScrapeTargetsRequest) ProtoMessage() {}
 
 func (x *RegisterScrapeTargetsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_ingest_proto_msgTypes[9]
+	mi := &file_realtime_me_v1_ingest_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -688,7 +357,7 @@ func (x *RegisterScrapeTargetsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterScrapeTargetsRequest.ProtoReflect.Descriptor instead.
 func (*RegisterScrapeTargetsRequest) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_ingest_proto_rawDescGZIP(), []int{9}
+	return file_realtime_me_v1_ingest_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *RegisterScrapeTargetsRequest) GetTargets() []*ScrapeTarget {
@@ -707,7 +376,7 @@ type RegisterScrapeTargetsResponse struct {
 
 func (x *RegisterScrapeTargetsResponse) Reset() {
 	*x = RegisterScrapeTargetsResponse{}
-	mi := &file_realtime_me_v1_ingest_proto_msgTypes[10]
+	mi := &file_realtime_me_v1_ingest_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -719,7 +388,7 @@ func (x *RegisterScrapeTargetsResponse) String() string {
 func (*RegisterScrapeTargetsResponse) ProtoMessage() {}
 
 func (x *RegisterScrapeTargetsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_ingest_proto_msgTypes[10]
+	mi := &file_realtime_me_v1_ingest_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -732,7 +401,7 @@ func (x *RegisterScrapeTargetsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterScrapeTargetsResponse.ProtoReflect.Descriptor instead.
 func (*RegisterScrapeTargetsResponse) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_ingest_proto_rawDescGZIP(), []int{10}
+	return file_realtime_me_v1_ingest_proto_rawDescGZIP(), []int{5}
 }
 
 // ScrapeTarget is a Prometheus scrape target advertised for HTTP service discovery.
@@ -758,7 +427,7 @@ type ScrapeTarget struct {
 
 func (x *ScrapeTarget) Reset() {
 	*x = ScrapeTarget{}
-	mi := &file_realtime_me_v1_ingest_proto_msgTypes[11]
+	mi := &file_realtime_me_v1_ingest_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -770,7 +439,7 @@ func (x *ScrapeTarget) String() string {
 func (*ScrapeTarget) ProtoMessage() {}
 
 func (x *ScrapeTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_ingest_proto_msgTypes[11]
+	mi := &file_realtime_me_v1_ingest_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -783,7 +452,7 @@ func (x *ScrapeTarget) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScrapeTarget.ProtoReflect.Descriptor instead.
 func (*ScrapeTarget) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_ingest_proto_rawDescGZIP(), []int{11}
+	return file_realtime_me_v1_ingest_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ScrapeTarget) GetJob() ScrapeJob {
@@ -855,32 +524,7 @@ const file_realtime_me_v1_ingest_proto_rawDesc = "" +
 	"\x05model\x18\x03 \x01(\tR\x05model\x120\n" +
 	"\x05phone\x18\x04 \x01(\v2\x1a.realtime.me.v1.PhoneStateR\x05phone\x123\n" +
 	"\x05watch\x18\x05 \x01(\v2\x1d.realtime.me.v1.WatchSnapshotR\x05watch\"\x1c\n" +
-	"\x1aReportMobileStatusResponse\"Q\n" +
-	"\x19ReportDeviceStatusRequest\x124\n" +
-	"\x06device\x18\x01 \x01(\v2\x1c.realtime.me.v1.DeviceReportR\x06device\"\x1c\n" +
-	"\x1aReportDeviceStatusResponse\"\xdb\x03\n" +
-	"\fDeviceReport\x12\x1d\n" +
-	"\n" +
-	"device_uid\x18\x01 \x01(\tR\tdeviceUid\x12.\n" +
-	"\x04kind\x18\x02 \x01(\x0e2\x1a.realtime.me.v1.DeviceKindR\x04kind\x12.\n" +
-	"\x04role\x18\x03 \x01(\x0e2\x1a.realtime.me.v1.DeviceRoleR\x04role\x12!\n" +
-	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x12\x14\n" +
-	"\x05model\x18\x05 \x01(\tR\x05model\x121\n" +
-	"\x05state\x18\x06 \x01(\x0e2\x1b.realtime.me.v1.OnlineStateR\x05state\x126\n" +
-	"\ametrics\x18\a \x03(\v2\x1c.realtime.me.v1.MetricSampleR\ametrics\x121\n" +
-	"\x05media\x18\b \x01(\v2\x1b.realtime.me.v1.MediaStatusR\x05media\x12;\n" +
-	"\vaccessories\x18\t \x03(\v2\x19.realtime.me.v1.AccessoryR\vaccessories\x128\n" +
-	"\bchildren\x18\n" +
-	" \x03(\v2\x1c.realtime.me.v1.DeviceReportR\bchildren\"\xef\x01\n" +
-	"\x18ReportAgentStatusRequest\x12\x1d\n" +
-	"\n" +
-	"device_uid\x18\x01 \x01(\tR\tdeviceUid\x12\x12\n" +
-	"\x04kind\x18\x02 \x01(\tR\x04kind\x120\n" +
-	"\x05state\x18\x03 \x01(\x0e2\x1a.realtime.me.v1.AgentStateR\x05state\x12\x12\n" +
-	"\x04task\x18\x04 \x01(\tR\x04task\x12=\n" +
-	"\x18budget_remaining_percent\x18\x05 \x01(\x05H\x00R\x16budgetRemainingPercent\x88\x01\x01B\x1b\n" +
-	"\x19_budget_remaining_percent\"\x1b\n" +
-	"\x19ReportAgentStatusResponse\"V\n" +
+	"\x1aReportMobileStatusResponse\"V\n" +
 	"\x1cRegisterScrapeTargetsRequest\x126\n" +
 	"\atargets\x18\x01 \x03(\v2\x1c.realtime.me.v1.ScrapeTargetR\atargets\"\x1f\n" +
 	"\x1dRegisterScrapeTargetsResponse\"\x8b\x02\n" +
@@ -900,11 +544,9 @@ const file_realtime_me_v1_ingest_proto_rawDesc = "" +
 	"\x1aSCRAPE_JOB_DEVICE_EXPORTER\x10\x03\x12\x1d\n" +
 	"\x19SCRAPE_JOB_AGENT_EXPORTER\x10\x042n\n" +
 	"\x11EnrollmentService\x12Y\n" +
-	"\fEnrollDevice\x12#.realtime.me.v1.EnrollDeviceRequest\x1a$.realtime.me.v1.EnrollDeviceResponse2\xc9\x03\n" +
+	"\fEnrollDevice\x12#.realtime.me.v1.EnrollDeviceRequest\x1a$.realtime.me.v1.EnrollDeviceResponse2\xf2\x01\n" +
 	"\rIngestService\x12k\n" +
-	"\x12ReportMobileStatus\x12).realtime.me.v1.ReportMobileStatusRequest\x1a*.realtime.me.v1.ReportMobileStatusResponse\x12k\n" +
-	"\x12ReportDeviceStatus\x12).realtime.me.v1.ReportDeviceStatusRequest\x1a*.realtime.me.v1.ReportDeviceStatusResponse\x12h\n" +
-	"\x11ReportAgentStatus\x12(.realtime.me.v1.ReportAgentStatusRequest\x1a).realtime.me.v1.ReportAgentStatusResponse\x12t\n" +
+	"\x12ReportMobileStatus\x12).realtime.me.v1.ReportMobileStatusRequest\x1a*.realtime.me.v1.ReportMobileStatusResponse\x12t\n" +
 	"\x15RegisterScrapeTargets\x12,.realtime.me.v1.RegisterScrapeTargetsRequest\x1a-.realtime.me.v1.RegisterScrapeTargetsResponseB\xc2\x01\n" +
 	"\x12com.realtime.me.v1B\vIngestProtoP\x01ZErealtime-me/apps/status-gateway/internal/genproto/realtime/me/v1;mev1\xa2\x02\x03RMX\xaa\x02\x0eRealtime.Me.V1\xca\x02\x0eRealtime\\Me\\V1\xe2\x02\x1aRealtime\\Me\\V1\\GPBMetadata\xea\x02\x10Realtime::Me::V1b\x06proto3"
 
@@ -921,64 +563,41 @@ func file_realtime_me_v1_ingest_proto_rawDescGZIP() []byte {
 }
 
 var file_realtime_me_v1_ingest_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_realtime_me_v1_ingest_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_realtime_me_v1_ingest_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_realtime_me_v1_ingest_proto_goTypes = []any{
 	(ScrapeJob)(0),                        // 0: realtime.me.v1.ScrapeJob
 	(*EnrollDeviceRequest)(nil),           // 1: realtime.me.v1.EnrollDeviceRequest
 	(*EnrollDeviceResponse)(nil),          // 2: realtime.me.v1.EnrollDeviceResponse
 	(*ReportMobileStatusRequest)(nil),     // 3: realtime.me.v1.ReportMobileStatusRequest
 	(*ReportMobileStatusResponse)(nil),    // 4: realtime.me.v1.ReportMobileStatusResponse
-	(*ReportDeviceStatusRequest)(nil),     // 5: realtime.me.v1.ReportDeviceStatusRequest
-	(*ReportDeviceStatusResponse)(nil),    // 6: realtime.me.v1.ReportDeviceStatusResponse
-	(*DeviceReport)(nil),                  // 7: realtime.me.v1.DeviceReport
-	(*ReportAgentStatusRequest)(nil),      // 8: realtime.me.v1.ReportAgentStatusRequest
-	(*ReportAgentStatusResponse)(nil),     // 9: realtime.me.v1.ReportAgentStatusResponse
-	(*RegisterScrapeTargetsRequest)(nil),  // 10: realtime.me.v1.RegisterScrapeTargetsRequest
-	(*RegisterScrapeTargetsResponse)(nil), // 11: realtime.me.v1.RegisterScrapeTargetsResponse
-	(*ScrapeTarget)(nil),                  // 12: realtime.me.v1.ScrapeTarget
-	(DeviceKind)(0),                       // 13: realtime.me.v1.DeviceKind
-	(DeviceRole)(0),                       // 14: realtime.me.v1.DeviceRole
-	(*PhoneState)(nil),                    // 15: realtime.me.v1.PhoneState
-	(*WatchSnapshot)(nil),                 // 16: realtime.me.v1.WatchSnapshot
-	(OnlineState)(0),                      // 17: realtime.me.v1.OnlineState
-	(*MetricSample)(nil),                  // 18: realtime.me.v1.MetricSample
-	(*MediaStatus)(nil),                   // 19: realtime.me.v1.MediaStatus
-	(*Accessory)(nil),                     // 20: realtime.me.v1.Accessory
-	(AgentState)(0),                       // 21: realtime.me.v1.AgentState
+	(*RegisterScrapeTargetsRequest)(nil),  // 5: realtime.me.v1.RegisterScrapeTargetsRequest
+	(*RegisterScrapeTargetsResponse)(nil), // 6: realtime.me.v1.RegisterScrapeTargetsResponse
+	(*ScrapeTarget)(nil),                  // 7: realtime.me.v1.ScrapeTarget
+	(DeviceKind)(0),                       // 8: realtime.me.v1.DeviceKind
+	(DeviceRole)(0),                       // 9: realtime.me.v1.DeviceRole
+	(*PhoneState)(nil),                    // 10: realtime.me.v1.PhoneState
+	(*WatchSnapshot)(nil),                 // 11: realtime.me.v1.WatchSnapshot
 }
 var file_realtime_me_v1_ingest_proto_depIdxs = []int32{
-	13, // 0: realtime.me.v1.EnrollDeviceRequest.kind:type_name -> realtime.me.v1.DeviceKind
-	14, // 1: realtime.me.v1.EnrollDeviceRequest.role:type_name -> realtime.me.v1.DeviceRole
-	15, // 2: realtime.me.v1.ReportMobileStatusRequest.phone:type_name -> realtime.me.v1.PhoneState
-	16, // 3: realtime.me.v1.ReportMobileStatusRequest.watch:type_name -> realtime.me.v1.WatchSnapshot
-	7,  // 4: realtime.me.v1.ReportDeviceStatusRequest.device:type_name -> realtime.me.v1.DeviceReport
-	13, // 5: realtime.me.v1.DeviceReport.kind:type_name -> realtime.me.v1.DeviceKind
-	14, // 6: realtime.me.v1.DeviceReport.role:type_name -> realtime.me.v1.DeviceRole
-	17, // 7: realtime.me.v1.DeviceReport.state:type_name -> realtime.me.v1.OnlineState
-	18, // 8: realtime.me.v1.DeviceReport.metrics:type_name -> realtime.me.v1.MetricSample
-	19, // 9: realtime.me.v1.DeviceReport.media:type_name -> realtime.me.v1.MediaStatus
-	20, // 10: realtime.me.v1.DeviceReport.accessories:type_name -> realtime.me.v1.Accessory
-	7,  // 11: realtime.me.v1.DeviceReport.children:type_name -> realtime.me.v1.DeviceReport
-	21, // 12: realtime.me.v1.ReportAgentStatusRequest.state:type_name -> realtime.me.v1.AgentState
-	12, // 13: realtime.me.v1.RegisterScrapeTargetsRequest.targets:type_name -> realtime.me.v1.ScrapeTarget
-	0,  // 14: realtime.me.v1.ScrapeTarget.job:type_name -> realtime.me.v1.ScrapeJob
-	13, // 15: realtime.me.v1.ScrapeTarget.kind:type_name -> realtime.me.v1.DeviceKind
-	14, // 16: realtime.me.v1.ScrapeTarget.role:type_name -> realtime.me.v1.DeviceRole
-	1,  // 17: realtime.me.v1.EnrollmentService.EnrollDevice:input_type -> realtime.me.v1.EnrollDeviceRequest
-	3,  // 18: realtime.me.v1.IngestService.ReportMobileStatus:input_type -> realtime.me.v1.ReportMobileStatusRequest
-	5,  // 19: realtime.me.v1.IngestService.ReportDeviceStatus:input_type -> realtime.me.v1.ReportDeviceStatusRequest
-	8,  // 20: realtime.me.v1.IngestService.ReportAgentStatus:input_type -> realtime.me.v1.ReportAgentStatusRequest
-	10, // 21: realtime.me.v1.IngestService.RegisterScrapeTargets:input_type -> realtime.me.v1.RegisterScrapeTargetsRequest
-	2,  // 22: realtime.me.v1.EnrollmentService.EnrollDevice:output_type -> realtime.me.v1.EnrollDeviceResponse
-	4,  // 23: realtime.me.v1.IngestService.ReportMobileStatus:output_type -> realtime.me.v1.ReportMobileStatusResponse
-	6,  // 24: realtime.me.v1.IngestService.ReportDeviceStatus:output_type -> realtime.me.v1.ReportDeviceStatusResponse
-	9,  // 25: realtime.me.v1.IngestService.ReportAgentStatus:output_type -> realtime.me.v1.ReportAgentStatusResponse
-	11, // 26: realtime.me.v1.IngestService.RegisterScrapeTargets:output_type -> realtime.me.v1.RegisterScrapeTargetsResponse
-	22, // [22:27] is the sub-list for method output_type
-	17, // [17:22] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	8,  // 0: realtime.me.v1.EnrollDeviceRequest.kind:type_name -> realtime.me.v1.DeviceKind
+	9,  // 1: realtime.me.v1.EnrollDeviceRequest.role:type_name -> realtime.me.v1.DeviceRole
+	10, // 2: realtime.me.v1.ReportMobileStatusRequest.phone:type_name -> realtime.me.v1.PhoneState
+	11, // 3: realtime.me.v1.ReportMobileStatusRequest.watch:type_name -> realtime.me.v1.WatchSnapshot
+	7,  // 4: realtime.me.v1.RegisterScrapeTargetsRequest.targets:type_name -> realtime.me.v1.ScrapeTarget
+	0,  // 5: realtime.me.v1.ScrapeTarget.job:type_name -> realtime.me.v1.ScrapeJob
+	8,  // 6: realtime.me.v1.ScrapeTarget.kind:type_name -> realtime.me.v1.DeviceKind
+	9,  // 7: realtime.me.v1.ScrapeTarget.role:type_name -> realtime.me.v1.DeviceRole
+	1,  // 8: realtime.me.v1.EnrollmentService.EnrollDevice:input_type -> realtime.me.v1.EnrollDeviceRequest
+	3,  // 9: realtime.me.v1.IngestService.ReportMobileStatus:input_type -> realtime.me.v1.ReportMobileStatusRequest
+	5,  // 10: realtime.me.v1.IngestService.RegisterScrapeTargets:input_type -> realtime.me.v1.RegisterScrapeTargetsRequest
+	2,  // 11: realtime.me.v1.EnrollmentService.EnrollDevice:output_type -> realtime.me.v1.EnrollDeviceResponse
+	4,  // 12: realtime.me.v1.IngestService.ReportMobileStatus:output_type -> realtime.me.v1.ReportMobileStatusResponse
+	6,  // 13: realtime.me.v1.IngestService.RegisterScrapeTargets:output_type -> realtime.me.v1.RegisterScrapeTargetsResponse
+	11, // [11:14] is the sub-list for method output_type
+	8,  // [8:11] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_realtime_me_v1_ingest_proto_init() }
@@ -988,14 +607,13 @@ func file_realtime_me_v1_ingest_proto_init() {
 	}
 	file_realtime_me_v1_status_types_proto_init()
 	file_realtime_me_v1_watch_proto_init()
-	file_realtime_me_v1_ingest_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_realtime_me_v1_ingest_proto_rawDesc), len(file_realtime_me_v1_ingest_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   12,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

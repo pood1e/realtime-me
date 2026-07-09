@@ -74,13 +74,6 @@ func parseDeviceRole(value string) mev1.DeviceRole {
 	}
 }
 
-func onlineStateString(state mev1.OnlineState) string {
-	if state == mev1.OnlineState_ONLINE_STATE_ONLINE {
-		return "online"
-	}
-	return "offline"
-}
-
 func onlineState(up bool) mev1.OnlineState {
 	if up {
 		return mev1.OnlineState_ONLINE_STATE_ONLINE
@@ -105,16 +98,6 @@ func networkStateString(state mev1.NetworkState) string {
 	}
 }
 
-func agentStateString(state mev1.AgentState) string {
-	switch state {
-	case mev1.AgentState_AGENT_STATE_RUNNING:
-		return "running"
-	case mev1.AgentState_AGENT_STATE_FAILED:
-		return "failed"
-	default:
-		return "idle"
-	}
-}
 
 func githubStateString(state mev1.GithubSyncState) string {
 	switch state {

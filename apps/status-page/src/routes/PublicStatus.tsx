@@ -24,9 +24,9 @@ export function PublicStatusApp() {
           Devices
         </h2>
         <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <DeviceCard device={server} title="Server" icon={<Server className="size-4" />} showChildren={false} />
+          <DeviceCard device={server} title="Server" icon={<Server className="size-4" />} />
           {virtualMachines.map((device) => (
-            <DeviceCard key={device.deviceUid} device={device} title="VM" icon={<Box className="size-4" />} showChildren={false} />
+            <DeviceCard key={device.deviceUid} device={device} title="VM" icon={<Box className="size-4" />} />
           ))}
           {personalDevices.map((device) => (
             <DeviceCard key={device.deviceUid} device={device} title={device.role === DeviceRole.DESKTOP ? 'Mac' : 'Device'} icon={<Laptop className="size-4" />} />

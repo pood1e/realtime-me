@@ -21,16 +21,15 @@ type PrometheusHTTPDiscoveryGroup struct {
 }
 
 // StatusStore holds the gateway's live status plus the durable scrape targets
-// and GitHub sync state. Pushed status (mobile/host/agent) is kept in memory
-// only: it is re-pushed within seconds, so it is not persisted and never shown
-// stale after a restart. Scrape targets and GitHub sync state are durable.
+// and GitHub sync state. The phone's pushed status is kept in memory only: it is
+// re-pushed within seconds, so it is not persisted and never shown stale after a
+// restart. Hosts and agents are never pushed — Prometheus scrapes their
+// exporters — so the store holds no copy of them.
 type StatusStore struct {
 	stateFile string
 	mutex     sync.Mutex
 
 	mobile  *mev1.MobileState
-	hosts   map[string]*mev1.DeviceState
-	agents  map[string]*mev1.Agent
 	targets map[string]*mev1.ScrapeTarget
 	github  *mev1.GithubSyncDetail
 }
@@ -38,8 +37,6 @@ type StatusStore struct {
 func NewStatusStore(stateFile string) *StatusStore {
 	return &StatusStore{
 		stateFile: stateFile,
-		hosts:     map[string]*mev1.DeviceState{},
-		agents:    map[string]*mev1.Agent{},
 		targets:   map[string]*mev1.ScrapeTarget{},
 		github: &mev1.GithubSyncDetail{
 			Configured: false,
@@ -94,18 +91,6 @@ func (store *StatusStore) UpdateMobile(mobile *mev1.MobileState) {
 	store.mobile = mobile
 }
 
-func (store *StatusStore) UpdateHost(device *mev1.DeviceState) {
-	store.mutex.Lock()
-	defer store.mutex.Unlock()
-	store.hosts[device.GetDeviceUid()] = device
-}
-
-func (store *StatusStore) UpdateAgent(agent *mev1.Agent) {
-	store.mutex.Lock()
-	defer store.mutex.Unlock()
-	store.agents[agentStoreKey(agent)] = agent
-}
-
 func (store *StatusStore) RegisterTargets(targets []*mev1.ScrapeTarget) error {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
@@ -157,38 +142,14 @@ func (store *StatusStore) GitHubSnapshot() *mev1.GithubSyncDetail {
 // StatusSnapshot is a consistent read of the live pushed status.
 type StatusSnapshot struct {
 	Mobile *mev1.MobileState
-	Hosts  []*mev1.DeviceState
-	Agents []*mev1.Agent
 	GitHub *mev1.GithubSyncDetail
 }
 
 func (store *StatusStore) Snapshot() StatusSnapshot {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
-
-	hosts := make([]*mev1.DeviceState, 0, len(store.hosts))
-	for _, host := range store.hosts {
-		hosts = append(hosts, host)
-	}
-	sort.Slice(hosts, func(left, right int) bool {
-		return hosts[left].GetDeviceUid() < hosts[right].GetDeviceUid()
-	})
-
-	agents := make([]*mev1.Agent, 0, len(store.agents))
-	for _, agent := range store.agents {
-		agents = append(agents, agent)
-	}
-	sort.Slice(agents, func(left, right int) bool {
-		if agents[left].GetDeviceUid() != agents[right].GetDeviceUid() {
-			return agents[left].GetDeviceUid() < agents[right].GetDeviceUid()
-		}
-		return agents[left].GetKind() < agents[right].GetKind()
-	})
-
 	return StatusSnapshot{
 		Mobile: store.mobile,
-		Hosts:  hosts,
-		Agents: agents,
 		GitHub: cloneGithub(store.github),
 	}
 }
@@ -250,13 +211,6 @@ func (store *StatusStore) saveLocked() error {
 		return err
 	}
 	return os.Rename(tempName, store.stateFile)
-}
-
-func agentStoreKey(agent *mev1.Agent) string {
-	if agent.GetDeviceUid() == "" {
-		return agent.GetKind()
-	}
-	return agent.GetDeviceUid() + "/" + agent.GetKind()
 }
 
 func scrapeTargetKey(target *mev1.ScrapeTarget) string {

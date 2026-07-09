@@ -37,16 +37,13 @@ message EnrollDeviceResponse {
   string device_uid = 1;
 }
 
-// IngestService accepts device, phone, agent, and scrape-target reports.
+// IngestService accepts the phone's push and the operator's scrape-target
+// registration. Hosts, virtual machines, and coding agents are never pushed:
+// they run read-only exporters that Prometheus discovers and scrapes. Only the
+// phone pushes, because it cannot be scraped.
 service IngestService {
   // ReportMobileStatus records the latest phone-and-watch status.
   rpc ReportMobileStatus(ReportMobileStatusRequest) returns (ReportMobileStatusResponse);
-
-  // ReportDeviceStatus records the latest host or virtual-machine status.
-  rpc ReportDeviceStatus(ReportDeviceStatusRequest) returns (ReportDeviceStatusResponse);
-
-  // ReportAgentStatus records the latest coding-agent status.
-  rpc ReportAgentStatus(ReportAgentStatusRequest) returns (ReportAgentStatusResponse);
 
   // RegisterScrapeTargets advertises Prometheus scrape targets for discovery.
   rpc RegisterScrapeTargets(RegisterScrapeTargetsRequest) returns (RegisterScrapeTargetsResponse);
@@ -73,71 +70,6 @@ message ReportMobileStatusRequest {
 
 // ReportMobileStatusResponse is the acknowledgement of a mobile report.
 message ReportMobileStatusResponse {}
-
-// ReportDeviceStatusRequest carries a host or virtual-machine report.
-message ReportDeviceStatusRequest {
-  // device is the reported host, with any nested virtual machines as children.
-  DeviceReport device = 1;
-}
-
-// ReportDeviceStatusResponse is the acknowledgement of a device report.
-message ReportDeviceStatusResponse {}
-
-// DeviceReport is a host or virtual-machine status report. Children carry nested
-// virtual machines running under a host.
-message DeviceReport {
-  // device_uid is the enrolled device identity.
-  string device_uid = 1;
-
-  // kind is the device category.
-  DeviceKind kind = 2;
-
-  // role is the device's operational role.
-  DeviceRole role = 3;
-
-  // display_name is the human-readable device label.
-  string display_name = 4;
-
-  // model is the hardware model.
-  string model = 5;
-
-  // state is the device's reachability.
-  OnlineState state = 6;
-
-  // metrics are OpenTelemetry-named host metrics.
-  repeated MetricSample metrics = 7;
-
-  // media is the currently playing media, if any.
-  MediaStatus media = 8;
-
-  // accessories are connected peripherals.
-  repeated Accessory accessories = 9;
-
-  // children are virtual machines running under this host.
-  repeated DeviceReport children = 10;
-}
-
-// ReportAgentStatusRequest carries a coding-agent status report.
-message ReportAgentStatusRequest {
-  // device_uid is the enrolled host the agent runs on.
-  string device_uid = 1;
-
-  // kind is the agent kind, such as "codex" or "claude"; it must never be an
-  // internal session, thread, or job identifier.
-  string kind = 2;
-
-  // state is the agent's run state.
-  AgentState state = 3;
-
-  // task is a short, redacted description of the current task.
-  string task = 4;
-
-  // budget_remaining_percent is the remaining budget from 0 to 100, if known.
-  optional int32 budget_remaining_percent = 5;
-}
-
-// ReportAgentStatusResponse is the acknowledgement of an agent report.
-message ReportAgentStatusResponse {}
 
 // RegisterScrapeTargetsRequest advertises Prometheus scrape targets.
 message RegisterScrapeTargetsRequest {

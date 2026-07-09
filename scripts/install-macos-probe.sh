@@ -4,7 +4,7 @@ set -euo pipefail
 # Installs the realtime-me Prometheus exporters on macOS. The host is scraped
 # (pull), not pushed, and stays unaware of the gateway: this only runs
 # node_exporter (darwin build) for host metrics and status-device-reporter.py
-# --serve for media/Bluetooth, both as LaunchAgents under the logged-in user
+# for media/Bluetooth, both as LaunchAgents under the logged-in user
 # (so media/Bluetooth are visible). Register the host centrally with
 # scripts/operator/register-device.py; Prometheus stamps the device identity via service
 # discovery, so the exporters need no token or gateway address.
@@ -172,7 +172,6 @@ write_device_exporter_agent() {
     <array>
         <string>$PYTHON_BIN</string>
         <string>$INSTALL_DIR/status-device-reporter.py</string>
-        <string>--serve</string>
         <string>--bind</string><string>$EXPORTER_BIND</string>
         <string>--port</string><string>$DEVICE_EXPORTER_PORT</string>
     </array>
@@ -196,7 +195,6 @@ write_agent_exporter_agent() {
     <array>
         <string>$PYTHON_BIN</string>
         <string>$INSTALL_DIR/agent-status-reporter.py</string>
-        <string>--serve</string>
         <string>--bind</string><string>$EXPORTER_BIND</string>
         <string>--port</string><string>$AGENT_EXPORTER_PORT</string>
     </array>

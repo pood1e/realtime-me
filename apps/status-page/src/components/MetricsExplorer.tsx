@@ -11,7 +11,7 @@ import { agentIcon, agentName } from '@/components/AgentCard';
 import { EmptyCard } from '@/components/layout';
 import type { ChartPoint, ChartUnit } from '@/lib/format';
 import { CPU_USAGE, MEMORY_USAGE, hasDiskMetric, hasMetric, promLabel } from '@/lib/metrics';
-import { deviceDisplayName, hostDevices, isVirtualMachine } from '@/lib/status';
+import { deviceDisplayName, hostDevices } from '@/lib/status';
 import { apiBaseUrl, authHeaders } from '@/lib/transport';
 
 type ChartRange = {
@@ -46,6 +46,10 @@ const CHART_RANGES: ChartRange[] = [
   { id: '6h', label: '6h', durationMs: 6 * 60 * 60_000, step: '2m' },
   { id: '24h', label: '24h', durationMs: 24 * 60 * 60_000, step: '5m' },
 ];
+
+// The always-on server is not enrolled, so it has no minted uid. Prometheus
+// labels its static node-exporter target with this fixed instance instead.
+const SERVER_INSTANCE = 'server';
 
 const StatusChart = lazy(() => import('@/components/StatusChart'));
 
@@ -214,19 +218,16 @@ function agentBudgetChart(agent: Agent): ChartDefinition {
   };
 }
 
-function hostQueries(device: DeviceState): { cpu?: string; memory?: string; disk?: string } {
-  if (device.role === DeviceRole.SERVER || device.deviceUid === 'server') return nodeExporterQueries('node-exporter', 'server');
-  if (isVirtualMachine(device)) return nodeExporterQueries('vm-node-exporter', device.deviceUid);
-  const label = `device_id=${promLabel(device.deviceUid)}`;
-  return {
-    cpu: `realtime_host_cpu_usage_ratio{${label}} * 100`,
-    memory: `realtime_host_memory_usage_bytes{${label}}`,
-    disk: `realtime_host_filesystem_usage_ratio{${label}} * 100`,
-  };
+// Every host, VM, and the server itself runs node_exporter. Service discovery
+// sets `instance` to the device uid, and the always-on server's static config
+// sets it to "server", so one query shape covers them all.
+function hostQueries(device: DeviceState): { cpu: string; memory: string; disk: string } {
+  const isServer = device.role === DeviceRole.SERVER || device.deviceUid === SERVER_INSTANCE;
+  return nodeExporterQueries(isServer ? SERVER_INSTANCE : device.deviceUid);
 }
 
-function nodeExporterQueries(job: string, instance: string): { cpu: string; memory: string; disk: string } {
-  const base = `job=${promLabel(job)},instance=${promLabel(instance)}`;
+function nodeExporterQueries(instance: string): { cpu: string; memory: string; disk: string } {
+  const base = `job=~"node-exporter|vm-node-exporter",instance=${promLabel(instance)}`;
   const diskBase = `${base},mountpoint="/",fstype!~"tmpfs|overlay|squashfs"`;
   return {
     cpu: `100 * (1 - avg(rate(node_cpu_seconds_total{${base},mode="idle"}[2m])))`,

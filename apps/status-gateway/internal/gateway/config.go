@@ -16,7 +16,6 @@ type Config struct {
 	QueryTokens                    map[string]struct{}
 	PrometheusURL                  string
 	PublicAgentPlaceholder         bool
-	AgentFreshSeconds              int
 	GitHubToken                    string
 	GitHubStatusMinIntervalSeconds int
 	GitHubStatusTTLMinutes         int
@@ -40,7 +39,6 @@ func LoadConfig() Config {
 		QueryTokens:                    queryTokens,
 		PrometheusURL:                  strings.TrimRight(env("PROMETHEUS_URL", "http://prometheus:9090"), "/"),
 		PublicAgentPlaceholder:         os.Getenv("PUBLIC_AGENT_PLACEHOLDER") == "true",
-		AgentFreshSeconds:              positiveInt("STATUS_AGENT_FRESH_SECONDS", 120),
 		GitHubToken:                    secretEnv("GITHUB_TOKEN"),
 		GitHubStatusMinIntervalSeconds: positiveInt("GITHUB_STATUS_MIN_INTERVAL_SECONDS", 10),
 		GitHubStatusTTLMinutes:         positiveInt("GITHUB_STATUS_TTL_MINUTES", 20),

@@ -24,27 +24,20 @@ type metricDefinition struct {
 	Description string
 }
 
+// metricDefinitions covers only what the gateway itself observes: the phone and
+// watch it accepts pushes from, and its own GitHub sync state. Host, VM, and
+// agent series are exported by node_exporter and the probe exporters, which
+// Prometheus scrapes directly; re-publishing them here would duplicate series.
 var metricDefinitions = []metricDefinition{
 	{Name: "realtime_device_last_update_time_seconds", Unit: "s", Description: "Unix timestamp of the latest accepted device update."},
 	{Name: "realtime_device_battery_level_ratio", Unit: "1", Description: "Device battery level as a fraction of total capacity."},
 	{Name: "realtime_device_charging", Unit: "1", Description: "Device charging state: 1 for charging, 0 otherwise."},
 	{Name: "realtime_device_network_state", Unit: "1", Description: "Phone network state labelled by network_type; current state is 1."},
-	{Name: "realtime_host_cpu_cores", Unit: "{cpu}", Description: "Host CPU logical core count."},
-	{Name: "realtime_host_cpu_usage_ratio", Unit: "1", Description: "Host CPU utilization as a fraction."},
-	{Name: "realtime_host_memory_usage_bytes", Unit: "By", Description: "Host memory usage in bytes."},
-	{Name: "realtime_host_memory_limit_bytes", Unit: "By", Description: "Host memory capacity in bytes."},
-	{Name: "realtime_host_filesystem_usage_bytes", Unit: "By", Description: "Host filesystem usage in bytes."},
-	{Name: "realtime_host_filesystem_limit_bytes", Unit: "By", Description: "Host filesystem capacity in bytes."},
-	{Name: "realtime_host_filesystem_usage_ratio", Unit: "1", Description: "Host filesystem utilization as a fraction."},
-	{Name: "realtime_host_vm_state", Unit: "1", Description: "Virtual machine state labelled by state; current state is 1."},
-	{Name: "realtime_device_media_playing", Unit: "1", Description: "Device media playback state with current title and artist labels."},
 	{Name: "realtime_device_accessory_connected", Unit: "1", Description: "Connected accessory state labelled by accessory name and kind."},
 	{Name: "realtime_device_accessory_battery_level_ratio", Unit: "1", Description: "Accessory battery level as a fraction of total capacity."},
 	{Name: "realtime_watch_heart_rate_beats_per_minute", Unit: "{beat}/min", Description: "Latest watch heart rate."},
 	{Name: "realtime_watch_steps", Unit: "{step}", Description: "Latest watch local-day step count."},
 	{Name: "realtime_watch_wrist_state", Unit: "1", Description: "Watch wrist state labelled by wrist_state; current state is 1."},
-	{Name: "realtime_agent_state", Unit: "1", Description: "Agent state labelled by state; current state is 1."},
-	{Name: "realtime_agent_budget_remaining_ratio", Unit: "1", Description: "Agent budget remaining as a fraction."},
 	{Name: "realtime_github_status_sync_state", Unit: "1", Description: "GitHub status sync state labelled by state; current state is 1."},
 }
 
@@ -100,16 +93,13 @@ func (exporter *MetricsExporter) Handler() http.Handler {
 	return exporter.handler
 }
 
+// observe exports only what the gateway itself owns: the phone's pushed status
+// and the GitHub sync state. Host, VM, and agent series come from their own
+// exporters, which Prometheus scrapes directly.
 func (exporter *MetricsExporter) observe(_ context.Context, observer otelmetric.Observer) error {
 	snapshot := exporter.store.Snapshot()
 	if snapshot.Mobile != nil {
 		exporter.observeMobile(observer, snapshot.Mobile)
-	}
-	for _, agent := range snapshot.Agents {
-		exporter.observeAgent(observer, agent)
-	}
-	for _, device := range snapshot.Hosts {
-		exporter.observeDevice(observer, device)
 	}
 	exporter.observeGitHub(observer, snapshot.GitHub)
 	return nil
@@ -174,84 +164,6 @@ func (exporter *MetricsExporter) observeMobile(observer otelmetric.Observer, mob
 	if state.GetWristState() != mev1.WristState_WRIST_STATE_UNSPECIFIED {
 		exporter.state(observer, "realtime_watch_wrist_state", map[string]string{"device_id": deviceID}, "wrist_state", wristStateString(state.GetWristState()), []string{"unknown", "on_wrist", "off_wrist"})
 	}
-}
-
-func (exporter *MetricsExporter) observeAgent(observer otelmetric.Observer, agent *mev1.Agent) {
-	labels := map[string]string{"agent_id": agent.GetKind()}
-	if agent.GetDeviceUid() != "" {
-		labels["device_id"] = agent.GetDeviceUid()
-	}
-	if agent.GetDisplayName() != "" {
-		labels["device_name"] = agent.GetDisplayName()
-	}
-	exporter.state(observer, "realtime_agent_state", labels, "state", agentStateString(agent.GetState()), []string{"idle", "running", "failed"})
-	if agent.BudgetRemainingPercent != nil {
-		exporter.gauge(observer, "realtime_agent_budget_remaining_ratio", float64(agent.GetBudgetRemainingPercent())/100, labels)
-	}
-}
-
-func (exporter *MetricsExporter) observeDevice(observer otelmetric.Observer, device *mev1.DeviceState) {
-	labels := map[string]string{"device_id": device.GetDeviceUid()}
-	if role := deviceRoleString(device.GetRole()); role != "" {
-		labels["role"] = role
-	}
-	exporter.gauge(observer, "realtime_device_last_update_time_seconds", float64(unixSeconds(device.GetUpdateTime())), deviceLabels(device.GetDeviceUid(), deviceKindString(device.GetKind())))
-	for _, metric := range device.GetMetrics() {
-		exporter.observeHostMetric(observer, labels, metric)
-	}
-	if device.GetMedia() != nil {
-		exporter.observeMedia(observer, labels, device.GetMedia())
-	}
-	exporter.observeAccessories(observer, labels, device.GetAccessories())
-	for _, child := range device.GetChildren() {
-		childLabels := map[string]string{
-			"device_id":        child.GetDeviceUid(),
-			"parent_device_id": device.GetDeviceUid(),
-		}
-		if kind := deviceKindString(child.GetKind()); kind != "" {
-			childLabels["child_kind"] = kind
-		}
-		exporter.gauge(observer, "realtime_device_last_update_time_seconds", float64(unixSeconds(child.GetUpdateTime())), deviceLabels(child.GetDeviceUid(), deviceKindString(child.GetKind())))
-		exporter.state(observer, "realtime_host_vm_state", childLabels, "state", onlineStateString(child.GetState()), []string{"online", "offline"})
-		for _, metric := range child.GetMetrics() {
-			exporter.observeHostMetric(observer, childLabels, metric)
-		}
-	}
-}
-
-func (exporter *MetricsExporter) observeHostMetric(observer otelmetric.Observer, base map[string]string, metric *mev1.MetricSample) {
-	labels := copyLabels(base)
-	for key, value := range metric.GetAttributes() {
-		labels[key] = value
-	}
-	switch metric.GetName() {
-	case metricSystemCPULogicalCount:
-		exporter.gauge(observer, "realtime_host_cpu_cores", metric.GetValue(), labels)
-	case metricSystemCPUUtilization:
-		exporter.gauge(observer, "realtime_host_cpu_usage_ratio", metric.GetValue(), labels)
-	case metricSystemMemoryUsage:
-		exporter.gauge(observer, "realtime_host_memory_usage_bytes", metric.GetValue(), labels)
-	case metricSystemMemoryLimit:
-		exporter.gauge(observer, "realtime_host_memory_limit_bytes", metric.GetValue(), labels)
-	case metricSystemFilesystemUsage:
-		exporter.gauge(observer, "realtime_host_filesystem_usage_bytes", metric.GetValue(), labels)
-	case metricSystemFilesystemLimit:
-		exporter.gauge(observer, "realtime_host_filesystem_limit_bytes", metric.GetValue(), labels)
-	case metricSystemFilesystemUsagePct:
-		exporter.gauge(observer, "realtime_host_filesystem_usage_ratio", metric.GetValue(), labels)
-	}
-}
-
-func (exporter *MetricsExporter) observeMedia(observer otelmetric.Observer, base map[string]string, media *mev1.MediaStatus) {
-	if media.GetTitle() == "" {
-		return
-	}
-	labels := copyLabels(base)
-	labels["title"] = media.GetTitle()
-	if media.GetArtist() != "" {
-		labels["artist"] = media.GetArtist()
-	}
-	exporter.gauge(observer, "realtime_device_media_playing", 1, labels)
 }
 
 func (exporter *MetricsExporter) observeAccessories(observer otelmetric.Observer, base map[string]string, accessories []*mev1.Accessory) {

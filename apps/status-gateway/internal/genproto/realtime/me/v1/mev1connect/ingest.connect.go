@@ -41,12 +41,6 @@ const (
 	// IngestServiceReportMobileStatusProcedure is the fully-qualified name of the IngestService's
 	// ReportMobileStatus RPC.
 	IngestServiceReportMobileStatusProcedure = "/realtime.me.v1.IngestService/ReportMobileStatus"
-	// IngestServiceReportDeviceStatusProcedure is the fully-qualified name of the IngestService's
-	// ReportDeviceStatus RPC.
-	IngestServiceReportDeviceStatusProcedure = "/realtime.me.v1.IngestService/ReportDeviceStatus"
-	// IngestServiceReportAgentStatusProcedure is the fully-qualified name of the IngestService's
-	// ReportAgentStatus RPC.
-	IngestServiceReportAgentStatusProcedure = "/realtime.me.v1.IngestService/ReportAgentStatus"
 	// IngestServiceRegisterScrapeTargetsProcedure is the fully-qualified name of the IngestService's
 	// RegisterScrapeTargets RPC.
 	IngestServiceRegisterScrapeTargetsProcedure = "/realtime.me.v1.IngestService/RegisterScrapeTargets"
@@ -132,10 +126,6 @@ func (UnimplementedEnrollmentServiceHandler) EnrollDevice(context.Context, *conn
 type IngestServiceClient interface {
 	// ReportMobileStatus records the latest phone-and-watch status.
 	ReportMobileStatus(context.Context, *connect.Request[v1.ReportMobileStatusRequest]) (*connect.Response[v1.ReportMobileStatusResponse], error)
-	// ReportDeviceStatus records the latest host or virtual-machine status.
-	ReportDeviceStatus(context.Context, *connect.Request[v1.ReportDeviceStatusRequest]) (*connect.Response[v1.ReportDeviceStatusResponse], error)
-	// ReportAgentStatus records the latest coding-agent status.
-	ReportAgentStatus(context.Context, *connect.Request[v1.ReportAgentStatusRequest]) (*connect.Response[v1.ReportAgentStatusResponse], error)
 	// RegisterScrapeTargets advertises Prometheus scrape targets for discovery.
 	RegisterScrapeTargets(context.Context, *connect.Request[v1.RegisterScrapeTargetsRequest]) (*connect.Response[v1.RegisterScrapeTargetsResponse], error)
 }
@@ -157,18 +147,6 @@ func NewIngestServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(ingestServiceMethods.ByName("ReportMobileStatus")),
 			connect.WithClientOptions(opts...),
 		),
-		reportDeviceStatus: connect.NewClient[v1.ReportDeviceStatusRequest, v1.ReportDeviceStatusResponse](
-			httpClient,
-			baseURL+IngestServiceReportDeviceStatusProcedure,
-			connect.WithSchema(ingestServiceMethods.ByName("ReportDeviceStatus")),
-			connect.WithClientOptions(opts...),
-		),
-		reportAgentStatus: connect.NewClient[v1.ReportAgentStatusRequest, v1.ReportAgentStatusResponse](
-			httpClient,
-			baseURL+IngestServiceReportAgentStatusProcedure,
-			connect.WithSchema(ingestServiceMethods.ByName("ReportAgentStatus")),
-			connect.WithClientOptions(opts...),
-		),
 		registerScrapeTargets: connect.NewClient[v1.RegisterScrapeTargetsRequest, v1.RegisterScrapeTargetsResponse](
 			httpClient,
 			baseURL+IngestServiceRegisterScrapeTargetsProcedure,
@@ -181,24 +159,12 @@ func NewIngestServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 // ingestServiceClient implements IngestServiceClient.
 type ingestServiceClient struct {
 	reportMobileStatus    *connect.Client[v1.ReportMobileStatusRequest, v1.ReportMobileStatusResponse]
-	reportDeviceStatus    *connect.Client[v1.ReportDeviceStatusRequest, v1.ReportDeviceStatusResponse]
-	reportAgentStatus     *connect.Client[v1.ReportAgentStatusRequest, v1.ReportAgentStatusResponse]
 	registerScrapeTargets *connect.Client[v1.RegisterScrapeTargetsRequest, v1.RegisterScrapeTargetsResponse]
 }
 
 // ReportMobileStatus calls realtime.me.v1.IngestService.ReportMobileStatus.
 func (c *ingestServiceClient) ReportMobileStatus(ctx context.Context, req *connect.Request[v1.ReportMobileStatusRequest]) (*connect.Response[v1.ReportMobileStatusResponse], error) {
 	return c.reportMobileStatus.CallUnary(ctx, req)
-}
-
-// ReportDeviceStatus calls realtime.me.v1.IngestService.ReportDeviceStatus.
-func (c *ingestServiceClient) ReportDeviceStatus(ctx context.Context, req *connect.Request[v1.ReportDeviceStatusRequest]) (*connect.Response[v1.ReportDeviceStatusResponse], error) {
-	return c.reportDeviceStatus.CallUnary(ctx, req)
-}
-
-// ReportAgentStatus calls realtime.me.v1.IngestService.ReportAgentStatus.
-func (c *ingestServiceClient) ReportAgentStatus(ctx context.Context, req *connect.Request[v1.ReportAgentStatusRequest]) (*connect.Response[v1.ReportAgentStatusResponse], error) {
-	return c.reportAgentStatus.CallUnary(ctx, req)
 }
 
 // RegisterScrapeTargets calls realtime.me.v1.IngestService.RegisterScrapeTargets.
@@ -210,10 +176,6 @@ func (c *ingestServiceClient) RegisterScrapeTargets(ctx context.Context, req *co
 type IngestServiceHandler interface {
 	// ReportMobileStatus records the latest phone-and-watch status.
 	ReportMobileStatus(context.Context, *connect.Request[v1.ReportMobileStatusRequest]) (*connect.Response[v1.ReportMobileStatusResponse], error)
-	// ReportDeviceStatus records the latest host or virtual-machine status.
-	ReportDeviceStatus(context.Context, *connect.Request[v1.ReportDeviceStatusRequest]) (*connect.Response[v1.ReportDeviceStatusResponse], error)
-	// ReportAgentStatus records the latest coding-agent status.
-	ReportAgentStatus(context.Context, *connect.Request[v1.ReportAgentStatusRequest]) (*connect.Response[v1.ReportAgentStatusResponse], error)
 	// RegisterScrapeTargets advertises Prometheus scrape targets for discovery.
 	RegisterScrapeTargets(context.Context, *connect.Request[v1.RegisterScrapeTargetsRequest]) (*connect.Response[v1.RegisterScrapeTargetsResponse], error)
 }
@@ -231,18 +193,6 @@ func NewIngestServiceHandler(svc IngestServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(ingestServiceMethods.ByName("ReportMobileStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
-	ingestServiceReportDeviceStatusHandler := connect.NewUnaryHandler(
-		IngestServiceReportDeviceStatusProcedure,
-		svc.ReportDeviceStatus,
-		connect.WithSchema(ingestServiceMethods.ByName("ReportDeviceStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	ingestServiceReportAgentStatusHandler := connect.NewUnaryHandler(
-		IngestServiceReportAgentStatusProcedure,
-		svc.ReportAgentStatus,
-		connect.WithSchema(ingestServiceMethods.ByName("ReportAgentStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
 	ingestServiceRegisterScrapeTargetsHandler := connect.NewUnaryHandler(
 		IngestServiceRegisterScrapeTargetsProcedure,
 		svc.RegisterScrapeTargets,
@@ -253,10 +203,6 @@ func NewIngestServiceHandler(svc IngestServiceHandler, opts ...connect.HandlerOp
 		switch r.URL.Path {
 		case IngestServiceReportMobileStatusProcedure:
 			ingestServiceReportMobileStatusHandler.ServeHTTP(w, r)
-		case IngestServiceReportDeviceStatusProcedure:
-			ingestServiceReportDeviceStatusHandler.ServeHTTP(w, r)
-		case IngestServiceReportAgentStatusProcedure:
-			ingestServiceReportAgentStatusHandler.ServeHTTP(w, r)
 		case IngestServiceRegisterScrapeTargetsProcedure:
 			ingestServiceRegisterScrapeTargetsHandler.ServeHTTP(w, r)
 		default:
@@ -270,14 +216,6 @@ type UnimplementedIngestServiceHandler struct{}
 
 func (UnimplementedIngestServiceHandler) ReportMobileStatus(context.Context, *connect.Request[v1.ReportMobileStatusRequest]) (*connect.Response[v1.ReportMobileStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("realtime.me.v1.IngestService.ReportMobileStatus is not implemented"))
-}
-
-func (UnimplementedIngestServiceHandler) ReportDeviceStatus(context.Context, *connect.Request[v1.ReportDeviceStatusRequest]) (*connect.Response[v1.ReportDeviceStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("realtime.me.v1.IngestService.ReportDeviceStatus is not implemented"))
-}
-
-func (UnimplementedIngestServiceHandler) ReportAgentStatus(context.Context, *connect.Request[v1.ReportAgentStatusRequest]) (*connect.Response[v1.ReportAgentStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("realtime.me.v1.IngestService.ReportAgentStatus is not implemented"))
 }
 
 func (UnimplementedIngestServiceHandler) RegisterScrapeTargets(context.Context, *connect.Request[v1.RegisterScrapeTargetsRequest]) (*connect.Response[v1.RegisterScrapeTargetsResponse], error) {

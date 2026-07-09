@@ -22,8 +22,6 @@ from typing import Callable, NamedTuple
 JSON_CONTENT_TYPE = "application/json; charset=utf-8"
 METRICS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
-ONLINE_STATE_ONLINE = "ONLINE_STATE_ONLINE"
-
 DEVICE_KIND_ENUMS = {
     "host": "DEVICE_KIND_HOST",
     "virtual_machine": "DEVICE_KIND_VIRTUAL_MACHINE",
@@ -35,11 +33,6 @@ DEVICE_ROLE_ENUMS = {
     "desktop": "DEVICE_ROLE_DESKTOP",
     "vm": "DEVICE_ROLE_VM",
 }
-AGENT_STATE_ENUMS = {
-    "idle": "AGENT_STATE_IDLE",
-    "running": "AGENT_STATE_RUNNING",
-    "failed": "AGENT_STATE_FAILED",
-}
 
 
 def device_kind_enum(value: str) -> str:
@@ -48,10 +41,6 @@ def device_kind_enum(value: str) -> str:
 
 def device_role_enum(value: str) -> str:
     return DEVICE_ROLE_ENUMS.get(value, "DEVICE_ROLE_UNSPECIFIED")
-
-
-def agent_state_enum(value: str) -> str:
-    return AGENT_STATE_ENUMS.get(value, "AGENT_STATE_UNSPECIFIED")
 
 
 class ConnectError(Exception):
@@ -147,11 +136,6 @@ def write_cached_uid(identity_file: Path, uid: str) -> None:
     temporary.write_text(json.dumps({"deviceUid": uid}))
     os.chmod(temporary, 0o600)
     os.replace(temporary, identity_file)
-
-
-def default_identity_file() -> Path:
-    base = os.getenv("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
-    return Path(base) / "realtime-me" / "device-identity.json"
 
 
 class Response(NamedTuple):

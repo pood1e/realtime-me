@@ -90,44 +90,6 @@ func (server *IngestServer) ReportMobileStatus(
 	return connect.NewResponse(&mev1.ReportMobileStatusResponse{}), nil
 }
 
-func (server *IngestServer) ReportDeviceStatus(
-	_ context.Context,
-	request *connect.Request[mev1.ReportDeviceStatusRequest],
-) (*connect.Response[mev1.ReportDeviceStatusResponse], error) {
-	report := request.Msg.GetDevice()
-	if _, err := server.requireEnrolled(report.GetDeviceUid()); err != nil {
-		return nil, err
-	}
-	server.store.UpdateHost(deviceReportToState(report, timestamppb.New(time.Now().UTC())))
-	return connect.NewResponse(&mev1.ReportDeviceStatusResponse{}), nil
-}
-
-func (server *IngestServer) ReportAgentStatus(
-	_ context.Context,
-	request *connect.Request[mev1.ReportAgentStatusRequest],
-) (*connect.Response[mev1.ReportAgentStatusResponse], error) {
-	message := request.Msg
-	device, err := server.requireEnrolled(message.GetDeviceUid())
-	if err != nil {
-		return nil, err
-	}
-	kind := strings.TrimSpace(message.GetKind())
-	if kind == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("agent kind is required"))
-	}
-	agent := &mev1.Agent{
-		Uid:                    agentUID(message.GetDeviceUid(), kind),
-		Kind:                   kind,
-		DeviceUid:              message.GetDeviceUid(),
-		DisplayName:            device.DisplayName,
-		State:                  message.GetState(),
-		BudgetRemainingPercent: message.BudgetRemainingPercent,
-		UpdateTime:             timestamppb.New(time.Now().UTC()),
-	}
-	server.store.UpdateAgent(agent)
-	return connect.NewResponse(&mev1.ReportAgentStatusResponse{}), nil
-}
-
 func (server *IngestServer) RegisterScrapeTargets(
 	_ context.Context,
 	request *connect.Request[mev1.RegisterScrapeTargetsRequest],
@@ -136,26 +98,6 @@ func (server *IngestServer) RegisterScrapeTargets(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&mev1.RegisterScrapeTargetsResponse{}), nil
-}
-
-func deviceReportToState(report *mev1.DeviceReport, now *timestamppb.Timestamp) *mev1.DeviceState {
-	children := make([]*mev1.DeviceState, 0, len(report.GetChildren()))
-	for _, child := range report.GetChildren() {
-		children = append(children, deviceReportToState(child, now))
-	}
-	return &mev1.DeviceState{
-		DeviceUid:   report.GetDeviceUid(),
-		DisplayName: report.GetDisplayName(),
-		Model:       report.GetModel(),
-		Kind:        report.GetKind(),
-		Role:        report.GetRole(),
-		State:       report.GetState(),
-		Metrics:     report.GetMetrics(),
-		Media:       report.GetMedia(),
-		Accessories: report.GetAccessories(),
-		Children:    children,
-		UpdateTime:  now,
-	}
 }
 
 // StatusServer implements the Connect StatusService.

@@ -39,6 +39,11 @@ message GetInternalStatusResponse {
 
 // DeviceState is a device's current status on a read surface.
 message DeviceState {
+  // Virtual machines are reported as top-level devices, discovered through the
+  // vm-node-exporter scrape job, so a host never nests its guests.
+  reserved 10;
+  reserved "children";
+
   // device_uid is the gateway-assigned device identity.
   string device_uid = 1;
 
@@ -65,9 +70,6 @@ message DeviceState {
 
   // accessories are connected peripherals.
   repeated Accessory accessories = 9;
-
-  // children are virtual machines running under this host.
-  repeated DeviceState children = 10;
 
   // update_time is when this device's status was last refreshed.
   google.protobuf.Timestamp update_time = 11;

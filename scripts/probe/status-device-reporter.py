@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+"""Read-only device exporter for Prometheus.
+
+This host is unaware of the gateway. It exposes media and Bluetooth-accessory
+signals on /metrics; Prometheus discovers it through the gateway's HTTP service
+discovery and stamps the gateway-minted device uid onto every series as a target
+label. The exporter therefore holds no identity, no token, and no gateway
+address. CPU, memory, and filesystem metrics come from node_exporter.
+"""
 from __future__ import annotations
 
 import argparse
@@ -7,39 +15,16 @@ import os
 import platform
 import re
 import shutil
-import socket
-import sys
-import time
 from dataclasses import dataclass
 from pathlib import Path
 
-import status_common
 from status_common import (
-    ONLINE_STATE_ONLINE,
-    ConnectError,
-    device_kind_enum,
-    device_role_enum,
-    ensure_device_uid,
     json_response,
     label_set,
     run,
     run_server,
     text_response,
 )
-
-CPU_CORES = "system.cpu.logical.count"
-CPU_USAGE = "system.cpu.utilization"
-MEMORY_USAGE = "system.memory.usage"
-MEMORY_LIMIT = "system.memory.limit"
-FILESYSTEM_USAGE = "system.filesystem.usage"
-FILESYSTEM_LIMIT = "system.filesystem.limit"
-FILESYSTEM_UTILIZATION = "system.filesystem.utilization"
-
-
-@dataclass(frozen=True)
-class MemoryUsage:
-    used: int
-    total: int
 
 
 @dataclass(frozen=True)
@@ -60,154 +45,21 @@ class AccessorySnapshot:
 
 def main() -> int:
     args = parse_args()
-    if args.serve:
-        return serve(args)
-
-    token = os.getenv("STATUS_INGEST_TOKEN", "").strip()
-    try:
-        device_uid = resolve_device_uid(args, token)
-    except (ConnectError, OSError) as error:
-        print(f"device enrollment failed: {enrollment_reason(error)}", file=sys.stderr)
-        return 1
-
-    if args.print_uid:
-        if not device_uid:
-            print("device is not enrolled; set STATUS_INGEST_TOKEN to enroll", file=sys.stderr)
-            return 1
-        print(device_uid)
-        return 0
-
-    report = build_report(args, device_uid)
-    if args.print:
-        print(json.dumps(report, indent=2, ensure_ascii=False))
-        return 0
-
-    if not token:
-        print("STATUS_INGEST_TOKEN is required", file=sys.stderr)
-        return 2
-    if not device_uid:
-        print("device is not enrolled", file=sys.stderr)
-        return 1
-    return push_device_status(args, token, report)
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Publish this device status to realtime-me gateway.")
-    parser.add_argument("--url", default=os.getenv("STATUS_GATEWAY_URL", "http://127.0.0.1:18080"))
-    parser.add_argument("--device-name", default=os.getenv("STATUS_DEVICE_NAME", socket.gethostname()))
-    parser.add_argument("--device-model", default=os.getenv("STATUS_DEVICE_MODEL", device_model()))
-    parser.add_argument("--kind", default=os.getenv("STATUS_DEVICE_KIND", "host"))
-    parser.add_argument("--role", default=os.getenv("STATUS_DEVICE_ROLE", "desktop"))
-    parser.add_argument("--identity-file", default=os.getenv("STATUS_IDENTITY_FILE", ""))
-    parser.add_argument("--timeout-seconds", type=float, default=5)
-    parser.add_argument("--serve", action="store_true")
-    parser.add_argument("--bind", default=os.getenv("STATUS_DEVICE_EXPORTER_BIND", "127.0.0.1"))
-    parser.add_argument("--port", type=int, default=int(os.getenv("STATUS_DEVICE_EXPORTER_PORT", "18083")))
-    parser.add_argument("--print", action="store_true")
-    parser.add_argument("--print-uid", action="store_true")
-    return parser.parse_args()
-
-
-def identity_file(args: argparse.Namespace) -> Path:
-    return Path(args.identity_file) if args.identity_file else status_common.default_identity_file()
-
-
-def resolve_device_uid(args: argparse.Namespace, token: str) -> str:
-    return ensure_device_uid(
-        args.url,
-        token,
-        identity_file(args),
-        device_kind_enum(args.kind),
-        device_role_enum(args.role),
-        args.device_name,
-        args.device_model,
-        args.timeout_seconds,
-    )
-
-
-def build_report(args: argparse.Namespace, device_uid: str) -> dict:
-    report = {
-        "deviceUid": device_uid,
-        "kind": device_kind_enum(args.kind),
-        "role": device_role_enum(args.role),
-        "displayName": args.device_name,
-        "model": args.device_model,
-        "state": ONLINE_STATE_ONLINE,
-        "metrics": metrics(),
-    }
-    media = current_media()
-    if media:
-        report["media"] = compact_dict({"title": media.title, "artist": media.artist})
-    accessories = bluetooth_audio_accessories()
-    if accessories:
-        report["accessories"] = [accessory_payload(accessory) for accessory in accessories]
-    return report
-
-
-def serve(args: argparse.Namespace) -> int:
-    # The exporter listens on the LAN without authentication, so it serves only
-    # what Prometheus scrapes. A richer JSON view of the same host once lived
-    # here and was read by nothing.
-    def device_uid() -> str:
-        return read_cached_uid(args)
-
     routes = {
         "/healthz": lambda: json_response({"ok": True}),
-        "/metrics": lambda: text_response(render_prometheus_metrics(device_uid())),
+        "/metrics": lambda: text_response(render_prometheus_metrics()),
     }
     return run_server(args.bind, args.port, routes)
 
 
-def read_cached_uid(args: argparse.Namespace) -> str:
-    return status_common.read_cached_uid(identity_file(args))
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Serve this device's media and accessory metrics for Prometheus.")
+    parser.add_argument("--bind", default=os.getenv("STATUS_DEVICE_EXPORTER_BIND", "127.0.0.1"))
+    parser.add_argument("--port", type=int, default=int(os.getenv("STATUS_DEVICE_EXPORTER_PORT", "18083")))
+    return parser.parse_args()
 
 
-def push_device_status(args: argparse.Namespace, token: str, report: dict) -> int:
-    try:
-        status_common.connect_post(
-            args.url,
-            "IngestService",
-            "ReportDeviceStatus",
-            token,
-            {"device": report},
-            args.timeout_seconds,
-        )
-    except ConnectError as error:
-        print(f"gateway rejected device status: {error.code}", file=sys.stderr)
-        return 1
-    except OSError as error:
-        print(f"gateway device status push failed: {error.__class__.__name__}", file=sys.stderr)
-        return 1
-    return 0
-
-
-def enrollment_reason(error: Exception) -> str:
-    return error.code if isinstance(error, ConnectError) else error.__class__.__name__
-
-
-def metrics() -> list[dict]:
-    disk = shutil.disk_usage("/")
-    memory = memory_usage()
-    result = [
-        sample(CPU_CORES, "{cpu}", float(os.cpu_count() or 0)),
-        sample(CPU_USAGE, "1", cpu_usage()),
-        sample(MEMORY_USAGE, "By", float(memory.used), {"system.memory.state": "used"}),
-        sample(MEMORY_LIMIT, "By", float(memory.total)),
-        sample(FILESYSTEM_USAGE, "By", float(disk.used), {"mountpoint": "/"}),
-        sample(FILESYSTEM_LIMIT, "By", float(disk.total), {"mountpoint": "/"}),
-        sample(FILESYSTEM_UTILIZATION, "1", disk.used / disk.total if disk.total else 0, {"mountpoint": "/"}),
-    ]
-    return [item for item in result if item["value"] >= 0]
-
-
-def sample(name: str, unit: str, value: float, attributes: dict[str, str] | None = None) -> dict:
-    payload = {"name": name, "unit": unit, "value": round(value, 6)}
-    if attributes:
-        payload["attributes"] = attributes
-    return payload
-
-
-def render_prometheus_metrics(device_uid: str) -> str:
+def render_prometheus_metrics() -> str:
     lines = [
         "# HELP realtime_device_media_playing Device media playback state. OpenTelemetry name: realtime.device.media.playing.",
         "# TYPE realtime_device_media_playing gauge",
@@ -221,10 +73,10 @@ def render_prometheus_metrics(device_uid: str) -> str:
     ]
     media = current_media()
     if media:
-        labels = {"device_uid": device_uid, "title": media.title, "artist": media.artist, "player": media.player, "cover_url": media.cover}
+        labels = {"title": media.title, "artist": media.artist, "player": media.player, "cover_url": media.cover}
         lines.append(f"realtime_device_media_playing{label_set(labels)} 1")
     for accessory in bluetooth_audio_accessories():
-        labels = accessory_labels(device_uid, accessory)
+        labels = accessory_labels(accessory)
         lines.append(f"realtime_device_accessory_connected{label_set(labels)} 1")
         if accessory.battery_percent is not None:
             lines.append(f"realtime_device_accessory_battery_level_ratio{label_set(labels)} {accessory.battery_percent / 100:.6g}")
@@ -232,21 +84,8 @@ def render_prometheus_metrics(device_uid: str) -> str:
     return "\n".join(lines)
 
 
-def accessory_payload(accessory: AccessorySnapshot) -> dict:
-    payload: dict[str, str | int] = {
-        "kind": accessory.kind,
-        "displayName": accessory.name,
-    }
-    if accessory.model:
-        payload["model"] = accessory.model
-    if accessory.battery_percent is not None:
-        payload["batteryPercent"] = accessory.battery_percent
-    return payload
-
-
-def accessory_labels(device_uid: str, accessory: AccessorySnapshot) -> dict[str, str]:
+def accessory_labels(accessory: AccessorySnapshot) -> dict[str, str]:
     labels = {
-        "device_uid": device_uid,
         "accessory_kind": accessory.kind,
         "accessory_name": accessory.name,
     }
@@ -516,10 +355,6 @@ def first_non_empty(*values: str) -> str:
     return ""
 
 
-def compact_dict(values: dict[str, str]) -> dict[str, str]:
-    return {key: value for key, value in values.items() if value}
-
-
 def run_osascript(script: str) -> str:
     return run(["osascript", "-e", script]) if command_exists("osascript") else ""
 
@@ -547,113 +382,6 @@ def sanitize_media_text(value: str) -> str:
     if len(text) <= 120:
         return text
     return text[:119].rstrip() + "…"
-
-
-def cpu_usage() -> float:
-    system = platform.system().lower()
-    if system == "linux":
-        first = linux_cpu_times()
-        time.sleep(0.25)
-        second = linux_cpu_times()
-        total = sum(second) - sum(first)
-        idle = second[3] - first[3]
-        return clamp_ratio(1 - idle / total) if total > 0 else 0
-    if system == "darwin":
-        output = run(["top", "-l", "2", "-n", "0", "-s", "1"])
-        matches = re.findall(r"CPU usage: .*?, .*?, ([0-9.]+)% idle", output)
-        if matches:
-            return clamp_ratio(1 - float(matches[-1]) / 100)
-    return 0
-
-
-def linux_cpu_times() -> list[int]:
-    try:
-        values = Path("/proc/stat").read_text().splitlines()[0].split()[1:]
-    except OSError:
-        return [0, 0, 0, 0]
-    return [int(value) for value in values]
-
-
-def memory_usage() -> MemoryUsage:
-    system = platform.system().lower()
-    if system == "linux":
-        return linux_memory_usage()
-    if system == "darwin":
-        return darwin_memory_usage()
-    return MemoryUsage(0, 0)
-
-
-def linux_memory_usage() -> MemoryUsage:
-    values = {}
-    try:
-        lines = Path("/proc/meminfo").read_text().splitlines()
-    except OSError:
-        return MemoryUsage(0, 0)
-    for line in lines:
-        key, value = line.split(":", 1)
-        values[key] = int(value.strip().split()[0]) * 1024
-    total = values.get("MemTotal", 0)
-    available = values.get("MemAvailable", 0)
-    used = max(0, total - available)
-    return MemoryUsage(used, total)
-
-
-def darwin_memory_usage() -> MemoryUsage:
-    total = int(run(["sysctl", "-n", "hw.memsize"]).strip() or "0")
-    stats = run(["vm_stat"])
-    page_size_match = re.search(r"page size of (\d+) bytes", stats)
-    page_size = int(page_size_match.group(1)) if page_size_match else 4096
-    pages = {}
-    for line in stats.splitlines():
-        if ":" not in line:
-            continue
-        key, value = line.split(":", 1)
-        pages[key.strip()] = int(re.sub(r"[^0-9]", "", value) or "0")
-    used_pages = sum(
-        pages.get(key, 0)
-        for key in (
-            "Pages active",
-            "Pages inactive",
-            "Pages throttled",
-            "Pages wired down",
-            "Pages occupied by compressor",
-        )
-    )
-    used = used_pages * page_size
-    if used <= 0:
-        free = (pages.get("Pages free", 0) + pages.get("Pages speculative", 0)) * page_size
-        used = total - free
-    used = max(0, min(used, total))
-    return MemoryUsage(used, total)
-
-
-def device_model() -> str:
-    system = platform.system().lower()
-    if system == "darwin":
-        os_name = " ".join(part for part in [
-            run(["sw_vers", "-productName"]).strip(),
-            run(["sw_vers", "-productVersion"]).strip(),
-        ] if part)
-        model = run(["sysctl", "-n", "hw.model"]).strip()
-        cpu = run(["sysctl", "-n", "machdep.cpu.brand_string"]).strip()
-        return " · ".join(part for part in [os_name, model, cpu] if part)[:120]
-    if system == "linux":
-        return linux_os_name() or platform.machine()
-    return platform.platform()
-
-
-def linux_os_name() -> str:
-    try:
-        for line in Path("/etc/os-release").read_text().splitlines():
-            if line.startswith("PRETTY_NAME="):
-                return line.split("=", 1)[1].strip().strip('"')
-    except OSError:
-        return ""
-    return ""
-
-
-def clamp_ratio(value: float) -> float:
-    return max(0, min(1, value))
 
 
 if __name__ == "__main__":

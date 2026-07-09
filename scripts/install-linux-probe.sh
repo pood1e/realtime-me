@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Installs the realtime-me Prometheus exporters on Linux. The host is scraped
 # (pull) and stays unaware of the gateway: this only installs node_exporter and
-# status-device-reporter.py --serve as systemd services bound to the LAN.
+# status-device-reporter.py as systemd services bound to the LAN.
 # Register the host centrally with scripts/operator/register-device.py; Prometheus stamps the
 # device identity via service discovery, so the exporters need no token or
 # gateway address.
@@ -235,7 +235,7 @@ After=network-online.target
 [Service]
 Type=simple
 $user_directives
-ExecStart=$PYTHON_BIN $INSTALL_DIR/status-device-reporter.py --serve --bind $EXPORTER_BIND --port $DEVICE_EXPORTER_PORT
+ExecStart=$PYTHON_BIN $INSTALL_DIR/status-device-reporter.py --bind $EXPORTER_BIND --port $DEVICE_EXPORTER_PORT
 Restart=always
 RestartSec=5s
 
@@ -253,7 +253,7 @@ After=network-online.target
 [Service]
 Type=simple
 $user_directives
-ExecStart=$PYTHON_BIN $INSTALL_DIR/agent-status-reporter.py --serve --bind $EXPORTER_BIND --port $AGENT_EXPORTER_PORT
+ExecStart=$PYTHON_BIN $INSTALL_DIR/agent-status-reporter.py --bind $EXPORTER_BIND --port $AGENT_EXPORTER_PORT
 Restart=always
 RestartSec=5s
 

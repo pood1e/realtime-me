@@ -47,13 +47,22 @@ plugin compiles them as javalite, so Kotlin protos are absent from `buf.gen.yaml
 by design. Don't replace the symlink with copied files.
 
 **Probes are pull-based, and probe hosts are unaware of the gateway.** They run
-`status-device-reporter.py --serve` and `agent-status-reporter.py --serve` as
-read-only HTTP exporters. Prometheus finds them through the gateway's HTTP
-service discovery (`/api/prometheus/http-sd/*`) and stamps the gateway-minted
-device uid on every series via target labels. A probe host therefore holds no
-gateway URL, no ingest token, and no identity of its own. Only the phone pushes
-(`IngestService`), because it cannot be scraped. Do not add a push path to a
-probe script — that architecture was removed deliberately.
+`status-device-reporter.py` and `agent-status-reporter.py` as read-only HTTP
+exporters serving `/healthz` and `/metrics`, and nothing else. Prometheus finds
+them through the gateway's HTTP service discovery (`/api/prometheus/http-sd/*`)
+and stamps the gateway-minted device uid on every series via target labels. A
+probe host therefore holds no gateway URL, no ingest token, and no identity of
+its own — the exporters neither read nor emit a device uid. Only the phone
+pushes (`IngestService/ReportMobileStatus`), because it cannot be scraped.
+Do not add a push path to a probe script, and do not give one an identity.
+
+**`IngestService` has exactly two methods.** `ReportMobileStatus` and
+`RegisterScrapeTargets`. Hosts, VMs, and coding agents are never pushed; the
+gateway derives their `DeviceState` and `Agent` entirely from Prometheus queries
+(`internal/gateway/prometheus.go`). The gateway's own `/metrics` therefore
+exports only what it owns: the phone's pushed status and its GitHub sync state.
+Re-exporting host or agent series here would duplicate what the exporters
+already publish.
 
 **`scripts/` has a published URL contract, and the probe payload is flat at
 runtime.** The installers fetch each file from
