@@ -153,7 +153,7 @@ curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-m
 Then register the host once, from anywhere that can reach the gateway (the installer prints this line with the host and ports filled in):
 
 ```sh
-STATUS_INGEST_TOKEN=... python3 scripts/register-device.py \
+STATUS_INGEST_TOKEN=... python3 scripts/operator/register-device.py \
   --url http://<gateway-host>:18080 --host <device-lan-ip> --name "<name>" --kind host
 ```
 
@@ -211,15 +211,15 @@ The config holds the bio, contact links, and the projects collected once as data
 
 ### Collecting projects (one-time)
 
-Projects are a one-time collection, not a live feed. `scripts/collect-projects.py` fetches your repositories and, when `ANTHROPIC_API_KEY` is set, writes a short per-repository summary with Claude, then stores them in the config. Re-run it only when you want to refresh.
+Projects are a one-time collection, not a live feed. `scripts/operator/collect-projects.py` fetches your repositories and, when `ANTHROPIC_API_KEY` is set, writes a short per-repository summary with Claude, then stores them in the config. Re-run it only when you want to refresh.
 
 ```sh
 # All owned repos + summaries, written into the gateway's profile config
 GITHUB_TOKEN=... ANTHROPIC_API_KEY=... \
-  ./scripts/collect-projects.py --config /data/profile.json
+  ./scripts/operator/collect-projects.py --config /data/profile.json
 
 # Specific repos, printed to stdout (no summaries)
-GITHUB_TOKEN=... ./scripts/collect-projects.py --repos realtime-me,dotfiles
+GITHUB_TOKEN=... ./scripts/operator/collect-projects.py --repos realtime-me,dotfiles
 ```
 
 The GitHub token and Anthropic key are used only while the script runs, never by the gateway. Including private repositories needs a token with repository read access (classic `repo`, or a fine-grained token with *Contents* + *Metadata: read*); summaries need `pip install anthropic`.

@@ -4,7 +4,7 @@ set -euo pipefail
 # Installs the realtime-me Prometheus exporters on Linux. The host is scraped
 # (pull) and stays unaware of the gateway: this only installs node_exporter and
 # status-device-reporter.py --serve as systemd services bound to the LAN.
-# Register the host centrally with register-device.py; Prometheus stamps the
+# Register the host centrally with scripts/operator/register-device.py; Prometheus stamps the
 # device identity via service discovery, so the exporters need no token or
 # gateway address.
 
@@ -128,12 +128,12 @@ download_file() {
 
 download_exporters() {
   install -d -m 755 "$INSTALL_DIR"
-  download_file status_common.py "$INSTALL_DIR/status_common.py"
+  download_file probe/status_common.py "$INSTALL_DIR/status_common.py"
   chmod 644 "$INSTALL_DIR/status_common.py"
-  download_file status-device-reporter.py "$INSTALL_DIR/status-device-reporter.py"
+  download_file probe/status-device-reporter.py "$INSTALL_DIR/status-device-reporter.py"
   chmod 755 "$INSTALL_DIR/status-device-reporter.py"
   [[ $INSTALL_AGENT == 1 ]] || return 0
-  download_file agent-status-reporter.py "$INSTALL_DIR/agent-status-reporter.py"
+  download_file probe/agent-status-reporter.py "$INSTALL_DIR/agent-status-reporter.py"
   chmod 755 "$INSTALL_DIR/agent-status-reporter.py"
 }
 
@@ -296,7 +296,7 @@ print_summary() {
   echo "Check:           systemctl status realtime-me-node-exporter.service --no-pager"
   echo
   echo "Now register this host centrally (where you can reach the gateway):"
-  echo "  STATUS_INGEST_TOKEN=... python3 register-device.py --url <GATEWAY_URL> \\"
+  echo "  STATUS_INGEST_TOKEN=... python3 scripts/operator/register-device.py --url <GATEWAY_URL> \\"
   echo "    --host $EXPORTER_HOST --name \"$DEVICE_NAME\" --kind $DEVICE_KIND --role $DEVICE_ROLE$([[ $INSTALL_AGENT == 1 ]] && printf ' --install-agent')"
 }
 

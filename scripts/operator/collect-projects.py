@@ -15,10 +15,10 @@ Environment:
 Examples:
   # Collect all owned repos into the gateway's profile config, with summaries.
   GITHUB_TOKEN=... ANTHROPIC_API_KEY=... \\
-    ./scripts/collect-projects.py --config /data/profile.json
+    ./scripts/operator/collect-projects.py --config /data/profile.json
 
   # Only specific repos, printed to stdout (paste into the config's "projects").
-  GITHUB_TOKEN=... ./scripts/collect-projects.py --repos realtime-me,dotfiles
+  GITHUB_TOKEN=... ./scripts/operator/collect-projects.py --repos realtime-me,dotfiles
 """
 from __future__ import annotations
 

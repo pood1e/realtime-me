@@ -6,7 +6,7 @@
   ],
   "scripts": {
     "proto:lint": "buf lint",
-    "proto:gen": "buf generate --path proto/realtime/me/v1/profile.proto",
+    "proto:gen": "buf generate",
     "build:gateway": "cd apps/status-gateway && go build ./...",
     "check:gateway": "cd apps/status-gateway && go vet ./... && go test ./...",
     "build:status": "npm run build:gateway && npm run build --workspace apps/status-page",

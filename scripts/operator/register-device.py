@@ -8,8 +8,8 @@ stamps the uid onto every series through the service-discovery target labels, so
 the exporters themselves need no identity, token, or gateway address.
 
 Example:
-  STATUS_INGEST_TOKEN=... python3 register-device.py \
-    --url http://192.168.0.126:18080 --host 192.168.0.42 --name "Studio Mac" --kind host
+  STATUS_INGEST_TOKEN=... python3 scripts/operator/register-device.py \
+    --url http://<gateway-host>:18080 --host <probe-host> --name "Studio Mac" --kind host
 """
 from __future__ import annotations
 
@@ -18,6 +18,10 @@ import os
 import re
 import sys
 from pathlib import Path
+
+# The probe payload ships as flat siblings into a single install dir, so
+# status_common cannot live in a package shared with this operator-side tool.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "probe"))
 
 import status_common
 from status_common import ConnectError, device_kind_enum, device_role_enum, ensure_device_uid

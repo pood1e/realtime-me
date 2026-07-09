@@ -14,7 +14,7 @@ import (
 )
 
 // ProfileConfig is the static profile served on the profile page. Projects are
-// collected once (see scripts/collect-projects.py) and stored here as data; the
+// collected once (see scripts/operator/collect-projects.py) and stored here as data; the
 // gateway never fetches or refreshes them at runtime.
 type ProfileConfig struct {
 	Profile  ConfiguredProfile   `json:"profile"`
