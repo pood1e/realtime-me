@@ -57,7 +57,3 @@ export function diskValues(device: Device): { text: string; percent?: number } {
   if (directPercent !== undefined) return { text: formatPercent(directPercent), percent: directPercent };
   return { text: '—' };
 }
-
-export function promLabel(value: string): string {
-  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
-}

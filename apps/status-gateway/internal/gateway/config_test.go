@@ -1,7 +1,6 @@
 package gateway
 
 import (
-	"net/url"
 	"testing"
 )
 
@@ -91,41 +90,6 @@ func TestParseTokens(t *testing.T) {
 	}
 }
 
-func TestPrometheusParamsAllowList(t *testing.T) {
-	allowed := []string{"query", "time"}
-
-	params, ok := prometheusParams(url.Values{
-		"query":   {"up"},
-		"time":    {"123"},
-		"evil":    {"dropped"},
-		"timeout": {"also dropped"},
-	}, allowed)
-	if !ok {
-		t.Fatal("a well-formed query must be accepted")
-	}
-	if params.Get("query") != "up" || params.Get("time") != "123" {
-		t.Errorf("allowed params were not forwarded: %v", params)
-	}
-	if params.Has("evil") || params.Has("timeout") {
-		t.Errorf("params outside the allow-list were forwarded: %v", params)
-	}
-}
-
-func TestPrometheusParamsRejectsBadQueries(t *testing.T) {
-	allowed := []string{"query", "time"}
-	cases := map[string]url.Values{
-		"missing query":  {"time": {"1"}},
-		"empty query":    {"query": {""}},
-		"oversize query": {"query": {longString(4097)}},
-		"oversize param": {"query": {"up"}, "time": {longString(513)}},
-	}
-	for name, values := range cases {
-		if _, ok := prometheusParams(values, allowed); ok {
-			t.Errorf("%s: expected rejection", name)
-		}
-	}
-}
-
 func tokenSet(values ...string) map[string]struct{} {
 	if len(values) == 0 {
 		return nil
@@ -135,12 +99,4 @@ func tokenSet(values ...string) map[string]struct{} {
 		tokens[value] = struct{}{}
 	}
 	return tokens
-}
-
-func longString(size int) string {
-	buffer := make([]byte, size)
-	for index := range buffer {
-		buffer[index] = 'a'
-	}
-	return string(buffer)
 }

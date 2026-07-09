@@ -7,11 +7,10 @@ type Env = {
   STATUS_API_BASE_URL?: string;
 };
 
-// ConnectRPC calls are POSTed to /<proto package>.<Service>/<Method>; the
-// internal dashboard also reads the Prometheus metrics proxy under /api/internal/.
-// Nothing else is proxied: the gateway serves control-plane routes such as
-// scrape discovery under /api/, and the browser must never reach them.
-const PROXY_PREFIXES = ['/realtime.me.v1.', '/api/internal/'];
+// The browser speaks only ConnectRPC, POSTed to /<proto package>.<Service>/<Method>.
+// Nothing under /api/ is proxied: those are the gateway's control-plane routes,
+// such as Prometheus scrape discovery, and the browser must never reach them.
+const PROXY_PREFIXES = ['/realtime.me.v1.'];
 
 export default {
   fetch(request: Request, env: Env): Promise<Response> {

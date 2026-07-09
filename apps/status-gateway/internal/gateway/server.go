@@ -2,9 +2,7 @@ package gateway
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -48,8 +46,6 @@ func (server *Server) Handler() http.Handler {
 
 	router.GET("/healthz", gin.WrapF(server.health))
 	router.GET("/api/prometheus/http-sd/:job", server.prometheusHTTPDiscovery)
-	router.GET("/api/internal/metrics/query", gin.WrapF(server.internalMetricQuery))
-	router.GET("/api/internal/metrics/query_range", gin.WrapF(server.internalMetricQueryRange))
 	router.GET("/metrics", gin.WrapH(server.metrics))
 
 	server.mountConnectServices(router)
@@ -80,6 +76,10 @@ func (server *Server) mountConnectServices(router *gin.Engine) {
 		NewStatusServer(server.store, server.prometheus, server.config),
 		connect.WithInterceptors(NewAuthInterceptor(server.config.QueryTokens, mev1connect.StatusServiceGetPublicStatusProcedure)),
 	))
+	mount(mev1connect.NewMetricsServiceHandler(
+		NewMetricsServer(server.prometheus),
+		connect.WithInterceptors(NewAuthInterceptor(server.config.QueryTokens)),
+	))
 	mount(mev1connect.NewProfileServiceHandler(
 		NewProfileServer(server.profile),
 	))
@@ -102,19 +102,11 @@ func (server *Server) health(writer http.ResponseWriter, _ *http.Request) {
 	writeJSON(writer, http.StatusOK, map[string]bool{"ok": true})
 }
 
-// requireQueryToken rejects callers without a read token and reports whether the
-// request may proceed. Scrape discovery is gated alongside the metric proxies
-// because it enumerates every device's name, model, and LAN scrape address.
-func (server *Server) requireQueryToken(writer http.ResponseWriter, request *http.Request) bool {
-	if server.config.AuthorizedQuery(request.Header.Get("Authorization")) {
-		return true
-	}
-	writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
-	return false
-}
-
+// prometheusHTTPDiscovery is gated behind the read token because it enumerates
+// every device's name, model, and LAN scrape address.
 func (server *Server) prometheusHTTPDiscovery(context *gin.Context) {
-	if !server.requireQueryToken(context.Writer, context.Request) {
+	if !server.config.AuthorizedQuery(context.Request.Header.Get("Authorization")) {
+		writeJSON(context.Writer, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
 	job, ok := parseScrapeJob(context.Param("job"))
@@ -123,54 +115,6 @@ func (server *Server) prometheusHTTPDiscovery(context *gin.Context) {
 		return
 	}
 	writeJSON(context.Writer, http.StatusOK, server.store.PrometheusHTTPDiscovery(job))
-}
-
-func (server *Server) internalMetricQuery(writer http.ResponseWriter, request *http.Request) {
-	server.prometheusProxy(writer, request, "/api/v1/query", []string{"query", "time", "timeout"})
-}
-
-func (server *Server) internalMetricQueryRange(writer http.ResponseWriter, request *http.Request) {
-	server.prometheusProxy(writer, request, "/api/v1/query_range", []string{"query", "start", "end", "step", "timeout"})
-}
-
-func (server *Server) prometheusProxy(writer http.ResponseWriter, request *http.Request, path string, allowedParams []string) {
-	if !server.requireQueryToken(writer, request) {
-		return
-	}
-
-	params, ok := prometheusParams(request.URL.Query(), allowedParams)
-	if !ok {
-		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid_query"})
-		return
-	}
-	body, status, err := server.prometheus.Proxy(request.Context(), path, params)
-	if err != nil {
-		slog.Error("prometheus proxy failed", "error", err)
-		writeJSON(writer, http.StatusBadGateway, map[string]string{"error": "prometheus_unavailable"})
-		return
-	}
-
-	writer.Header().Set("Cache-Control", "no-store")
-	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
-	writer.WriteHeader(status)
-	_, _ = writer.Write(body)
-}
-
-func prometheusParams(query url.Values, allowed []string) (url.Values, bool) {
-	if len(query.Get("query")) == 0 || len(query.Get("query")) > 4096 {
-		return nil, false
-	}
-	filtered := url.Values{}
-	for _, key := range allowed {
-		value := query.Get(key)
-		if len(value) > 512 {
-			return nil, false
-		}
-		if value != "" {
-			filtered.Set(key, value)
-		}
-	}
-	return filtered, true
 }
 
 func (server *Server) static(writer http.ResponseWriter, request *http.Request) {

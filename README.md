@@ -115,11 +115,15 @@ The status stack stores raw time-series data in Prometheus on your own host. Clo
 ```sh
 cd infra/status-stack
 cp .env.example .env
-openssl rand -base64 32 # paste into STATUS_INGEST_TOKEN
+openssl rand -base64 32 # paste into STATUS_INGEST_TOKEN  (write)
+openssl rand -base64 32 # paste into STATUS_QUERY_TOKEN   (read)
+printf %s "<STATUS_QUERY_TOKEN>" > prometheus/query_token
 ```
 
 Set these values in `.env`:
 
+- `STATUS_INGEST_TOKEN`: write access — enrollment, phone push, scrape-target registration.
+- `STATUS_QUERY_TOKEN`: read access — the internal dashboard, charts, and scrape discovery. Must differ from the ingest token: it is pasted into a browser. Prometheus reads the same value from `prometheus/query_token`.
 - `STATUS_GATEWAY_BIND`: LAN address that should accept phone updates, or `127.0.0.1` when only Cloudflare Tunnel should reach it.
 - `GITHUB_TOKEN`: GitHub token with the `user` scope.
 - `GITHUB_STATUS_MIN_INTERVAL_SECONDS`: default `10`.
@@ -134,6 +138,7 @@ The gateway speaks ConnectRPC (`POST /realtime.me.v1.<Service>/<Method>`, JSON o
 ```text
 StatusService/GetPublicStatus       # public, unauthenticated — what the page reads
 StatusService/GetInternalStatus     # Bearer <STATUS_QUERY_TOKEN>
+MetricsService/GetMetricRange       # Bearer <STATUS_QUERY_TOKEN> — chart time series
 ProfileService/GetProfilePage       # public — the /about page
 EnrollmentService/EnrollDevice      # Bearer <STATUS_INGEST_TOKEN> — mints the device uid
 IngestService/ReportMobileStatus    # Bearer <STATUS_INGEST_TOKEN> — phone push

@@ -84,6 +84,13 @@ cannot live in a package because the probe payload must ship flat. Don't
 **Device identity is backend-owned.** The gateway mints every device uid via
 `EnrollmentService/EnrollDevice`; clients cache it and never construct one.
 
+**PromQL lives only in the gateway.** `internal/gateway/metrics.go` is the one
+place a query expression is written. Clients name a `MetricSeries` and pass
+domain selectors (device uid, agent kind, accessory); the gateway resolves the
+metric name, labels, and job, escapes every selector, and bounds the window to
+`maxMetricRangePoints`. There is no PromQL passthrough — the read token cannot
+run an arbitrary query. Don't reintroduce a `query=` parameter.
+
 ## Gotchas
 
 - `gradle.properties` pins `org.gradle.java.home` to a macOS Homebrew JDK 17
@@ -92,12 +99,12 @@ cannot live in a package because the probe payload must ship flat. Don't
   `[]`. cAdvisor sits behind the `containers` Compose profile, so an empty
   file_sd list is the opt-in switch; `cadvisor.yml.example` shows the contents.
   A `static_configs` entry would leave a permanently-down target.
-- The status page's Worker proxies `/realtime.me.v1.*` and `/api/internal/*` to
+- The status page's Worker proxies only `/realtime.me.v1.*` to
   `STATUS_API_BASE_URL`, so the browser always sees one origin. It deliberately
-  does **not** proxy all of `/api/*`: scrape discovery lives under
-  `/api/prometheus/` and must never be reachable from a browser.
+  proxies nothing under `/api/`: those are the gateway's control-plane routes,
+  such as scrape discovery, and a browser must never reach them.
 - `STATUS_INGEST_TOKEN` (write) and `STATUS_QUERY_TOKEN` (read) are separate
   secrets and the gateway refuses to start without both. The read token reaches
-  the internal dashboard, the metric proxy, and scrape discovery; Prometheus
+  the internal dashboard, `MetricsService`, and scrape discovery; Prometheus
   presents it from `infra/status-stack/prometheus/query_token`, which is
   gitignored and must exist before the first `docker compose up`.

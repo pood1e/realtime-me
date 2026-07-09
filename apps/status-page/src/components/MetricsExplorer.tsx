@@ -1,7 +1,10 @@
 import { AlertTriangle, Battery, Cpu, Footprints, HardDrive, Headphones, HeartPulse, LineChart as LineChartIcon, MemoryStick } from 'lucide-react';
 import { lazy, Suspense, useEffect, useMemo, useState, type ReactElement } from 'react';
+import { create } from '@bufbuild/protobuf';
+import { timestampFromDate } from '@bufbuild/protobuf/wkt';
+import { GetMetricRangeRequestSchema, MetricSeries } from '@/gen/realtime/me/v1/metrics_pb';
+import type { GetMetricRangeRequest } from '@/gen/realtime/me/v1/metrics_pb';
 import type { Agent, DeviceState, InternalStatus, MobileState } from '@/gen/realtime/me/v1/status_pb';
-import { DeviceRole } from '@/gen/realtime/me/v1/status_types_pb';
 import type { Accessory } from '@/gen/realtime/me/v1/status_types_pb';
 import { WristState } from '@/gen/realtime/me/v1/watch_pb';
 import { Badge } from '@/components/ui/badge';
@@ -10,46 +13,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { agentIcon, agentName } from '@/components/AgentCard';
 import { EmptyCard } from '@/components/layout';
 import type { ChartPoint, ChartUnit } from '@/lib/format';
-import { CPU_USAGE, MEMORY_USAGE, hasDiskMetric, hasMetric, promLabel } from '@/lib/metrics';
+import { CPU_USAGE, MEMORY_USAGE, hasDiskMetric, hasMetric } from '@/lib/metrics';
 import { deviceDisplayName, hostDevices } from '@/lib/status';
-import { apiBaseUrl, authHeaders } from '@/lib/transport';
+import { authHeaders, metricsClient } from '@/lib/transport';
 
 type ChartRange = {
   id: string;
   label: string;
   durationMs: number;
-  step: string;
+  stepSeconds: number;
 };
 
+// A chart names the series it wants and the entity it belongs to. The gateway
+// owns every metric name, label, and query expression.
 type ChartDefinition = {
   id: string;
   title: string;
-  query: string;
   unit: ChartUnit;
   icon: ReactElement;
-};
-
-type PrometheusRangeResponse = {
-  status: 'success' | 'error';
-  data?: {
-    result?: Array<{
-      metric: Record<string, string>;
-      values: Array<[number, string]>;
-    }>;
-  };
-  error?: string;
+  series: MetricSeries;
+  deviceUid?: string;
+  agentKind?: string;
+  accessory?: { kind: string; displayName: string };
 };
 
 const CHART_RANGES: ChartRange[] = [
-  { id: '15m', label: '15m', durationMs: 15 * 60_000, step: '15s' },
-  { id: '1h', label: '1h', durationMs: 60 * 60_000, step: '30s' },
-  { id: '6h', label: '6h', durationMs: 6 * 60 * 60_000, step: '2m' },
-  { id: '24h', label: '24h', durationMs: 24 * 60 * 60_000, step: '5m' },
+  { id: '15m', label: '15m', durationMs: 15 * 60_000, stepSeconds: 15 },
+  { id: '1h', label: '1h', durationMs: 60 * 60_000, stepSeconds: 30 },
+  { id: '6h', label: '6h', durationMs: 6 * 60 * 60_000, stepSeconds: 120 },
+  { id: '24h', label: '24h', durationMs: 24 * 60 * 60_000, stepSeconds: 300 },
 ];
-
-// The always-on server is not enrolled, so it has no minted uid. Prometheus
-// labels its static node-exporter target with this fixed instance instead.
-const SERVER_INSTANCE = 'server';
 
 const StatusChart = lazy(() => import('@/components/StatusChart'));
 
@@ -80,7 +73,7 @@ export function MetricsExplorer({ status, token }: { status: InternalStatus; tok
 }
 
 function TimeSeriesCard({ chart, range, token }: { chart: ChartDefinition; range: ChartRange; token: string }) {
-  const { data, failed } = usePrometheusRange(token, chart.query, range);
+  const { data, failed } = useMetricRange(token, chart, range);
   return (
     <Card>
       <CardHeader>
@@ -100,43 +93,65 @@ function TimeSeriesCard({ chart, range, token }: { chart: ChartDefinition; range
   );
 }
 
-function usePrometheusRange(token: string, query: string, range: ChartRange): { data: ChartPoint[]; failed: boolean } {
+// The window is recomputed on every refresh, so a chart advances with the
+// dashboard's own poll instead of freezing at the moment it first rendered.
+function useMetricRange(token: string, chart: ChartDefinition, range: ChartRange): { data: ChartPoint[]; failed: boolean } {
   const [data, setData] = useState<ChartPoint[]>([]);
   const [failed, setFailed] = useState(false);
+  const { series, deviceUid, agentKind, accessory } = chart;
 
   useEffect(() => {
     const controller = new AbortController();
-    const end = Math.floor(Date.now() / 1000);
-    const start = Math.floor((Date.now() - range.durationMs) / 1000);
-    const params = new URLSearchParams({ query, start: `${start}`, end: `${end}`, step: range.step });
-    fetch(`${apiBaseUrl}/api/internal/metrics/query_range?${params.toString()}`, {
-      cache: 'no-store',
-      headers: authHeaders(token),
-      signal: controller.signal,
-    })
-      .then((response) => response.ok ? response.json() as Promise<PrometheusRangeResponse> : null)
-      .then((payload) => {
-        if (!payload || payload.status !== 'success') {
-          setFailed(true);
-          return;
-        }
-        setData(prometheusPoints(payload));
+    let active = true;
+
+    async function load() {
+      try {
+        const response = await metricsClient.getMetricRange(
+          metricRangeRequest({ series, deviceUid, agentKind, accessory }, range),
+          { headers: authHeaders(token), signal: controller.signal },
+        );
+        if (!active) return;
+        setData(response.points.map(chartPoint).filter((point): point is ChartPoint => point !== null));
         setFailed(false);
-      })
-      .catch((error: unknown) => {
-        if ((error as DOMException).name !== 'AbortError') setFailed(true);
-      });
-    return () => controller.abort();
-  }, [query, range.durationMs, range.step, token]);
+      } catch {
+        if (active && !controller.signal.aborted) setFailed(true);
+      }
+    }
+
+    void load();
+    const timer = window.setInterval(() => void load(), POLL_METRICS_MS);
+    return () => {
+      active = false;
+      controller.abort();
+      window.clearInterval(timer);
+    };
+  }, [series, deviceUid, agentKind, accessory?.kind, accessory?.displayName, range.durationMs, range.stepSeconds, token]);
 
   return { data, failed };
 }
 
-function prometheusPoints(payload: PrometheusRangeResponse): ChartPoint[] {
-  const values = payload.data?.result?.[0]?.values ?? [];
-  return values
-    .map(([time, value]) => ({ time: Number(time) * 1000, value: Number(value) }))
-    .filter((point) => Number.isFinite(point.time) && Number.isFinite(point.value));
+const POLL_METRICS_MS = 30_000;
+
+function metricRangeRequest(
+  chart: Pick<ChartDefinition, 'series' | 'deviceUid' | 'agentKind' | 'accessory'>,
+  range: ChartRange,
+): GetMetricRangeRequest {
+  const end = new Date();
+  const start = new Date(end.getTime() - range.durationMs);
+  return create(GetMetricRangeRequestSchema, {
+    series: chart.series,
+    deviceUid: chart.deviceUid ?? '',
+    agentKind: chart.agentKind ?? '',
+    accessory: chart.accessory ? { kind: chart.accessory.kind, displayName: chart.accessory.displayName } : undefined,
+    startTime: timestampFromDate(start),
+    endTime: timestampFromDate(end),
+    step: { seconds: BigInt(range.stepSeconds), nanos: 0 },
+  });
+}
+
+function chartPoint(point: { time?: { seconds: bigint }; value: number }): ChartPoint | null {
+  if (!point.time) return null;
+  return { time: Number(point.time.seconds) * 1000, value: point.value };
 }
 
 function chartDefinitions(status: InternalStatus): ChartDefinition[] {
@@ -155,11 +170,16 @@ function chartDefinitions(status: InternalStatus): ChartDefinition[] {
 
 function hostChartDefinitions(device: DeviceState): ChartDefinition[] {
   const identity = deviceDisplayName(device, 'Device');
-  const queries = hostQueries(device);
   const definitions: ChartDefinition[] = [];
-  if (queries.cpu && hasMetric(device, CPU_USAGE)) definitions.push({ id: `${device.deviceUid}:cpu`, title: `${identity} CPU`, query: queries.cpu, unit: 'percent', icon: <Cpu className="size-4" /> });
-  if (queries.memory && hasMetric(device, MEMORY_USAGE)) definitions.push({ id: `${device.deviceUid}:mem`, title: `${identity} memory`, query: queries.memory, unit: 'bytes', icon: <MemoryStick className="size-4" /> });
-  if (queries.disk && hasDiskMetric(device)) definitions.push({ id: `${device.deviceUid}:disk`, title: `${identity} disk`, query: queries.disk, unit: 'percent', icon: <HardDrive className="size-4" /> });
+  if (hasMetric(device, CPU_USAGE)) {
+    definitions.push({ id: `${device.deviceUid}:cpu`, title: `${identity} CPU`, unit: 'percent', icon: <Cpu className="size-4" />, series: MetricSeries.HOST_CPU_UTILIZATION, deviceUid: device.deviceUid });
+  }
+  if (hasMetric(device, MEMORY_USAGE)) {
+    definitions.push({ id: `${device.deviceUid}:mem`, title: `${identity} memory`, unit: 'bytes', icon: <MemoryStick className="size-4" />, series: MetricSeries.HOST_MEMORY_USAGE, deviceUid: device.deviceUid });
+  }
+  if (hasDiskMetric(device)) {
+    definitions.push({ id: `${device.deviceUid}:disk`, title: `${identity} disk`, unit: 'percent', icon: <HardDrive className="size-4" />, series: MetricSeries.HOST_FILESYSTEM_UTILIZATION, deviceUid: device.deviceUid });
+  }
   definitions.push(...accessoryBatteryCharts(device.deviceUid, identity, device.accessories));
   return definitions;
 }
@@ -168,70 +188,47 @@ function mobileChartDefinitions(mobile: MobileState): ChartDefinition[] {
   const definitions: ChartDefinition[] = [];
   const phoneName = mobile.displayName || 'Phone';
   if (mobile.phone?.batteryPercent !== undefined) {
-    definitions.push({ id: `${mobile.deviceUid}:phone-battery`, title: `${phoneName} battery`, query: `realtime_device_battery_level_ratio{device_id=${promLabel(mobile.deviceUid)},device_type="phone"} * 100`, unit: 'percent', icon: <Battery className="size-4" /> });
+    definitions.push({ id: `${mobile.deviceUid}:phone-battery`, title: `${phoneName} battery`, unit: 'percent', icon: <Battery className="size-4" />, series: MetricSeries.PHONE_BATTERY_LEVEL, deviceUid: mobile.deviceUid });
   }
-  definitions.push(...accessoryBatteryCharts(mobile.deviceUid, phoneName, mobile.phone?.accessories, 'phone'));
+  definitions.push(...accessoryBatteryCharts(mobile.deviceUid, phoneName, mobile.phone?.accessories));
+
   const watch = mobile.watch;
   if (!watch) return definitions;
   const watchName = watch.deviceInfo?.displayName || 'Watch';
   if (watch.watchState?.wristState !== WristState.OFF_WRIST && watch.heartRate !== undefined) {
-    definitions.push({ id: `${mobile.deviceUid}:watch-hr`, title: `${watchName} heart rate`, query: `realtime_watch_heart_rate_beats_per_minute{device_id=${promLabel(mobile.deviceUid)}}`, unit: 'rate', icon: <HeartPulse className="size-4" /> });
+    definitions.push({ id: `${mobile.deviceUid}:watch-hr`, title: `${watchName} heart rate`, unit: 'rate', icon: <HeartPulse className="size-4" />, series: MetricSeries.WATCH_HEART_RATE, deviceUid: mobile.deviceUid });
   }
   if (watch.activityTotals !== undefined) {
-    definitions.push({ id: `${mobile.deviceUid}:watch-steps`, title: `${watchName} steps`, query: `realtime_watch_steps{device_id=${promLabel(mobile.deviceUid)}}`, unit: 'count', icon: <Footprints className="size-4" /> });
+    definitions.push({ id: `${mobile.deviceUid}:watch-steps`, title: `${watchName} steps`, unit: 'count', icon: <Footprints className="size-4" />, series: MetricSeries.WATCH_STEPS, deviceUid: mobile.deviceUid });
   }
   if (watch.watchState !== undefined) {
-    definitions.push({ id: `${mobile.deviceUid}:watch-battery`, title: `${watchName} battery`, query: `realtime_device_battery_level_ratio{device_id=${promLabel(mobile.deviceUid)},device_type="watch"} * 100`, unit: 'percent', icon: <Battery className="size-4" /> });
+    definitions.push({ id: `${mobile.deviceUid}:watch-battery`, title: `${watchName} battery`, unit: 'percent', icon: <Battery className="size-4" />, series: MetricSeries.WATCH_BATTERY_LEVEL, deviceUid: mobile.deviceUid });
   }
   return definitions;
 }
 
-function accessoryBatteryCharts(deviceId: string, deviceName: string, accessories: Accessory[] | undefined, deviceType?: string): ChartDefinition[] {
+function accessoryBatteryCharts(deviceUid: string, deviceName: string, accessories: Accessory[] | undefined): ChartDefinition[] {
   return (accessories ?? [])
     .filter((accessory) => accessory.displayName && accessory.batteryPercent !== undefined)
-    .map((accessory) => {
-      const labels = [
-        `device_id=${promLabel(deviceId)}`,
-        `accessory_kind=${promLabel(accessory.kind)}`,
-        `accessory_name=${promLabel(accessory.displayName)}`,
-      ];
-      if (deviceType) labels.push(`device_type=${promLabel(deviceType)}`);
-      return {
-        id: `${deviceId}:${accessory.kind}:${accessory.displayName}:battery`,
-        title: `${deviceName} ${accessory.displayName}`,
-        query: `realtime_device_accessory_battery_level_ratio{${labels.join(',')}} * 100`,
-        unit: 'percent' as ChartUnit,
-        icon: <Headphones className="size-4" />,
-      };
-    });
+    .map((accessory) => ({
+      id: `${deviceUid}:${accessory.kind}:${accessory.displayName}:battery`,
+      title: `${deviceName} ${accessory.displayName}`,
+      unit: 'percent' as ChartUnit,
+      icon: <Headphones className="size-4" />,
+      series: MetricSeries.ACCESSORY_BATTERY_LEVEL,
+      deviceUid,
+      accessory: { kind: accessory.kind, displayName: accessory.displayName },
+    }));
 }
 
 function agentBudgetChart(agent: Agent): ChartDefinition {
-  const labels = [`agent_id=${promLabel(agent.uid)}`];
-  if (agent.deviceUid) labels.push(`device_id=${promLabel(agent.deviceUid)}`);
   return {
     id: `${agent.uid}:budget`,
     title: `${agentName(agent.kind)} budget`,
-    query: `realtime_agent_budget_remaining_ratio{${labels.join(',')}} * 100`,
     unit: 'percent',
     icon: agentIcon(agent.kind),
-  };
-}
-
-// Every host, VM, and the server itself runs node_exporter. Service discovery
-// sets `instance` to the device uid, and the always-on server's static config
-// sets it to "server", so one query shape covers them all.
-function hostQueries(device: DeviceState): { cpu: string; memory: string; disk: string } {
-  const isServer = device.role === DeviceRole.SERVER || device.deviceUid === SERVER_INSTANCE;
-  return nodeExporterQueries(isServer ? SERVER_INSTANCE : device.deviceUid);
-}
-
-function nodeExporterQueries(instance: string): { cpu: string; memory: string; disk: string } {
-  const base = `job=~"node-exporter|vm-node-exporter",instance=${promLabel(instance)}`;
-  const diskBase = `${base},mountpoint="/",fstype!~"tmpfs|overlay|squashfs"`;
-  return {
-    cpu: `100 * (1 - avg(rate(node_cpu_seconds_total{${base},mode="idle"}[2m])))`,
-    memory: `node_memory_MemTotal_bytes{${base}} - node_memory_MemAvailable_bytes{${base}}`,
-    disk: `100 * (1 - node_filesystem_avail_bytes{${diskBase}} / node_filesystem_size_bytes{${diskBase}})`,
+    series: MetricSeries.AGENT_BUDGET_REMAINING,
+    agentKind: agent.kind,
+    deviceUid: agent.deviceUid,
   };
 }

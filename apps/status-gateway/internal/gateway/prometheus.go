@@ -27,7 +27,7 @@ const (
 	metricSystemFilesystemUsage    = "system.filesystem.usage"
 	metricSystemFilesystemLimit    = "system.filesystem.limit"
 	metricSystemFilesystemUsagePct = "system.filesystem.utilization"
-	maxPrometheusProxyResponseSize = 4 * 1024 * 1024
+	maxPrometheusResponseSize      = 4 * 1024 * 1024
 )
 
 type PrometheusClient struct {
@@ -262,33 +262,43 @@ func sortAccessories(accessories []*mev1.Accessory) {
 	})
 }
 
-func (client *PrometheusClient) Proxy(ctx context.Context, path string, values url.Values) ([]byte, int, error) {
-	endpoint, err := url.Parse(client.baseURL + path)
+// QueryRange samples one expression over a time range. The expression is always
+// built by the gateway from a MetricSeries; it never originates with a caller.
+func (client *PrometheusClient) QueryRange(ctx context.Context, query string, start time.Time, end time.Time, step time.Duration) ([]*mev1.MetricPoint, error) {
+	endpoint, err := url.Parse(client.baseURL + "/api/v1/query_range")
 	if err != nil {
-		return nil, http.StatusBadGateway, err
+		return nil, err
 	}
+	values := endpoint.Query()
+	values.Set("query", query)
+	values.Set("start", strconv.FormatInt(start.Unix(), 10))
+	values.Set("end", strconv.FormatInt(end.Unix(), 10))
+	values.Set("step", strconv.FormatFloat(step.Seconds(), 'f', -1, 64))
 	endpoint.RawQuery = values.Encode()
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
 	if err != nil {
-		return nil, http.StatusBadGateway, err
+		return nil, err
 	}
 	request.Header.Set("Accept", "application/json")
 
 	response, err := client.client.Do(request)
 	if err != nil {
-		return nil, http.StatusBadGateway, err
+		return nil, err
 	}
 	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode > 299 {
+		return nil, fmt.Errorf("prometheus returned %d", response.StatusCode)
+	}
 
-	body, err := io.ReadAll(io.LimitReader(response.Body, maxPrometheusProxyResponseSize+1))
-	if err != nil {
-		return nil, http.StatusBadGateway, err
+	var payload prometheusRangeResponse
+	if err := json.NewDecoder(io.LimitReader(response.Body, maxPrometheusResponseSize)).Decode(&payload); err != nil {
+		return nil, err
 	}
-	if len(body) > maxPrometheusProxyResponseSize {
-		return nil, http.StatusBadGateway, fmt.Errorf("prometheus response exceeded %d bytes", maxPrometheusProxyResponseSize)
+	if len(payload.Data.Result) == 0 {
+		return nil, nil
 	}
-	return body, response.StatusCode, nil
+	return metricPoints(payload.Data.Result[0].Values), nil
 }
 
 func (client *PrometheusClient) queryRatio(ctx context.Context, query string) *float64 {
@@ -351,6 +361,42 @@ func (client *PrometheusClient) queryVector(ctx context.Context, query string) [
 		samples = append(samples, prometheusSample{Metric: result.Metric, Value: parsed})
 	}
 	return samples
+}
+
+type prometheusRangeResponse struct {
+	Data struct {
+		Result []struct {
+			Values [][]any `json:"values"`
+		} `json:"result"`
+	} `json:"data"`
+}
+
+// metricPoints converts Prometheus's [unixSeconds, "value"] pairs, skipping any
+// pair that is malformed or not a finite number.
+func metricPoints(values [][]any) []*mev1.MetricPoint {
+	points := make([]*mev1.MetricPoint, 0, len(values))
+	for _, pair := range values {
+		if len(pair) < 2 {
+			continue
+		}
+		seconds, ok := pair[0].(float64)
+		if !ok {
+			continue
+		}
+		raw, ok := pair[1].(string)
+		if !ok {
+			continue
+		}
+		value, err := strconv.ParseFloat(raw, 64)
+		if err != nil || math.IsNaN(value) || math.IsInf(value, 0) {
+			continue
+		}
+		points = append(points, &mev1.MetricPoint{
+			Time:  timestamppb.New(time.Unix(int64(seconds), 0).UTC()),
+			Value: value,
+		})
+	}
+	return points
 }
 
 type prometheusQueryResponse struct {
