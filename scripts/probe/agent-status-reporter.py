@@ -44,6 +44,11 @@ CODEX_TURN_END_EVENTS = {"turn_complete", "turn_aborted"}
 # Records Codex only writes while a turn is under way.
 CODEX_TURN_WORK_EVENTS = {"turn_started", "function_call", "function_call_output", "reasoning", "user_message", "agent_message", "message"}
 CODEX_SPAWN_EDGE_OPEN = "open"
+# The numeric suffix is a schema generation Codex bumps on a breaking rebuild, so
+# match the family rather than pinning the generation this exporter was written
+# against. A newer one must not silently take Codex off the page.
+CODEX_STATE_DATABASES = "state_*.sqlite"
+CODEX_GOALS_DATABASES = "goals_*.sqlite"
 
 CLAUDE_BUSY_SESSION_STATES = {"busy"}
 # A sub-agent that is killed outright is never announced as stopped, so it would
@@ -169,15 +174,42 @@ def codex_snapshot(homes: list[Path], processes: dict[int, str], now: float, act
         kind=CODEX_KIND,
         state=top.state,
         model=top.model,
-        subagent_models=tuple(threads[uid].model if uid in threads else "" for uid in sorted(subagent_ids)),
+        subagent_models=tuple(codex_model(threads.get(uid), open_threads[uid]) for uid in sorted(subagent_ids)),
         budget_remaining_percent=top.budget_remaining_percent,
     )
+
+
+def codex_model(thread: CodexThread | None, rollout: Path) -> str:
+    """The model a thread runs.
+
+    The state database only projects it, and only since the generation that added
+    the column. The thread's own rollout is what that projection is extracted
+    from, so it is the authority whenever the projection is absent.
+    """
+    if thread and thread.model:
+        return thread.model
+    return codex_rollout_model(rollout)
+
+
+def codex_rollout_model(rollout: Path) -> str:
+    """The model named by the newest turn_context record, written once a turn."""
+    for size in (256 * 1024, 4 * 1024 * 1024):
+        for line in reversed(tail_text(rollout, size).splitlines()):
+            record = decode_json(line)
+            if record.get("type") != "turn_context":
+                continue
+            payload = record.get("payload") if isinstance(record.get("payload"), dict) else {}
+            return str(payload.get("model") or "")
+        if size >= file_size(rollout):
+            break
+    return ""
 
 
 def codex_threads(homes: list[Path]) -> dict[str, CodexThread]:
     threads: dict[str, CodexThread] = {}
     for home in homes:
-        threads.update(read_codex_threads(home / "state_5.sqlite"))
+        for database in sorted(home.glob(CODEX_STATE_DATABASES)):
+            threads.update(read_codex_threads(database))
     return threads
 
 
@@ -191,23 +223,25 @@ def codex_candidates(
     threads = codex_threads(homes)
     goals: dict[str, CodexGoal] = {}
     for home in homes:
-        goals.update(read_codex_goals(home / "goals_1.sqlite"))
+        for database in sorted(home.glob(CODEX_GOALS_DATABASES)):
+            goals.update(read_codex_goals(database))
 
     candidates: list[CodexCandidate] = []
     for thread_id, rollout in open_threads.items():
         if thread_id in subagent_ids:
             continue  # a sub-agent is counted, not reported as the agent itself
+        # An open rollout is proof enough of a live thread. The databases only
+        # add the model and the goal, and a schema generation this exporter has
+        # never seen must not make Codex vanish from the page.
         thread = threads.get(thread_id)
         goal = goals.get(thread_id)
-        if not thread and not goal:
-            continue
         working, updated_at = codex_activity(rollout, now, active_window_seconds)
         updated_at = max(thread.updated_at_seconds if thread else 0, goal.updated_at_seconds if goal else 0, updated_at)
         candidates.append(
             CodexCandidate(
                 thread_id=thread_id,
                 state=codex_state(goal.status if goal else "", working),
-                model=thread.model if thread else "",
+                model=codex_model(thread, rollout),
                 updated_at_seconds=updated_at,
                 budget_remaining_percent=goal.budget_remaining_percent if goal else None,
             )
@@ -225,11 +259,15 @@ def codex_state(goal_status: str, working: bool) -> str:
 
 
 def read_codex_threads(database: Path) -> dict[str, CodexThread]:
+    # `model` arrived in a later schema than `threads` itself, and selecting a
+    # column that is not there would drop every thread rather than its model.
     rows = query_sqlite(database, "select id, model, updated_at from threads order by updated_at desc limit 50")
+    if not rows:
+        rows = query_sqlite(database, "select id, updated_at from threads order by updated_at desc limit 50")
     return {
         str(row["id"]).lower(): CodexThread(
             thread_id=str(row["id"]).lower(),
-            model=str(row["model"] or ""),
+            model=str(row["model"] or "") if "model" in row.keys() else "",
             updated_at_seconds=epoch_seconds(row["updated_at"]),
         )
         for row in rows
@@ -256,12 +294,13 @@ def codex_open_subagent_ids(homes: list[Path]) -> set[str]:
     """Thread ids Codex spawned from another thread and has not yet closed."""
     children = set()
     for home in homes:
-        rows = query_sqlite(
-            home / "state_5.sqlite",
-            "select child_thread_id from thread_spawn_edges where status = ?",
-            (CODEX_SPAWN_EDGE_OPEN,),
-        )
-        children.update(str(row["child_thread_id"]).lower() for row in rows)
+        for database in sorted(home.glob(CODEX_STATE_DATABASES)):
+            rows = query_sqlite(
+                database,
+                "select child_thread_id from thread_spawn_edges where status = ?",
+                (CODEX_SPAWN_EDGE_OPEN,),
+            )
+            children.update(str(row["child_thread_id"]).lower() for row in rows)
     return children
 
 
