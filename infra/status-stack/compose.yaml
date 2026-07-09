@@ -28,8 +28,11 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    # Waiting for the container to start says nothing about whether Prometheus is
+    # answering; the gateway's first queries would be refused and retried.
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_healthy
 
   prometheus:
     image: prom/prometheus:v3.13.0
@@ -58,7 +61,8 @@ services:
       retries: 3
       start_period: 20s
     depends_on:
-      - node-exporter
+      node-exporter:
+        condition: service_healthy
 
   node-exporter:
     image: prom/node-exporter:v1.11.1
@@ -99,13 +103,16 @@ services:
     restart: unless-stopped
     profiles:
       - tunnel
-    # The token goes through the environment, not argv, so it stays out of
-    # `docker inspect`, `ps` inside the container, and Compose metadata.
+    # cloudflared reads the token from TUNNEL_TOKEN or from argv, and nothing
+    # else. The environment at least keeps it out of `ps` inside the container;
+    # it is still readable to anyone who can run `docker inspect` on this host,
+    # which is anyone in the docker group.
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
     command: tunnel --no-autoupdate run
     depends_on:
-      - status-gateway
+      status-gateway:
+        condition: service_healthy
 
 volumes:
   prometheus-data:
