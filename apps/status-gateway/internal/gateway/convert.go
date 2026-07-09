@@ -98,7 +98,6 @@ func networkStateString(state mev1.NetworkState) string {
 	}
 }
 
-
 func githubStateString(state mev1.GithubSyncState) string {
 	switch state {
 	case mev1.GithubSyncState_GITHUB_SYNC_STATE_DISABLED:
@@ -111,21 +110,6 @@ func githubStateString(state mev1.GithubSyncState) string {
 		return "error"
 	default:
 		return "disabled"
-	}
-}
-
-func scrapeJobString(job mev1.ScrapeJob) string {
-	switch job {
-	case mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER:
-		return "node-exporter"
-	case mev1.ScrapeJob_SCRAPE_JOB_VM_NODE_EXPORTER:
-		return "vm-node-exporter"
-	case mev1.ScrapeJob_SCRAPE_JOB_DEVICE_EXPORTER:
-		return "device-exporter"
-	case mev1.ScrapeJob_SCRAPE_JOB_AGENT_EXPORTER:
-		return "agent-exporter"
-	default:
-		return ""
 	}
 }
 

@@ -48,27 +48,28 @@ def main() -> int:
         print("enrollment did not return a device uid", file=sys.stderr)
         return 1
 
-    common = {
-        "deviceUid": device_uid,
-        "displayName": args.name,
-        "model": args.model,
-        "kind": kind,
-        "role": role,
-    }
+    # The gateway labels every target from the enrollment it owns, so a target
+    # carries only the job and the endpoint. The set declared here is complete:
+    # anything previously registered for this device and left out is removed.
     node_job = (
         "SCRAPE_JOB_VM_NODE_EXPORTER"
         if args.kind == "virtual_machine" or args.role == "vm"
         else "SCRAPE_JOB_NODE_EXPORTER"
     )
-    targets = [dict(common, job=node_job, target=f"{args.host}:{args.node_port}")]
+    targets = [{"job": node_job, "target": f"{args.host}:{args.node_port}"}]
     if not args.no_device:
-        targets.append(dict(common, job="SCRAPE_JOB_DEVICE_EXPORTER", target=f"{args.host}:{args.device_port}"))
+        targets.append({"job": "SCRAPE_JOB_DEVICE_EXPORTER", "target": f"{args.host}:{args.device_port}"})
     if args.install_agent:
-        targets.append(dict(common, job="SCRAPE_JOB_AGENT_EXPORTER", target=f"{args.host}:{args.agent_port}"))
+        targets.append({"job": "SCRAPE_JOB_AGENT_EXPORTER", "target": f"{args.host}:{args.agent_port}"})
 
     try:
         status_common.connect_post(
-            args.url, "IngestService", "RegisterScrapeTargets", token, {"targets": targets}, args.timeout_seconds
+            args.url,
+            "IngestService",
+            "RegisterScrapeTargets",
+            token,
+            {"deviceUid": device_uid, "targets": targets},
+            args.timeout_seconds,
         )
     except ConnectError as error:
         print(f"target registration failed: {error.code}", file=sys.stderr)

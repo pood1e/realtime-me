@@ -7,7 +7,6 @@ import androidx.health.services.client.data.DataPointContainer
 import androidx.health.services.client.data.DataType
 import me.realtime.protocol.v1.ReportWatchSnapshotRequest
 import me.realtime.protocol.v1.WatchSnapshot
-import me.realtime.protocol.v1.WristState
 import me.realtime.watch.state.WatchSnapshotRepository
 import me.realtime.watch.wear.SnapshotPublisher
 import java.time.Instant
@@ -47,7 +46,6 @@ private class PassiveHealthSnapshotUpdater(
     fun update(dataPoints: DataPointContainer): WatchSnapshot? {
         var snapshot: WatchSnapshot? = null
         latestHeartRate(dataPoints)?.let { sample ->
-            repository.updateWristState(WristState.WRIST_STATE_ON_WRIST)
             snapshot = repository.updateHeartRate(sample.beatsPerMinute, sample.sampleTime)
         }
         latestDailySteps(dataPoints)?.let { sample ->

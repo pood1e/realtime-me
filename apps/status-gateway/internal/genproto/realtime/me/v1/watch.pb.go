@@ -75,59 +75,6 @@ func (ChargeState) EnumDescriptor() ([]byte, []int) {
 	return file_realtime_me_v1_watch_proto_rawDescGZIP(), []int{0}
 }
 
-// WristState describes whether the watch appears to be on wrist.
-type WristState int32
-
-const (
-	// Wrist state is not known.
-	WristState_WRIST_STATE_UNSPECIFIED WristState = 0
-	// The watch appears to be worn.
-	WristState_WRIST_STATE_ON_WRIST WristState = 1
-	// The watch appears to be off wrist.
-	WristState_WRIST_STATE_OFF_WRIST WristState = 2
-)
-
-// Enum value maps for WristState.
-var (
-	WristState_name = map[int32]string{
-		0: "WRIST_STATE_UNSPECIFIED",
-		1: "WRIST_STATE_ON_WRIST",
-		2: "WRIST_STATE_OFF_WRIST",
-	}
-	WristState_value = map[string]int32{
-		"WRIST_STATE_UNSPECIFIED": 0,
-		"WRIST_STATE_ON_WRIST":    1,
-		"WRIST_STATE_OFF_WRIST":   2,
-	}
-)
-
-func (x WristState) Enum() *WristState {
-	p := new(WristState)
-	*p = x
-	return p
-}
-
-func (x WristState) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (WristState) Descriptor() protoreflect.EnumDescriptor {
-	return file_realtime_me_v1_watch_proto_enumTypes[1].Descriptor()
-}
-
-func (WristState) Type() protoreflect.EnumType {
-	return &file_realtime_me_v1_watch_proto_enumTypes[1]
-}
-
-func (x WristState) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use WristState.Descriptor instead.
-func (WristState) EnumDescriptor() ([]byte, []int) {
-	return file_realtime_me_v1_watch_proto_rawDescGZIP(), []int{1}
-}
-
 // WatchSnapshot is the latest health and device snapshot produced by the watch.
 type WatchSnapshot struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -391,8 +338,6 @@ type WatchState struct {
 	BatteryPercent int32 `protobuf:"varint,1,opt,name=battery_percent,json=batteryPercent,proto3" json:"battery_percent,omitempty"`
 	// charge_state is the current charging state.
 	ChargeState ChargeState `protobuf:"varint,2,opt,name=charge_state,json=chargeState,proto3,enum=realtime.me.v1.ChargeState" json:"charge_state,omitempty"`
-	// wrist_state is whether the watch appears to be worn.
-	WristState WristState `protobuf:"varint,3,opt,name=wrist_state,json=wristState,proto3,enum=realtime.me.v1.WristState" json:"wrist_state,omitempty"`
 	// sample_time is the state sample time.
 	SampleTime    *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=sample_time,json=sampleTime,proto3" json:"sample_time,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -441,13 +386,6 @@ func (x *WatchState) GetChargeState() ChargeState {
 		return x.ChargeState
 	}
 	return ChargeState_CHARGE_STATE_UNSPECIFIED
-}
-
-func (x *WatchState) GetWristState() WristState {
-	if x != nil {
-		return x.WristState
-	}
-	return WristState_WRIST_STATE_UNSPECIFIED
 }
 
 func (x *WatchState) GetSampleTime() *timestamppb.Timestamp {
@@ -531,26 +469,19 @@ const file_realtime_me_v1_watch_proto_rawDesc = "" +
 	"\x0eActivityTotals\x12\x14\n" +
 	"\x05steps\x18\x01 \x01(\x05R\x05steps\x12;\n" +
 	"\vsample_time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"sampleTimeJ\x04\b\x02\x10\x03R\bcalories\"\xef\x01\n" +
+	"sampleTimeJ\x04\b\x02\x10\x03R\bcalories\"\xc5\x01\n" +
 	"\n" +
 	"WatchState\x12'\n" +
 	"\x0fbattery_percent\x18\x01 \x01(\x05R\x0ebatteryPercent\x12>\n" +
 	"\fcharge_state\x18\x02 \x01(\x0e2\x1b.realtime.me.v1.ChargeStateR\vchargeState\x12;\n" +
-	"\vwrist_state\x18\x03 \x01(\x0e2\x1a.realtime.me.v1.WristStateR\n" +
-	"wristState\x12;\n" +
 	"\vsample_time\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"sampleTime\"b\n" +
+	"sampleTimeJ\x04\b\x03\x10\x04R\vwrist_state\"b\n" +
 	"\x1aReportWatchSnapshotRequest\x12D\n" +
 	"\x0ewatch_snapshot\x18\x01 \x01(\v2\x1d.realtime.me.v1.WatchSnapshotR\rwatchSnapshot*e\n" +
 	"\vChargeState\x12\x1c\n" +
 	"\x18CHARGE_STATE_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19CHARGE_STATE_NOT_CHARGING\x10\x01\x12\x19\n" +
-	"\x15CHARGE_STATE_CHARGING\x10\x02*^\n" +
-	"\n" +
-	"WristState\x12\x1b\n" +
-	"\x17WRIST_STATE_UNSPECIFIED\x10\x00\x12\x18\n" +
-	"\x14WRIST_STATE_ON_WRIST\x10\x01\x12\x19\n" +
-	"\x15WRIST_STATE_OFF_WRIST\x10\x02B\xc1\x01\n" +
+	"\x15CHARGE_STATE_CHARGING\x10\x02B\xc1\x01\n" +
 	"\x12com.realtime.me.v1B\n" +
 	"WatchProtoP\x01ZErealtime-me/apps/status-gateway/internal/genproto/realtime/me/v1;mev1\xa2\x02\x03RMX\xaa\x02\x0eRealtime.Me.V1\xca\x02\x0eRealtime\\Me\\V1\xe2\x02\x1aRealtime\\Me\\V1\\GPBMetadata\xea\x02\x10Realtime::Me::V1b\x06proto3"
 
@@ -566,36 +497,34 @@ func file_realtime_me_v1_watch_proto_rawDescGZIP() []byte {
 	return file_realtime_me_v1_watch_proto_rawDescData
 }
 
-var file_realtime_me_v1_watch_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_realtime_me_v1_watch_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_realtime_me_v1_watch_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_realtime_me_v1_watch_proto_goTypes = []any{
 	(ChargeState)(0),                   // 0: realtime.me.v1.ChargeState
-	(WristState)(0),                    // 1: realtime.me.v1.WristState
-	(*WatchSnapshot)(nil),              // 2: realtime.me.v1.WatchSnapshot
-	(*DeviceInfo)(nil),                 // 3: realtime.me.v1.DeviceInfo
-	(*HeartRateSample)(nil),            // 4: realtime.me.v1.HeartRateSample
-	(*ActivityTotals)(nil),             // 5: realtime.me.v1.ActivityTotals
-	(*WatchState)(nil),                 // 6: realtime.me.v1.WatchState
-	(*ReportWatchSnapshotRequest)(nil), // 7: realtime.me.v1.ReportWatchSnapshotRequest
-	(*timestamppb.Timestamp)(nil),      // 8: google.protobuf.Timestamp
+	(*WatchSnapshot)(nil),              // 1: realtime.me.v1.WatchSnapshot
+	(*DeviceInfo)(nil),                 // 2: realtime.me.v1.DeviceInfo
+	(*HeartRateSample)(nil),            // 3: realtime.me.v1.HeartRateSample
+	(*ActivityTotals)(nil),             // 4: realtime.me.v1.ActivityTotals
+	(*WatchState)(nil),                 // 5: realtime.me.v1.WatchState
+	(*ReportWatchSnapshotRequest)(nil), // 6: realtime.me.v1.ReportWatchSnapshotRequest
+	(*timestamppb.Timestamp)(nil),      // 7: google.protobuf.Timestamp
 }
 var file_realtime_me_v1_watch_proto_depIdxs = []int32{
-	8,  // 0: realtime.me.v1.WatchSnapshot.record_time:type_name -> google.protobuf.Timestamp
-	4,  // 1: realtime.me.v1.WatchSnapshot.heart_rate:type_name -> realtime.me.v1.HeartRateSample
-	5,  // 2: realtime.me.v1.WatchSnapshot.activity_totals:type_name -> realtime.me.v1.ActivityTotals
-	6,  // 3: realtime.me.v1.WatchSnapshot.watch_state:type_name -> realtime.me.v1.WatchState
-	3,  // 4: realtime.me.v1.WatchSnapshot.device_info:type_name -> realtime.me.v1.DeviceInfo
-	8,  // 5: realtime.me.v1.HeartRateSample.sample_time:type_name -> google.protobuf.Timestamp
-	8,  // 6: realtime.me.v1.ActivityTotals.sample_time:type_name -> google.protobuf.Timestamp
+	7,  // 0: realtime.me.v1.WatchSnapshot.record_time:type_name -> google.protobuf.Timestamp
+	3,  // 1: realtime.me.v1.WatchSnapshot.heart_rate:type_name -> realtime.me.v1.HeartRateSample
+	4,  // 2: realtime.me.v1.WatchSnapshot.activity_totals:type_name -> realtime.me.v1.ActivityTotals
+	5,  // 3: realtime.me.v1.WatchSnapshot.watch_state:type_name -> realtime.me.v1.WatchState
+	2,  // 4: realtime.me.v1.WatchSnapshot.device_info:type_name -> realtime.me.v1.DeviceInfo
+	7,  // 5: realtime.me.v1.HeartRateSample.sample_time:type_name -> google.protobuf.Timestamp
+	7,  // 6: realtime.me.v1.ActivityTotals.sample_time:type_name -> google.protobuf.Timestamp
 	0,  // 7: realtime.me.v1.WatchState.charge_state:type_name -> realtime.me.v1.ChargeState
-	1,  // 8: realtime.me.v1.WatchState.wrist_state:type_name -> realtime.me.v1.WristState
-	8,  // 9: realtime.me.v1.WatchState.sample_time:type_name -> google.protobuf.Timestamp
-	2,  // 10: realtime.me.v1.ReportWatchSnapshotRequest.watch_snapshot:type_name -> realtime.me.v1.WatchSnapshot
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	7,  // 8: realtime.me.v1.WatchState.sample_time:type_name -> google.protobuf.Timestamp
+	1,  // 9: realtime.me.v1.ReportWatchSnapshotRequest.watch_snapshot:type_name -> realtime.me.v1.WatchSnapshot
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_realtime_me_v1_watch_proto_init() }
@@ -608,7 +537,7 @@ func file_realtime_me_v1_watch_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_realtime_me_v1_watch_proto_rawDesc), len(file_realtime_me_v1_watch_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      1,
 			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,

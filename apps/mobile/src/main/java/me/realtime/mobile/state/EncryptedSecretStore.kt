@@ -21,7 +21,8 @@ class EncryptedSecretStore(
 ) {
     private val preferences = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
 
-    fun save(value: String) {
+    /** Encrypts and stores the value. Returns false if the Keystore refused. */
+    fun save(value: String): Boolean = runCatching {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, secretKey())
         val encrypted = cipher.doFinal(value.toByteArray(StandardCharsets.UTF_8))
@@ -29,24 +30,33 @@ class EncryptedSecretStore(
             putString(ivKey, Base64.getEncoder().encodeToString(cipher.iv))
             putString(ciphertextKey, Base64.getEncoder().encodeToString(encrypted))
         }
-    }
+    }.isSuccess
 
     fun value(): String? {
         val encodedIv = preferences.getString(ivKey, null) ?: return null
         val encodedCiphertext = preferences.getString(ciphertextKey, null) ?: return null
-        return runCatching {
+        val decrypted = runCatching {
             val cipher = Cipher.getInstance(TRANSFORMATION)
             cipher.init(
                 Cipher.DECRYPT_MODE,
                 secretKey(),
                 GCMParameterSpec(GCM_TAG_LENGTH_BITS, Base64.getDecoder().decode(encodedIv)),
             )
-            val decrypted = cipher.doFinal(Base64.getDecoder().decode(encodedCiphertext))
-            String(decrypted, StandardCharsets.UTF_8).takeIf { it.isNotBlank() }
-        }.getOrNull()
+            String(cipher.doFinal(Base64.getDecoder().decode(encodedCiphertext)), StandardCharsets.UTF_8)
+        }.getOrNull()?.takeIf { it.isNotBlank() }
+
+        if (decrypted == null) {
+            // The Keystore key is gone — a device restore, or key invalidation.
+            // The ciphertext can never be read again, so drop it rather than let
+            // hasValue() keep claiming a value that no reader can ever produce.
+            clear()
+        }
+        return decrypted
     }
 
-    fun hasValue(): Boolean = value() != null
+    // Cheap enough for the main thread: it inspects the stored ciphertext rather
+    // than decrypting it, so a cold start never runs Keystore crypto on the UI.
+    fun hasValue(): Boolean = preferences.contains(ciphertextKey)
 
     fun clear() {
         preferences.edit {

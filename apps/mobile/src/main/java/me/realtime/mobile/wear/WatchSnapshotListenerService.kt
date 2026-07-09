@@ -4,33 +4,23 @@ import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.WearableListenerService
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 import me.realtime.mobile.background.StatusSyncRunner
 import me.realtime.protocol.DataLayerContract
 
 class WatchSnapshotListenerService : WearableListenerService() {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
+    // Wearable delivers this callback on a background thread and may tear the
+    // service down as soon as it returns, so the push runs to completion here.
+    // Launching it into a service-scoped coroutine let onDestroy cancel an
+    // in-flight enroll-plus-report, leaving the snapshot for the 15-minute
+    // worker to rediscover.
     override fun onDataChanged(dataEvents: DataEventBuffer) {
-        try {
-            for (event in dataEvents) {
-                val payload = event.snapshotPayload() ?: continue
-                scope.launch {
-                    StatusSyncRunner(applicationContext).syncPayload(payload)
-                }
-            }
+        val payloads = try {
+            dataEvents.mapNotNull { event -> event.snapshotPayload() }
         } finally {
             dataEvents.release()
         }
-    }
-
-    override fun onDestroy() {
-        scope.cancel()
-        super.onDestroy()
+        if (payloads.isEmpty()) return
+        StatusSyncRunner(applicationContext).syncPayloads(payloads)
     }
 
     private fun DataEvent.snapshotPayload(): ByteArray? {

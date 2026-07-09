@@ -10,13 +10,19 @@ import me.realtime.protocol.v1.ReportWatchSnapshotRequest
 class SnapshotPublisher(private val context: Context) {
     private val policy = PublishPolicy(context)
 
+    // The Health Services binder thread and the registration worker publish
+    // through separate instances that share one SharedPreferences file, so the
+    // gate's read-modify-write runs under a process-wide lock. Without it both
+    // threads can clear the same gate and publish the same snapshot twice.
     fun publishIfAllowed(payload: ReportWatchSnapshotRequest) {
-        if (!policy.shouldPublish(payload)) return
-        publish(payload)
-        policy.markPublished(payload)
+        synchronized(PUBLISH_LOCK) {
+            if (!policy.shouldPublish(payload)) return
+            publish(payload)
+            policy.markPublished(payload)
+        }
     }
 
-    fun publish(payload: ReportWatchSnapshotRequest) {
+    private fun publish(payload: ReportWatchSnapshotRequest) {
         // Publish over a single transport (the durable Data Layer item). The
         // per-publish timestamp guarantees the item content changes so delivery
         // is not suppressed; a parallel MessageClient send would only cause the
@@ -35,5 +41,8 @@ class SnapshotPublisher(private val context: Context) {
 
     private companion object {
         const val TAG = "SnapshotPublisher"
+
+        // Guards the publish gate's read-modify-write across all instances.
+        private val PUBLISH_LOCK = Any()
     }
 }

@@ -321,11 +321,15 @@ func (*ReportMobileStatusResponse) Descriptor() ([]byte, []int) {
 	return file_realtime_me_v1_ingest_proto_rawDescGZIP(), []int{3}
 }
 
-// RegisterScrapeTargetsRequest advertises Prometheus scrape targets.
+// RegisterScrapeTargetsRequest declares the complete set of scrape targets for
+// one enrolled device. Declaring an empty set removes the device from discovery,
+// so a decommissioned host stops being scraped instead of failing forever.
 type RegisterScrapeTargetsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// targets are the scrape targets to register for discovery.
-	Targets       []*ScrapeTarget `protobuf:"bytes,1,rep,name=targets,proto3" json:"targets,omitempty"`
+	// targets is the complete set of endpoints Prometheus should scrape for the device.
+	Targets []*ScrapeTarget `protobuf:"bytes,1,rep,name=targets,proto3" json:"targets,omitempty"`
+	// device_uid is the enrolled device the targets belong to.
+	DeviceUid     string `protobuf:"bytes,2,opt,name=device_uid,json=deviceUid,proto3" json:"device_uid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -367,6 +371,13 @@ func (x *RegisterScrapeTargetsRequest) GetTargets() []*ScrapeTarget {
 	return nil
 }
 
+func (x *RegisterScrapeTargetsRequest) GetDeviceUid() string {
+	if x != nil {
+		return x.DeviceUid
+	}
+	return ""
+}
+
 // RegisterScrapeTargetsResponse is the acknowledgement of a registration.
 type RegisterScrapeTargetsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -404,23 +415,15 @@ func (*RegisterScrapeTargetsResponse) Descriptor() ([]byte, []int) {
 	return file_realtime_me_v1_ingest_proto_rawDescGZIP(), []int{5}
 }
 
-// ScrapeTarget is a Prometheus scrape target advertised for HTTP service discovery.
+// ScrapeTarget is one endpoint Prometheus scrapes. The device it belongs to, and
+// every label describing that device, come from the enrollment the gateway owns;
+// a caller cannot assert them here.
 type ScrapeTarget struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// job is the Prometheus job the target belongs to.
 	Job ScrapeJob `protobuf:"varint,1,opt,name=job,proto3,enum=realtime.me.v1.ScrapeJob" json:"job,omitempty"`
 	// target is the host:port endpoint Prometheus scrapes.
-	Target string `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
-	// device_uid is the enrolled device the target belongs to.
-	DeviceUid string `protobuf:"bytes,3,opt,name=device_uid,json=deviceUid,proto3" json:"device_uid,omitempty"`
-	// display_name is the human-readable device label.
-	DisplayName string `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	// model is the device hardware model.
-	Model string `protobuf:"bytes,5,opt,name=model,proto3" json:"model,omitempty"`
-	// kind is the device category.
-	Kind DeviceKind `protobuf:"varint,6,opt,name=kind,proto3,enum=realtime.me.v1.DeviceKind" json:"kind,omitempty"`
-	// role is the device's operational role.
-	Role          DeviceRole `protobuf:"varint,7,opt,name=role,proto3,enum=realtime.me.v1.DeviceRole" json:"role,omitempty"`
+	Target        string `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -469,41 +472,6 @@ func (x *ScrapeTarget) GetTarget() string {
 	return ""
 }
 
-func (x *ScrapeTarget) GetDeviceUid() string {
-	if x != nil {
-		return x.DeviceUid
-	}
-	return ""
-}
-
-func (x *ScrapeTarget) GetDisplayName() string {
-	if x != nil {
-		return x.DisplayName
-	}
-	return ""
-}
-
-func (x *ScrapeTarget) GetModel() string {
-	if x != nil {
-		return x.Model
-	}
-	return ""
-}
-
-func (x *ScrapeTarget) GetKind() DeviceKind {
-	if x != nil {
-		return x.Kind
-	}
-	return DeviceKind_DEVICE_KIND_UNSPECIFIED
-}
-
-func (x *ScrapeTarget) GetRole() DeviceRole {
-	if x != nil {
-		return x.Role
-	}
-	return DeviceRole_DEVICE_ROLE_UNSPECIFIED
-}
-
 var File_realtime_me_v1_ingest_proto protoreflect.FileDescriptor
 
 const file_realtime_me_v1_ingest_proto_rawDesc = "" +
@@ -524,19 +492,16 @@ const file_realtime_me_v1_ingest_proto_rawDesc = "" +
 	"\x05model\x18\x03 \x01(\tR\x05model\x120\n" +
 	"\x05phone\x18\x04 \x01(\v2\x1a.realtime.me.v1.PhoneStateR\x05phone\x123\n" +
 	"\x05watch\x18\x05 \x01(\v2\x1d.realtime.me.v1.WatchSnapshotR\x05watch\"\x1c\n" +
-	"\x1aReportMobileStatusResponse\"V\n" +
+	"\x1aReportMobileStatusResponse\"u\n" +
 	"\x1cRegisterScrapeTargetsRequest\x126\n" +
-	"\atargets\x18\x01 \x03(\v2\x1c.realtime.me.v1.ScrapeTargetR\atargets\"\x1f\n" +
-	"\x1dRegisterScrapeTargetsResponse\"\x8b\x02\n" +
+	"\atargets\x18\x01 \x03(\v2\x1c.realtime.me.v1.ScrapeTargetR\atargets\x12\x1d\n" +
+	"\n" +
+	"device_uid\x18\x02 \x01(\tR\tdeviceUid\"\x1f\n" +
+	"\x1dRegisterScrapeTargetsResponse\"\x9e\x01\n" +
 	"\fScrapeTarget\x12+\n" +
 	"\x03job\x18\x01 \x01(\x0e2\x19.realtime.me.v1.ScrapeJobR\x03job\x12\x16\n" +
-	"\x06target\x18\x02 \x01(\tR\x06target\x12\x1d\n" +
-	"\n" +
-	"device_uid\x18\x03 \x01(\tR\tdeviceUid\x12!\n" +
-	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x12\x14\n" +
-	"\x05model\x18\x05 \x01(\tR\x05model\x12.\n" +
-	"\x04kind\x18\x06 \x01(\x0e2\x1a.realtime.me.v1.DeviceKindR\x04kind\x12.\n" +
-	"\x04role\x18\a \x01(\x0e2\x1a.realtime.me.v1.DeviceRoleR\x04role*\xa5\x01\n" +
+	"\x06target\x18\x02 \x01(\tR\x06targetJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bR\n" +
+	"device_uidR\fdisplay_nameR\x05modelR\x04kindR\x04role*\xa5\x01\n" +
 	"\tScrapeJob\x12\x1a\n" +
 	"\x16SCRAPE_JOB_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18SCRAPE_JOB_NODE_EXPORTER\x10\x01\x12\x1f\n" +
@@ -585,19 +550,17 @@ var file_realtime_me_v1_ingest_proto_depIdxs = []int32{
 	11, // 3: realtime.me.v1.ReportMobileStatusRequest.watch:type_name -> realtime.me.v1.WatchSnapshot
 	7,  // 4: realtime.me.v1.RegisterScrapeTargetsRequest.targets:type_name -> realtime.me.v1.ScrapeTarget
 	0,  // 5: realtime.me.v1.ScrapeTarget.job:type_name -> realtime.me.v1.ScrapeJob
-	8,  // 6: realtime.me.v1.ScrapeTarget.kind:type_name -> realtime.me.v1.DeviceKind
-	9,  // 7: realtime.me.v1.ScrapeTarget.role:type_name -> realtime.me.v1.DeviceRole
-	1,  // 8: realtime.me.v1.EnrollmentService.EnrollDevice:input_type -> realtime.me.v1.EnrollDeviceRequest
-	3,  // 9: realtime.me.v1.IngestService.ReportMobileStatus:input_type -> realtime.me.v1.ReportMobileStatusRequest
-	5,  // 10: realtime.me.v1.IngestService.RegisterScrapeTargets:input_type -> realtime.me.v1.RegisterScrapeTargetsRequest
-	2,  // 11: realtime.me.v1.EnrollmentService.EnrollDevice:output_type -> realtime.me.v1.EnrollDeviceResponse
-	4,  // 12: realtime.me.v1.IngestService.ReportMobileStatus:output_type -> realtime.me.v1.ReportMobileStatusResponse
-	6,  // 13: realtime.me.v1.IngestService.RegisterScrapeTargets:output_type -> realtime.me.v1.RegisterScrapeTargetsResponse
-	11, // [11:14] is the sub-list for method output_type
-	8,  // [8:11] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	1,  // 6: realtime.me.v1.EnrollmentService.EnrollDevice:input_type -> realtime.me.v1.EnrollDeviceRequest
+	3,  // 7: realtime.me.v1.IngestService.ReportMobileStatus:input_type -> realtime.me.v1.ReportMobileStatusRequest
+	5,  // 8: realtime.me.v1.IngestService.RegisterScrapeTargets:input_type -> realtime.me.v1.RegisterScrapeTargetsRequest
+	2,  // 9: realtime.me.v1.EnrollmentService.EnrollDevice:output_type -> realtime.me.v1.EnrollDeviceResponse
+	4,  // 10: realtime.me.v1.IngestService.ReportMobileStatus:output_type -> realtime.me.v1.ReportMobileStatusResponse
+	6,  // 11: realtime.me.v1.IngestService.RegisterScrapeTargets:output_type -> realtime.me.v1.RegisterScrapeTargetsResponse
+	9,  // [9:12] is the sub-list for method output_type
+	6,  // [6:9] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_realtime_me_v1_ingest_proto_init() }

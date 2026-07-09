@@ -60,14 +60,14 @@ message ActivityTotals {
 
 // WatchState contains low-frequency device state shown in GitHub status.
 message WatchState {
+  reserved 3;
+  reserved "wrist_state";
+
   // battery_percent is the watch battery level from 0 to 100.
   int32 battery_percent = 1;
 
   // charge_state is the current charging state.
   ChargeState charge_state = 2;
-
-  // wrist_state is whether the watch appears to be worn.
-  WristState wrist_state = 3;
 
   // sample_time is the state sample time.
   google.protobuf.Timestamp sample_time = 4;
@@ -83,18 +83,6 @@ enum ChargeState {
 
   // The watch is charging or full while plugged in.
   CHARGE_STATE_CHARGING = 2;
-}
-
-// WristState describes whether the watch appears to be on wrist.
-enum WristState {
-  // Wrist state is not known.
-  WRIST_STATE_UNSPECIFIED = 0;
-
-  // The watch appears to be worn.
-  WRIST_STATE_ON_WRIST = 1;
-
-  // The watch appears to be off wrist.
-  WRIST_STATE_OFF_WRIST = 2;
 }
 
 // ReportWatchSnapshotRequest is the Data Layer payload sent from watch to phone.

@@ -1,12 +1,10 @@
 import { Footprints, HeartPulse, Music } from 'lucide-react';
 import type { PublicStatus } from '@/gen/realtime/me/v1/status_pb';
 import type { MediaStatus } from '@/gen/realtime/me/v1/status_types_pb';
-import { WristState } from '@/gen/realtime/me/v1/watch_pb';
 
 export function Presence({ status }: { status?: PublicStatus | null }) {
   const watch = status?.mobile?.watch;
-  const onWrist = watch?.watchState?.wristState !== WristState.OFF_WRIST;
-  const heartRate = onWrist ? watch?.heartRate?.beatsPerMinute : undefined;
+  const heartRate = watch?.heartRate?.beatsPerMinute;
   const steps = watch?.activityTotals?.steps;
   const media = nowPlaying(status);
 

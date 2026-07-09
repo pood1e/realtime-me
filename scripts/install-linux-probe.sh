@@ -126,15 +126,26 @@ download_file() {
   exit 1
 }
 
+# The reporters and the status_common module they import must move as one set.
+# Everything is downloaded into a staging directory first, so a mirror that fails
+# on the second file cannot leave a new shared module beside an old reporter.
 download_exporters() {
+  local staging
+  staging=$(mktemp -d)
+
+  download_file probe/status_common.py "$staging/status_common.py"
+  download_file probe/status-device-reporter.py "$staging/status-device-reporter.py"
+  if [[ $INSTALL_AGENT == 1 ]]; then
+    download_file probe/agent-status-reporter.py "$staging/agent-status-reporter.py"
+  fi
+
   install -d -m 755 "$INSTALL_DIR"
-  download_file probe/status_common.py "$INSTALL_DIR/status_common.py"
-  chmod 644 "$INSTALL_DIR/status_common.py"
-  download_file probe/status-device-reporter.py "$INSTALL_DIR/status-device-reporter.py"
-  chmod 755 "$INSTALL_DIR/status-device-reporter.py"
-  [[ $INSTALL_AGENT == 1 ]] || return 0
-  download_file probe/agent-status-reporter.py "$INSTALL_DIR/agent-status-reporter.py"
-  chmod 755 "$INSTALL_DIR/agent-status-reporter.py"
+  install -m 644 "$staging/status_common.py" "$INSTALL_DIR/status_common.py"
+  install -m 755 "$staging/status-device-reporter.py" "$INSTALL_DIR/status-device-reporter.py"
+  if [[ $INSTALL_AGENT == 1 ]]; then
+    install -m 755 "$staging/agent-status-reporter.py" "$INSTALL_DIR/agent-status-reporter.py"
+  fi
+  rm -rf "$staging"
 }
 
 node_exporter_arch() {

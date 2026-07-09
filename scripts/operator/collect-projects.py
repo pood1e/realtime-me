@@ -26,6 +26,7 @@ import argparse
 import json
 import os
 import sys
+import tempfile
 import urllib.error
 import urllib.request
 from typing import Any
@@ -233,16 +234,32 @@ def emit(projects: list[dict[str, Any]], args: argparse.Namespace) -> None:
             with open(args.config, encoding="utf-8") as handle:
                 config = json.load(handle)
         config["projects"] = projects
-        with open(args.config, "w", encoding="utf-8") as handle:
-            json.dump(config, handle, ensure_ascii=False, indent=2)
-            handle.write("\n")
+        write_atomic(args.config, json.dumps(config, ensure_ascii=False, indent=2) + "\n")
         return
-    text = json.dumps(projects, ensure_ascii=False, indent=2)
+    text = json.dumps(projects, ensure_ascii=False, indent=2) + "\n"
     if args.output:
-        with open(args.output, "w", encoding="utf-8") as handle:
-            handle.write(text + "\n")
+        write_atomic(args.output, text)
     else:
-        print(text)
+        print(text, end="")
+
+
+def write_atomic(path: str, text: str) -> None:
+    """Replace path in one step. The gateway reads this file while we write it,
+    so a truncate-in-place would let it see a partial or empty document."""
+    directory = os.path.dirname(os.path.abspath(path)) or "."
+    handle = tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", dir=directory, prefix=".profile-", suffix=".tmp", delete=False
+    )
+    try:
+        with handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(handle.name, 0o644)
+        os.replace(handle.name, path)
+    except BaseException:
+        os.unlink(handle.name)
+        raise
 
 
 def parse_args() -> argparse.Namespace:

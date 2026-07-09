@@ -2,6 +2,4 @@
     <string name="app_name">Realtime Me Watch</string>
     <string name="passive_sync_enabled">Realtime Me is enabled.</string>
     <string name="health_permissions_required">Health permission is required.</string>
-    <string name="sensor_notification_channel">Realtime Me</string>
-    <string name="sensor_notification_title">Collecting watch data</string>
 </resources>

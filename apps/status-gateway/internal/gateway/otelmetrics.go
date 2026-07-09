@@ -3,11 +3,12 @@ package gateway
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	otelprom "go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/attribute"
+	otelprom "go.opentelemetry.io/otel/exporters/prometheus"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -37,7 +38,6 @@ var metricDefinitions = []metricDefinition{
 	{Name: "realtime_device_accessory_battery_level_ratio", Unit: "1", Description: "Accessory battery level as a fraction of total capacity."},
 	{Name: "realtime_watch_heart_rate_beats_per_minute", Unit: "{beat}/min", Description: "Latest watch heart rate."},
 	{Name: "realtime_watch_steps", Unit: "{step}", Description: "Latest watch local-day step count."},
-	{Name: "realtime_watch_wrist_state", Unit: "1", Description: "Watch wrist state labelled by wrist_state; current state is 1."},
 	{Name: "realtime_github_status_sync_state", Unit: "1", Description: "GitHub status sync state labelled by state; current state is 1."},
 }
 
@@ -98,8 +98,8 @@ func (exporter *MetricsExporter) Handler() http.Handler {
 // exporters, which Prometheus scrapes directly.
 func (exporter *MetricsExporter) observe(_ context.Context, observer otelmetric.Observer) error {
 	snapshot := exporter.store.Snapshot()
-	if snapshot.Mobile != nil {
-		exporter.observeMobile(observer, snapshot.Mobile)
+	if mobile := freshMobile(snapshot.Mobile, time.Now().UTC()); mobile != nil {
+		exporter.observeMobile(observer, mobile)
 	}
 	exporter.observeGitHub(observer, snapshot.GitHub)
 	return nil
@@ -155,14 +155,11 @@ func (exporter *MetricsExporter) observeMobile(observer otelmetric.Observer, mob
 			exporter.gauge(observer, "realtime_device_charging", boolFloat(state.GetChargeState() == mev1.ChargeState_CHARGE_STATE_CHARGING), deviceLabels(deviceID, "watch"))
 		}
 	}
-	if watch.GetHeartRate() != nil && state.GetWristState() != mev1.WristState_WRIST_STATE_OFF_WRIST {
+	if watch.GetHeartRate() != nil {
 		exporter.gauge(observer, "realtime_watch_heart_rate_beats_per_minute", float64(watch.GetHeartRate().GetBeatsPerMinute()), map[string]string{"device_id": deviceID})
 	}
 	if watch.GetActivityTotals() != nil {
 		exporter.gauge(observer, "realtime_watch_steps", float64(watch.GetActivityTotals().GetSteps()), map[string]string{"device_id": deviceID})
-	}
-	if state.GetWristState() != mev1.WristState_WRIST_STATE_UNSPECIFIED {
-		exporter.state(observer, "realtime_watch_wrist_state", map[string]string{"device_id": deviceID}, "wrist_state", wristStateString(state.GetWristState()), []string{"unknown", "on_wrist", "off_wrist"})
 	}
 }
 
@@ -226,15 +223,4 @@ func boolFloat(value bool) float64 {
 		return 1
 	}
 	return 0
-}
-
-func wristStateString(state mev1.WristState) string {
-	switch state {
-	case mev1.WristState_WRIST_STATE_ON_WRIST:
-		return "on_wrist"
-	case mev1.WristState_WRIST_STATE_OFF_WRIST:
-		return "off_wrist"
-	default:
-		return "unknown"
-	}
 }

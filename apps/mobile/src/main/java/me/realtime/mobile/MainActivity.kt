@@ -36,7 +36,6 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.LinkOff
-import androidx.compose.material.icons.outlined.WatchOff
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -111,6 +110,7 @@ class MainActivity : ComponentActivity() {
                 toast(R.string.status_gateway_token_saved)
             }
             MainEvent.TokenMissing -> toast(R.string.status_gateway_token_clipboard_missing)
+            MainEvent.TokenSaveFailed -> toast(R.string.status_gateway_token_save_failed)
             MainEvent.Disconnected -> toast(R.string.status_gateway_disconnected)
         }
     }
@@ -315,13 +315,11 @@ private fun WatchMetrics(watchData: WatchDataUiState.Loaded) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (!watchData.isOffWrist) {
-            MetricBadge(
-                icon = Icons.Outlined.Favorite,
-                value = watchData.heartRate,
-                contentDescription = stringResource(R.string.watch_metric_heart_rate),
-            )
-        }
+        MetricBadge(
+            icon = Icons.Outlined.Favorite,
+            value = watchData.heartRate,
+            contentDescription = stringResource(R.string.watch_metric_heart_rate),
+        )
         MetricBadge(
             icon = Icons.AutoMirrored.Outlined.DirectionsWalk,
             value = watchData.steps,
@@ -336,12 +334,6 @@ private fun WatchMetrics(watchData: WatchDataUiState.Loaded) {
             IconBadge(
                 icon = Icons.Outlined.BatteryChargingFull,
                 contentDescription = stringResource(R.string.watch_metric_charge_state),
-            )
-        }
-        if (watchData.isOffWrist) {
-            IconBadge(
-                icon = Icons.Outlined.WatchOff,
-                contentDescription = stringResource(R.string.watch_metric_wrist_state),
             )
         }
     }

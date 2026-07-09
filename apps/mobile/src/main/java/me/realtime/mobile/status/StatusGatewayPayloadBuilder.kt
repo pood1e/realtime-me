@@ -36,8 +36,8 @@ class StatusGatewayPayloadBuilder(private val context: Context) {
             .setDisplayName(deviceName())
             .setModel(deviceModel())
             .setPhone(phoneState())
-        // Forward the watch snapshot verbatim; the gateway applies the off-wrist
-        // heart-rate rule, so it reuses the same WatchSnapshot Data Layer contract.
+        // Forward the watch snapshot verbatim; the Data Layer contract and the
+        // gateway's ingest contract share the same WatchSnapshot message.
         storedWatchSnapshot?.let { builder.setWatch(it.snapshot) }
         return builder.build()
     }

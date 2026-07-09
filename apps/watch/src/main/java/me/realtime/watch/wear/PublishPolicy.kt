@@ -2,7 +2,6 @@ package me.realtime.watch.wear
 
 import android.content.Context
 import me.realtime.protocol.v1.ReportWatchSnapshotRequest
-import me.realtime.protocol.v1.WristState
 import java.time.Duration
 
 class PublishPolicy(context: Context) {
@@ -14,8 +13,7 @@ class PublishPolicy(context: Context) {
         val currentSignature = signature(payload)
         val lastSignature = preferences.getString(LAST_SIGNATURE_KEY, null)
         val elapsed = Duration.ofMillis(nowMillis - lastPublishMillis)
-        val lowPowerMode = snapshot.watchState.batteryPercent in 1..14 ||
-            snapshot.watchState.wristState == WristState.WRIST_STATE_OFF_WRIST
+        val lowPowerMode = snapshot.watchState.batteryPercent in 1 until LOW_BATTERY_PERCENT
         val minInterval = if (lowPowerMode) LOW_POWER_MIN_INTERVAL else NORMAL_MIN_INTERVAL
         val maxInterval = if (lowPowerMode) LOW_POWER_MAX_INTERVAL else NORMAL_MAX_INTERVAL
 
@@ -58,7 +56,6 @@ class PublishPolicy(context: Context) {
             stepBucket,
             batteryBucket,
             watchSnapshot.watchState.chargeState.number,
-            watchSnapshot.watchState.wristState.number,
         ).joinToString(separator = SIGNATURE_SEPARATOR)
     }
 
@@ -71,9 +68,10 @@ class PublishPolicy(context: Context) {
         const val HEART_RATE_BUCKET_SIZE = 1
         const val STEPS_BUCKET_SIZE = 1
         const val BATTERY_BUCKET_SIZE = 5
+        const val LOW_BATTERY_PERCENT = 15
         const val HEART_RATE_PRESENT_INDEX = 0
         const val STEPS_PRESENT_INDEX = 2
-        const val SIGNATURE_PART_COUNT = 7
+        const val SIGNATURE_PART_COUNT = 6
         const val AVAILABLE = "1"
         const val UNAVAILABLE = "0"
         const val SIGNATURE_SEPARATOR = ":"

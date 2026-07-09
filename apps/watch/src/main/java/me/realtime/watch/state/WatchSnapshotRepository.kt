@@ -6,7 +6,6 @@ import me.realtime.protocol.toProtoTimestamp
 import me.realtime.protocol.v1.ActivityTotals
 import me.realtime.protocol.v1.HeartRateSample
 import me.realtime.protocol.v1.WatchSnapshot
-import me.realtime.protocol.v1.WristState
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Base64
@@ -29,19 +28,8 @@ class WatchSnapshotRepository(private val context: Context) {
             .build()
     }
 
-    fun updateWristState(wristState: WristState): WatchSnapshot = updateSnapshot { builder, _ ->
-        builder.watchState = WatchStateReader.read(context, wristState)
-    }
-
-    fun refreshDeviceState(includeStepTotal: Boolean = false): WatchSnapshot = updateSnapshot { builder, now ->
-        if (includeStepTotal && !builder.hasActivityTotals()) {
-            builder.activityTotals = ActivityTotals.newBuilder()
-                .setSteps(0)
-                .setSampleTime(now.toProtoTimestamp())
-                .build()
-        }
-        builder.watchState = WatchStateReader.read(context, builder.watchState.wristState)
-    }
+    // Re-reads battery and charge state without touching the health samples.
+    fun refreshDeviceState(): WatchSnapshot = updateSnapshot { _, _ -> }
 
     fun currentSnapshot(): WatchSnapshot? {
         val encoded = preferences.getString(SNAPSHOT_KEY, null) ?: return null
@@ -50,10 +38,10 @@ class WatchSnapshotRepository(private val context: Context) {
         }.getOrNull()
     }
 
-    // Sensor callbacks (main thread) and the periodic refresh (Dispatchers.IO)
-    // both mutate the single persisted snapshot through separate repository
-    // instances that share one SharedPreferences file, so the read-modify-write
-    // is serialized on a process-wide lock to avoid lost updates.
+    // The Health Services binder thread and the registration worker both mutate
+    // the single persisted snapshot through separate repository instances that
+    // share one SharedPreferences file, so the read-modify-write is serialized
+    // on a process-wide lock to avoid lost updates.
     private fun updateSnapshot(applyUpdate: (WatchSnapshot.Builder, Instant) -> Unit): WatchSnapshot =
         synchronized(SNAPSHOT_LOCK) {
             val builder = currentSnapshot()?.toBuilder() ?: WatchSnapshot.newBuilder()
@@ -62,11 +50,7 @@ class WatchSnapshotRepository(private val context: Context) {
             resetStaleActivityTotals(builder, now)
             builder.snapshotId = UUID.randomUUID().toString()
             builder.recordTime = now.toProtoTimestamp()
-            if (!builder.hasWatchState()) {
-                builder.watchState = WatchStateReader.read(context)
-            } else {
-                builder.watchState = WatchStateReader.read(context, builder.watchState.wristState)
-            }
+            builder.watchState = WatchStateReader.read(context)
             builder.deviceInfo = DeviceInfoReader.read()
             builder.build().also(::save)
         }

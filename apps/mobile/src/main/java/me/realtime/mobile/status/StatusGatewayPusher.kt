@@ -14,13 +14,29 @@ class StatusGatewayPusher(context: Context) {
     private val client = StatusGatewayClient()
 
     fun pushLatest(): StatusGatewayPushResult {
+        if (!client.isConfigured) {
+            Log.w(TAG, "Status gateway endpoint is not configured")
+            return StatusGatewayPushResult.Disabled
+        }
         val token = tokenStore.token() ?: run {
             Log.w(TAG, "Status gateway token is not configured")
             return StatusGatewayPushResult.Disabled
         }
+        val outcome = report(token)
+        if (outcome != ReportOutcome.DeviceUnenrolled) return outcome.asPushResult()
+
+        // The gateway does not know the cached uid: its identity store was reset,
+        // or this phone now points at a different gateway. Without dropping the
+        // uid every future report is rejected and the status wedges forever.
+        Log.w(TAG, "Status gateway does not recognise this device; enrolling again")
+        identityStore.clear()
+        return report(token).asPushResult()
+    }
+
+    private fun report(token: String): ReportOutcome {
         val deviceUid = ensureDeviceUid(token) ?: run {
             Log.w(TAG, "Status gateway enrollment did not return a device uid")
-            return StatusGatewayPushResult.Failure
+            return ReportOutcome.Failure
         }
         // Always report the latest known watch snapshot; its record_time conveys
         // freshness, so the page shows last-known state with a timestamp instead
@@ -36,6 +52,11 @@ class StatusGatewayPusher(context: Context) {
         val uid = client.enroll(token, payloadBuilder.enrollRequest()) ?: return null
         identityStore.save(uid)
         return uid
+    }
+
+    private fun ReportOutcome.asPushResult(): StatusGatewayPushResult = when (this) {
+        ReportOutcome.Success -> StatusGatewayPushResult.Success
+        ReportOutcome.Failure, ReportOutcome.DeviceUnenrolled -> StatusGatewayPushResult.Failure
     }
 
     private companion object {

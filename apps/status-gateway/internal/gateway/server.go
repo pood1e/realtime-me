@@ -114,7 +114,7 @@ func (server *Server) prometheusHTTPDiscovery(context *gin.Context) {
 		writeJSON(context.Writer, http.StatusNotFound, map[string]string{"error": "not_found"})
 		return
 	}
-	writeJSON(context.Writer, http.StatusOK, server.store.PrometheusHTTPDiscovery(job))
+	writeJSON(context.Writer, http.StatusOK, server.store.PrometheusHTTPDiscovery(job, server.identity.Lookup))
 }
 
 func (server *Server) static(writer http.ResponseWriter, request *http.Request) {

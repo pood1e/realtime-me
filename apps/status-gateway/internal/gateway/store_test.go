@@ -9,40 +9,49 @@ import (
 	mev1 "realtime-me/apps/status-gateway/internal/genproto/realtime/me/v1"
 )
 
-func TestPrometheusHTTPDiscoveryFiltersByJobAndStampsLabels(t *testing.T) {
-	store := NewStatusStore(filepath.Join(t.TempDir(), "state.json"))
+// enrolledDevices builds the identity lookup discovery joins against.
+func enrolledDevices(devices ...*EnrolledDevice) func(string) (*EnrolledDevice, bool) {
+	byUID := map[string]*EnrolledDevice{}
+	for _, device := range devices {
+		byUID[device.UID] = device
+	}
+	return func(uid string) (*EnrolledDevice, bool) {
+		device, ok := byUID[uid]
+		return device, ok
+	}
+}
 
-	targets := []*mev1.ScrapeTarget{
-		{
-			Job:         mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER,
-			Target:      "10.0.0.5:9100",
-			DeviceUid:   "dev_bbbb",
+func TestPrometheusHTTPDiscoveryFiltersByJobAndStampsEnrolledLabels(t *testing.T) {
+	store := NewStatusStore(filepath.Join(t.TempDir(), "state.json"))
+	lookup := enrolledDevices(
+		&EnrolledDevice{UID: "dev_aaaa", Kind: mev1.DeviceKind_DEVICE_KIND_HOST},
+		&EnrolledDevice{
+			UID:         "dev_bbbb",
 			DisplayName: "Studio Mac",
 			Model:       "Mac16,1",
 			Kind:        mev1.DeviceKind_DEVICE_KIND_HOST,
 			Role:        mev1.DeviceRole_DEVICE_ROLE_DESKTOP,
 		},
-		{
-			Job:       mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER,
-			Target:    "10.0.0.4:9100",
-			DeviceUid: "dev_aaaa",
-		},
-		{
-			Job:       mev1.ScrapeJob_SCRAPE_JOB_AGENT_EXPORTER,
-			Target:    "10.0.0.5:18082",
-			DeviceUid: "dev_bbbb",
-		},
+	)
+
+	if err := store.SetTargets("dev_bbbb", []*mev1.ScrapeTarget{
+		{Job: mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER, Target: "10.0.0.5:9100"},
+		{Job: mev1.ScrapeJob_SCRAPE_JOB_AGENT_EXPORTER, Target: "10.0.0.5:18082"},
+	}); err != nil {
+		t.Fatalf("SetTargets: %v", err)
 	}
-	if err := store.RegisterTargets(targets); err != nil {
-		t.Fatalf("RegisterTargets: %v", err)
+	if err := store.SetTargets("dev_aaaa", []*mev1.ScrapeTarget{
+		{Job: mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER, Target: "10.0.0.4:9100"},
+	}); err != nil {
+		t.Fatalf("SetTargets: %v", err)
 	}
 
-	groups := store.PrometheusHTTPDiscovery(mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER)
+	groups := store.PrometheusHTTPDiscovery(mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER, lookup)
 	if len(groups) != 2 {
 		t.Fatalf("got %d node-exporter groups, want 2 (the agent target must not leak in)", len(groups))
 	}
 
-	// Groups are sorted by target key, so dev_aaaa precedes dev_bbbb.
+	// Groups are sorted by device uid, so dev_aaaa precedes dev_bbbb.
 	if got := groups[0].Targets; len(got) != 1 || got[0] != "10.0.0.4:9100" {
 		t.Errorf("first group targets = %v", got)
 	}
@@ -58,28 +67,76 @@ func TestPrometheusHTTPDiscoveryFiltersByJobAndStampsLabels(t *testing.T) {
 		}
 	}
 
-	if len(store.PrometheusHTTPDiscovery(mev1.ScrapeJob_SCRAPE_JOB_DEVICE_EXPORTER)) != 0 {
+	if len(store.PrometheusHTTPDiscovery(mev1.ScrapeJob_SCRAPE_JOB_DEVICE_EXPORTER, lookup)) != 0 {
 		t.Error("a job with no targets must yield no groups")
 	}
 }
 
-// Registering the same target twice must not duplicate it: re-running
-// register-device.py is expected to be idempotent.
-func TestRegisterTargetsIsIdempotent(t *testing.T) {
+// A target for a uid the gateway never minted must not reach Prometheus: the
+// labels come from the enrollment, so an unenrolled device has none.
+func TestPrometheusHTTPDiscoverySkipsUnenrolledDevices(t *testing.T) {
 	store := NewStatusStore(filepath.Join(t.TempDir(), "state.json"))
-	target := &mev1.ScrapeTarget{
-		Job:       mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER,
-		Target:    "10.0.0.5:9100",
-		DeviceUid: "dev_aaaa",
+	if err := store.SetTargets("dev_ghost", []*mev1.ScrapeTarget{
+		{Job: mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER, Target: "10.0.0.9:9100"},
+	}); err != nil {
+		t.Fatalf("SetTargets: %v", err)
+	}
+	if got := store.PrometheusHTTPDiscovery(mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER, enrolledDevices()); len(got) != 0 {
+		t.Fatalf("discovery exposed %d groups for an unenrolled device, want 0", len(got))
+	}
+}
+
+// Re-running register-device.py is idempotent, and declaring a smaller set
+// removes the targets left out of it.
+func TestSetTargetsReplacesTheDeviceSet(t *testing.T) {
+	store := NewStatusStore(filepath.Join(t.TempDir(), "state.json"))
+	lookup := enrolledDevices(&EnrolledDevice{UID: "dev_aaaa"})
+	full := []*mev1.ScrapeTarget{
+		{Job: mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER, Target: "10.0.0.5:9100"},
+		{Job: mev1.ScrapeJob_SCRAPE_JOB_DEVICE_EXPORTER, Target: "10.0.0.5:18083"},
 	}
 
 	for range 3 {
-		if err := store.RegisterTargets([]*mev1.ScrapeTarget{target}); err != nil {
-			t.Fatalf("RegisterTargets: %v", err)
+		if err := store.SetTargets("dev_aaaa", full); err != nil {
+			t.Fatalf("SetTargets: %v", err)
 		}
 	}
-	if got := len(store.PrometheusHTTPDiscovery(mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER)); got != 1 {
-		t.Fatalf("got %d groups after re-registering the same target, want 1", got)
+	if got := len(store.PrometheusHTTPDiscovery(mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER, lookup)); got != 1 {
+		t.Fatalf("got %d groups after re-declaring the same targets, want 1", got)
+	}
+
+	if err := store.SetTargets("dev_aaaa", full[:1]); err != nil {
+		t.Fatalf("SetTargets: %v", err)
+	}
+	if got := len(store.PrometheusHTTPDiscovery(mev1.ScrapeJob_SCRAPE_JOB_DEVICE_EXPORTER, lookup)); got != 0 {
+		t.Fatalf("a target left out of the declared set is still discovered (%d groups)", got)
+	}
+}
+
+// A decommissioned device leaves discovery instead of failing forever.
+func TestSetTargetsWithAnEmptySetDeregistersTheDevice(t *testing.T) {
+	stateFile := filepath.Join(t.TempDir(), "state.json")
+	store := NewStatusStore(stateFile)
+	lookup := enrolledDevices(&EnrolledDevice{UID: "dev_aaaa"})
+
+	if err := store.SetTargets("dev_aaaa", []*mev1.ScrapeTarget{
+		{Job: mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER, Target: "10.0.0.5:9100"},
+	}); err != nil {
+		t.Fatalf("SetTargets: %v", err)
+	}
+	if err := store.SetTargets("dev_aaaa", nil); err != nil {
+		t.Fatalf("SetTargets: %v", err)
+	}
+	if got := len(store.PrometheusHTTPDiscovery(mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER, lookup)); got != 0 {
+		t.Fatalf("a deregistered device still yields %d groups", got)
+	}
+
+	restarted := NewStatusStore(stateFile)
+	if err := restarted.Load(); err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if got := len(restarted.PrometheusHTTPDiscovery(mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER, lookup)); got != 0 {
+		t.Fatalf("deregistration did not persist: %d groups after restart", got)
 	}
 }
 
@@ -88,12 +145,11 @@ func TestStoreRoundTripsDurableStateAcrossRestart(t *testing.T) {
 	stateFile := filepath.Join(t.TempDir(), "state.json")
 
 	original := NewStatusStore(stateFile)
-	if err := original.RegisterTargets([]*mev1.ScrapeTarget{{
-		Job:       mev1.ScrapeJob_SCRAPE_JOB_AGENT_EXPORTER,
-		Target:    "10.0.0.5:18082",
-		DeviceUid: "dev_aaaa",
+	if err := original.SetTargets("dev_aaaa", []*mev1.ScrapeTarget{{
+		Job:    mev1.ScrapeJob_SCRAPE_JOB_AGENT_EXPORTER,
+		Target: "10.0.0.5:18082",
 	}}); err != nil {
-		t.Fatalf("RegisterTargets: %v", err)
+		t.Fatalf("SetTargets: %v", err)
 	}
 	if err := original.UpdateGitHub(func(sync *mev1.GithubSyncDetail) {
 		sync.Configured = true
@@ -108,7 +164,8 @@ func TestStoreRoundTripsDurableStateAcrossRestart(t *testing.T) {
 		t.Fatalf("Load: %v", err)
 	}
 
-	if got := len(restarted.PrometheusHTTPDiscovery(mev1.ScrapeJob_SCRAPE_JOB_AGENT_EXPORTER)); got != 1 {
+	lookup := enrolledDevices(&EnrolledDevice{UID: "dev_aaaa"})
+	if got := len(restarted.PrometheusHTTPDiscovery(mev1.ScrapeJob_SCRAPE_JOB_AGENT_EXPORTER, lookup)); got != 1 {
 		t.Fatalf("got %d agent targets after restart, want 1", got)
 	}
 	github := restarted.GitHubSnapshot()

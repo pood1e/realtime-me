@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file realtime/me/v1/watch.proto.
  */
 export const file_realtime_me_v1_watch: GenFile = /*@__PURE__*/
-  fileDesc("ChpyZWFsdGltZS9tZS92MS93YXRjaC5wcm90bxIOcmVhbHRpbWUubWUudjEipQIKDVdhdGNoU25hcHNob3QSEwoLc25hcHNob3RfaWQYASABKAkSLwoLcmVjb3JkX3RpbWUYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKCmhlYXJ0X3JhdGUYAyABKAsyHy5yZWFsdGltZS5tZS52MS5IZWFydFJhdGVTYW1wbGUSNwoPYWN0aXZpdHlfdG90YWxzGAQgASgLMh4ucmVhbHRpbWUubWUudjEuQWN0aXZpdHlUb3RhbHMSLwoLd2F0Y2hfc3RhdGUYBSABKAsyGi5yZWFsdGltZS5tZS52MS5XYXRjaFN0YXRlEi8KC2RldmljZV9pbmZvGAYgASgLMhoucmVhbHRpbWUubWUudjEuRGV2aWNlSW5mbyIxCgpEZXZpY2VJbmZvEhQKDGRpc3BsYXlfbmFtZRgBIAEoCRINCgVtb2RlbBgCIAEoCSJcCg9IZWFydFJhdGVTYW1wbGUSGAoQYmVhdHNfcGVyX21pbnV0ZRgBIAEoBRIvCgtzYW1wbGVfdGltZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiYAoOQWN0aXZpdHlUb3RhbHMSDQoFc3RlcHMYASABKAUSLwoLc2FtcGxlX3RpbWUYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSgQIAhADUghjYWxvcmllcyK6AQoKV2F0Y2hTdGF0ZRIXCg9iYXR0ZXJ5X3BlcmNlbnQYASABKAUSMQoMY2hhcmdlX3N0YXRlGAIgASgOMhsucmVhbHRpbWUubWUudjEuQ2hhcmdlU3RhdGUSLwoLd3Jpc3Rfc3RhdGUYAyABKA4yGi5yZWFsdGltZS5tZS52MS5XcmlzdFN0YXRlEi8KC3NhbXBsZV90aW1lGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJTChpSZXBvcnRXYXRjaFNuYXBzaG90UmVxdWVzdBI1Cg53YXRjaF9zbmFwc2hvdBgBIAEoCzIdLnJlYWx0aW1lLm1lLnYxLldhdGNoU25hcHNob3QqZQoLQ2hhcmdlU3RhdGUSHAoYQ0hBUkdFX1NUQVRFX1VOU1BFQ0lGSUVEEAASHQoZQ0hBUkdFX1NUQVRFX05PVF9DSEFSR0lORxABEhkKFUNIQVJHRV9TVEFURV9DSEFSR0lORxACKl4KCldyaXN0U3RhdGUSGwoXV1JJU1RfU1RBVEVfVU5TUEVDSUZJRUQQABIYChRXUklTVF9TVEFURV9PTl9XUklTVBABEhkKFVdSSVNUX1NUQVRFX09GRl9XUklTVBACQsEBChJjb20ucmVhbHRpbWUubWUudjFCCldhdGNoUHJvdG9QAVpFcmVhbHRpbWUtbWUvYXBwcy9zdGF0dXMtZ2F0ZXdheS9pbnRlcm5hbC9nZW5wcm90by9yZWFsdGltZS9tZS92MTttZXYxogIDUk1YqgIOUmVhbHRpbWUuTWUuVjHKAg5SZWFsdGltZVxNZVxWMeICGlJlYWx0aW1lXE1lXFYxXEdQQk1ldGFkYXRh6gIQUmVhbHRpbWU6Ok1lOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("ChpyZWFsdGltZS9tZS92MS93YXRjaC5wcm90bxIOcmVhbHRpbWUubWUudjEipQIKDVdhdGNoU25hcHNob3QSEwoLc25hcHNob3RfaWQYASABKAkSLwoLcmVjb3JkX3RpbWUYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKCmhlYXJ0X3JhdGUYAyABKAsyHy5yZWFsdGltZS5tZS52MS5IZWFydFJhdGVTYW1wbGUSNwoPYWN0aXZpdHlfdG90YWxzGAQgASgLMh4ucmVhbHRpbWUubWUudjEuQWN0aXZpdHlUb3RhbHMSLwoLd2F0Y2hfc3RhdGUYBSABKAsyGi5yZWFsdGltZS5tZS52MS5XYXRjaFN0YXRlEi8KC2RldmljZV9pbmZvGAYgASgLMhoucmVhbHRpbWUubWUudjEuRGV2aWNlSW5mbyIxCgpEZXZpY2VJbmZvEhQKDGRpc3BsYXlfbmFtZRgBIAEoCRINCgVtb2RlbBgCIAEoCSJcCg9IZWFydFJhdGVTYW1wbGUSGAoQYmVhdHNfcGVyX21pbnV0ZRgBIAEoBRIvCgtzYW1wbGVfdGltZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiYAoOQWN0aXZpdHlUb3RhbHMSDQoFc3RlcHMYASABKAUSLwoLc2FtcGxlX3RpbWUYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSgQIAhADUghjYWxvcmllcyKcAQoKV2F0Y2hTdGF0ZRIXCg9iYXR0ZXJ5X3BlcmNlbnQYASABKAUSMQoMY2hhcmdlX3N0YXRlGAIgASgOMhsucmVhbHRpbWUubWUudjEuQ2hhcmdlU3RhdGUSLwoLc2FtcGxlX3RpbWUYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSgQIAxAEUgt3cmlzdF9zdGF0ZSJTChpSZXBvcnRXYXRjaFNuYXBzaG90UmVxdWVzdBI1Cg53YXRjaF9zbmFwc2hvdBgBIAEoCzIdLnJlYWx0aW1lLm1lLnYxLldhdGNoU25hcHNob3QqZQoLQ2hhcmdlU3RhdGUSHAoYQ0hBUkdFX1NUQVRFX1VOU1BFQ0lGSUVEEAASHQoZQ0hBUkdFX1NUQVRFX05PVF9DSEFSR0lORxABEhkKFUNIQVJHRV9TVEFURV9DSEFSR0lORxACQsEBChJjb20ucmVhbHRpbWUubWUudjFCCldhdGNoUHJvdG9QAVpFcmVhbHRpbWUtbWUvYXBwcy9zdGF0dXMtZ2F0ZXdheS9pbnRlcm5hbC9nZW5wcm90by9yZWFsdGltZS9tZS92MTttZXYxogIDUk1YqgIOUmVhbHRpbWUuTWUuVjHKAg5SZWFsdGltZVxNZVxWMeICGlJlYWx0aW1lXE1lXFYxXEdQQk1ldGFkYXRh6gIQUmVhbHRpbWU6Ok1lOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * WatchSnapshot is the latest health and device snapshot produced by the watch.
@@ -287,13 +287,6 @@ export type WatchState = Message<"realtime.me.v1.WatchState"> & {
   chargeState: ChargeState;
 
   /**
-   * wrist_state is whether the watch appears to be worn.
-   *
-   * @generated from field: realtime.me.v1.WristState wrist_state = 3;
-   */
-  wristState: WristState;
-
-  /**
    * sample_time is the state sample time.
    *
    * @generated from field: google.protobuf.Timestamp sample_time = 4;
@@ -320,13 +313,6 @@ export type WatchStateJson = {
    * @generated from field: realtime.me.v1.ChargeState charge_state = 2;
    */
   chargeState?: ChargeStateJson;
-
-  /**
-   * wrist_state is whether the watch appears to be worn.
-   *
-   * @generated from field: realtime.me.v1.WristState wrist_state = 3;
-   */
-  wristState?: WristStateJson;
 
   /**
    * sample_time is the state sample time.
@@ -418,45 +404,4 @@ export type ChargeStateJson = "CHARGE_STATE_UNSPECIFIED" | "CHARGE_STATE_NOT_CHA
  */
 export const ChargeStateSchema: GenEnum<ChargeState, ChargeStateJson> = /*@__PURE__*/
   enumDesc(file_realtime_me_v1_watch, 0);
-
-/**
- * WristState describes whether the watch appears to be on wrist.
- *
- * @generated from enum realtime.me.v1.WristState
- */
-export enum WristState {
-  /**
-   * Wrist state is not known.
-   *
-   * @generated from enum value: WRIST_STATE_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * The watch appears to be worn.
-   *
-   * @generated from enum value: WRIST_STATE_ON_WRIST = 1;
-   */
-  ON_WRIST = 1,
-
-  /**
-   * The watch appears to be off wrist.
-   *
-   * @generated from enum value: WRIST_STATE_OFF_WRIST = 2;
-   */
-  OFF_WRIST = 2,
-}
-
-/**
- * WristState describes whether the watch appears to be on wrist.
- *
- * @generated from enum realtime.me.v1.WristState
- */
-export type WristStateJson = "WRIST_STATE_UNSPECIFIED" | "WRIST_STATE_ON_WRIST" | "WRIST_STATE_OFF_WRIST";
-
-/**
- * Describes the enum realtime.me.v1.WristState.
- */
-export const WristStateSchema: GenEnum<WristState, WristStateJson> = /*@__PURE__*/
-  enumDesc(file_realtime_me_v1_watch, 1);
 

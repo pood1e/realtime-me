@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file realtime/me/v1/ingest.proto.
  */
 export const file_realtime_me_v1_ingest: GenFile = /*@__PURE__*/
-  fileDesc("ChtyZWFsdGltZS9tZS92MS9pbmdlc3QucHJvdG8SDnJlYWx0aW1lLm1lLnYxIo4BChNFbnJvbGxEZXZpY2VSZXF1ZXN0EigKBGtpbmQYASABKA4yGi5yZWFsdGltZS5tZS52MS5EZXZpY2VLaW5kEigKBHJvbGUYAiABKA4yGi5yZWFsdGltZS5tZS52MS5EZXZpY2VSb2xlEhQKDGRpc3BsYXlfbmFtZRgDIAEoCRINCgVtb2RlbBgEIAEoCSIqChRFbnJvbGxEZXZpY2VSZXNwb25zZRISCgpkZXZpY2VfdWlkGAEgASgJIq0BChlSZXBvcnRNb2JpbGVTdGF0dXNSZXF1ZXN0EhIKCmRldmljZV91aWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEg0KBW1vZGVsGAMgASgJEikKBXBob25lGAQgASgLMhoucmVhbHRpbWUubWUudjEuUGhvbmVTdGF0ZRIsCgV3YXRjaBgFIAEoCzIdLnJlYWx0aW1lLm1lLnYxLldhdGNoU25hcHNob3QiHAoaUmVwb3J0TW9iaWxlU3RhdHVzUmVzcG9uc2UiTQocUmVnaXN0ZXJTY3JhcGVUYXJnZXRzUmVxdWVzdBItCgd0YXJnZXRzGAEgAygLMhwucmVhbHRpbWUubWUudjEuU2NyYXBlVGFyZ2V0Ih8KHVJlZ2lzdGVyU2NyYXBlVGFyZ2V0c1Jlc3BvbnNlItMBCgxTY3JhcGVUYXJnZXQSJgoDam9iGAEgASgOMhkucmVhbHRpbWUubWUudjEuU2NyYXBlSm9iEg4KBnRhcmdldBgCIAEoCRISCgpkZXZpY2VfdWlkGAMgASgJEhQKDGRpc3BsYXlfbmFtZRgEIAEoCRINCgVtb2RlbBgFIAEoCRIoCgRraW5kGAYgASgOMhoucmVhbHRpbWUubWUudjEuRGV2aWNlS2luZBIoCgRyb2xlGAcgASgOMhoucmVhbHRpbWUubWUudjEuRGV2aWNlUm9sZSqlAQoJU2NyYXBlSm9iEhoKFlNDUkFQRV9KT0JfVU5TUEVDSUZJRUQQABIcChhTQ1JBUEVfSk9CX05PREVfRVhQT1JURVIQARIfChtTQ1JBUEVfSk9CX1ZNX05PREVfRVhQT1JURVIQAhIeChpTQ1JBUEVfSk9CX0RFVklDRV9FWFBPUlRFUhADEh0KGVNDUkFQRV9KT0JfQUdFTlRfRVhQT1JURVIQBDJuChFFbnJvbGxtZW50U2VydmljZRJZCgxFbnJvbGxEZXZpY2USIy5yZWFsdGltZS5tZS52MS5FbnJvbGxEZXZpY2VSZXF1ZXN0GiQucmVhbHRpbWUubWUudjEuRW5yb2xsRGV2aWNlUmVzcG9uc2Uy8gEKDUluZ2VzdFNlcnZpY2USawoSUmVwb3J0TW9iaWxlU3RhdHVzEikucmVhbHRpbWUubWUudjEuUmVwb3J0TW9iaWxlU3RhdHVzUmVxdWVzdBoqLnJlYWx0aW1lLm1lLnYxLlJlcG9ydE1vYmlsZVN0YXR1c1Jlc3BvbnNlEnQKFVJlZ2lzdGVyU2NyYXBlVGFyZ2V0cxIsLnJlYWx0aW1lLm1lLnYxLlJlZ2lzdGVyU2NyYXBlVGFyZ2V0c1JlcXVlc3QaLS5yZWFsdGltZS5tZS52MS5SZWdpc3RlclNjcmFwZVRhcmdldHNSZXNwb25zZULCAQoSY29tLnJlYWx0aW1lLm1lLnYxQgtJbmdlc3RQcm90b1ABWkVyZWFsdGltZS1tZS9hcHBzL3N0YXR1cy1nYXRld2F5L2ludGVybmFsL2dlbnByb3RvL3JlYWx0aW1lL21lL3YxO21ldjGiAgNSTViqAg5SZWFsdGltZS5NZS5WMcoCDlJlYWx0aW1lXE1lXFYx4gIaUmVhbHRpbWVcTWVcVjFcR1BCTWV0YWRhdGHqAhBSZWFsdGltZTo6TWU6OlYxYgZwcm90bzM", [file_realtime_me_v1_status_types, file_realtime_me_v1_watch]);
+  fileDesc("ChtyZWFsdGltZS9tZS92MS9pbmdlc3QucHJvdG8SDnJlYWx0aW1lLm1lLnYxIo4BChNFbnJvbGxEZXZpY2VSZXF1ZXN0EigKBGtpbmQYASABKA4yGi5yZWFsdGltZS5tZS52MS5EZXZpY2VLaW5kEigKBHJvbGUYAiABKA4yGi5yZWFsdGltZS5tZS52MS5EZXZpY2VSb2xlEhQKDGRpc3BsYXlfbmFtZRgDIAEoCRINCgVtb2RlbBgEIAEoCSIqChRFbnJvbGxEZXZpY2VSZXNwb25zZRISCgpkZXZpY2VfdWlkGAEgASgJIq0BChlSZXBvcnRNb2JpbGVTdGF0dXNSZXF1ZXN0EhIKCmRldmljZV91aWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEg0KBW1vZGVsGAMgASgJEikKBXBob25lGAQgASgLMhoucmVhbHRpbWUubWUudjEuUGhvbmVTdGF0ZRIsCgV3YXRjaBgFIAEoCzIdLnJlYWx0aW1lLm1lLnYxLldhdGNoU25hcHNob3QiHAoaUmVwb3J0TW9iaWxlU3RhdHVzUmVzcG9uc2UiYQocUmVnaXN0ZXJTY3JhcGVUYXJnZXRzUmVxdWVzdBItCgd0YXJnZXRzGAEgAygLMhwucmVhbHRpbWUubWUudjEuU2NyYXBlVGFyZ2V0EhIKCmRldmljZV91aWQYAiABKAkiHwodUmVnaXN0ZXJTY3JhcGVUYXJnZXRzUmVzcG9uc2UikQEKDFNjcmFwZVRhcmdldBImCgNqb2IYASABKA4yGS5yZWFsdGltZS5tZS52MS5TY3JhcGVKb2ISDgoGdGFyZ2V0GAIgASgJSgQIAxAESgQIBBAFSgQIBRAGSgQIBhAHSgQIBxAIUgpkZXZpY2VfdWlkUgxkaXNwbGF5X25hbWVSBW1vZGVsUgRraW5kUgRyb2xlKqUBCglTY3JhcGVKb2ISGgoWU0NSQVBFX0pPQl9VTlNQRUNJRklFRBAAEhwKGFNDUkFQRV9KT0JfTk9ERV9FWFBPUlRFUhABEh8KG1NDUkFQRV9KT0JfVk1fTk9ERV9FWFBPUlRFUhACEh4KGlNDUkFQRV9KT0JfREVWSUNFX0VYUE9SVEVSEAMSHQoZU0NSQVBFX0pPQl9BR0VOVF9FWFBPUlRFUhAEMm4KEUVucm9sbG1lbnRTZXJ2aWNlElkKDEVucm9sbERldmljZRIjLnJlYWx0aW1lLm1lLnYxLkVucm9sbERldmljZVJlcXVlc3QaJC5yZWFsdGltZS5tZS52MS5FbnJvbGxEZXZpY2VSZXNwb25zZTLyAQoNSW5nZXN0U2VydmljZRJrChJSZXBvcnRNb2JpbGVTdGF0dXMSKS5yZWFsdGltZS5tZS52MS5SZXBvcnRNb2JpbGVTdGF0dXNSZXF1ZXN0GioucmVhbHRpbWUubWUudjEuUmVwb3J0TW9iaWxlU3RhdHVzUmVzcG9uc2USdAoVUmVnaXN0ZXJTY3JhcGVUYXJnZXRzEiwucmVhbHRpbWUubWUudjEuUmVnaXN0ZXJTY3JhcGVUYXJnZXRzUmVxdWVzdBotLnJlYWx0aW1lLm1lLnYxLlJlZ2lzdGVyU2NyYXBlVGFyZ2V0c1Jlc3BvbnNlQsIBChJjb20ucmVhbHRpbWUubWUudjFCC0luZ2VzdFByb3RvUAFaRXJlYWx0aW1lLW1lL2FwcHMvc3RhdHVzLWdhdGV3YXkvaW50ZXJuYWwvZ2VucHJvdG8vcmVhbHRpbWUvbWUvdjE7bWV2MaICA1JNWKoCDlJlYWx0aW1lLk1lLlYxygIOUmVhbHRpbWVcTWVcVjHiAhpSZWFsdGltZVxNZVxWMVxHUEJNZXRhZGF0YeoCEFJlYWx0aW1lOjpNZTo6VjFiBnByb3RvMw", [file_realtime_me_v1_status_types, file_realtime_me_v1_watch]);
 
 /**
  * EnrollDeviceRequest describes the device seeking a gateway identity.
@@ -245,31 +245,49 @@ export const ReportMobileStatusResponseSchema: GenMessage<ReportMobileStatusResp
   messageDesc(file_realtime_me_v1_ingest, 3);
 
 /**
- * RegisterScrapeTargetsRequest advertises Prometheus scrape targets.
+ * RegisterScrapeTargetsRequest declares the complete set of scrape targets for
+ * one enrolled device. Declaring an empty set removes the device from discovery,
+ * so a decommissioned host stops being scraped instead of failing forever.
  *
  * @generated from message realtime.me.v1.RegisterScrapeTargetsRequest
  */
 export type RegisterScrapeTargetsRequest = Message<"realtime.me.v1.RegisterScrapeTargetsRequest"> & {
   /**
-   * targets are the scrape targets to register for discovery.
+   * targets is the complete set of endpoints Prometheus should scrape for the device.
    *
    * @generated from field: repeated realtime.me.v1.ScrapeTarget targets = 1;
    */
   targets: ScrapeTarget[];
+
+  /**
+   * device_uid is the enrolled device the targets belong to.
+   *
+   * @generated from field: string device_uid = 2;
+   */
+  deviceUid: string;
 };
 
 /**
- * RegisterScrapeTargetsRequest advertises Prometheus scrape targets.
+ * RegisterScrapeTargetsRequest declares the complete set of scrape targets for
+ * one enrolled device. Declaring an empty set removes the device from discovery,
+ * so a decommissioned host stops being scraped instead of failing forever.
  *
  * @generated from message realtime.me.v1.RegisterScrapeTargetsRequest
  */
 export type RegisterScrapeTargetsRequestJson = {
   /**
-   * targets are the scrape targets to register for discovery.
+   * targets is the complete set of endpoints Prometheus should scrape for the device.
    *
    * @generated from field: repeated realtime.me.v1.ScrapeTarget targets = 1;
    */
   targets?: ScrapeTargetJson[];
+
+  /**
+   * device_uid is the enrolled device the targets belong to.
+   *
+   * @generated from field: string device_uid = 2;
+   */
+  deviceUid?: string;
 };
 
 /**
@@ -303,7 +321,9 @@ export const RegisterScrapeTargetsResponseSchema: GenMessage<RegisterScrapeTarge
   messageDesc(file_realtime_me_v1_ingest, 5);
 
 /**
- * ScrapeTarget is a Prometheus scrape target advertised for HTTP service discovery.
+ * ScrapeTarget is one endpoint Prometheus scrapes. The device it belongs to, and
+ * every label describing that device, come from the enrollment the gateway owns;
+ * a caller cannot assert them here.
  *
  * @generated from message realtime.me.v1.ScrapeTarget
  */
@@ -321,45 +341,12 @@ export type ScrapeTarget = Message<"realtime.me.v1.ScrapeTarget"> & {
    * @generated from field: string target = 2;
    */
   target: string;
-
-  /**
-   * device_uid is the enrolled device the target belongs to.
-   *
-   * @generated from field: string device_uid = 3;
-   */
-  deviceUid: string;
-
-  /**
-   * display_name is the human-readable device label.
-   *
-   * @generated from field: string display_name = 4;
-   */
-  displayName: string;
-
-  /**
-   * model is the device hardware model.
-   *
-   * @generated from field: string model = 5;
-   */
-  model: string;
-
-  /**
-   * kind is the device category.
-   *
-   * @generated from field: realtime.me.v1.DeviceKind kind = 6;
-   */
-  kind: DeviceKind;
-
-  /**
-   * role is the device's operational role.
-   *
-   * @generated from field: realtime.me.v1.DeviceRole role = 7;
-   */
-  role: DeviceRole;
 };
 
 /**
- * ScrapeTarget is a Prometheus scrape target advertised for HTTP service discovery.
+ * ScrapeTarget is one endpoint Prometheus scrapes. The device it belongs to, and
+ * every label describing that device, come from the enrollment the gateway owns;
+ * a caller cannot assert them here.
  *
  * @generated from message realtime.me.v1.ScrapeTarget
  */
@@ -377,41 +364,6 @@ export type ScrapeTargetJson = {
    * @generated from field: string target = 2;
    */
   target?: string;
-
-  /**
-   * device_uid is the enrolled device the target belongs to.
-   *
-   * @generated from field: string device_uid = 3;
-   */
-  deviceUid?: string;
-
-  /**
-   * display_name is the human-readable device label.
-   *
-   * @generated from field: string display_name = 4;
-   */
-  displayName?: string;
-
-  /**
-   * model is the device hardware model.
-   *
-   * @generated from field: string model = 5;
-   */
-  model?: string;
-
-  /**
-   * kind is the device category.
-   *
-   * @generated from field: realtime.me.v1.DeviceKind kind = 6;
-   */
-  kind?: DeviceKindJson;
-
-  /**
-   * role is the device's operational role.
-   *
-   * @generated from field: realtime.me.v1.DeviceRole role = 7;
-   */
-  role?: DeviceRoleJson;
 };
 
 /**

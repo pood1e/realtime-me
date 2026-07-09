@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import me.realtime.mobile.background.StatusBackgroundSync
+import me.realtime.mobile.status.StatusDeviceIdentity
 import me.realtime.mobile.wear.WatchSnapshotReader
 
 /**
@@ -15,6 +16,7 @@ import me.realtime.mobile.wear.WatchSnapshotReader
 class StatusRepository(context: Context) {
     private val appContext = context.applicationContext
     private val tokenStore = StatusGatewayTokenStore(appContext)
+    private val identityStore = StatusDeviceIdentity(appContext)
     private val snapshotStore = WatchSnapshotStore(appContext)
     private val snapshotReader = WatchSnapshotReader(appContext)
     private val snapshotProcessor = WatchSnapshotProcessor(appContext)
@@ -23,13 +25,18 @@ class StatusRepository(context: Context) {
 
     fun watchSnapshots(): Flow<StoredWatchSnapshot?> = snapshotStore.changes()
 
-    suspend fun saveToken(token: String): Unit = withContext(Dispatchers.IO) {
-        tokenStore.save(token)
+    /** Returns false when the device's Keystore refused to store the token. */
+    suspend fun saveToken(token: String): Boolean = withContext(Dispatchers.IO) {
+        if (!tokenStore.save(token)) return@withContext false
         StatusBackgroundSync.ensureActive(appContext)
+        true
     }
 
     suspend fun clearToken(): Unit = withContext(Dispatchers.IO) {
         tokenStore.clear()
+        // The uid belongs to the gateway that minted it. Disconnecting means the
+        // next connection may be to a different gateway, which would reject it.
+        identityStore.clear()
         StatusBackgroundSync.ensureActive(appContext)
     }
 

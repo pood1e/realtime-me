@@ -9,6 +9,12 @@ import (
 	mev1 "realtime-me/apps/status-gateway/internal/genproto/realtime/me/v1"
 )
 
+// mobileStaleAfter bounds how long the phone's last push keeps being served.
+// Everything else on the status document comes from Prometheus, which expires a
+// series that stops being scraped; the pushed phone state has no such clock, so
+// without this a phone that lost power would report "charging" indefinitely.
+const mobileStaleAfter = 15 * time.Minute
+
 // buildPublicStatus assembles the unauthenticated status document. Hosts, VMs,
 // and agents come from Prometheus, which scrapes their exporters. Only the
 // phone is pushed, because it cannot be scraped.
@@ -18,7 +24,7 @@ func (server *StatusServer) buildPublicStatus(ctx context.Context) *mev1.PublicS
 
 	return &mev1.PublicStatus{
 		Server:     namedServer(server.prometheus.ServerStatus(ctx)),
-		Mobile:     snapshot.Mobile,
+		Mobile:     freshMobile(snapshot.Mobile, now),
 		Devices:    server.prometheus.NodeExporterStatuses(ctx),
 		Agents:     server.visibleAgents(ctx, now),
 		Github:     publicGithubStatus(snapshot.GitHub, server.config.GitHubToken),
@@ -54,6 +60,18 @@ func (server *StatusServer) visibleAgents(ctx context.Context, now time.Time) []
 		}}
 	}
 	return agents
+}
+
+// freshMobile drops a phone report the phone has stopped refreshing.
+func freshMobile(mobile *mev1.MobileState, now time.Time) *mev1.MobileState {
+	updateTime := mobile.GetUpdateTime()
+	if updateTime == nil {
+		return nil
+	}
+	if now.Sub(updateTime.AsTime()) > mobileStaleAfter {
+		return nil
+	}
+	return mobile
 }
 
 // namedServer gives the always-on server a label when node_exporter supplies no

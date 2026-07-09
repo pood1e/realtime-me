@@ -213,9 +213,8 @@ func (publisher *GitHubStatusPublisher) sendRequest(ctx context.Context, status 
 func formatGitHubStatus(mobile *mev1.MobileState, now time.Time, ttlMinutes int) gitHubStatus {
 	watch := mobile.GetWatch()
 	state := watch.GetWatchState()
-	offWrist := state.GetWristState() == mev1.WristState_WRIST_STATE_OFF_WRIST
-	segments := make([]string, 0, 4)
-	if !offWrist && watch.GetHeartRate().GetBeatsPerMinute() > 0 {
+	segments := make([]string, 0, 3)
+	if watch.GetHeartRate().GetBeatsPerMinute() > 0 {
 		segments = append(segments, fmt.Sprintf("❤️%d", watch.GetHeartRate().GetBeatsPerMinute()))
 	}
 	if watch.GetActivityTotals().GetSteps() > 0 {
@@ -223,9 +222,6 @@ func formatGitHubStatus(mobile *mev1.MobileState, now time.Time, ttlMinutes int)
 	}
 	if state.GetBatteryPercent() > 0 {
 		segments = append(segments, fmt.Sprintf("%s%d%%", batteryEmoji(state), state.GetBatteryPercent()))
-	}
-	if offWrist {
-		segments = append(segments, "💤")
 	}
 
 	message := "⌚synced"
@@ -258,9 +254,6 @@ func statusEmoji(watch *mev1.WatchSnapshot) string {
 	state := watch.GetWatchState()
 	if watch == nil || state == nil {
 		return "⌚"
-	}
-	if state.GetWristState() == mev1.WristState_WRIST_STATE_OFF_WRIST {
-		return "💤"
 	}
 	if state.GetChargeState() == mev1.ChargeState_CHARGE_STATE_CHARGING {
 		return "🔌"

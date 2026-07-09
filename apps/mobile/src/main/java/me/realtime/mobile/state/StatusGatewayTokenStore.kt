@@ -9,7 +9,8 @@ class StatusGatewayTokenStore(context: Context) {
         keyAlias = KEY_ALIAS,
     )
 
-    fun save(token: String) = store.save(token)
+    /** Returns false if the Keystore refused to encrypt the token. */
+    fun save(token: String): Boolean = store.save(token)
 
     fun token(): String? = store.value()
 

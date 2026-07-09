@@ -28,8 +28,9 @@ class StatusSyncRunner(context: Context) {
         pusher.pushLatest()
     }
 
-    fun syncPayload(payload: ByteArray): StatusGatewayPushResult = guarded {
-        processor.process(payload)
+    // Stores every delivered snapshot in order, then pushes the newest one once.
+    fun syncPayloads(payloads: List<ByteArray>): StatusGatewayPushResult = guarded {
+        payloads.forEach(processor::process)
         pusher.pushLatest()
     }
 

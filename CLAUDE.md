@@ -82,7 +82,14 @@ cannot live in a package because the probe payload must ship flat. Don't
 "fix" it by duplicating the module.
 
 **Device identity is backend-owned.** The gateway mints every device uid via
-`EnrollmentService/EnrollDevice`; clients cache it and never construct one.
+`EnrollmentService/EnrollDevice`; clients cache it and never construct one. A
+`ScrapeTarget` therefore carries only a job and a `host:port` — every label
+Prometheus stamps on it (`device_name`, `device_model`, `device_kind`,
+`device_role`) is read from the enrollment, so a caller cannot assert an identity
+the gateway did not mint. `RegisterScrapeTargets` declares a device's *complete*
+target set: an empty set deregisters the device. When the gateway does not
+recognise a uid it answers `not_found`, which is the signal a client uses to drop
+its cached uid and enroll again.
 
 **PromQL lives only in the gateway.** `internal/gateway/metrics.go` is the one
 place a query expression is written. Clients name a `MetricSeries` and pass

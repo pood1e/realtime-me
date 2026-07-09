@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -61,8 +62,12 @@ func (store *IdentityStore) Load() error {
 
 // Enroll mints a fresh opaque uid, records the device identity, and returns it.
 func (store *IdentityStore) Enroll(kind mev1.DeviceKind, role mev1.DeviceRole, displayName string, model string, now time.Time) (*EnrolledDevice, error) {
+	uid, err := mintDeviceUID()
+	if err != nil {
+		return nil, err
+	}
 	device := &EnrolledDevice{
-		UID:         mintDeviceUID(),
+		UID:         uid,
 		Kind:        kind,
 		Role:        role,
 		DisplayName: displayName,
@@ -118,8 +123,12 @@ func (store *IdentityStore) saveLocked() error {
 	return os.Rename(tempName, store.stateFile)
 }
 
-func mintDeviceUID() string {
+// mintDeviceUID fails loudly rather than minting a predictable identifier: a
+// zeroed buffer would give every device the same uid.
+func mintDeviceUID() (string, error) {
 	buffer := make([]byte, 12)
-	_, _ = rand.Read(buffer)
-	return "dev_" + hex.EncodeToString(buffer)
+	if _, err := rand.Read(buffer); err != nil {
+		return "", fmt.Errorf("mint device uid: %w", err)
+	}
+	return "dev_" + hex.EncodeToString(buffer), nil
 }

@@ -30,14 +30,14 @@ type StatusStore struct {
 	mutex     sync.Mutex
 
 	mobile  *mev1.MobileState
-	targets map[string]*mev1.ScrapeTarget
+	targets map[string][]*mev1.ScrapeTarget
 	github  *mev1.GithubSyncDetail
 }
 
 func NewStatusStore(stateFile string) *StatusStore {
 	return &StatusStore{
 		stateFile: stateFile,
-		targets:   map[string]*mev1.ScrapeTarget{},
+		targets:   map[string][]*mev1.ScrapeTarget{},
 		github: &mev1.GithubSyncDetail{
 			Configured: false,
 			State:      mev1.GithubSyncState_GITHUB_SYNC_STATE_DISABLED,
@@ -47,9 +47,10 @@ func NewStatusStore(stateFile string) *StatusStore {
 
 // persistedState is the durable on-disk shape. Proto values are stored as their
 // canonical protojson encoding so the schema stays the single source of truth.
+// Scrape targets are keyed by the device uid that owns them.
 type persistedState struct {
-	Targets []json.RawMessage `json:"targets,omitempty"`
-	GitHub  json.RawMessage   `json:"github,omitempty"`
+	Targets map[string][]json.RawMessage `json:"targets,omitempty"`
+	GitHub  json.RawMessage              `json:"github,omitempty"`
 }
 
 func (store *StatusStore) Load() error {
@@ -68,12 +69,16 @@ func (store *StatusStore) Load() error {
 	if err := json.Unmarshal(data, &snapshot); err != nil {
 		return err
 	}
-	for _, raw := range snapshot.Targets {
-		target := &mev1.ScrapeTarget{}
-		if err := protojson.Unmarshal(raw, target); err != nil {
-			return err
+	for deviceUID, rawTargets := range snapshot.Targets {
+		targets := make([]*mev1.ScrapeTarget, 0, len(rawTargets))
+		for _, raw := range rawTargets {
+			target := &mev1.ScrapeTarget{}
+			if err := protojson.Unmarshal(raw, target); err != nil {
+				return err
+			}
+			targets = append(targets, target)
 		}
-		store.targets[scrapeTargetKey(target)] = target
+		store.targets[deviceUID] = targets
 	}
 	if len(snapshot.GitHub) > 0 {
 		github := &mev1.GithubSyncDetail{}
@@ -91,39 +96,53 @@ func (store *StatusStore) UpdateMobile(mobile *mev1.MobileState) {
 	store.mobile = mobile
 }
 
-func (store *StatusStore) RegisterTargets(targets []*mev1.ScrapeTarget) error {
+// SetTargets replaces the device's entire target set. An empty set deregisters
+// the device, so a decommissioned host leaves service discovery rather than
+// lingering as a permanently-down target.
+func (store *StatusStore) SetTargets(deviceUID string, targets []*mev1.ScrapeTarget) error {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
-	for _, target := range targets {
-		store.targets[scrapeTargetKey(target)] = target
+	if len(targets) == 0 {
+		delete(store.targets, deviceUID)
+	} else {
+		store.targets[deviceUID] = targets
 	}
 	return store.saveLocked()
 }
 
 // PrometheusHTTPDiscovery returns the Prometheus HTTP service-discovery groups
-// for a job, mapping the opaque device uid onto the stable Prometheus labels.
-func (store *StatusStore) PrometheusHTTPDiscovery(job mev1.ScrapeJob) []PrometheusHTTPDiscoveryGroup {
+// for a job. Every label describing a device is read from its enrollment, so a
+// target can never claim an identity the gateway did not mint.
+func (store *StatusStore) PrometheusHTTPDiscovery(job mev1.ScrapeJob, lookup func(string) (*EnrolledDevice, bool)) []PrometheusHTTPDiscoveryGroup {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
 
-	targets := make([]*mev1.ScrapeTarget, 0, len(store.targets))
-	for _, target := range store.targets {
-		if target.GetJob() == job {
-			targets = append(targets, target)
+	groups := make([]PrometheusHTTPDiscoveryGroup, 0, len(store.targets))
+	for _, deviceUID := range sortedKeys(store.targets) {
+		device, ok := lookup(deviceUID)
+		if !ok {
+			continue
+		}
+		for _, target := range store.targets[deviceUID] {
+			if target.GetJob() != job {
+				continue
+			}
+			groups = append(groups, PrometheusHTTPDiscoveryGroup{
+				Targets: []string{target.GetTarget()},
+				Labels:  prometheusTargetLabels(device),
+			})
 		}
 	}
-	sort.Slice(targets, func(left, right int) bool {
-		return scrapeTargetKey(targets[left]) < scrapeTargetKey(targets[right])
-	})
-
-	groups := make([]PrometheusHTTPDiscoveryGroup, 0, len(targets))
-	for _, target := range targets {
-		groups = append(groups, PrometheusHTTPDiscoveryGroup{
-			Targets: []string{target.GetTarget()},
-			Labels:  prometheusTargetLabels(target),
-		})
-	}
 	return groups
+}
+
+func sortedKeys(targets map[string][]*mev1.ScrapeTarget) []string {
+	keys := make([]string, 0, len(targets))
+	for key := range targets {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func (store *StatusStore) UpdateGitHub(mutator func(*mev1.GithubSyncDetail)) error {
@@ -158,19 +177,17 @@ func (store *StatusStore) Snapshot() StatusSnapshot {
 // so a crash mid-write cannot leave a truncated or corrupt state file.
 func (store *StatusStore) saveLocked() error {
 	snapshot := persistedState{}
-	targets := make([]*mev1.ScrapeTarget, 0, len(store.targets))
-	for _, target := range store.targets {
-		targets = append(targets, target)
+	if len(store.targets) > 0 {
+		snapshot.Targets = make(map[string][]json.RawMessage, len(store.targets))
 	}
-	sort.Slice(targets, func(left, right int) bool {
-		return scrapeTargetKey(targets[left]) < scrapeTargetKey(targets[right])
-	})
-	for _, target := range targets {
-		raw, err := protojson.Marshal(target)
-		if err != nil {
-			return err
+	for deviceUID, targets := range store.targets {
+		for _, target := range targets {
+			raw, err := protojson.Marshal(target)
+			if err != nil {
+				return err
+			}
+			snapshot.Targets[deviceUID] = append(snapshot.Targets[deviceUID], raw)
 		}
-		snapshot.Targets = append(snapshot.Targets, raw)
 	}
 	if store.github != nil {
 		raw, err := protojson.Marshal(store.github)
@@ -213,29 +230,21 @@ func (store *StatusStore) saveLocked() error {
 	return os.Rename(tempName, store.stateFile)
 }
 
-func scrapeTargetKey(target *mev1.ScrapeTarget) string {
-	return scrapeJobString(target.GetJob()) + "/" + target.GetTarget()
-}
-
-func prometheusTargetLabels(target *mev1.ScrapeTarget) map[string]string {
-	labels := map[string]string{}
-	instance := firstString(target.GetDeviceUid(), target.GetTarget())
-	if instance != "" {
-		labels["instance"] = instance
+func prometheusTargetLabels(device *EnrolledDevice) map[string]string {
+	labels := map[string]string{
+		"instance":  device.UID,
+		"device_id": device.UID,
 	}
-	if target.GetDeviceUid() != "" {
-		labels["device_id"] = target.GetDeviceUid()
+	if device.DisplayName != "" {
+		labels["device_name"] = device.DisplayName
 	}
-	if target.GetDisplayName() != "" {
-		labels["device_name"] = target.GetDisplayName()
+	if device.Model != "" {
+		labels["device_model"] = device.Model
 	}
-	if target.GetModel() != "" {
-		labels["device_model"] = target.GetModel()
-	}
-	if kind := deviceKindString(target.GetKind()); kind != "" {
+	if kind := deviceKindString(device.Kind); kind != "" {
 		labels["device_kind"] = kind
 	}
-	if role := deviceRoleString(target.GetRole()); role != "" {
+	if role := deviceRoleString(device.Role); role != "" {
 		labels["device_role"] = role
 	}
 	return labels

@@ -6,7 +6,6 @@ import { GetMetricRangeRequestSchema, MetricSeries } from '@/gen/realtime/me/v1/
 import type { GetMetricRangeRequest } from '@/gen/realtime/me/v1/metrics_pb';
 import type { Agent, DeviceState, InternalStatus, MobileState } from '@/gen/realtime/me/v1/status_pb';
 import type { Accessory } from '@/gen/realtime/me/v1/status_types_pb';
-import { WristState } from '@/gen/realtime/me/v1/watch_pb';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -195,7 +194,7 @@ function mobileChartDefinitions(mobile: MobileState): ChartDefinition[] {
   const watch = mobile.watch;
   if (!watch) return definitions;
   const watchName = watch.deviceInfo?.displayName || 'Watch';
-  if (watch.watchState?.wristState !== WristState.OFF_WRIST && watch.heartRate !== undefined) {
+  if (watch.heartRate !== undefined) {
     definitions.push({ id: `${mobile.deviceUid}:watch-hr`, title: `${watchName} heart rate`, unit: 'rate', icon: <HeartPulse className="size-4" />, series: MetricSeries.WATCH_HEART_RATE, deviceUid: mobile.deviceUid });
   }
   if (watch.activityTotals !== undefined) {

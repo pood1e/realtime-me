@@ -15,7 +15,6 @@ import me.realtime.mobile.state.StatusRepository
 import me.realtime.mobile.state.StoredWatchSnapshot
 import me.realtime.protocol.v1.ChargeState
 import me.realtime.protocol.v1.WatchSnapshot
-import me.realtime.protocol.v1.WristState
 import java.text.NumberFormat
 import java.time.Instant
 import java.time.LocalDate
@@ -66,7 +65,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         viewModelScope.launch {
-            repository.saveToken(token)
+            if (!repository.saveToken(token)) {
+                events.trySend(MainEvent.TokenSaveFailed)
+                return@launch
+            }
             connected.value = true
             events.trySend(MainEvent.TokenSaved)
             repository.refreshFromWatch()
@@ -86,7 +88,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         steps = formatSteps(snapshot),
         battery = formatBattery(snapshot),
         isCharging = isCharging(snapshot),
-        isOffWrist = isOffWrist(snapshot),
         updatedAt = formatReceivedAt(receivedAt),
     )
 
@@ -107,9 +108,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun isCharging(snapshot: WatchSnapshot): Boolean =
         snapshot.hasWatchState() && snapshot.watchState.chargeState == ChargeState.CHARGE_STATE_CHARGING
-
-    private fun isOffWrist(snapshot: WatchSnapshot): Boolean =
-        snapshot.hasWatchState() && snapshot.watchState.wristState == WristState.WRIST_STATE_OFF_WRIST
 
     private fun formatReceivedAt(receivedAt: Instant): String {
         val receivedDate = receivedAt.atZone(zoneId).toLocalDate()
@@ -140,7 +138,6 @@ sealed interface WatchDataUiState {
         val steps: String,
         val battery: String,
         val isCharging: Boolean,
-        val isOffWrist: Boolean,
         val updatedAt: String,
     ) : WatchDataUiState
 }
@@ -148,5 +145,6 @@ sealed interface WatchDataUiState {
 sealed interface MainEvent {
     data object TokenSaved : MainEvent
     data object TokenMissing : MainEvent
+    data object TokenSaveFailed : MainEvent
     data object Disconnected : MainEvent
 }

@@ -7,15 +7,11 @@ import android.os.BatteryManager
 import me.realtime.protocol.toProtoTimestamp
 import me.realtime.protocol.v1.ChargeState
 import me.realtime.protocol.v1.WatchState
-import me.realtime.protocol.v1.WristState
 import java.time.Instant
 import kotlin.math.roundToInt
 
 object WatchStateReader {
-    fun read(
-        context: Context,
-        wristState: WristState = WristState.WRIST_STATE_UNSPECIFIED,
-    ): WatchState {
+    fun read(context: Context): WatchState {
         val batteryIntent = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
         val batteryPercent = batteryIntent?.batteryPercent() ?: 0
         val chargeState = if (batteryIntent?.charging() == true) {
@@ -27,7 +23,6 @@ object WatchStateReader {
         return WatchState.newBuilder()
             .setBatteryPercent(batteryPercent)
             .setChargeState(chargeState)
-            .setWristState(wristState)
             .setSampleTime(Instant.now().toProtoTimestamp())
             .build()
     }
