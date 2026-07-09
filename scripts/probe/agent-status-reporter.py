@@ -136,7 +136,7 @@ def build_snapshots(args: argparse.Namespace) -> list[AgentSnapshot]:
     codex_homes = [expand_path(value) for value in re.split(r"[:;,]", args.codex_homes) if value.strip()]
     return [
         codex_snapshot(codex_homes, processes, now, args.active_window_seconds),
-        claude_snapshot(expand_path(args.claude_home), processes, now),
+        claude_snapshot(expand_path(args.claude_home), processes, now, args.active_window_seconds),
     ]
 
 
@@ -376,16 +376,19 @@ def open_files(process_id: int) -> list[Path]:
 # separate records, so the tail holds no tool call long before it is done.
 
 
-def claude_snapshot(home: Path, processes: dict[int, str], now: float) -> AgentSnapshot:
+def claude_snapshot(home: Path, processes: dict[int, str], now: float, active_window_seconds: int) -> AgentSnapshot:
     sessions = claude_live_sessions(home, processes)
     if not sessions:
         return AgentSnapshot(kind=CLAUDE_KIND, state="idle")
 
     subagents = tuple(model for session in sessions for model in claude_subagent_models(session, now))
-    # `busy` flips when a turn starts and ends, so it needs no freshness window:
-    # a session file only outlives its turn if the CLI itself is gone, and a dead
-    # pid is already filtered out. Ranking falls back to the last transcript write.
-    working = [session for session in sessions if session.busy]
+    # `busy` is what a session claims; its transcript is what it did. A background
+    # session goes on claiming `busy` while it waits for its next instruction, so
+    # the claim alone lights the mascot for as long as the job lives. A turn writes
+    # its thinking, its prose and every tool call as it goes, so a session silent
+    # for the whole window is not computing -- the window that retires a Codex turn
+    # wedged on a tool call retires this one too, and for the same reason.
+    working = [session for session in sessions if session.busy and now - session.written_at_seconds <= active_window_seconds]
     newest = max(working or sessions, key=lambda session: session.written_at_seconds)
     return AgentSnapshot(
         kind=CLAUDE_KIND,
