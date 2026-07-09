@@ -1,5 +1,5 @@
 import { AlertTriangle, Battery, Cpu, Footprints, HardDrive, Headphones, HeartPulse, LineChart as LineChartIcon, MemoryStick } from 'lucide-react';
-import { lazy, Suspense, useEffect, useMemo, useState, type ReactElement } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactElement } from 'react';
 import { create } from '@bufbuild/protobuf';
 import { timestampFromDate } from '@bufbuild/protobuf/wkt';
 import { GetMetricRangeRequestSchema, MetricSeries } from '@/gen/realtime/me/v1/metrics_pb';
@@ -48,7 +48,9 @@ const StatusChart = lazy(() => import('@/components/StatusChart'));
 export function MetricsExplorer({ status, token }: { status: InternalStatus; token: string }) {
   const [rangeId, setRangeId] = useState(CHART_RANGES[1].id);
   const range = CHART_RANGES.find((item) => item.id === rangeId) ?? CHART_RANGES[1];
-  const charts = useMemo(() => chartDefinitions(status), [status]);
+  // Not memoised on `status`: each poll yields a fresh object, so the memo never
+  // hit. Building the definitions is cheap, and every chart fetches its own data.
+  const charts = chartDefinitions(status);
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between gap-3">

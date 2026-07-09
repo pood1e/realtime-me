@@ -28,15 +28,18 @@ export function deviceCounts(status: InternalStatus): { online: number; total: n
 }
 
 export function deviceDisplayName(device: DeviceState | null | undefined, fallback: string): string {
-  return displayLabel(fallback, device?.displayName, device?.deviceUid);
+  return humanLabel(device?.displayName) ?? fallback;
 }
 
 export function agentDeviceLabel(agent: Agent): string {
-  return displayLabel('', agent.displayName, agent.deviceUid);
+  return humanLabel(agent.displayName) ?? '';
 }
 
-export function displayLabel(fallback: string, ...values: Array<string | undefined>): string {
-  return values.find((value) => value && !isPrivateIPv4(value)) ?? fallback;
+// humanLabel keeps only a name a person would recognise. A LAN address is not
+// one; neither is the device uid, which is an internal identifier and never a
+// candidate here however empty the name.
+function humanLabel(value: string | undefined): string | undefined {
+  return value && !isPrivateIPv4(value) ? value : undefined;
 }
 
 export function onlineStateLabel(state: OnlineState | undefined): string {

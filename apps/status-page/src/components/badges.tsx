@@ -68,7 +68,7 @@ export function RingGauge({ value, label, detail }: { value: number | null | und
   const circumference = 2 * Math.PI * radius;
   const pct = Math.max(0, Math.min(100, value ?? 0));
   const offset = circumference * (1 - pct / 100);
-  const tone = pct >= 90 ? 'stroke-red-500' : pct >= 75 ? 'stroke-amber-500' : 'stroke-primary';
+  const tone = pct >= 90 ? 'stroke-destructive' : pct >= 75 ? 'stroke-warning' : 'stroke-primary';
   return (
     <div className="flex flex-col items-center gap-1.5" title={detail ? `${label}: ${detail}` : label}>
       <div className="relative size-[3.25rem]">

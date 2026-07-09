@@ -1,5 +1,5 @@
 import type { DeviceState } from '@/gen/realtime/me/v1/status_pb';
-import { formatGigabytes, formatPercent } from '@/lib/format';
+import { formatBytes, formatPercent } from '@/lib/format';
 
 export const CPU_CORES = 'system.cpu.logical.count';
 export const CPU_USAGE = 'system.cpu.utilization';
@@ -43,7 +43,7 @@ export function memoryValues(device: Device): { text: string; percent?: number }
   const used = metricValue(device, MEMORY_USAGE);
   const total = metricValue(device, MEMORY_LIMIT);
   if (used === undefined || total === undefined || total <= 0) return { text: '—' };
-  return { text: `${formatGigabytes(used)}/${formatGigabytes(total)}`, percent: (used * 100) / total };
+  return { text: `${formatBytes(used)}/${formatBytes(total)}`, percent: (used * 100) / total };
 }
 
 export function diskValues(device: Device): { text: string; percent?: number } {
@@ -51,7 +51,7 @@ export function diskValues(device: Device): { text: string; percent?: number } {
   const total = metricValue(device, FILESYSTEM_LIMIT);
   if (used !== undefined && total !== undefined && total > 0) {
     const percent = (used * 100) / total;
-    return { text: `${formatGigabytes(used)}/${formatGigabytes(total)} · ${formatPercent(percent)}`, percent };
+    return { text: `${formatBytes(used)}/${formatBytes(total)} · ${formatPercent(percent)}`, percent };
   }
   const directPercent = metricPercent(device, FILESYSTEM_UTILIZATION);
   if (directPercent !== undefined) return { text: formatPercent(directPercent), percent: directPercent };

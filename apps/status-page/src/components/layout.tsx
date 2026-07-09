@@ -1,10 +1,11 @@
 import type { Timestamp } from '@bufbuild/protobuf/wkt';
-import { AlertTriangle, CheckCircle2, Clock, LoaderCircle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, CloudOff, LoaderCircle, RefreshCw } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ThemeToggle } from '@/components/theme';
 import { formatTime } from '@/lib/format';
@@ -118,6 +119,40 @@ export function LoadingCard() {
     <Card>
       <CardContent className="flex items-center gap-2 text-sm text-muted-foreground">
         <LoaderCircle className="size-4 animate-spin" />Loading
+      </CardContent>
+    </Card>
+  );
+}
+
+// SkeletonCard holds a card's shape while the first poll is in flight, so the
+// page does not paint every empty state and then re-lay-out around real data.
+export function SkeletonCard() {
+  return (
+    <Card aria-hidden>
+      <CardHeader>
+        <CardTitle className="w-full"><Skeleton className="h-4 w-28" /></CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-3 w-2/3" />
+      </CardContent>
+    </Card>
+  );
+}
+
+// ErrorCard says the backend is unreachable. Rendering an empty state instead
+// tells the visitor there is nothing here, which is a different and false claim.
+export function ErrorCard({ text, retry }: { text: string; retry?: () => void }) {
+  return (
+    <Card>
+      <CardContent className="flex flex-wrap items-center gap-3">
+        <CloudOff className="size-4 shrink-0 text-destructive" />
+        <CardDescription className="grow">{text}</CardDescription>
+        {retry && (
+          <Button variant="secondary" size="sm" onClick={retry}>
+            <RefreshCw />Retry
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
