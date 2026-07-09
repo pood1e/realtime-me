@@ -186,3 +186,30 @@ func TestMetricPointsSkipsMalformedSamples(t *testing.T) {
 		t.Errorf("timestamp = %d", got)
 	}
 }
+
+// The Mac runs the darwin node_exporter, which publishes neither
+// node_memory_MemTotal_bytes nor node_memory_MemAvailable_bytes. A memory query
+// that names only the Linux series charts nothing for it.
+func TestHostMemoryQueryCoversDarwinNodeExporter(t *testing.T) {
+	query, err := metricSeriesQuery(&mev1.GetMetricRangeRequest{
+		Series:    mev1.MetricSeries_METRIC_SERIES_HOST_MEMORY_USAGE,
+		DeviceUid: "dev_aaaa",
+	})
+	if err != nil {
+		t.Fatalf("metricSeriesQuery: %v", err)
+	}
+	for _, series := range []string{
+		"node_memory_MemTotal_bytes",
+		"node_memory_MemAvailable_bytes",
+		"node_memory_total_bytes",
+		"node_memory_free_bytes",
+		"node_memory_inactive_bytes",
+	} {
+		if !strings.Contains(query, series) {
+			t.Errorf("host memory query does not read %s: %s", series, query)
+		}
+	}
+	if !strings.Contains(query, "ignoring(__name__)") {
+		t.Errorf("darwin free+inactive must drop __name__ to add: %s", query)
+	}
+}

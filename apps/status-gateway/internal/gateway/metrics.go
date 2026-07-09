@@ -99,7 +99,15 @@ func metricSeriesQuery(request *mev1.GetMetricRangeRequest) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf(`node_memory_MemTotal_bytes{%s} - node_memory_MemAvailable_bytes{%s}`, selector, selector), nil
+		// Linux node_exporter reads /proc/meminfo; the darwin build publishes its
+		// own names and has no MemAvailable, so total and available each fall back
+		// to the darwin equivalents. Without this a Mac's memory chart is empty.
+		total := fmt.Sprintf(`(node_memory_MemTotal_bytes{%s} or node_memory_total_bytes{%s})`, selector, selector)
+		available := fmt.Sprintf(
+			`(node_memory_MemAvailable_bytes{%s} or (node_memory_free_bytes{%s} + ignoring(__name__) node_memory_inactive_bytes{%s}))`,
+			selector, selector, selector,
+		)
+		return total + " - " + available, nil
 
 	case mev1.MetricSeries_METRIC_SERIES_HOST_FILESYSTEM_UTILIZATION:
 		selector, err := hostSelector(request.GetDeviceUid())
