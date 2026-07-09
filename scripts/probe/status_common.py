@@ -12,15 +12,28 @@ import json
 import os
 import re
 import subprocess
+import threading
 import time
 import urllib.error
 import urllib.request
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from concurrent.futures import ThreadPoolExecutor
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Callable, NamedTuple
 
 JSON_CONTENT_TYPE = "application/json; charset=utf-8"
 METRICS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
+
+# Rendering a scrape shells out to ps, lsof, bluetoothctl and friends. Serving it
+# from a short-lived cache keeps the scrape rate from becoming the process spawn
+# rate. The TTL stays well under Prometheus's 15s scrape interval, so a scrape
+# never reads a sample belonging to the previous one.
+METRICS_CACHE_TTL_SECONDS = 5.0
+
+# A thread per connection lets any LAN client turn concurrent GETs into unbounded
+# threads. A fixed pool turns them into a queue instead.
+WORKER_THREADS = 8
+REQUEST_TIMEOUT_SECONDS = 10
 
 DEVICE_KIND_ENUMS = {
     "host": "DEVICE_KIND_HOST",
@@ -152,10 +165,56 @@ def text_response(text: str, status: int = 200) -> Response:
     return Response(text.encode(), METRICS_CONTENT_TYPE, status)
 
 
+def cached(render: Callable[[], Response], ttl_seconds: float = METRICS_CACHE_TTL_SECONDS) -> Callable[[], Response]:
+    """Serve one render to every caller within the TTL, and render once at a time."""
+    lock = threading.Lock()
+    state: dict[str, object] = {"expires_at": 0.0, "response": None}
+
+    def serve() -> Response:
+        with lock:
+            response = state["response"]
+            if response is not None and time.monotonic() < state["expires_at"]:
+                return response  # type: ignore[return-value]
+            fresh = render()
+            state["response"] = fresh
+            state["expires_at"] = time.monotonic() + ttl_seconds
+            return fresh
+
+    return serve
+
+
+class PooledHTTPServer(HTTPServer):
+    """Serves every request from a fixed thread pool, so a burst of connections
+    becomes a queue rather than a thread apiece."""
+
+    request_queue_size = 32
+
+    def __init__(self, address: tuple[str, int], handler: type[BaseHTTPRequestHandler], workers: int) -> None:
+        super().__init__(address, handler)
+        self.pool = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="probe")
+
+    def process_request(self, request: object, client_address: object) -> None:
+        self.pool.submit(self.handle_request_in_pool, request, client_address)
+
+    def handle_request_in_pool(self, request: object, client_address: object) -> None:
+        try:
+            self.finish_request(request, client_address)
+        except OSError:
+            self.handle_error(request, client_address)
+        finally:
+            self.shutdown_request(request)
+
+    def server_close(self) -> None:
+        super().server_close()
+        self.pool.shutdown(wait=False)
+
+
 def run_server(bind: str, port: int, routes: dict[str, Callable[[], Response]]) -> int:
     """Serve the read-only exporter routes until interrupted."""
 
     class Handler(BaseHTTPRequestHandler):
+        timeout = REQUEST_TIMEOUT_SECONDS
+
         def do_GET(self) -> None:
             route = routes.get(self.path)
             self.write_response(route() if route else json_response({"error": "not_found"}, 404))
@@ -171,11 +230,13 @@ def run_server(bind: str, port: int, routes: dict[str, Callable[[], Response]]) 
         def log_message(self, _format: str, *_args: object) -> None:
             return
 
-    server = ThreadingHTTPServer((bind, port), Handler)
+    server = PooledHTTPServer((bind, port), Handler, WORKER_THREADS)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         return 130
+    finally:
+        server.server_close()
     return 0
 
 

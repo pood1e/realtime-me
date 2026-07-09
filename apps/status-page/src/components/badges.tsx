@@ -35,14 +35,8 @@ export function MetricBadge({ icon, value, title, variant = 'outline' }: {
 }
 
 export function MediaBadge({ media, maxLength = 36 }: { media: MediaStatus; maxLength?: number }) {
-  const cover = media.coverUrl;
   const text = mediaText(media);
-  const icon = cover ? (
-    <img src={cover} alt="" className="-ml-0.5 size-4 rounded-sm object-cover" width={16} height={16} />
-  ) : (
-    <Music />
-  );
-  return <MetricBadge icon={icon} value={compactText(text, maxLength)} title={`Playing: ${text}`} variant="secondary" />;
+  return <MetricBadge icon={<Music />} value={compactText(text, maxLength)} title={`Playing: ${text}`} variant="secondary" />;
 }
 
 export function AccessoryBadges({ accessories, maxLength = 30 }: { accessories?: Accessory[]; maxLength?: number }) {

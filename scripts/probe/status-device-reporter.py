@@ -22,6 +22,7 @@ from status_common import (
     json_response,
     label_set,
     run,
+    cached,
     run_server,
     text_response,
 )
@@ -32,7 +33,6 @@ class MediaSnapshot:
     title: str
     artist: str = ""
     player: str = ""
-    cover: str = ""
 
 
 @dataclass(frozen=True)
@@ -47,7 +47,7 @@ def main() -> int:
     args = parse_args()
     routes = {
         "/healthz": lambda: json_response({"ok": True}),
-        "/metrics": lambda: text_response(render_prometheus_metrics()),
+        "/metrics": cached(lambda: text_response(render_prometheus_metrics())),
     }
     return run_server(args.bind, args.port, routes)
 
@@ -73,7 +73,7 @@ def render_prometheus_metrics() -> str:
     ]
     media = current_media()
     if media:
-        labels = {"title": media.title, "artist": media.artist, "player": media.player, "cover_url": media.cover}
+        labels = {"title": media.title, "artist": media.artist, "player": media.player}
         lines.append(f"realtime_device_media_playing{label_set(labels)} 1")
     for accessory in bluetooth_audio_accessories():
         labels = accessory_labels(accessory)
@@ -239,8 +239,8 @@ def current_media() -> MediaSnapshot | None:
 
 
 def darwin_media() -> MediaSnapshot | None:
-    # Spotify/Music are tried first because they expose a remote artwork URL and
-    # check play state themselves; nowplaying-cli is the fallback for others.
+    # Spotify/Music are tried first because they check play state themselves;
+    # nowplaying-cli is the fallback for every other player.
     for provider in (darwin_spotify_media, darwin_music_media, darwin_nowplaying_cli):
         media = provider()
         if media:
@@ -300,20 +300,16 @@ tell application "System Events" to set spotifyRunning to exists (processes wher
 if spotifyRunning then
   tell application "Spotify"
     if player state is playing then
-      return (name of current track) & linefeed & (artist of current track) & linefeed & (artwork url of current track)
+      return (name of current track) & linefeed & (artist of current track)
     end if
   end tell
 end if
 return ""
 """
-    lines = run_osascript(script).splitlines()
-    title = sanitize_media_text(lines[0].strip()) if lines else ""
+    title, artist = media_title_artist(run_osascript(script))
     if not title:
         return None
-    artist = sanitize_media_text(lines[1].strip()) if len(lines) > 1 else ""
-    art = lines[2].strip() if len(lines) > 2 else ""
-    cover = art if art.startswith(("http://", "https://")) else ""
-    return MediaSnapshot(title=title, artist=artist, player="Spotify", cover=cover)
+    return MediaSnapshot(title=title, artist=artist, player="Spotify")
 
 
 def linux_media() -> MediaSnapshot | None:
@@ -329,13 +325,10 @@ def linux_media() -> MediaSnapshot | None:
                 run(["playerctl", "--player", player, "metadata", "artist"]).strip(),
                 run(["playerctl", "--player", player, "metadata", "xesam:artist"]).strip(),
             )
-            art = run(["playerctl", "--player", player, "metadata", "mpris:artUrl"]).strip()
-            cover = art if art.startswith(("http://", "https://")) else ""
             return MediaSnapshot(
                 title=sanitize_media_text(title),
                 artist=sanitize_media_text(artist),
                 player=sanitize_media_text(player),
-                cover=cover,
             )
     return None
 

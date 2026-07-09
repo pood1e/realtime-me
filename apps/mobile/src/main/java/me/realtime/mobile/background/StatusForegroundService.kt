@@ -31,7 +31,9 @@ import java.time.Duration
  * data arrives via [me.realtime.mobile.wear.WatchSnapshotListenerService], and
  * this service pushes on connectivity and charging changes — with a single
  * low-frequency heartbeat as the fallback. Every trigger funnels through one
- * conflated channel so bursts coalesce into a single serialized push.
+ * conflated channel so bursts coalesce into a single serialized push. The
+ * gateway expires a phone report after 15 minutes, so the heartbeat has to stay
+ * comfortably inside that window.
  */
 class StatusForegroundService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -157,7 +159,11 @@ class StatusForegroundService : Service() {
     companion object {
         private const val CHANNEL_ID = "status_gateway_sync"
         private const val NOTIFICATION_ID = 200
-        private val HEARTBEAT_INTERVAL: Duration = Duration.ofSeconds(30)
+        // The event triggers below carry every real transition; this is only the
+        // fallback for a phone whose state has not changed. At 30s it was ~2,880
+        // pushes a day on an idle phone, each one a full report with Bluetooth
+        // profile scans.
+        private val HEARTBEAT_INTERVAL: Duration = Duration.ofMinutes(5)
 
         fun start(context: Context) {
             runCatching {

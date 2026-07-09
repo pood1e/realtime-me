@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -28,6 +29,10 @@ const (
 	metricSystemFilesystemLimit    = "system.filesystem.limit"
 	metricSystemFilesystemUsagePct = "system.filesystem.utilization"
 	maxPrometheusResponseSize      = 4 * 1024 * 1024
+
+	// maxConcurrentPrometheusQueries sizes the idle-connection pool to the widest
+	// concurrent fan-out a single status assembly performs.
+	maxConcurrentPrometheusQueries = 10
 )
 
 type PrometheusClient struct {
@@ -41,28 +46,65 @@ type prometheusSample struct {
 }
 
 func NewPrometheusClient(baseURL string) *PrometheusClient {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	// A status assembly issues its queries concurrently against one host; the
+	// default of two idle connections would serialize them onto new sockets.
+	transport.MaxIdleConnsPerHost = maxConcurrentPrometheusQueries
 	return &PrometheusClient{
 		baseURL: baseURL,
 		client: &http.Client{
-			Timeout: 3 * time.Second,
+			Timeout:   3 * time.Second,
+			Transport: transport,
 		},
 	}
 }
 
-func (client *PrometheusClient) ServerStatus(ctx context.Context) *mev1.DeviceState {
-	up := client.queryScalar(ctx, `max(up{job="node-exporter",instance="server"})`)
-	cpuUsage := client.queryRatio(ctx, `1 - avg(rate(node_cpu_seconds_total{job="node-exporter",instance="server",mode="idle"}[2m]))`)
-	cpuCores := client.queryScalar(ctx, `count(count by (cpu) (node_cpu_seconds_total{job="node-exporter",instance="server",mode="idle"}))`)
-	memoryTotal := client.queryScalar(ctx, `node_memory_MemTotal_bytes{job="node-exporter",instance="server"}`)
-	memoryAvailable := client.queryScalar(ctx, `node_memory_MemAvailable_bytes{job="node-exporter",instance="server"}`)
-	diskTotal := client.queryScalar(ctx, `node_filesystem_size_bytes{job="node-exporter",instance="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`)
-	diskAvailable := client.queryScalar(ctx, `node_filesystem_avail_bytes{job="node-exporter",instance="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`)
-	models := nodeModels(
-		client.queryVector(ctx, `node_os_info{job="node-exporter",instance="server"}`),
-		client.queryVector(ctx, `node_uname_info{job="node-exporter",instance="server"}`),
+// parallel runs every function concurrently and waits for all of them. The
+// status document is assembled from many independent Prometheus queries; run
+// serially they add up to more than the server's write timeout.
+func parallel(functions ...func()) {
+	var group sync.WaitGroup
+	group.Add(len(functions))
+	for _, function := range functions {
+		go func() {
+			defer group.Done()
+			function()
+		}()
+	}
+	group.Wait()
+}
+
+// ServerStatus describes the always-on server. Media and accessories are passed
+// in because the whole fleet's are read in one pair of queries, not once per
+// device group.
+func (client *PrometheusClient) ServerStatus(ctx context.Context, media map[string]*mev1.MediaStatus, accessories map[string][]*mev1.Accessory) *mev1.DeviceState {
+	var up, cpuCores, memoryTotal, memoryAvailable, diskTotal, diskAvailable *float64
+	var cpuUsage *float64
+	var osInfo, unameInfo []prometheusSample
+	parallel(
+		func() { up = client.queryScalar(ctx, `max(up{job="node-exporter",instance="server"})`) },
+		func() {
+			cpuUsage = client.queryRatio(ctx, `1 - avg(rate(node_cpu_seconds_total{job="node-exporter",instance="server",mode="idle"}[2m]))`)
+		},
+		func() {
+			cpuCores = client.queryScalar(ctx, `count(count by (cpu) (node_cpu_seconds_total{job="node-exporter",instance="server",mode="idle"}))`)
+		},
+		func() {
+			memoryTotal = client.queryScalar(ctx, `node_memory_MemTotal_bytes{job="node-exporter",instance="server"}`)
+		},
+		func() {
+			memoryAvailable = client.queryScalar(ctx, `node_memory_MemAvailable_bytes{job="node-exporter",instance="server"}`)
+		},
+		func() {
+			diskTotal = client.queryScalar(ctx, `node_filesystem_size_bytes{job="node-exporter",instance="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`)
+		},
+		func() {
+			diskAvailable = client.queryScalar(ctx, `node_filesystem_avail_bytes{job="node-exporter",instance="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`)
+		},
+		func() { osInfo = client.queryVector(ctx, `node_os_info{job="node-exporter",instance="server"}`) },
+		func() { unameInfo = client.queryVector(ctx, `node_uname_info{job="node-exporter",instance="server"}`) },
 	)
-	media := client.DeviceMediaStatuses(ctx)
-	accessories := client.DeviceAccessoryStatuses(ctx)
+	models := nodeModels(osInfo, unameInfo)
 
 	return &mev1.DeviceState{
 		DeviceUid:   "server",
@@ -77,23 +119,43 @@ func (client *PrometheusClient) ServerStatus(ctx context.Context) *mev1.DeviceSt
 	}
 }
 
-func (client *PrometheusClient) NodeExporterStatuses(ctx context.Context) []*mev1.DeviceState {
+func (client *PrometheusClient) NodeExporterStatuses(ctx context.Context, media map[string]*mev1.MediaStatus, accessories map[string][]*mev1.Accessory) []*mev1.DeviceState {
 	up := client.queryVector(ctx, `up{job=~"node-exporter|vm-node-exporter",instance!="server"}`)
 	if len(up) == 0 {
 		return nil
 	}
-	cpuUsage := samplesByInstance(client.queryVector(ctx, `1 - avg by (instance) (rate(node_cpu_seconds_total{job=~"node-exporter|vm-node-exporter",instance!="server",mode="idle"}[2m]))`))
-	cpuCores := samplesByInstance(client.queryVector(ctx, `count by (instance) (count by (instance, cpu) (node_cpu_seconds_total{job=~"node-exporter|vm-node-exporter",instance!="server",mode="idle"}))`))
-	// Linux node_exporter names come from /proc/meminfo; the darwin build uses
-	// its own metric names, so fall back to those for macOS nodes. MemAvailable
-	// has no darwin equivalent, so approximate it from reclaimable memory.
-	memoryTotal := samplesByInstance(client.queryVector(ctx, `node_memory_MemTotal_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"} or node_memory_total_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"}`))
-	memoryAvailable := samplesByInstance(client.queryVector(ctx, `node_memory_MemAvailable_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"} or (node_memory_free_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"} + ignoring(__name__) node_memory_inactive_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"})`))
-	diskTotal := samplesByInstance(client.queryVector(ctx, `node_filesystem_size_bytes{job=~"node-exporter|vm-node-exporter",instance!="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`))
-	diskAvailable := samplesByInstance(client.queryVector(ctx, `node_filesystem_avail_bytes{job=~"node-exporter|vm-node-exporter",instance!="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`))
-	models := nodeModels(client.queryVector(ctx, `node_os_info{job=~"node-exporter|vm-node-exporter",instance!="server"}`), client.queryVector(ctx, `node_uname_info{job=~"node-exporter|vm-node-exporter",instance!="server"}`))
-	media := client.DeviceMediaStatuses(ctx)
-	accessories := client.DeviceAccessoryStatuses(ctx)
+	var cpuUsage, cpuCores, memoryTotal, memoryAvailable, diskTotal, diskAvailable map[string]*float64
+	var osInfo, unameInfo []prometheusSample
+	parallel(
+		func() {
+			cpuUsage = samplesByInstance(client.queryVector(ctx, `1 - avg by (instance) (rate(node_cpu_seconds_total{job=~"node-exporter|vm-node-exporter",instance!="server",mode="idle"}[2m]))`))
+		},
+		func() {
+			cpuCores = samplesByInstance(client.queryVector(ctx, `count by (instance) (count by (instance, cpu) (node_cpu_seconds_total{job=~"node-exporter|vm-node-exporter",instance!="server",mode="idle"}))`))
+		},
+		// Linux node_exporter names come from /proc/meminfo; the darwin build uses
+		// its own metric names, so fall back to those for macOS nodes. MemAvailable
+		// has no darwin equivalent, so approximate it from reclaimable memory.
+		func() {
+			memoryTotal = samplesByInstance(client.queryVector(ctx, `node_memory_MemTotal_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"} or node_memory_total_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"}`))
+		},
+		func() {
+			memoryAvailable = samplesByInstance(client.queryVector(ctx, `node_memory_MemAvailable_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"} or (node_memory_free_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"} + ignoring(__name__) node_memory_inactive_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"})`))
+		},
+		func() {
+			diskTotal = samplesByInstance(client.queryVector(ctx, `node_filesystem_size_bytes{job=~"node-exporter|vm-node-exporter",instance!="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`))
+		},
+		func() {
+			diskAvailable = samplesByInstance(client.queryVector(ctx, `node_filesystem_avail_bytes{job=~"node-exporter|vm-node-exporter",instance!="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`))
+		},
+		func() {
+			osInfo = client.queryVector(ctx, `node_os_info{job=~"node-exporter|vm-node-exporter",instance!="server"}`)
+		},
+		func() {
+			unameInfo = client.queryVector(ctx, `node_uname_info{job=~"node-exporter|vm-node-exporter",instance!="server"}`)
+		},
+	)
+	models := nodeModels(osInfo, unameInfo)
 
 	devices := make([]*mev1.DeviceState, 0, len(up))
 	for _, sample := range up {
@@ -150,9 +212,8 @@ func (client *PrometheusClient) DeviceMediaStatuses(ctx context.Context) map[str
 			continue
 		}
 		statuses[deviceID] = &mev1.MediaStatus{
-			Title:    title,
-			Artist:   sample.Metric["artist"],
-			CoverUrl: sample.Metric["cover_url"],
+			Title:  title,
+			Artist: sample.Metric["artist"],
 		}
 	}
 	return statuses
@@ -199,11 +260,19 @@ func (client *PrometheusClient) DeviceAccessoryStatuses(ctx context.Context) map
 }
 
 func (client *PrometheusClient) AgentStatuses(ctx context.Context) []*mev1.Agent {
-	running := client.queryVector(ctx, `realtime_agent_state{job="agent-exporter",state="running"} == 1`)
+	var running, budgetSamples []prometheusSample
+	parallel(
+		func() {
+			running = client.queryVector(ctx, `realtime_agent_state{job="agent-exporter",state="running"} == 1`)
+		},
+		func() {
+			budgetSamples = client.queryVector(ctx, `realtime_agent_budget_remaining_ratio{job="agent-exporter"}`)
+		},
+	)
 	if len(running) == 0 {
 		return nil
 	}
-	budgets := samplesByAgent(client.queryVector(ctx, `realtime_agent_budget_remaining_ratio{job="agent-exporter"}`))
+	budgets := samplesByAgent(budgetSamples)
 	now := timestamppb.New(time.Now().UTC())
 	agents := make([]*mev1.Agent, 0, len(running))
 	for _, sample := range running {

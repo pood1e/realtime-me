@@ -91,6 +91,15 @@ target set: an empty set deregisters the device. When the gateway does not
 recognise a uid it answers `not_found`, which is the signal a client uses to drop
 its cached uid and enroll again.
 
+**Probe exporters cache `/metrics` and serve it from a fixed thread pool.** A
+scrape shells out to `ps`, `lsof` and `bluetoothctl`, so `status_common.cached()`
+keeps the scrape rate from becoming the process-spawn rate, and `PooledHTTPServer`
+keeps a burst of connections from becoming a burst of threads. The cache TTL must
+stay under Prometheus's scrape interval. Prometheus label values carry no
+free text beyond the track title and artist — the artwork URL is gone, because a
+per-play CDN URL is an unbounded series and rendering it made every visitor's
+browser fetch from a third party.
+
 **PromQL lives only in the gateway.** `internal/gateway/metrics.go` is the one
 place a query expression is written. Clients name a `MetricSeries` and pass
 domain selectors (device uid, agent kind, accessory); the gateway resolves the
@@ -106,6 +115,12 @@ run an arbitrary query. Don't reintroduce a `query=` parameter.
   `[]`. cAdvisor sits behind the `containers` Compose profile, so an empty
   file_sd list is the opt-in switch; `cadvisor.yml.example` shows the contents.
   A `static_configs` entry would leave a permanently-down target.
+- `GetPublicStatus` is unauthenticated, so its Prometheus fan-out sits behind a
+  2-second single-flight cache in `internal/gateway/status.go`. Don't add a query
+  to the assembly without checking it runs inside `parallel(...)`.
+- Prometheus runs without `--web.enable-lifecycle`: nothing here reloads it, and
+  the flag serves unauthenticated `/-/reload` and `/-/quit`. Config changes need a
+  container restart.
 - The status page's Worker proxies only `/realtime.me.v1.*` to
   `STATUS_API_BASE_URL`, so the browser always sees one origin. It deliberately
   proxies nothing under `/api/`: those are the gateway's control-plane routes,

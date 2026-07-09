@@ -30,15 +30,10 @@ export function Presence({ status }: { status?: PublicStatus | null }) {
 }
 
 function NowPlaying({ media }: { media: MediaStatus }) {
-  const cover = media.coverUrl;
   const text = media.artist ? `${media.title} · ${media.artist}` : media.title;
   return (
     <span className="flex max-w-[15rem] items-center gap-1.5" title={`Now playing: ${text}`}>
-      {cover ? (
-        <img src={cover} alt="" className="size-5 rounded object-cover" width={20} height={20} />
-      ) : (
-        <Music className="size-3.5 text-primary" />
-      )}
+      <Music className="size-3.5 text-primary" />
       <span className="truncate">{text}</span>
     </span>
   );

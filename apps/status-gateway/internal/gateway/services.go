@@ -147,6 +147,7 @@ type StatusServer struct {
 	store      *StatusStore
 	prometheus *PrometheusClient
 	config     Config
+	cache      prometheusCache
 }
 
 func NewStatusServer(store *StatusStore, prometheus *PrometheusClient, config Config) *StatusServer {

@@ -25,6 +25,7 @@ from status_common import (
     json_response,
     label_set,
     run,
+    cached,
     run_server,
     text_response,
 )
@@ -100,7 +101,7 @@ def main() -> int:
     args = parse_args()
     routes = {
         "/healthz": lambda: json_response({"ok": True}),
-        "/metrics": lambda: text_response(render_prometheus_metrics(build_snapshots(args))),
+        "/metrics": cached(lambda: text_response(render_prometheus_metrics(build_snapshots(args)))),
     }
     return run_server(args.bind, args.port, routes)
 

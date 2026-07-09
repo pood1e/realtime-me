@@ -393,11 +393,7 @@ type MediaStatus struct {
 	// title is the track or media title.
 	Title string `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
 	// artist is the performing artist, if known.
-	Artist string `protobuf:"bytes,2,opt,name=artist,proto3" json:"artist,omitempty"`
-	// cover_url is the artwork URL the player itself reports, when it is a
-	// remotely reachable URL (e.g. a streaming service's CDN). Local-file artwork
-	// is omitted because it cannot be fetched off-device.
-	CoverUrl      string `protobuf:"bytes,3,opt,name=cover_url,json=coverUrl,proto3" json:"cover_url,omitempty"`
+	Artist        string `protobuf:"bytes,2,opt,name=artist,proto3" json:"artist,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -442,13 +438,6 @@ func (x *MediaStatus) GetTitle() string {
 func (x *MediaStatus) GetArtist() string {
 	if x != nil {
 		return x.Artist
-	}
-	return ""
-}
-
-func (x *MediaStatus) GetCoverUrl() string {
-	if x != nil {
-		return x.CoverUrl
 	}
 	return ""
 }
@@ -609,11 +598,10 @@ const file_realtime_me_v1_status_types_proto_rawDesc = "" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x14\n" +
 	"\x05model\x18\x03 \x01(\tR\x05model\x12,\n" +
 	"\x0fbattery_percent\x18\x04 \x01(\x05H\x00R\x0ebatteryPercent\x88\x01\x01B\x12\n" +
-	"\x10_battery_percent\"X\n" +
+	"\x10_battery_percent\"L\n" +
 	"\vMediaStatus\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x16\n" +
-	"\x06artist\x18\x02 \x01(\tR\x06artist\x12\x1b\n" +
-	"\tcover_url\x18\x03 \x01(\tR\bcoverUrl\"\xd9\x01\n" +
+	"\x06artist\x18\x02 \x01(\tR\x06artistJ\x04\b\x03\x10\x04R\tcover_url\"\xd9\x01\n" +
 	"\fMetricSample\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04unit\x18\x02 \x01(\tR\x04unit\x12\x14\n" +

@@ -105,16 +105,14 @@ message Accessory {
 
 // MediaStatus is the media item a device is currently playing.
 message MediaStatus {
+  reserved 3;
+  reserved "cover_url";
+
   // title is the track or media title.
   string title = 1;
 
   // artist is the performing artist, if known.
   string artist = 2;
-
-  // cover_url is the artwork URL the player itself reports, when it is a
-  // remotely reachable URL (e.g. a streaming service's CDN). Local-file artwork
-  // is omitted because it cannot be fetched off-device.
-  string cover_url = 3;
 }
 
 // MetricSample is one OpenTelemetry-named numeric sample reported by a host.

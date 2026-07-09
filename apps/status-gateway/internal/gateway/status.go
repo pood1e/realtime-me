@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -15,21 +16,81 @@ import (
 // without this a phone that lost power would report "charging" indefinitely.
 const mobileStaleAfter = 15 * time.Minute
 
+// derivedStatusTTL bounds how often the status document is rebuilt from
+// Prometheus. GetPublicStatus is unauthenticated and unmetered, and one call
+// fans out across every host, agent, media and accessory query; without this a
+// loop over the public RPC is cheap for the caller and a query storm for us.
+// It is well under the page's own 10s poll, so the page never shows stale data
+// it would not have shown anyway.
+const derivedStatusTTL = 2 * time.Second
+
+// derivedStatusTimeout bounds one refresh, well under the server write timeout.
+const derivedStatusTimeout = 10 * time.Second
+
+// derivedStatus is everything on the status document that comes from Prometheus.
+type derivedStatus struct {
+	server  *mev1.DeviceState
+	devices []*mev1.DeviceState
+	agents  []*mev1.Agent
+}
+
+// prometheusCache serves one Prometheus fan-out to every caller within the TTL,
+// and performs at most one fan-out at a time.
+type prometheusCache struct {
+	mutex    sync.Mutex
+	value    derivedStatus
+	cachedAt time.Time
+}
+
 // buildPublicStatus assembles the unauthenticated status document. Hosts, VMs,
 // and agents come from Prometheus, which scrapes their exporters. Only the
 // phone is pushed, because it cannot be scraped.
 func (server *StatusServer) buildPublicStatus(ctx context.Context) *mev1.PublicStatus {
 	snapshot := server.store.Snapshot()
 	now := time.Now().UTC()
+	derived := server.derivedStatus(ctx, now)
 
 	return &mev1.PublicStatus{
-		Server:     namedServer(server.prometheus.ServerStatus(ctx)),
+		Server:     derived.server,
 		Mobile:     freshMobile(snapshot.Mobile, now),
-		Devices:    server.prometheus.NodeExporterStatuses(ctx),
-		Agents:     server.visibleAgents(ctx, now),
+		Devices:    derived.devices,
+		Agents:     derived.agents,
 		Github:     publicGithubStatus(snapshot.GitHub, server.config.GitHubToken),
 		UpdateTime: timestamppb.New(now),
 	}
+}
+
+// derivedStatus reads the Prometheus-derived half of the document, from the
+// cache when it is fresh and by fanning out concurrently when it is not.
+func (server *StatusServer) derivedStatus(ctx context.Context, now time.Time) derivedStatus {
+	server.cache.mutex.Lock()
+	defer server.cache.mutex.Unlock()
+	if !server.cache.cachedAt.IsZero() && now.Sub(server.cache.cachedAt) < derivedStatusTTL {
+		return server.cache.value
+	}
+
+	// A client that hangs up mid-refresh must not cancel the queries and leave a
+	// truncated document in the cache for everyone else.
+	queryCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), derivedStatusTimeout)
+	defer cancel()
+
+	var media map[string]*mev1.MediaStatus
+	var accessories map[string][]*mev1.Accessory
+	parallel(
+		func() { media = server.prometheus.DeviceMediaStatuses(queryCtx) },
+		func() { accessories = server.prometheus.DeviceAccessoryStatuses(queryCtx) },
+	)
+
+	var fresh derivedStatus
+	parallel(
+		func() { fresh.server = namedServer(server.prometheus.ServerStatus(queryCtx, media, accessories)) },
+		func() { fresh.devices = server.prometheus.NodeExporterStatuses(queryCtx, media, accessories) },
+		func() { fresh.agents = server.visibleAgents(queryCtx, now) },
+	)
+
+	server.cache.value = fresh
+	server.cache.cachedAt = now
+	return fresh
 }
 
 // buildInternalStatus reuses the public assembly but exposes the full GitHub
