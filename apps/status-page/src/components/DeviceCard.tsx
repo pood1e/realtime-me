@@ -2,7 +2,7 @@ import { Activity, Cpu } from 'lucide-react';
 import type { ReactElement } from 'react';
 import type { Agent, DeviceState } from '@/gen/realtime/me/v1/status_pb';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AgentMotion } from '@/components/AgentCard';
+import { AgentStatus } from '@/components/AgentCard';
 import { deviceIcon } from '@/components/brand';
 import {
   AccessoryBadges,
@@ -48,6 +48,7 @@ export function DeviceCard({ device, title, icon, agents = [] }: {
   const showCpuBadge = hasCpuCores && cpuUsage === undefined;
   const hasAnyMetric = hasCpuCores || cpuUsage !== undefined || hasMemory || hasDisk || accessoryCount(device?.accessories) > 0;
   const showNoMetrics = !hasAnyMetric && agents.length === 0;
+  const hasReadings = cpuUsage !== undefined || hasMemory || hasDisk || showCpuBadge || agents.length > 0;
   return (
     <Card>
       <CardHeader>
@@ -58,13 +59,9 @@ export function DeviceCard({ device, title, icon, agents = [] }: {
         </CardAction>
       </CardHeader>
       <CardContent className="flex h-full flex-col gap-4">
-        {agents.length > 0 && (
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {agents.map((agent) => <AgentMotion key={agent.uid} agent={agent} />)}
-          </div>
-        )}
-        {(cpuUsage !== undefined || hasMemory || hasDisk || showCpuBadge) && (
+        {hasReadings && (
           <div className="flex flex-wrap items-start justify-around gap-x-2 gap-y-3 py-1">
+            {agents.map((agent) => <AgentStatus key={agent.uid} agent={agent} />)}
             {cpuUsage !== undefined && <RingGauge value={cpuUsage} label="CPU" detail={cpuText(device)} />}
             {hasMemory && <RingGauge value={memory.percent} label="Mem" detail={memory.text} />}
             {hasDisk && <RingGauge value={disk.percent} label="Disk" detail={disk.text} />}

@@ -159,3 +159,11 @@
   filter: drop-shadow(0 0 1rem oklch(0.64 0.128 44 / 0.2));
 }
 
+/* The nine clips share one canvas, so a fixed height renders Clawd at the same
+   size in all of them. Width follows the canvas; its margin is transparent. */
+.agent-status-image {
+  height: 3.25rem;
+  width: auto;
+  object-fit: contain;
+}
+
