@@ -30,3 +30,7 @@ docs/projects/
 # Python
 __pycache__/
 *.pyc
+
+# Anthropic's Claw'd artwork. Used by the deployed page, never committed. See
+# apps/status-page/src/assets/agents/NOTICE.md
+apps/status-page/src/assets/agents/clawd/
