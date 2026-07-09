@@ -1,7 +1,7 @@
 import type { Agent, Subagent } from '@/gen/realtime/me/v1/status_pb';
-import { AgentClip, agentIcon, agentName, subagentText } from '@/components/AgentCard';
+import { AgentClip, agentIcon, agentName } from '@/components/AgentCard';
 import { Badge } from '@/components/ui/badge';
-import { agentDeviceLabel } from '@/lib/status';
+import { agentDeviceLabel, subagentLabel, subagentModelCounts } from '@/lib/status';
 
 // Working agents live here rather than on the card of the machine they run on: a
 // device can host several at once, and stacking them beside its name crowds the
@@ -47,22 +47,13 @@ function WorkingAgent({ agent }: { agent: Agent }) {
         <div className="flex flex-wrap gap-1">
           {subagentModelCounts(agent.subagents).map(({ model, count }) => (
             <Badge key={model} variant="secondary" className="font-normal">
-              {model ? `${count} × ${model}` : subagentText(count)}
+              {subagentLabel(model, count)}
             </Badge>
           ))}
         </div>
       )}
     </div>
   );
-}
-
-// The sub-agents an agent has out, grouped by the model each runs, busiest first.
-function subagentModelCounts(subagents: Subagent[]): Array<{ model: string; count: number }> {
-  const counts = new Map<string, number>();
-  for (const subagent of subagents) counts.set(subagent.model, (counts.get(subagent.model) ?? 0) + 1);
-  return [...counts]
-    .map(([model, count]) => ({ model, count }))
-    .sort((left, right) => right.count - left.count || left.model.localeCompare(right.model));
 }
 
 function agentTitle(agent: Agent): string {

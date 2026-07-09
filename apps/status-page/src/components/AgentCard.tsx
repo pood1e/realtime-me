@@ -14,7 +14,7 @@ import { Progress } from '@/components/ui/progress';
 import { BrandIcon } from '@/components/brand';
 import { EmptyCard, InlineTime } from '@/components/layout';
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
-import { agentDeviceLabel } from '@/lib/status';
+import { agentDeviceLabel, subagentLabel, subagentModelCounts } from '@/lib/status';
 
 type AgentMotionAsset = {
   src: string;
@@ -109,7 +109,11 @@ export function AgentCard({ agent }: { agent: Agent }) {
         <AgentMotion agent={agent} />
         <div className="flex flex-wrap items-center gap-2">
           <AgentDeviceBadge agent={agent} />
-          {agent.subagents.length > 0 && <Badge variant="secondary">{subagentText(agent.subagents.length)}</Badge>}
+          {subagentModelCounts(agent.subagents).map(({ model, count }) => (
+            <Badge key={model} variant="secondary" className="min-w-0 shrink font-normal">
+              <span className="truncate">{subagentLabel(model, count)}</span>
+            </Badge>
+          ))}
         </div>
         {agent.model && <p className="truncate text-xs text-muted-foreground">{agent.model}</p>}
         {agent.budgetRemainingPercent !== undefined && (
@@ -196,10 +200,6 @@ export function AgentClip({ kind, seed, className, alt, title }: { kind: string;
 export function agentMotionLabel(agent: Agent): string {
   const name = `${agentName(agent.kind)} working`;
   return agent.budgetRemainingPercent === undefined ? name : `${name} · ${agent.budgetRemainingPercent}% budget left`;
-}
-
-export function subagentText(count: number): string {
-  return count === 1 ? '1 sub-agent' : `${count} sub-agents`;
 }
 
 function AgentDeviceBadge({ agent }: { agent: Agent }) {

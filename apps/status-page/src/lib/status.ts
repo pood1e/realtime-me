@@ -1,4 +1,4 @@
-import type { Agent, DeviceState, InternalStatus } from '@/gen/realtime/me/v1/status_pb';
+import type { Agent, DeviceState, InternalStatus, Subagent } from '@/gen/realtime/me/v1/status_pb';
 import { DeviceKind, DeviceRole, NetworkState, OnlineState } from '@/gen/realtime/me/v1/status_types_pb';
 
 export function isVirtualMachine(device: DeviceState): boolean {
@@ -33,6 +33,24 @@ export function deviceDisplayName(device: DeviceState | null | undefined, fallba
 
 export function agentDeviceLabel(agent: Agent): string {
   return humanLabel(agent.displayName) ?? '';
+}
+
+// The sub-agents an agent has out, grouped by the model each runs, busiest first.
+// A sub-agent need not run the model that spawned it, which is why they are
+// grouped by model rather than counted as heads.
+export function subagentModelCounts(subagents: Subagent[]): Array<{ model: string; count: number }> {
+  const counts = new Map<string, number>();
+  for (const subagent of subagents) counts.set(subagent.model, (counts.get(subagent.model) ?? 0) + 1);
+  return [...counts]
+    .map(([model, count]) => ({ model, count }))
+    .sort((left, right) => right.count - left.count || left.model.localeCompare(right.model));
+}
+
+// A sub-agent whose model the exporter could not read is left nameable only by
+// its number, which is still worth showing.
+export function subagentLabel(model: string, count: number): string {
+  if (model) return `${count} × ${model}`;
+  return count === 1 ? '1 sub-agent' : `${count} sub-agents`;
 }
 
 // humanLabel keeps only a name a person would recognise. A LAN address is not
