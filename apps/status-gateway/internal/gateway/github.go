@@ -53,24 +53,49 @@ func (publisher *GitHubStatusPublisher) Enqueue(mobile *mev1.MobileState) {
 
 // Run is the single publish worker. It owns all GitHub updates so overlapping
 // reports never issue concurrent updates, and it stops when ctx is cancelled.
+//
+// A report that arrives inside the minimum-interval window cannot simply be
+// dropped: the trigger channel holds one slot, so dropping it loses the report
+// entirely if no further report follows. The last report before a phone goes
+// idle is exactly the one most likely to land in that window, so the worker
+// re-arms a timer and publishes the newest state once the window closes.
 func (publisher *GitHubStatusPublisher) Run(ctx context.Context) {
+	retry := time.NewTimer(0)
+	if !retry.Stop() {
+		<-retry.C
+	}
+	defer retry.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-publisher.trigger:
-			if mobile := publisher.latest.Load(); mobile != nil {
-				if err := publisher.publishOnce(ctx, mobile); err != nil {
-					slog.Error("failed to publish github status", "error", err)
-				}
-			}
+		case <-retry.C:
+		}
+
+		mobile := publisher.latest.Load()
+		if mobile == nil {
+			continue
+		}
+
+		retry.Stop()
+		wait, err := publisher.publishOnce(ctx, mobile)
+		if err != nil {
+			slog.Error("failed to publish github status", "error", err)
+		}
+		if wait > 0 {
+			retry.Reset(wait)
 		}
 	}
 }
 
-func (publisher *GitHubStatusPublisher) publishOnce(ctx context.Context, mobile *mev1.MobileState) error {
+// publishOnce publishes the status unless the rate limit forbids it. It returns
+// how long the caller must wait before retrying, which is zero when the status
+// was published or when there is nothing left to publish.
+func (publisher *GitHubStatusPublisher) publishOnce(ctx context.Context, mobile *mev1.MobileState) (time.Duration, error) {
 	if publisher.config.GitHubToken == "" {
-		return publisher.store.UpdateGitHub(func(status *mev1.GithubSyncDetail) {
+		return 0, publisher.store.UpdateGitHub(func(status *mev1.GithubSyncDetail) {
 			status.Configured = false
 			status.State = mev1.GithubSyncState_GITHUB_SYNC_STATE_DISABLED
 		})
@@ -79,11 +104,17 @@ func (publisher *GitHubStatusPublisher) publishOnce(ctx context.Context, mobile 
 	now := time.Now().UTC()
 	status := formatGitHubStatus(mobile, now, publisher.config.GitHubStatusTTLMinutes)
 	current := publisher.store.GitHubSnapshot()
-	if tooSoon(current.GetLastAttemptTime(), now, publisher.config.GitHubStatusMinIntervalSeconds) {
-		return nil
+	interval := publisher.config.GitHubStatusMinIntervalSeconds
+
+	// Too soon to call GitHub again, but this status is still unpublished:
+	// ask the worker to come back once the window closes.
+	if wait := waitUntilStale(current.GetLastAttemptTime(), now, interval); wait > 0 {
+		return wait, nil
 	}
-	if current.GetLastSignature() == status.Signature && tooSoon(current.GetLastSuccessTime(), now, publisher.config.GitHubStatusMinIntervalSeconds) {
-		return nil
+	// Nothing changed since the last successful publish, so there is nothing to
+	// retry: a later report will bring a new signature and its own trigger.
+	if current.GetLastSignature() == status.Signature && waitUntilStale(current.GetLastSuccessTime(), now, interval) > 0 {
+		return 0, nil
 	}
 
 	if err := publisher.store.UpdateGitHub(func(sync *mev1.GithubSyncDetail) {
@@ -93,12 +124,12 @@ func (publisher *GitHubStatusPublisher) publishOnce(ctx context.Context, mobile 
 		sync.Message = status.Message
 		sync.Emoji = status.Emoji
 	}); err != nil {
-		return err
+		return 0, err
 	}
 
 	result := publisher.changeStatus(ctx, status)
 	if result.OK {
-		return publisher.store.UpdateGitHub(func(sync *mev1.GithubSyncDetail) {
+		return 0, publisher.store.UpdateGitHub(func(sync *mev1.GithubSyncDetail) {
 			sync.Configured = true
 			sync.State = mev1.GithubSyncState_GITHUB_SYNC_STATE_OK
 			sync.LastSignature = status.Signature
@@ -110,7 +141,7 @@ func (publisher *GitHubStatusPublisher) publishOnce(ctx context.Context, mobile 
 		})
 	}
 
-	return publisher.store.UpdateGitHub(func(sync *mev1.GithubSyncDetail) {
+	return 0, publisher.store.UpdateGitHub(func(sync *mev1.GithubSyncDetail) {
 		sync.Configured = true
 		sync.State = mev1.GithubSyncState_GITHUB_SYNC_STATE_ERROR
 		sync.LastErrorTime = timestamppb.New(time.Now().UTC())
@@ -255,11 +286,18 @@ func gitHubRejectionMessage(payload gitHubGraphQLResponse, statusCode int) strin
 	return fmt.Sprintf("GitHub rejected the status update (HTTP %d)", statusCode)
 }
 
-func tooSoon(value *timestamppb.Timestamp, now time.Time, intervalSeconds int) bool {
+// waitUntilStale reports how long remains before value is at least
+// intervalSeconds old. Zero means the interval has already elapsed.
+func waitUntilStale(value *timestamppb.Timestamp, now time.Time, intervalSeconds int) time.Duration {
 	if value == nil {
-		return false
+		return 0
 	}
-	return now.Sub(value.AsTime()) < time.Duration(intervalSeconds)*time.Second
+	interval := time.Duration(intervalSeconds) * time.Second
+	elapsed := now.Sub(value.AsTime())
+	if elapsed >= interval {
+		return 0
+	}
+	return interval - elapsed
 }
 
 type gitHubGraphQLResponse struct {

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 
 	mev1 "realtime-me/apps/status-gateway/internal/genproto/realtime/me/v1"
 )
@@ -286,17 +287,11 @@ func prometheusTargetLabels(target *mev1.ScrapeTarget) map[string]string {
 	return labels
 }
 
+// cloneGithub copies every field. A hand-written copy silently drops fields
+// added to the proto later, so this defers to the schema instead.
 func cloneGithub(github *mev1.GithubSyncDetail) *mev1.GithubSyncDetail {
 	if github == nil {
 		return nil
 	}
-	return &mev1.GithubSyncDetail{
-		Configured:      github.GetConfigured(),
-		State:           github.GetState(),
-		Emoji:           github.GetEmoji(),
-		Message:         github.GetMessage(),
-		LastSuccessTime: github.GetLastSuccessTime(),
-		LastErrorTime:   github.GetLastErrorTime(),
-		LastError:       github.GetLastError(),
-	}
+	return proto.Clone(github).(*mev1.GithubSyncDetail)
 }
