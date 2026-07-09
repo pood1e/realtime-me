@@ -23,12 +23,9 @@ type AgentMotionAsset = {
   poster?: string;
 };
 
-const AGENT_MOTION_MIN_VISIBLE_MS = 10_000;
-
-// An agent's clip says how hard it is working: the more sub-agents it has out,
-// the busier the mascot. The tiers below are indexed by subagentTier(), and a
-// clip is picked from within the matching tier so the picture still varies.
-const SUBAGENT_TIER_BOUNDS = [0, 2, 4];
+// A clip runs its whole loop four times, then a different one takes over. Timing
+// the swap to a whole number of loops means it never lands mid-animation.
+const CLIP_LOOPS_BEFORE_ROTATE = 4;
 
 // The Claw'd clips are Anthropic's artwork and are not distributed with this
 // repository — see src/assets/agents/NOTICE.md. They are discovered at build
@@ -46,50 +43,27 @@ const CLAWD_CLIP_DURATIONS_MS: Record<string, number> = {
   'clawd-jumping-happy': 1_760,
   'clawd-waving': 1_410,
 };
-const CLAWD_TIER_CLIPS: string[][] = [
-  ['clawd-laptop', 'clawd-magnifier', 'clawd-lurking'],
-  ['clawd-crab-walking', 'clawd-waving'],
-  ['clawd-soccer', 'clawd-racing-car'],
-  ['clawd-dancing', 'clawd-jumping-happy'],
-];
 
 const clawdClipUrls = import.meta.glob('../assets/agents/clawd/*.gif', { eager: true, import: 'default' }) as Record<string, string>;
 const clawdPosterUrls = import.meta.glob('../assets/agents/clawd/*.png', { eager: true, import: 'default' }) as Record<string, string>;
 
-const DEFAULT_MOTION_TIERS: AgentMotionAsset[][] = fill(SUBAGENT_TIER_BOUNDS.length + 1, [{ src: agentOrbitUrl, durationMs: 4_000 }]);
-const CODEX_MOTION_TIERS: AgentMotionAsset[][] = [
-  [{ src: codexOrbitUrl, durationMs: 4_000 }],
-  [{ src: codexSparksUrl, durationMs: 4_000 }],
-  [{ src: codexRibbonsUrl, durationMs: 4_000 }],
-  [{ src: codexSwarmUrl, durationMs: 4_000 }],
-];
-const CLAWD_MOTION_TIERS: AgentMotionAsset[][] = clawdMotionTiers();
+const DEFAULT_MOTION_ASSETS: AgentMotionAsset[] = [{ src: agentOrbitUrl, durationMs: 4_000 }];
+const CODEX_MOTION_ASSETS: AgentMotionAsset[] = [codexOrbitUrl, codexSparksUrl, codexRibbonsUrl, codexSwarmUrl].map((src) => ({
+  src,
+  durationMs: 4_000,
+}));
+const CLAWD_MOTION_ASSETS: AgentMotionAsset[] = clawdMotionAssets();
 
 // A clip counts only once its loop length, its animation and its reduced-motion
 // still all resolve; a partial clip would either cycle on a NaN delay or animate
-// at a viewer who asked it not to. Leaving any tier empty would then render the
-// mascot at some sub-agent counts and Clawd at others, so the whole set falls
-// back together.
-function clawdMotionTiers(): AgentMotionAsset[][] {
-  const tiers = CLAWD_TIER_CLIPS.map((names) =>
-    names.flatMap((name) => {
-      const src = clawdClipUrls[`../assets/agents/clawd/${name}.gif`];
-      const poster = clawdPosterUrls[`../assets/agents/clawd/${name}.png`];
-      const durationMs = CLAWD_CLIP_DURATIONS_MS[name];
-      if (!src || !poster || !durationMs) return [];
-      return [{ src, durationMs, poster }];
-    }),
-  );
-  return tiers.every((tier) => tier.length > 0) ? tiers : [];
-}
-
-function fill<T>(length: number, value: T): T[] {
-  return Array.from({ length }, () => value);
-}
-
-// subagentTier maps a sub-agent count onto a busyness tier: 0, 1-2, 3-4, 5+.
-function subagentTier(subagentCount: number): number {
-  return SUBAGENT_TIER_BOUNDS.filter((bound) => subagentCount > bound).length;
+// at a viewer who asked it not to.
+function clawdMotionAssets(): AgentMotionAsset[] {
+  return Object.keys(CLAWD_CLIP_DURATIONS_MS).flatMap((name) => {
+    const src = clawdClipUrls[`../assets/agents/clawd/${name}.gif`];
+    const poster = clawdPosterUrls[`../assets/agents/clawd/${name}.png`];
+    if (!src || !poster) return [];
+    return [{ src, durationMs: CLAWD_CLIP_DURATIONS_MS[name], poster }];
+  });
 }
 
 export function AgentCard({ agent }: { agent: Agent }) {
@@ -110,7 +84,7 @@ export function AgentCard({ agent }: { agent: Agent }) {
         <AgentMotion agent={agent} />
         <div className="flex flex-wrap items-center gap-2">
           <AgentDeviceBadge agent={agent} />
-          {agent.subagentCount > 0 && <Badge variant="secondary">{agent.subagentCount} working</Badge>}
+          {agent.subagents.length > 0 && <Badge variant="secondary">{subagentText(agent.subagents.length)}</Badge>}
         </div>
         {agent.model && <p className="truncate text-xs text-muted-foreground">{agent.model}</p>}
         {agent.budgetRemainingPercent !== undefined && (
@@ -151,31 +125,40 @@ function AgentMotion({ agent }: { agent: Agent }) {
   const label = agentMotionLabel(agent);
   return (
     <div className="agent-motion" title={label}>
-      <AgentClip agent={agent} className="agent-motion-image" alt={label} />
+      <AgentClip kind={agent.kind} seed={agent.uid} className="agent-motion-image" alt={label} />
     </div>
   );
 }
 
-// AgentClip cycles the clips of the agent's current tier, swapping only on a
-// whole-loop boundary.
-export function AgentClip({ agent, className, alt, title }: { agent: Agent; className: string; alt: string; title?: string }) {
-  const assets = agentMotionAssets(agent.kind, agent.subagentCount);
+// AgentClip cycles an agent's clips, swapping only on a whole-loop boundary. The
+// seed decides which clip it opens on, so an agent and each of its sub-agents
+// start on different pictures rather than moving in lockstep.
+export function AgentClip({ kind, seed, className, alt, title }: { kind: string; seed: string; className: string; alt: string; title?: string }) {
+  const assets = agentMotionAssets(kind);
   const reducedMotion = usePrefersReducedMotion();
-  const initialIndex = hashString(agent.uid) % assets.length;
-  const [index, setIndex] = useState(initialIndex);
-  const asset = assets[index % assets.length];
+  const initialIndex = hashString(seed) % assets.length;
+  const [clip, setClip] = useState(() => firstClip(initialIndex, assets.length));
+  const asset = assets[clip.index % assets.length];
+  const nextAsset = assets[clip.next % assets.length];
 
   useEffect(() => {
-    setIndex(initialIndex);
-  }, [initialIndex]);
+    setClip(firstClip(initialIndex, assets.length));
+  }, [initialIndex, assets.length]);
+
+  // Fetch the next clip while this one plays. Swapping to a clip the browser has
+  // never seen would otherwise leave the box empty until it decodes.
+  useEffect(() => {
+    if (reducedMotion || assets.length <= 1) return;
+    new Image().src = nextAsset.src;
+  }, [assets.length, nextAsset, reducedMotion]);
 
   useEffect(() => {
     if (reducedMotion || assets.length <= 1) return;
     const timeout = window.setTimeout(() => {
-      setIndex((current) => (current + 1) % assets.length);
-    }, agentMotionDelayMs(asset));
+      setClip((current) => ({ index: current.next, next: nextClipIndex(current.next, assets.length) }));
+    }, asset.durationMs * CLIP_LOOPS_BEFORE_ROTATE);
     return () => window.clearTimeout(timeout);
-  }, [asset, assets.length, index, reducedMotion]);
+  }, [asset, assets.length, reducedMotion]);
 
   // A GIF animates no matter what the stylesheet says, so a viewer who asked for
   // reduced motion gets a still frame instead.
@@ -190,6 +173,10 @@ export function agentMotionLabel(agent: Agent): string {
   return agent.budgetRemainingPercent === undefined ? name : `${name} · ${agent.budgetRemainingPercent}% budget left`;
 }
 
+export function subagentText(count: number): string {
+  return count === 1 ? '1 sub-agent' : `${count} sub-agents`;
+}
+
 function AgentDeviceBadge({ agent }: { agent: Agent }) {
   const device = agentDeviceLabel(agent);
   if (!device) return null;
@@ -201,19 +188,24 @@ function AgentDeviceBadge({ agent }: { agent: Agent }) {
   );
 }
 
-function agentMotionAssets(kind: string, subagentCount: number): AgentMotionAsset[] {
-  return agentMotionTiers(kind)[subagentTier(subagentCount)];
+function agentMotionAssets(kind: string): AgentMotionAsset[] {
+  if (isClaudeAgent(kind) && CLAWD_MOTION_ASSETS.length > 0) return CLAWD_MOTION_ASSETS;
+  if (kind === 'codex') return CODEX_MOTION_ASSETS;
+  return DEFAULT_MOTION_ASSETS;
 }
 
-function agentMotionTiers(kind: string): AgentMotionAsset[][] {
-  if (isClaudeAgent(kind) && CLAWD_MOTION_TIERS.length > 0) return CLAWD_MOTION_TIERS;
-  if (kind === 'codex') return CODEX_MOTION_TIERS;
-  return DEFAULT_MOTION_TIERS;
+// The clip playing now, and the one after it. Choosing the successor up front is
+// what lets it be fetched before it is shown.
+function firstClip(index: number, length: number): { index: number; next: number } {
+  return { index, next: nextClipIndex(index, length) };
 }
 
-function agentMotionDelayMs(asset: AgentMotionAsset): number {
-  if (asset.durationMs <= 0) return AGENT_MOTION_MIN_VISIBLE_MS;
-  return Math.ceil(AGENT_MOTION_MIN_VISIBLE_MS / asset.durationMs) * asset.durationMs;
+// Any clip but the one just shown, drawn uniformly, so a rotation always changes
+// the picture and the order never repeats itself.
+function nextClipIndex(current: number, length: number): number {
+  if (length <= 1) return current;
+  const offset = 1 + Math.floor(Math.random() * (length - 1));
+  return (current + offset) % length;
 }
 
 function agentStateIcon(state: AgentState): ReactElement {

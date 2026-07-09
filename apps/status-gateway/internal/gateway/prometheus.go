@@ -279,7 +279,7 @@ func (client *PrometheusClient) AgentStatuses(ctx context.Context) []*mev1.Agent
 		return nil
 	}
 	budgets := samplesByAgent(budgetSamples)
-	subagents := samplesByAgent(subagentSamples)
+	subagents := agentSubagents(subagentSamples)
 	models := agentModels(infoSamples)
 	now := timestamppb.New(time.Now().UTC())
 	agents := make([]*mev1.Agent, 0, len(running))
@@ -290,14 +290,14 @@ func (client *PrometheusClient) AgentStatuses(ctx context.Context) []*mev1.Agent
 		}
 		deviceUID := firstNonEmpty(sample.Metric["device_uid"], sample.Metric["device_id"])
 		agent := &mev1.Agent{
-			Uid:           agentUID(deviceUID, kind),
-			Kind:          kind,
-			DeviceUid:     deviceUID,
-			DisplayName:   sample.Metric["device_name"],
-			State:         mev1.AgentState_AGENT_STATE_RUNNING,
-			UpdateTime:    now,
-			Model:         models[deviceUID+"/"+kind],
-			SubagentCount: int32(math.Max(0, math.Round(subagents[deviceUID+"/"+kind]))),
+			Uid:         agentUID(deviceUID, kind),
+			Kind:        kind,
+			DeviceUid:   deviceUID,
+			DisplayName: sample.Metric["device_name"],
+			State:       mev1.AgentState_AGENT_STATE_RUNNING,
+			UpdateTime:  now,
+			Model:       models[deviceUID+"/"+kind],
+			Subagents:   subagents[deviceUID+"/"+kind],
 		}
 		if value, ok := budgets[deviceUID+"/"+kind]; ok {
 			percent := int32(math.Round(clampRatio(value) * 100))
@@ -522,6 +522,31 @@ func samplesByInstance(samples []prometheusSample) map[string]*float64 {
 		values[instance] = &value
 	}
 	return values
+}
+
+// agentSubagents expands the per-model counts into one Subagent per worker, so a
+// caller can render a sub-agent without knowing how the count was labelled. The
+// exporter emits one series per model, and a zero keeps the series alive rather
+// than describing a worker.
+func agentSubagents(samples []prometheusSample) map[string][]*mev1.Subagent {
+	subagents := make(map[string][]*mev1.Subagent, len(samples))
+	for _, sample := range samples {
+		kind := firstNonEmpty(sample.Metric["agent_kind"], sample.Metric["agent_id"])
+		count := int(math.Round(sample.Value))
+		if kind == "" || count <= 0 {
+			continue
+		}
+		key := firstNonEmpty(sample.Metric["device_uid"], sample.Metric["device_id"]) + "/" + kind
+		for index := 0; index < count; index++ {
+			subagents[key] = append(subagents[key], &mev1.Subagent{Model: sample.Metric["model"]})
+		}
+	}
+	for key := range subagents {
+		sort.Slice(subagents[key], func(left int, right int) bool {
+			return subagents[key][left].GetModel() < subagents[key][right].GetModel()
+		})
+	}
+	return subagents
 }
 
 // agentModels reads the model an agent runs from the labels of its info series,

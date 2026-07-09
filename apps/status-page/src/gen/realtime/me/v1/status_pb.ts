@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file realtime/me/v1/status.proto.
  */
 export const file_realtime_me_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("ChtyZWFsdGltZS9tZS92MS9zdGF0dXMucHJvdG8SDnJlYWx0aW1lLm1lLnYxIhgKFkdldFB1YmxpY1N0YXR1c1JlcXVlc3QiRwoXR2V0UHVibGljU3RhdHVzUmVzcG9uc2USLAoGc3RhdHVzGAEgASgLMhwucmVhbHRpbWUubWUudjEuUHVibGljU3RhdHVzIhoKGEdldEludGVybmFsU3RhdHVzUmVxdWVzdCJLChlHZXRJbnRlcm5hbFN0YXR1c1Jlc3BvbnNlEi4KBnN0YXR1cxgBIAEoCzIeLnJlYWx0aW1lLm1lLnYxLkludGVybmFsU3RhdHVzIpIDCgtEZXZpY2VTdGF0ZRISCgpkZXZpY2VfdWlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRINCgVtb2RlbBgDIAEoCRIoCgRraW5kGAQgASgOMhoucmVhbHRpbWUubWUudjEuRGV2aWNlS2luZBIoCgRyb2xlGAUgASgOMhoucmVhbHRpbWUubWUudjEuRGV2aWNlUm9sZRIqCgVzdGF0ZRgGIAEoDjIbLnJlYWx0aW1lLm1lLnYxLk9ubGluZVN0YXRlEi0KB21ldHJpY3MYByADKAsyHC5yZWFsdGltZS5tZS52MS5NZXRyaWNTYW1wbGUSKgoFbWVkaWEYCCABKAsyGy5yZWFsdGltZS5tZS52MS5NZWRpYVN0YXR1cxIuCgthY2Nlc3NvcmllcxgJIAMoCzIZLnJlYWx0aW1lLm1lLnYxLkFjY2Vzc29yeRIvCgt1cGRhdGVfdGltZRgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBKBAgKEAtSCGNoaWxkcmVuItABCgtNb2JpbGVTdGF0ZRISCgpkZXZpY2VfdWlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRINCgVtb2RlbBgDIAEoCRIpCgVwaG9uZRgEIAEoCzIaLnJlYWx0aW1lLm1lLnYxLlBob25lU3RhdGUSLAoFd2F0Y2gYBSABKAsyHS5yZWFsdGltZS5tZS52MS5XYXRjaFNuYXBzaG90Ei8KC3VwZGF0ZV90aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKTAgoFQWdlbnQSCwoDdWlkGAEgASgJEgwKBGtpbmQYAiABKAkSEgoKZGV2aWNlX3VpZBgDIAEoCRIUCgxkaXNwbGF5X25hbWUYBCABKAkSKQoFc3RhdGUYBSABKA4yGi5yZWFsdGltZS5tZS52MS5BZ2VudFN0YXRlEiUKGGJ1ZGdldF9yZW1haW5pbmdfcGVyY2VudBgGIAEoBUgAiAEBEi8KC3VwZGF0ZV90aW1lGAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVtb2RlbBgIIAEoCRIWCg5zdWJhZ2VudF9jb3VudBgJIAEoBUIbChlfYnVkZ2V0X3JlbWFpbmluZ19wZXJjZW50IqABCgxHaXRodWJTdGF0dXMSDwoHZW5hYmxlZBgBIAEoCBIuCgVzdGF0ZRgCIAEoDjIfLnJlYWx0aW1lLm1lLnYxLkdpdGh1YlN5bmNTdGF0ZRINCgVlbW9qaRgDIAEoCRIPCgdtZXNzYWdlGAQgASgJEi8KC3VwZGF0ZV90aW1lGAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCLFAgoQR2l0aHViU3luY0RldGFpbBISCgpjb25maWd1cmVkGAEgASgIEi4KBXN0YXRlGAIgASgOMh8ucmVhbHRpbWUubWUudjEuR2l0aHViU3luY1N0YXRlEg0KBWVtb2ppGAMgASgJEg8KB21lc3NhZ2UYBCABKAkSNQoRbGFzdF9zdWNjZXNzX3RpbWUYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKD2xhc3RfZXJyb3JfdGltZRgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKbGFzdF9lcnJvchgHIAEoCRI1ChFsYXN0X2F0dGVtcHRfdGltZRgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFgoObGFzdF9zaWduYXR1cmUYCSABKAkinAIKDFB1YmxpY1N0YXR1cxIrCgZzZXJ2ZXIYASABKAsyGy5yZWFsdGltZS5tZS52MS5EZXZpY2VTdGF0ZRIrCgZtb2JpbGUYAiABKAsyGy5yZWFsdGltZS5tZS52MS5Nb2JpbGVTdGF0ZRIsCgdkZXZpY2VzGAMgAygLMhsucmVhbHRpbWUubWUudjEuRGV2aWNlU3RhdGUSJQoGYWdlbnRzGAQgAygLMhUucmVhbHRpbWUubWUudjEuQWdlbnQSLAoGZ2l0aHViGAUgASgLMhwucmVhbHRpbWUubWUudjEuR2l0aHViU3RhdHVzEi8KC3VwZGF0ZV90aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKiAgoOSW50ZXJuYWxTdGF0dXMSKwoGc2VydmVyGAEgASgLMhsucmVhbHRpbWUubWUudjEuRGV2aWNlU3RhdGUSKwoGbW9iaWxlGAIgASgLMhsucmVhbHRpbWUubWUudjEuTW9iaWxlU3RhdGUSLAoHZGV2aWNlcxgDIAMoCzIbLnJlYWx0aW1lLm1lLnYxLkRldmljZVN0YXRlEiUKBmFnZW50cxgEIAMoCzIVLnJlYWx0aW1lLm1lLnYxLkFnZW50EjAKBmdpdGh1YhgFIAEoCzIgLnJlYWx0aW1lLm1lLnYxLkdpdGh1YlN5bmNEZXRhaWwSLwoLdXBkYXRlX3RpbWUYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wKqoBCg9HaXRodWJTeW5jU3RhdGUSIQodR0lUSFVCX1NZTkNfU1RBVEVfVU5TUEVDSUZJRUQQABIeChpHSVRIVUJfU1lOQ19TVEFURV9ESVNBQkxFRBABEh0KGUdJVEhVQl9TWU5DX1NUQVRFX1BFTkRJTkcQAhIYChRHSVRIVUJfU1lOQ19TVEFURV9PSxADEhsKF0dJVEhVQl9TWU5DX1NUQVRFX0VSUk9SEAQy3QEKDVN0YXR1c1NlcnZpY2USYgoPR2V0UHVibGljU3RhdHVzEiYucmVhbHRpbWUubWUudjEuR2V0UHVibGljU3RhdHVzUmVxdWVzdBonLnJlYWx0aW1lLm1lLnYxLkdldFB1YmxpY1N0YXR1c1Jlc3BvbnNlEmgKEUdldEludGVybmFsU3RhdHVzEigucmVhbHRpbWUubWUudjEuR2V0SW50ZXJuYWxTdGF0dXNSZXF1ZXN0GikucmVhbHRpbWUubWUudjEuR2V0SW50ZXJuYWxTdGF0dXNSZXNwb25zZULCAQoSY29tLnJlYWx0aW1lLm1lLnYxQgtTdGF0dXNQcm90b1ABWkVyZWFsdGltZS1tZS9hcHBzL3N0YXR1cy1nYXRld2F5L2ludGVybmFsL2dlbnByb3RvL3JlYWx0aW1lL21lL3YxO21ldjGiAgNSTViqAg5SZWFsdGltZS5NZS5WMcoCDlJlYWx0aW1lXE1lXFYx4gIaUmVhbHRpbWVcTWVcVjFcR1BCTWV0YWRhdGHqAhBSZWFsdGltZTo6TWU6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_realtime_me_v1_status_types, file_realtime_me_v1_watch]);
+  fileDesc("ChtyZWFsdGltZS9tZS92MS9zdGF0dXMucHJvdG8SDnJlYWx0aW1lLm1lLnYxIhgKFkdldFB1YmxpY1N0YXR1c1JlcXVlc3QiRwoXR2V0UHVibGljU3RhdHVzUmVzcG9uc2USLAoGc3RhdHVzGAEgASgLMhwucmVhbHRpbWUubWUudjEuUHVibGljU3RhdHVzIhoKGEdldEludGVybmFsU3RhdHVzUmVxdWVzdCJLChlHZXRJbnRlcm5hbFN0YXR1c1Jlc3BvbnNlEi4KBnN0YXR1cxgBIAEoCzIeLnJlYWx0aW1lLm1lLnYxLkludGVybmFsU3RhdHVzIpIDCgtEZXZpY2VTdGF0ZRISCgpkZXZpY2VfdWlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRINCgVtb2RlbBgDIAEoCRIoCgRraW5kGAQgASgOMhoucmVhbHRpbWUubWUudjEuRGV2aWNlS2luZBIoCgRyb2xlGAUgASgOMhoucmVhbHRpbWUubWUudjEuRGV2aWNlUm9sZRIqCgVzdGF0ZRgGIAEoDjIbLnJlYWx0aW1lLm1lLnYxLk9ubGluZVN0YXRlEi0KB21ldHJpY3MYByADKAsyHC5yZWFsdGltZS5tZS52MS5NZXRyaWNTYW1wbGUSKgoFbWVkaWEYCCABKAsyGy5yZWFsdGltZS5tZS52MS5NZWRpYVN0YXR1cxIuCgthY2Nlc3NvcmllcxgJIAMoCzIZLnJlYWx0aW1lLm1lLnYxLkFjY2Vzc29yeRIvCgt1cGRhdGVfdGltZRgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBKBAgKEAtSCGNoaWxkcmVuItABCgtNb2JpbGVTdGF0ZRISCgpkZXZpY2VfdWlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRINCgVtb2RlbBgDIAEoCRIpCgVwaG9uZRgEIAEoCzIaLnJlYWx0aW1lLm1lLnYxLlBob25lU3RhdGUSLAoFd2F0Y2gYBSABKAsyHS5yZWFsdGltZS5tZS52MS5XYXRjaFNuYXBzaG90Ei8KC3VwZGF0ZV90aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCIZCghTdWJhZ2VudBINCgVtb2RlbBgBIAEoCSK+AgoFQWdlbnQSCwoDdWlkGAEgASgJEgwKBGtpbmQYAiABKAkSEgoKZGV2aWNlX3VpZBgDIAEoCRIUCgxkaXNwbGF5X25hbWUYBCABKAkSKQoFc3RhdGUYBSABKA4yGi5yZWFsdGltZS5tZS52MS5BZ2VudFN0YXRlEiUKGGJ1ZGdldF9yZW1haW5pbmdfcGVyY2VudBgGIAEoBUgAiAEBEi8KC3VwZGF0ZV90aW1lGAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVtb2RlbBgIIAEoCRIrCglzdWJhZ2VudHMYCiADKAsyGC5yZWFsdGltZS5tZS52MS5TdWJhZ2VudEIbChlfYnVkZ2V0X3JlbWFpbmluZ19wZXJjZW50SgQICRAKUg5zdWJhZ2VudF9jb3VudCKgAQoMR2l0aHViU3RhdHVzEg8KB2VuYWJsZWQYASABKAgSLgoFc3RhdGUYAiABKA4yHy5yZWFsdGltZS5tZS52MS5HaXRodWJTeW5jU3RhdGUSDQoFZW1vamkYAyABKAkSDwoHbWVzc2FnZRgEIAEoCRIvCgt1cGRhdGVfdGltZRgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAixQIKEEdpdGh1YlN5bmNEZXRhaWwSEgoKY29uZmlndXJlZBgBIAEoCBIuCgVzdGF0ZRgCIAEoDjIfLnJlYWx0aW1lLm1lLnYxLkdpdGh1YlN5bmNTdGF0ZRINCgVlbW9qaRgDIAEoCRIPCgdtZXNzYWdlGAQgASgJEjUKEWxhc3Rfc3VjY2Vzc190aW1lGAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIzCg9sYXN0X2Vycm9yX3RpbWUYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmxhc3RfZXJyb3IYByABKAkSNQoRbGFzdF9hdHRlbXB0X3RpbWUYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhYKDmxhc3Rfc2lnbmF0dXJlGAkgASgJIpwCCgxQdWJsaWNTdGF0dXMSKwoGc2VydmVyGAEgASgLMhsucmVhbHRpbWUubWUudjEuRGV2aWNlU3RhdGUSKwoGbW9iaWxlGAIgASgLMhsucmVhbHRpbWUubWUudjEuTW9iaWxlU3RhdGUSLAoHZGV2aWNlcxgDIAMoCzIbLnJlYWx0aW1lLm1lLnYxLkRldmljZVN0YXRlEiUKBmFnZW50cxgEIAMoCzIVLnJlYWx0aW1lLm1lLnYxLkFnZW50EiwKBmdpdGh1YhgFIAEoCzIcLnJlYWx0aW1lLm1lLnYxLkdpdGh1YlN0YXR1cxIvCgt1cGRhdGVfdGltZRgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiogIKDkludGVybmFsU3RhdHVzEisKBnNlcnZlchgBIAEoCzIbLnJlYWx0aW1lLm1lLnYxLkRldmljZVN0YXRlEisKBm1vYmlsZRgCIAEoCzIbLnJlYWx0aW1lLm1lLnYxLk1vYmlsZVN0YXRlEiwKB2RldmljZXMYAyADKAsyGy5yZWFsdGltZS5tZS52MS5EZXZpY2VTdGF0ZRIlCgZhZ2VudHMYBCADKAsyFS5yZWFsdGltZS5tZS52MS5BZ2VudBIwCgZnaXRodWIYBSABKAsyIC5yZWFsdGltZS5tZS52MS5HaXRodWJTeW5jRGV0YWlsEi8KC3VwZGF0ZV90aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCqqAQoPR2l0aHViU3luY1N0YXRlEiEKHUdJVEhVQl9TWU5DX1NUQVRFX1VOU1BFQ0lGSUVEEAASHgoaR0lUSFVCX1NZTkNfU1RBVEVfRElTQUJMRUQQARIdChlHSVRIVUJfU1lOQ19TVEFURV9QRU5ESU5HEAISGAoUR0lUSFVCX1NZTkNfU1RBVEVfT0sQAxIbChdHSVRIVUJfU1lOQ19TVEFURV9FUlJPUhAEMt0BCg1TdGF0dXNTZXJ2aWNlEmIKD0dldFB1YmxpY1N0YXR1cxImLnJlYWx0aW1lLm1lLnYxLkdldFB1YmxpY1N0YXR1c1JlcXVlc3QaJy5yZWFsdGltZS5tZS52MS5HZXRQdWJsaWNTdGF0dXNSZXNwb25zZRJoChFHZXRJbnRlcm5hbFN0YXR1cxIoLnJlYWx0aW1lLm1lLnYxLkdldEludGVybmFsU3RhdHVzUmVxdWVzdBopLnJlYWx0aW1lLm1lLnYxLkdldEludGVybmFsU3RhdHVzUmVzcG9uc2VCwgEKEmNvbS5yZWFsdGltZS5tZS52MUILU3RhdHVzUHJvdG9QAVpFcmVhbHRpbWUtbWUvYXBwcy9zdGF0dXMtZ2F0ZXdheS9pbnRlcm5hbC9nZW5wcm90by9yZWFsdGltZS9tZS92MTttZXYxogIDUk1YqgIOUmVhbHRpbWUuTWUuVjHKAg5SZWFsdGltZVxNZVxWMeICGlJlYWx0aW1lXE1lXFYxXEdQQk1ldGFkYXRh6gIQUmVhbHRpbWU6Ok1lOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp, file_realtime_me_v1_status_types, file_realtime_me_v1_watch]);
 
 /**
  * GetPublicStatusRequest is the request for the public status document.
@@ -401,6 +401,43 @@ export const MobileStateSchema: GenMessage<MobileState, {jsonType: MobileStateJs
   messageDesc(file_realtime_me_v1_status, 5);
 
 /**
+ * Subagent is one worker a coding agent has running right now. It carries the
+ * model and nothing else: what a sub-agent was asked to do is never collected.
+ *
+ * @generated from message realtime.me.v1.Subagent
+ */
+export type Subagent = Message<"realtime.me.v1.Subagent"> & {
+  /**
+   * model is the model the sub-agent runs, such as "claude-opus-4-8".
+   *
+   * @generated from field: string model = 1;
+   */
+  model: string;
+};
+
+/**
+ * Subagent is one worker a coding agent has running right now. It carries the
+ * model and nothing else: what a sub-agent was asked to do is never collected.
+ *
+ * @generated from message realtime.me.v1.Subagent
+ */
+export type SubagentJson = {
+  /**
+   * model is the model the sub-agent runs, such as "claude-opus-4-8".
+   *
+   * @generated from field: string model = 1;
+   */
+  model?: string;
+};
+
+/**
+ * Describes the message realtime.me.v1.Subagent.
+ * Use `create(SubagentSchema)` to create a new message.
+ */
+export const SubagentSchema: GenMessage<Subagent, {jsonType: SubagentJson}> = /*@__PURE__*/
+  messageDesc(file_realtime_me_v1_status, 6);
+
+/**
  * Agent is a coding agent's current status on a read surface. It never exposes
  * the underlying task text or any internal session identifier.
  *
@@ -464,11 +501,11 @@ export type Agent = Message<"realtime.me.v1.Agent"> & {
   model: string;
 
   /**
-   * subagent_count is how many sub-agents the agent has working right now.
+   * subagents are the workers the agent has running right now, one per worker.
    *
-   * @generated from field: int32 subagent_count = 9;
+   * @generated from field: repeated realtime.me.v1.Subagent subagents = 10;
    */
-  subagentCount: number;
+  subagents: Subagent[];
 };
 
 /**
@@ -535,11 +572,11 @@ export type AgentJson = {
   model?: string;
 
   /**
-   * subagent_count is how many sub-agents the agent has working right now.
+   * subagents are the workers the agent has running right now, one per worker.
    *
-   * @generated from field: int32 subagent_count = 9;
+   * @generated from field: repeated realtime.me.v1.Subagent subagents = 10;
    */
-  subagentCount?: number;
+  subagents?: SubagentJson[];
 };
 
 /**
@@ -547,7 +584,7 @@ export type AgentJson = {
  * Use `create(AgentSchema)` to create a new message.
  */
 export const AgentSchema: GenMessage<Agent, {jsonType: AgentJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_status, 6);
+  messageDesc(file_realtime_me_v1_status, 7);
 
 /**
  * GithubStatus is the public view of GitHub status synchronization.
@@ -638,7 +675,7 @@ export type GithubStatusJson = {
  * Use `create(GithubStatusSchema)` to create a new message.
  */
 export const GithubStatusSchema: GenMessage<GithubStatus, {jsonType: GithubStatusJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_status, 7);
+  messageDesc(file_realtime_me_v1_status, 8);
 
 /**
  * GithubSyncDetail is the authenticated view including error diagnostics.
@@ -789,7 +826,7 @@ export type GithubSyncDetailJson = {
  * Use `create(GithubSyncDetailSchema)` to create a new message.
  */
 export const GithubSyncDetailSchema: GenMessage<GithubSyncDetail, {jsonType: GithubSyncDetailJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_status, 8);
+  messageDesc(file_realtime_me_v1_status, 9);
 
 /**
  * PublicStatus is the unauthenticated status document.
@@ -894,7 +931,7 @@ export type PublicStatusJson = {
  * Use `create(PublicStatusSchema)` to create a new message.
  */
 export const PublicStatusSchema: GenMessage<PublicStatus, {jsonType: PublicStatusJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_status, 9);
+  messageDesc(file_realtime_me_v1_status, 10);
 
 /**
  * InternalStatus is the authenticated status document with sync diagnostics.
@@ -999,7 +1036,7 @@ export type InternalStatusJson = {
  * Use `create(InternalStatusSchema)` to create a new message.
  */
 export const InternalStatusSchema: GenMessage<InternalStatus, {jsonType: InternalStatusJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_status, 10);
+  messageDesc(file_realtime_me_v1_status, 11);
 
 /**
  * GitHubSyncState is the state of GitHub status synchronization.

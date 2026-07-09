@@ -103,8 +103,11 @@ and closes, answers a background sub-agent the instant it launches, and splits
 one reply across `thinking`/`text`/`tool_use` records. A Claude sub-agent is
 therefore live until its session announces its `<task-id>`, and only a later
 write means it was resumed. Prompts, objectives, task titles, sub-agent
-descriptions and `threads.title` are never read into a metric — `model` and a
-sub-agent *count* are the only things added to `realtime_agent_*`.
+descriptions and `threads.title` are never read into a metric — a `model` and a
+*count* of sub-agents per model are the only things added to `realtime_agent_*`.
+A sub-agent may run a different model from the agent that spawned it, so the
+count is labelled by model and the gateway expands it back into one `Subagent`
+per worker.
 
 **Probe exporters cache `/metrics` and serve it from a fixed thread pool.** A
 scrape shells out to `ps`, `lsof` and `bluetoothctl`, so `status_common.cached()`

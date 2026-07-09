@@ -467,6 +467,53 @@ func (x *MobileState) GetUpdateTime() *timestamppb.Timestamp {
 	return nil
 }
 
+// Subagent is one worker a coding agent has running right now. It carries the
+// model and nothing else: what a sub-agent was asked to do is never collected.
+type Subagent struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// model is the model the sub-agent runs, such as "claude-opus-4-8".
+	Model         string `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Subagent) Reset() {
+	*x = Subagent{}
+	mi := &file_realtime_me_v1_status_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Subagent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Subagent) ProtoMessage() {}
+
+func (x *Subagent) ProtoReflect() protoreflect.Message {
+	mi := &file_realtime_me_v1_status_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Subagent.ProtoReflect.Descriptor instead.
+func (*Subagent) Descriptor() ([]byte, []int) {
+	return file_realtime_me_v1_status_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *Subagent) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
 // Agent is a coding agent's current status on a read surface. It never exposes
 // the underlying task text or any internal session identifier.
 type Agent struct {
@@ -487,15 +534,15 @@ type Agent struct {
 	UpdateTime *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	// model is the model the agent is currently running, such as "claude-opus-4-8".
 	Model string `protobuf:"bytes,8,opt,name=model,proto3" json:"model,omitempty"`
-	// subagent_count is how many sub-agents the agent has working right now.
-	SubagentCount int32 `protobuf:"varint,9,opt,name=subagent_count,json=subagentCount,proto3" json:"subagent_count,omitempty"`
+	// subagents are the workers the agent has running right now, one per worker.
+	Subagents     []*Subagent `protobuf:"bytes,10,rep,name=subagents,proto3" json:"subagents,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Agent) Reset() {
 	*x = Agent{}
-	mi := &file_realtime_me_v1_status_proto_msgTypes[6]
+	mi := &file_realtime_me_v1_status_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -507,7 +554,7 @@ func (x *Agent) String() string {
 func (*Agent) ProtoMessage() {}
 
 func (x *Agent) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_status_proto_msgTypes[6]
+	mi := &file_realtime_me_v1_status_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -520,7 +567,7 @@ func (x *Agent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Agent.ProtoReflect.Descriptor instead.
 func (*Agent) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_status_proto_rawDescGZIP(), []int{6}
+	return file_realtime_me_v1_status_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Agent) GetUid() string {
@@ -579,11 +626,11 @@ func (x *Agent) GetModel() string {
 	return ""
 }
 
-func (x *Agent) GetSubagentCount() int32 {
+func (x *Agent) GetSubagents() []*Subagent {
 	if x != nil {
-		return x.SubagentCount
+		return x.Subagents
 	}
-	return 0
+	return nil
 }
 
 // GithubStatus is the public view of GitHub status synchronization.
@@ -605,7 +652,7 @@ type GithubStatus struct {
 
 func (x *GithubStatus) Reset() {
 	*x = GithubStatus{}
-	mi := &file_realtime_me_v1_status_proto_msgTypes[7]
+	mi := &file_realtime_me_v1_status_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -617,7 +664,7 @@ func (x *GithubStatus) String() string {
 func (*GithubStatus) ProtoMessage() {}
 
 func (x *GithubStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_status_proto_msgTypes[7]
+	mi := &file_realtime_me_v1_status_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -630,7 +677,7 @@ func (x *GithubStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GithubStatus.ProtoReflect.Descriptor instead.
 func (*GithubStatus) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_status_proto_rawDescGZIP(), []int{7}
+	return file_realtime_me_v1_status_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GithubStatus) GetEnabled() bool {
@@ -697,7 +744,7 @@ type GithubSyncDetail struct {
 
 func (x *GithubSyncDetail) Reset() {
 	*x = GithubSyncDetail{}
-	mi := &file_realtime_me_v1_status_proto_msgTypes[8]
+	mi := &file_realtime_me_v1_status_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -709,7 +756,7 @@ func (x *GithubSyncDetail) String() string {
 func (*GithubSyncDetail) ProtoMessage() {}
 
 func (x *GithubSyncDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_status_proto_msgTypes[8]
+	mi := &file_realtime_me_v1_status_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -722,7 +769,7 @@ func (x *GithubSyncDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GithubSyncDetail.ProtoReflect.Descriptor instead.
 func (*GithubSyncDetail) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_status_proto_rawDescGZIP(), []int{8}
+	return file_realtime_me_v1_status_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GithubSyncDetail) GetConfigured() bool {
@@ -809,7 +856,7 @@ type PublicStatus struct {
 
 func (x *PublicStatus) Reset() {
 	*x = PublicStatus{}
-	mi := &file_realtime_me_v1_status_proto_msgTypes[9]
+	mi := &file_realtime_me_v1_status_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -821,7 +868,7 @@ func (x *PublicStatus) String() string {
 func (*PublicStatus) ProtoMessage() {}
 
 func (x *PublicStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_status_proto_msgTypes[9]
+	mi := &file_realtime_me_v1_status_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -834,7 +881,7 @@ func (x *PublicStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublicStatus.ProtoReflect.Descriptor instead.
 func (*PublicStatus) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_status_proto_rawDescGZIP(), []int{9}
+	return file_realtime_me_v1_status_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *PublicStatus) GetServer() *DeviceState {
@@ -900,7 +947,7 @@ type InternalStatus struct {
 
 func (x *InternalStatus) Reset() {
 	*x = InternalStatus{}
-	mi := &file_realtime_me_v1_status_proto_msgTypes[10]
+	mi := &file_realtime_me_v1_status_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -912,7 +959,7 @@ func (x *InternalStatus) String() string {
 func (*InternalStatus) ProtoMessage() {}
 
 func (x *InternalStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_status_proto_msgTypes[10]
+	mi := &file_realtime_me_v1_status_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -925,7 +972,7 @@ func (x *InternalStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InternalStatus.ProtoReflect.Descriptor instead.
 func (*InternalStatus) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_status_proto_rawDescGZIP(), []int{10}
+	return file_realtime_me_v1_status_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *InternalStatus) GetServer() *DeviceState {
@@ -1003,7 +1050,9 @@ const file_realtime_me_v1_status_proto_rawDesc = "" +
 	"\x05phone\x18\x04 \x01(\v2\x1a.realtime.me.v1.PhoneStateR\x05phone\x123\n" +
 	"\x05watch\x18\x05 \x01(\v2\x1d.realtime.me.v1.WatchSnapshotR\x05watch\x12;\n" +
 	"\vupdate_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"updateTime\"\xf7\x02\n" +
+	"updateTime\" \n" +
+	"\bSubagent\x12\x14\n" +
+	"\x05model\x18\x01 \x01(\tR\x05model\"\x9e\x03\n" +
 	"\x05Agent\x12\x10\n" +
 	"\x03uid\x18\x01 \x01(\tR\x03uid\x12\x12\n" +
 	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x1d\n" +
@@ -1014,9 +1063,11 @@ const file_realtime_me_v1_status_proto_rawDesc = "" +
 	"\x18budget_remaining_percent\x18\x06 \x01(\x05H\x00R\x16budgetRemainingPercent\x88\x01\x01\x12;\n" +
 	"\vupdate_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"updateTime\x12\x14\n" +
-	"\x05model\x18\b \x01(\tR\x05model\x12%\n" +
-	"\x0esubagent_count\x18\t \x01(\x05R\rsubagentCountB\x1b\n" +
-	"\x19_budget_remaining_percent\"\xcc\x01\n" +
+	"\x05model\x18\b \x01(\tR\x05model\x126\n" +
+	"\tsubagents\x18\n" +
+	" \x03(\v2\x18.realtime.me.v1.SubagentR\tsubagentsB\x1b\n" +
+	"\x19_budget_remaining_percentJ\x04\b\t\x10\n" +
+	"R\x0esubagent_count\"\xcc\x01\n" +
 	"\fGithubStatus\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x125\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x1f.realtime.me.v1.GithubSyncStateR\x05state\x12\x14\n" +
@@ -1077,7 +1128,7 @@ func file_realtime_me_v1_status_proto_rawDescGZIP() []byte {
 }
 
 var file_realtime_me_v1_status_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_realtime_me_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_realtime_me_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_realtime_me_v1_status_proto_goTypes = []any{
 	(GithubSyncState)(0),              // 0: realtime.me.v1.GithubSyncState
 	(*GetPublicStatusRequest)(nil),    // 1: realtime.me.v1.GetPublicStatusRequest
@@ -1086,64 +1137,66 @@ var file_realtime_me_v1_status_proto_goTypes = []any{
 	(*GetInternalStatusResponse)(nil), // 4: realtime.me.v1.GetInternalStatusResponse
 	(*DeviceState)(nil),               // 5: realtime.me.v1.DeviceState
 	(*MobileState)(nil),               // 6: realtime.me.v1.MobileState
-	(*Agent)(nil),                     // 7: realtime.me.v1.Agent
-	(*GithubStatus)(nil),              // 8: realtime.me.v1.GithubStatus
-	(*GithubSyncDetail)(nil),          // 9: realtime.me.v1.GithubSyncDetail
-	(*PublicStatus)(nil),              // 10: realtime.me.v1.PublicStatus
-	(*InternalStatus)(nil),            // 11: realtime.me.v1.InternalStatus
-	(DeviceKind)(0),                   // 12: realtime.me.v1.DeviceKind
-	(DeviceRole)(0),                   // 13: realtime.me.v1.DeviceRole
-	(OnlineState)(0),                  // 14: realtime.me.v1.OnlineState
-	(*MetricSample)(nil),              // 15: realtime.me.v1.MetricSample
-	(*MediaStatus)(nil),               // 16: realtime.me.v1.MediaStatus
-	(*Accessory)(nil),                 // 17: realtime.me.v1.Accessory
-	(*timestamppb.Timestamp)(nil),     // 18: google.protobuf.Timestamp
-	(*PhoneState)(nil),                // 19: realtime.me.v1.PhoneState
-	(*WatchSnapshot)(nil),             // 20: realtime.me.v1.WatchSnapshot
-	(AgentState)(0),                   // 21: realtime.me.v1.AgentState
+	(*Subagent)(nil),                  // 7: realtime.me.v1.Subagent
+	(*Agent)(nil),                     // 8: realtime.me.v1.Agent
+	(*GithubStatus)(nil),              // 9: realtime.me.v1.GithubStatus
+	(*GithubSyncDetail)(nil),          // 10: realtime.me.v1.GithubSyncDetail
+	(*PublicStatus)(nil),              // 11: realtime.me.v1.PublicStatus
+	(*InternalStatus)(nil),            // 12: realtime.me.v1.InternalStatus
+	(DeviceKind)(0),                   // 13: realtime.me.v1.DeviceKind
+	(DeviceRole)(0),                   // 14: realtime.me.v1.DeviceRole
+	(OnlineState)(0),                  // 15: realtime.me.v1.OnlineState
+	(*MetricSample)(nil),              // 16: realtime.me.v1.MetricSample
+	(*MediaStatus)(nil),               // 17: realtime.me.v1.MediaStatus
+	(*Accessory)(nil),                 // 18: realtime.me.v1.Accessory
+	(*timestamppb.Timestamp)(nil),     // 19: google.protobuf.Timestamp
+	(*PhoneState)(nil),                // 20: realtime.me.v1.PhoneState
+	(*WatchSnapshot)(nil),             // 21: realtime.me.v1.WatchSnapshot
+	(AgentState)(0),                   // 22: realtime.me.v1.AgentState
 }
 var file_realtime_me_v1_status_proto_depIdxs = []int32{
-	10, // 0: realtime.me.v1.GetPublicStatusResponse.status:type_name -> realtime.me.v1.PublicStatus
-	11, // 1: realtime.me.v1.GetInternalStatusResponse.status:type_name -> realtime.me.v1.InternalStatus
-	12, // 2: realtime.me.v1.DeviceState.kind:type_name -> realtime.me.v1.DeviceKind
-	13, // 3: realtime.me.v1.DeviceState.role:type_name -> realtime.me.v1.DeviceRole
-	14, // 4: realtime.me.v1.DeviceState.state:type_name -> realtime.me.v1.OnlineState
-	15, // 5: realtime.me.v1.DeviceState.metrics:type_name -> realtime.me.v1.MetricSample
-	16, // 6: realtime.me.v1.DeviceState.media:type_name -> realtime.me.v1.MediaStatus
-	17, // 7: realtime.me.v1.DeviceState.accessories:type_name -> realtime.me.v1.Accessory
-	18, // 8: realtime.me.v1.DeviceState.update_time:type_name -> google.protobuf.Timestamp
-	19, // 9: realtime.me.v1.MobileState.phone:type_name -> realtime.me.v1.PhoneState
-	20, // 10: realtime.me.v1.MobileState.watch:type_name -> realtime.me.v1.WatchSnapshot
-	18, // 11: realtime.me.v1.MobileState.update_time:type_name -> google.protobuf.Timestamp
-	21, // 12: realtime.me.v1.Agent.state:type_name -> realtime.me.v1.AgentState
-	18, // 13: realtime.me.v1.Agent.update_time:type_name -> google.protobuf.Timestamp
-	0,  // 14: realtime.me.v1.GithubStatus.state:type_name -> realtime.me.v1.GithubSyncState
-	18, // 15: realtime.me.v1.GithubStatus.update_time:type_name -> google.protobuf.Timestamp
-	0,  // 16: realtime.me.v1.GithubSyncDetail.state:type_name -> realtime.me.v1.GithubSyncState
-	18, // 17: realtime.me.v1.GithubSyncDetail.last_success_time:type_name -> google.protobuf.Timestamp
-	18, // 18: realtime.me.v1.GithubSyncDetail.last_error_time:type_name -> google.protobuf.Timestamp
-	18, // 19: realtime.me.v1.GithubSyncDetail.last_attempt_time:type_name -> google.protobuf.Timestamp
-	5,  // 20: realtime.me.v1.PublicStatus.server:type_name -> realtime.me.v1.DeviceState
-	6,  // 21: realtime.me.v1.PublicStatus.mobile:type_name -> realtime.me.v1.MobileState
-	5,  // 22: realtime.me.v1.PublicStatus.devices:type_name -> realtime.me.v1.DeviceState
-	7,  // 23: realtime.me.v1.PublicStatus.agents:type_name -> realtime.me.v1.Agent
-	8,  // 24: realtime.me.v1.PublicStatus.github:type_name -> realtime.me.v1.GithubStatus
-	18, // 25: realtime.me.v1.PublicStatus.update_time:type_name -> google.protobuf.Timestamp
-	5,  // 26: realtime.me.v1.InternalStatus.server:type_name -> realtime.me.v1.DeviceState
-	6,  // 27: realtime.me.v1.InternalStatus.mobile:type_name -> realtime.me.v1.MobileState
-	5,  // 28: realtime.me.v1.InternalStatus.devices:type_name -> realtime.me.v1.DeviceState
-	7,  // 29: realtime.me.v1.InternalStatus.agents:type_name -> realtime.me.v1.Agent
-	9,  // 30: realtime.me.v1.InternalStatus.github:type_name -> realtime.me.v1.GithubSyncDetail
-	18, // 31: realtime.me.v1.InternalStatus.update_time:type_name -> google.protobuf.Timestamp
-	1,  // 32: realtime.me.v1.StatusService.GetPublicStatus:input_type -> realtime.me.v1.GetPublicStatusRequest
-	3,  // 33: realtime.me.v1.StatusService.GetInternalStatus:input_type -> realtime.me.v1.GetInternalStatusRequest
-	2,  // 34: realtime.me.v1.StatusService.GetPublicStatus:output_type -> realtime.me.v1.GetPublicStatusResponse
-	4,  // 35: realtime.me.v1.StatusService.GetInternalStatus:output_type -> realtime.me.v1.GetInternalStatusResponse
-	34, // [34:36] is the sub-list for method output_type
-	32, // [32:34] is the sub-list for method input_type
-	32, // [32:32] is the sub-list for extension type_name
-	32, // [32:32] is the sub-list for extension extendee
-	0,  // [0:32] is the sub-list for field type_name
+	11, // 0: realtime.me.v1.GetPublicStatusResponse.status:type_name -> realtime.me.v1.PublicStatus
+	12, // 1: realtime.me.v1.GetInternalStatusResponse.status:type_name -> realtime.me.v1.InternalStatus
+	13, // 2: realtime.me.v1.DeviceState.kind:type_name -> realtime.me.v1.DeviceKind
+	14, // 3: realtime.me.v1.DeviceState.role:type_name -> realtime.me.v1.DeviceRole
+	15, // 4: realtime.me.v1.DeviceState.state:type_name -> realtime.me.v1.OnlineState
+	16, // 5: realtime.me.v1.DeviceState.metrics:type_name -> realtime.me.v1.MetricSample
+	17, // 6: realtime.me.v1.DeviceState.media:type_name -> realtime.me.v1.MediaStatus
+	18, // 7: realtime.me.v1.DeviceState.accessories:type_name -> realtime.me.v1.Accessory
+	19, // 8: realtime.me.v1.DeviceState.update_time:type_name -> google.protobuf.Timestamp
+	20, // 9: realtime.me.v1.MobileState.phone:type_name -> realtime.me.v1.PhoneState
+	21, // 10: realtime.me.v1.MobileState.watch:type_name -> realtime.me.v1.WatchSnapshot
+	19, // 11: realtime.me.v1.MobileState.update_time:type_name -> google.protobuf.Timestamp
+	22, // 12: realtime.me.v1.Agent.state:type_name -> realtime.me.v1.AgentState
+	19, // 13: realtime.me.v1.Agent.update_time:type_name -> google.protobuf.Timestamp
+	7,  // 14: realtime.me.v1.Agent.subagents:type_name -> realtime.me.v1.Subagent
+	0,  // 15: realtime.me.v1.GithubStatus.state:type_name -> realtime.me.v1.GithubSyncState
+	19, // 16: realtime.me.v1.GithubStatus.update_time:type_name -> google.protobuf.Timestamp
+	0,  // 17: realtime.me.v1.GithubSyncDetail.state:type_name -> realtime.me.v1.GithubSyncState
+	19, // 18: realtime.me.v1.GithubSyncDetail.last_success_time:type_name -> google.protobuf.Timestamp
+	19, // 19: realtime.me.v1.GithubSyncDetail.last_error_time:type_name -> google.protobuf.Timestamp
+	19, // 20: realtime.me.v1.GithubSyncDetail.last_attempt_time:type_name -> google.protobuf.Timestamp
+	5,  // 21: realtime.me.v1.PublicStatus.server:type_name -> realtime.me.v1.DeviceState
+	6,  // 22: realtime.me.v1.PublicStatus.mobile:type_name -> realtime.me.v1.MobileState
+	5,  // 23: realtime.me.v1.PublicStatus.devices:type_name -> realtime.me.v1.DeviceState
+	8,  // 24: realtime.me.v1.PublicStatus.agents:type_name -> realtime.me.v1.Agent
+	9,  // 25: realtime.me.v1.PublicStatus.github:type_name -> realtime.me.v1.GithubStatus
+	19, // 26: realtime.me.v1.PublicStatus.update_time:type_name -> google.protobuf.Timestamp
+	5,  // 27: realtime.me.v1.InternalStatus.server:type_name -> realtime.me.v1.DeviceState
+	6,  // 28: realtime.me.v1.InternalStatus.mobile:type_name -> realtime.me.v1.MobileState
+	5,  // 29: realtime.me.v1.InternalStatus.devices:type_name -> realtime.me.v1.DeviceState
+	8,  // 30: realtime.me.v1.InternalStatus.agents:type_name -> realtime.me.v1.Agent
+	10, // 31: realtime.me.v1.InternalStatus.github:type_name -> realtime.me.v1.GithubSyncDetail
+	19, // 32: realtime.me.v1.InternalStatus.update_time:type_name -> google.protobuf.Timestamp
+	1,  // 33: realtime.me.v1.StatusService.GetPublicStatus:input_type -> realtime.me.v1.GetPublicStatusRequest
+	3,  // 34: realtime.me.v1.StatusService.GetInternalStatus:input_type -> realtime.me.v1.GetInternalStatusRequest
+	2,  // 35: realtime.me.v1.StatusService.GetPublicStatus:output_type -> realtime.me.v1.GetPublicStatusResponse
+	4,  // 36: realtime.me.v1.StatusService.GetInternalStatus:output_type -> realtime.me.v1.GetInternalStatusResponse
+	35, // [35:37] is the sub-list for method output_type
+	33, // [33:35] is the sub-list for method input_type
+	33, // [33:33] is the sub-list for extension type_name
+	33, // [33:33] is the sub-list for extension extendee
+	0,  // [0:33] is the sub-list for field type_name
 }
 
 func init() { file_realtime_me_v1_status_proto_init() }
@@ -1153,14 +1206,14 @@ func file_realtime_me_v1_status_proto_init() {
 	}
 	file_realtime_me_v1_status_types_proto_init()
 	file_realtime_me_v1_watch_proto_init()
-	file_realtime_me_v1_status_proto_msgTypes[6].OneofWrappers = []any{}
+	file_realtime_me_v1_status_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_realtime_me_v1_status_proto_rawDesc), len(file_realtime_me_v1_status_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

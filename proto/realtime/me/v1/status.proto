@@ -96,9 +96,19 @@ message MobileState {
   google.protobuf.Timestamp update_time = 6;
 }
 
+// Subagent is one worker a coding agent has running right now. It carries the
+// model and nothing else: what a sub-agent was asked to do is never collected.
+message Subagent {
+  // model is the model the sub-agent runs, such as "claude-opus-4-8".
+  string model = 1;
+}
+
 // Agent is a coding agent's current status on a read surface. It never exposes
 // the underlying task text or any internal session identifier.
 message Agent {
+  reserved 9;
+  reserved "subagent_count";
+
   // uid is the gateway-assigned opaque agent identity.
   string uid = 1;
 
@@ -123,8 +133,8 @@ message Agent {
   // model is the model the agent is currently running, such as "claude-opus-4-8".
   string model = 8;
 
-  // subagent_count is how many sub-agents the agent has working right now.
-  int32 subagent_count = 9;
+  // subagents are the workers the agent has running right now, one per worker.
+  repeated Subagent subagents = 10;
 }
 
 // GitHubSyncState is the state of GitHub status synchronization.

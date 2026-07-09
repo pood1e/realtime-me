@@ -1,53 +1,66 @@
-import { Laptop } from 'lucide-react';
-import type { Agent } from '@/gen/realtime/me/v1/status_pb';
-import { AgentClip, agentIcon, agentMotionLabel, agentName } from '@/components/AgentCard';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import type { Agent, Subagent } from '@/gen/realtime/me/v1/status_pb';
+import { AgentClip, agentIcon, agentName, subagentText } from '@/components/AgentCard';
 import { agentDeviceLabel } from '@/lib/status';
 
-// Working agents live here rather than on the card of the machine they run on:
-// a device can host several at once, and stacking them beside its name crowds
-// the title and pushes that card's readings out of line with its neighbours.
-// The band disappears entirely when nothing is working, so an idle fleet costs
-// no space at all.
+// Working agents live here rather than on the card of the machine they run on: a
+// device can host several at once, and stacking them beside its name crowds the
+// title and pushes that card's readings out of line with its neighbours. The
+// strip carries no card of its own — the mascots are the surface — and it
+// disappears entirely when nothing is working.
 export function WorkingNow({ agents }: { agents: Agent[] }) {
   if (agents.length === 0) return null;
   return (
-    <Card>
-      <CardContent className="flex flex-wrap items-end gap-x-8 gap-y-6 py-4">
-        {agents.map((agent) => (
-          <WorkingAgent key={agent.uid} agent={agent} />
-        ))}
-      </CardContent>
-    </Card>
+    <div className="flex flex-wrap items-end gap-x-10 gap-y-4">
+      {agents.map((agent) => (
+        <WorkingAgent key={agent.uid} agent={agent} />
+      ))}
+    </div>
   );
 }
 
+// One clip for the agent, one for each sub-agent it has out, so the crowd is the
+// count. Each carries its own model, because a sub-agent need not run the model
+// that spawned it.
 function WorkingAgent({ agent }: { agent: Agent }) {
-  const device = agentDeviceLabel(agent);
   return (
-    <div className="flex min-w-0 items-end gap-3">
-      <AgentClip agent={agent} className="working-agent-image" alt={agentMotionLabel(agent)} />
-      <div className="grid min-w-0 gap-1.5 pb-0.5">
-        <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
-          {agentIcon(agent.kind)}
-          <span className="truncate">{agentName(agent.kind)}</span>
-        </div>
-        {agent.model && <p className="truncate text-xs text-muted-foreground">{agent.model}</p>}
-        <div className="flex flex-wrap items-center gap-2">
-          {device && (
-            <Badge variant="outline" className="min-w-0 shrink" title={device}>
-              <Laptop />
-              <span className="truncate">{device}</span>
-            </Badge>
-          )}
-          {agent.subagentCount > 0 && <Badge variant="secondary">{subagentText(agent.subagentCount)}</Badge>}
-        </div>
+    <div className="flex min-w-0 flex-col gap-1">
+      <div className="flex items-end gap-1">
+        <AgentClip
+          kind={agent.kind}
+          seed={agent.uid}
+          className="working-agent-image"
+          alt={agentTitle(agent)}
+          title={agentTitle(agent)}
+        />
+        {agent.subagents.map((subagent, index) => (
+          <AgentClip
+            key={index}
+            kind={agent.kind}
+            seed={`${agent.uid}:${index}`}
+            className="working-subagent-image"
+            alt={subagentTitle(agent, subagent)}
+            title={subagentTitle(agent, subagent)}
+          />
+        ))}
+      </div>
+      <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+        <span className="[&_svg]:size-3.5">{agentIcon(agent.kind)}</span>
+        <span className="truncate">{workingCaption(agent)}</span>
       </div>
     </div>
   );
 }
 
-function subagentText(count: number): string {
-  return count === 1 ? '1 sub-agent' : `${count} sub-agents`;
+function workingCaption(agent: Agent): string {
+  const device = agentDeviceLabel(agent);
+  const subagents = agent.subagents.length > 0 ? subagentText(agent.subagents.length) : '';
+  return [agent.model || agentName(agent.kind), device, subagents].filter(Boolean).join(' · ');
+}
+
+function agentTitle(agent: Agent): string {
+  return [`${agentName(agent.kind)} working`, agent.model, agentDeviceLabel(agent)].filter(Boolean).join(' · ');
+}
+
+function subagentTitle(agent: Agent, subagent: Subagent): string {
+  return [`${agentName(agent.kind)} sub-agent`, subagent.model].filter(Boolean).join(' · ');
 }

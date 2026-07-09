@@ -20,6 +20,7 @@ import os
 import re
 import sqlite3
 import time
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -65,7 +66,8 @@ class AgentSnapshot:
     kind: str
     state: str
     model: str = ""
-    subagent_count: int = 0
+    # one entry per sub-agent working right now, holding the model it runs
+    subagent_models: tuple[str, ...] = ()
     budget_remaining_percent: int | None = None
 
 
@@ -162,13 +164,21 @@ def codex_snapshot(homes: list[Path], processes: dict[int, str], now: float, act
 
     candidates.sort(key=lambda item: (item.state != "idle", item.updated_at_seconds), reverse=True)
     top = candidates[0]
+    threads = codex_threads(homes)
     return AgentSnapshot(
         kind=CODEX_KIND,
         state=top.state,
         model=top.model,
-        subagent_count=len(subagent_ids),
+        subagent_models=tuple(threads[uid].model if uid in threads else "" for uid in sorted(subagent_ids)),
         budget_remaining_percent=top.budget_remaining_percent,
     )
+
+
+def codex_threads(homes: list[Path]) -> dict[str, CodexThread]:
+    threads: dict[str, CodexThread] = {}
+    for home in homes:
+        threads.update(read_codex_threads(home / "state_5.sqlite"))
+    return threads
 
 
 def codex_candidates(
@@ -178,10 +188,9 @@ def codex_candidates(
     now: float,
     active_window_seconds: int,
 ) -> list[CodexCandidate]:
-    threads: dict[str, CodexThread] = {}
+    threads = codex_threads(homes)
     goals: dict[str, CodexGoal] = {}
     for home in homes:
-        threads.update(read_codex_threads(home / "state_5.sqlite"))
         goals.update(read_codex_goals(home / "goals_1.sqlite"))
 
     candidates: list[CodexCandidate] = []
@@ -326,7 +335,7 @@ def claude_snapshot(home: Path, processes: dict[int, str], now: float) -> AgentS
     if not sessions:
         return AgentSnapshot(kind=CLAUDE_KIND, state="idle")
 
-    subagents = sum(count_claude_subagents(session, now) for session in sessions)
+    subagents = tuple(model for session in sessions for model in claude_subagent_models(session, now))
     # `busy` flips when a turn starts and ends, so it needs no freshness window:
     # a session file only outlives its turn if the CLI itself is gone, and a dead
     # pid is already filtered out. Ranking falls back to the last transcript write.
@@ -336,7 +345,7 @@ def claude_snapshot(home: Path, processes: dict[int, str], now: float) -> AgentS
         kind=CLAUDE_KIND,
         state="running" if working or subagents else "idle",
         model=last_model(newest.transcript),
-        subagent_count=subagents,
+        subagent_models=subagents,
     )
 
 
@@ -370,18 +379,23 @@ def claude_transcript(home: Path, cwd: str, session_id: str) -> Path | None:
     return home / "projects" / re.sub(r"[^A-Za-z0-9]", "-", cwd) / f"{session_id}.jsonl"
 
 
-def count_claude_subagents(session: ClaudeSession, now: float) -> int:
+def claude_subagent_models(session: ClaudeSession, now: float) -> list[str]:
+    """The model each of this session's working sub-agents runs, one per agent.
+
+    A sub-agent can be given a different model from the session that spawned it,
+    so its own transcript is the only place its model is written.
+    """
     if not session.subagents_dir.exists():
-        return 0
+        return []
     candidates = [
         transcript
         for transcript in session.subagents_dir.glob("agent-*.jsonl")
         if now - modified_at(transcript) <= CLAUDE_SUBAGENT_STALE_AFTER_SECONDS
     ]
     if not candidates:
-        return 0
+        return []
     stopped_at = claude_stopped_subagents(session.transcript)
-    return sum(1 for transcript in candidates if not claude_subagent_finished(transcript, stopped_at))
+    return [last_model(t) for t in sorted(candidates) if not claude_subagent_finished(t, stopped_at)]
 
 
 def claude_stopped_subagents(transcript: Path) -> dict[str, float]:
@@ -498,7 +512,7 @@ def render_prometheus_metrics(snapshots: list[AgentSnapshot]) -> str:
         "# HELP realtime_agent_info Agent metadata as labels, always 1. OpenTelemetry name: realtime.agent.info.",
         "# TYPE realtime_agent_info gauge",
         "# UNIT realtime_agent_info 1",
-        "# HELP realtime_agent_subagents_running Sub-agents the agent has working right now. OpenTelemetry name: realtime.agent.subagents.running.",
+        "# HELP realtime_agent_subagents_running Sub-agents the agent has working right now, by the model each runs. OpenTelemetry name: realtime.agent.subagents.running.",
         "# TYPE realtime_agent_subagents_running gauge",
         "# UNIT realtime_agent_subagents_running 1",
         "# HELP realtime_agent_budget_remaining_ratio Agent budget remaining as a fraction. OpenTelemetry name: realtime.agent.budget.remaining.",
@@ -511,7 +525,12 @@ def render_prometheus_metrics(snapshots: list[AgentSnapshot]) -> str:
             lines.append(f"realtime_agent_state{label_set({**labels, 'state': state})} {1 if snapshot.state == state else 0}")
         if snapshot.model:
             lines.append(f"realtime_agent_info{label_set({**labels, 'model': snapshot.model})} 1")
-        lines.append(f"realtime_agent_subagents_running{label_set(labels)} {snapshot.subagent_count}")
+        # One series per model, so a sub-agent running a different model than the
+        # agent that spawned it is still counted under its own name. With none
+        # working the bare series still reports zero, which clears the last scrape.
+        counts = Counter(snapshot.subagent_models)
+        for model in sorted(counts) or [""]:
+            lines.append(f"realtime_agent_subagents_running{label_set({**labels, 'model': model})} {counts[model]}")
         if snapshot.budget_remaining_percent is not None:
             lines.append(
                 f"realtime_agent_budget_remaining_ratio{label_set(labels)} "

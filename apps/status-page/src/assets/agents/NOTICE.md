@@ -14,12 +14,12 @@ To run the page with them, put Anthropic's clips through
 clip draws Clawd at its own scale, so rendering them as published makes him
 change size as the card rotates; the tool normalises every clip on his eye and
 emits the `<name>.png` posters the reduced-motion path needs. The names the page
-looks for are listed in `CLAWD_TIER_CLIPS` in `AgentCard.tsx`, grouped by how
-busy the agent is, and their loop lengths in `CLAWD_CLIP_DURATIONS_MS`. Every
-tier must resolve, or the page falls back to `agent-orbit.svg` for all of them.
+looks for, and each clip's loop length, are listed in `CLAWD_CLIP_DURATIONS_MS`
+in `AgentCard.tsx`. A clip missing either its GIF or its poster is dropped; drop
+them all and the Claude agent falls back to `agent-orbit.svg`.
 
 ## `agent-orbit.svg` and `codex-*.svg`
 
 Original work, covered by this repository's MIT `LICENSE`. OpenAI publishes no
-mascot to normalise the way Anthropic's clips are, so Codex's four busyness
-tiers are drawn here as animated SVG rather than shipped as artwork.
+mascot to normalise the way Anthropic's clips are, so Codex's clips are drawn
+here as animated SVG rather than shipped as artwork.
