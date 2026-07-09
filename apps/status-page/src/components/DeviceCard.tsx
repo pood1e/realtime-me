@@ -2,7 +2,7 @@ import { Activity, Cpu } from 'lucide-react';
 import type { ReactElement } from 'react';
 import type { Agent, DeviceState } from '@/gen/realtime/me/v1/status_pb';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AgentStatus } from '@/components/AgentCard';
+import { AgentMark } from '@/components/AgentCard';
 import { deviceIcon } from '@/components/brand';
 import {
   AccessoryBadges,
@@ -48,20 +48,22 @@ export function DeviceCard({ device, title, icon, agents = [] }: {
   const showCpuBadge = hasCpuCores && cpuUsage === undefined;
   const hasAnyMetric = hasCpuCores || cpuUsage !== undefined || hasMemory || hasDisk || accessoryCount(device?.accessories) > 0;
   const showNoMetrics = !hasAnyMetric && agents.length === 0;
-  const hasReadings = cpuUsage !== undefined || hasMemory || hasDisk || showCpuBadge || agents.length > 0;
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">{deviceIcon(device, icon)}{displayName}</CardTitle>
+        <CardTitle className="flex min-w-0 items-center gap-2">
+          {deviceIcon(device, icon)}
+          <span className="truncate">{displayName}</span>
+          {agents.map((agent) => <AgentMark key={agent.uid} agent={agent} />)}
+        </CardTitle>
         <CardAction className="flex items-center gap-2">
           <InlineTime value={device?.updateTime} />
           <StatusBadge state={device?.state} />
         </CardAction>
       </CardHeader>
       <CardContent className="flex h-full flex-col gap-4">
-        {hasReadings && (
+        {(cpuUsage !== undefined || hasMemory || hasDisk || showCpuBadge) && (
           <div className="flex flex-wrap items-start justify-around gap-x-2 gap-y-3 py-1">
-            {agents.map((agent) => <AgentStatus key={agent.uid} agent={agent} />)}
             {cpuUsage !== undefined && <RingGauge value={cpuUsage} label="CPU" detail={cpuText(device)} />}
             {hasMemory && <RingGauge value={memory.percent} label="Mem" detail={memory.text} />}
             {hasDisk && <RingGauge value={disk.percent} label="Disk" detail={disk.text} />}

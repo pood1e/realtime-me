@@ -101,13 +101,6 @@ export function agentName(kind: string): string {
   return kind || 'Agent';
 }
 
-// The status cell's label sits beside CPU / MEM / DISK, so it has to be as short.
-function agentShortName(kind: string): string {
-  if (isClaudeAgent(kind)) return 'Claude';
-  if (kind === 'codex') return 'Codex';
-  return kind || 'Agent';
-}
-
 export function agentIcon(kind: string): ReactElement {
   if (isClaudeAgent(kind)) return <BrandIcon icon={siClaude} />;
   if (kind === 'codex') return <CodexIcon />;
@@ -123,22 +116,15 @@ function AgentMotion({ agent }: { agent: Agent }) {
   );
 }
 
-// AgentStatus reads as one more indicator in the device card's row of readings:
-// an agent working on that machine, at the size of the gauges beside it.
-export function AgentStatus({ agent }: { agent: Agent }) {
+// AgentMark animates beside a device's name: a small live sign that something is
+// working on that machine, not a reading to be compared with the gauges below.
+export function AgentMark({ agent }: { agent: Agent }) {
   const label = agentMotionLabel(agent);
-  return (
-    <div className="flex flex-col items-center gap-1.5" title={label}>
-      <div className="flex h-[3.25rem] items-end justify-center">
-        <AgentClip agent={agent} className="agent-status-image" alt={label} />
-      </div>
-      <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{agentShortName(agent.kind)}</span>
-    </div>
-  );
+  return <AgentClip agent={agent} className="agent-mark-image" alt={label} title={label} />;
 }
 
 // AgentClip cycles the agent's clips, swapping only on a whole-loop boundary.
-function AgentClip({ agent, className, alt }: { agent: Agent; className: string; alt: string }) {
+function AgentClip({ agent, className, alt, title }: { agent: Agent; className: string; alt: string; title?: string }) {
   const assets = agentMotionAssets(agent.kind);
   const reducedMotion = usePrefersReducedMotion();
   const initialIndex = hashString(agent.uid) % assets.length;
@@ -160,7 +146,7 @@ function AgentClip({ agent, className, alt }: { agent: Agent; className: string;
   // A GIF animates no matter what the stylesheet says, so a viewer who asked for
   // reduced motion gets a still frame instead.
   const src = reducedMotion ? asset.poster ?? asset.src : asset.src;
-  return <img key={src} className={className} src={src} alt={alt} />;
+  return <img key={src} className={className} src={src} alt={alt} title={title} />;
 }
 
 // The card no longer spells the agent out, so the label carries what the picture

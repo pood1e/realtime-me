@@ -161,9 +161,16 @@
 
 /* The nine clips share one canvas, so a fixed height renders Clawd at the same
    size in all of them. Width follows the canvas; its margin is transparent. */
-.agent-status-image {
-  height: 3.25rem;
+.agent-mark-image {
+  height: 2.25rem;
   width: auto;
+  flex-shrink: 0;
   object-fit: contain;
+  /* The clips stand on the bottom of their shared canvas, so lifting the box puts
+     Clawd's feet on the title's baseline. The margins cancel out to the line
+     height, so a card with an agent keeps its header height and its gauges stay
+     in line with the cards beside it. */
+  margin-top: -1rem;
+  margin-bottom: 0.25rem;
 }
 
