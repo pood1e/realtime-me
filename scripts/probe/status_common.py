@@ -14,6 +14,7 @@ import re
 import subprocess
 import threading
 import time
+import traceback
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -197,9 +198,12 @@ class PooledHTTPServer(HTTPServer):
         self.pool.submit(self.handle_request_in_pool, request, client_address)
 
     def handle_request_in_pool(self, request: object, client_address: object) -> None:
+        # Nobody waits on the future this runs in, so an exception it does not
+        # catch is discarded: the connection would close unanswered and the host
+        # would hold the only record of why.
         try:
             self.finish_request(request, client_address)
-        except OSError:
+        except Exception:  # noqa: BLE001 - the pool would otherwise swallow it
             self.handle_error(request, client_address)
         finally:
             self.shutdown_request(request)
@@ -207,6 +211,21 @@ class PooledHTTPServer(HTTPServer):
     def server_close(self) -> None:
         super().server_close()
         self.pool.shutdown(wait=False)
+
+
+def render_route(route: Callable[[], Response]) -> Response:
+    """Answer a route, turning a render that raised into a scrape that says so.
+
+    A scrape reads files, databases and the output of other programs, any of
+    which can surprise it. Left uncaught the exception would close the socket
+    unanswered, and Prometheus would report a target that is down without ever
+    saying why; the traceback goes to the journal, and the scrape gets a 500.
+    """
+    try:
+        return route()
+    except Exception:  # noqa: BLE001 - one bad file must not silence the scrape
+        traceback.print_exc()
+        return json_response({"error": "render_failed"}, 500)
 
 
 def run_server(bind: str, port: int, routes: dict[str, Callable[[], Response]]) -> int:
@@ -217,7 +236,10 @@ def run_server(bind: str, port: int, routes: dict[str, Callable[[], Response]]) 
 
         def do_GET(self) -> None:
             route = routes.get(self.path)
-            self.write_response(route() if route else json_response({"error": "not_found"}, 404))
+            if route is None:
+                self.write_response(json_response({"error": "not_found"}, 404))
+                return
+            self.write_response(render_route(route))
 
         def write_response(self, response: Response) -> None:
             self.send_response(response.status)
