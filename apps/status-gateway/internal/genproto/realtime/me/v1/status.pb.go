@@ -484,7 +484,11 @@ type Agent struct {
 	// budget_remaining_percent is the remaining budget from 0 to 100, if known.
 	BudgetRemainingPercent *int32 `protobuf:"varint,6,opt,name=budget_remaining_percent,json=budgetRemainingPercent,proto3,oneof" json:"budget_remaining_percent,omitempty"`
 	// update_time is when this agent's status was last refreshed.
-	UpdateTime    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
+	UpdateTime *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
+	// model is the model the agent is currently running, such as "claude-opus-4-8".
+	Model string `protobuf:"bytes,8,opt,name=model,proto3" json:"model,omitempty"`
+	// subagent_count is how many sub-agents the agent has working right now.
+	SubagentCount int32 `protobuf:"varint,9,opt,name=subagent_count,json=subagentCount,proto3" json:"subagent_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -566,6 +570,20 @@ func (x *Agent) GetUpdateTime() *timestamppb.Timestamp {
 		return x.UpdateTime
 	}
 	return nil
+}
+
+func (x *Agent) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *Agent) GetSubagentCount() int32 {
+	if x != nil {
+		return x.SubagentCount
+	}
+	return 0
 }
 
 // GithubStatus is the public view of GitHub status synchronization.
@@ -985,7 +1003,7 @@ const file_realtime_me_v1_status_proto_rawDesc = "" +
 	"\x05phone\x18\x04 \x01(\v2\x1a.realtime.me.v1.PhoneStateR\x05phone\x123\n" +
 	"\x05watch\x18\x05 \x01(\v2\x1d.realtime.me.v1.WatchSnapshotR\x05watch\x12;\n" +
 	"\vupdate_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"updateTime\"\xba\x02\n" +
+	"updateTime\"\xf7\x02\n" +
 	"\x05Agent\x12\x10\n" +
 	"\x03uid\x18\x01 \x01(\tR\x03uid\x12\x12\n" +
 	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x1d\n" +
@@ -995,7 +1013,9 @@ const file_realtime_me_v1_status_proto_rawDesc = "" +
 	"\x05state\x18\x05 \x01(\x0e2\x1a.realtime.me.v1.AgentStateR\x05state\x12=\n" +
 	"\x18budget_remaining_percent\x18\x06 \x01(\x05H\x00R\x16budgetRemainingPercent\x88\x01\x01\x12;\n" +
 	"\vupdate_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"updateTimeB\x1b\n" +
+	"updateTime\x12\x14\n" +
+	"\x05model\x18\b \x01(\tR\x05model\x12%\n" +
+	"\x0esubagent_count\x18\t \x01(\x05R\rsubagentCountB\x1b\n" +
 	"\x19_budget_remaining_percent\"\xcc\x01\n" +
 	"\fGithubStatus\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x125\n" +

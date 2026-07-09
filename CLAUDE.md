@@ -91,6 +91,21 @@ target set: an empty set deregisters the device. When the gateway does not
 recognise a uid it answers `not_found`, which is the signal a client uses to drop
 its cached uid and enroll again.
 
+**The agent exporter only reads what the agents already wrote, and never their
+titles.** It issues no request to any agent and runs no agent command. Claude
+Code is read from `~/.claude/sessions/<pid>.json` (which names the live pid, its
+transcript, and its own `busy` flag) plus the per-sub-agent transcripts beside
+it; Codex is read from the rollout `.jsonl` its process holds open and from
+`state_5.sqlite` / `goals_1.sqlite` in `$CODEX_HOME`. Neither agent's file layout
+is symmetric, so neither detection can be folded into the other: Codex holds its
+rollout open and closes each turn with `turn_complete`, while Claude Code appends
+and closes, answers a background sub-agent the instant it launches, and splits
+one reply across `thinking`/`text`/`tool_use` records. A Claude sub-agent is
+therefore live until its session announces its `<task-id>`, and only a later
+write means it was resumed. Prompts, objectives, task titles, sub-agent
+descriptions and `threads.title` are never read into a metric — `model` and a
+sub-agent *count* are the only things added to `realtime_agent_*`.
+
 **Probe exporters cache `/metrics` and serve it from a fixed thread pool.** A
 scrape shells out to `ps`, `lsof` and `bluetoothctl`, so `status_common.cached()`
 keeps the scrape rate from becoming the process-spawn rate, and `PooledHTTPServer`

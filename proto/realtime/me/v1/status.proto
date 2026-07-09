@@ -119,6 +119,12 @@ message Agent {
 
   // update_time is when this agent's status was last refreshed.
   google.protobuf.Timestamp update_time = 7;
+
+  // model is the model the agent is currently running, such as "claude-opus-4-8".
+  string model = 8;
+
+  // subagent_count is how many sub-agents the agent has working right now.
+  int32 subagent_count = 9;
 }
 
 // GitHubSyncState is the state of GitHub status synchronization.

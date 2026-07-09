@@ -260,7 +260,7 @@ func (client *PrometheusClient) DeviceAccessoryStatuses(ctx context.Context) map
 }
 
 func (client *PrometheusClient) AgentStatuses(ctx context.Context) []*mev1.Agent {
-	var running, budgetSamples []prometheusSample
+	var running, budgetSamples, infoSamples, subagentSamples []prometheusSample
 	parallel(
 		func() {
 			running = client.queryVector(ctx, `realtime_agent_state{job="agent-exporter",state="running"} == 1`)
@@ -268,11 +268,19 @@ func (client *PrometheusClient) AgentStatuses(ctx context.Context) []*mev1.Agent
 		func() {
 			budgetSamples = client.queryVector(ctx, `realtime_agent_budget_remaining_ratio{job="agent-exporter"}`)
 		},
+		func() {
+			infoSamples = client.queryVector(ctx, `realtime_agent_info{job="agent-exporter"}`)
+		},
+		func() {
+			subagentSamples = client.queryVector(ctx, `realtime_agent_subagents_running{job="agent-exporter"}`)
+		},
 	)
 	if len(running) == 0 {
 		return nil
 	}
 	budgets := samplesByAgent(budgetSamples)
+	subagents := samplesByAgent(subagentSamples)
+	models := agentModels(infoSamples)
 	now := timestamppb.New(time.Now().UTC())
 	agents := make([]*mev1.Agent, 0, len(running))
 	for _, sample := range running {
@@ -282,12 +290,14 @@ func (client *PrometheusClient) AgentStatuses(ctx context.Context) []*mev1.Agent
 		}
 		deviceUID := firstNonEmpty(sample.Metric["device_uid"], sample.Metric["device_id"])
 		agent := &mev1.Agent{
-			Uid:         agentUID(deviceUID, kind),
-			Kind:        kind,
-			DeviceUid:   deviceUID,
-			DisplayName: sample.Metric["device_name"],
-			State:       mev1.AgentState_AGENT_STATE_RUNNING,
-			UpdateTime:  now,
+			Uid:           agentUID(deviceUID, kind),
+			Kind:          kind,
+			DeviceUid:     deviceUID,
+			DisplayName:   sample.Metric["device_name"],
+			State:         mev1.AgentState_AGENT_STATE_RUNNING,
+			UpdateTime:    now,
+			Model:         models[deviceUID+"/"+kind],
+			SubagentCount: int32(math.Max(0, math.Round(subagents[deviceUID+"/"+kind]))),
 		}
 		if value, ok := budgets[deviceUID+"/"+kind]; ok {
 			percent := int32(math.Round(clampRatio(value) * 100))
@@ -512,6 +522,22 @@ func samplesByInstance(samples []prometheusSample) map[string]*float64 {
 		values[instance] = &value
 	}
 	return values
+}
+
+// agentModels reads the model an agent runs from the labels of its info series,
+// which carries the name rather than a value.
+func agentModels(samples []prometheusSample) map[string]string {
+	models := make(map[string]string, len(samples))
+	for _, sample := range samples {
+		kind := firstNonEmpty(sample.Metric["agent_kind"], sample.Metric["agent_id"])
+		model := sample.Metric["model"]
+		if kind == "" || model == "" {
+			continue
+		}
+		deviceUID := firstNonEmpty(sample.Metric["device_uid"], sample.Metric["device_id"])
+		models[deviceUID+"/"+kind] = model
+	}
+	return models
 }
 
 func samplesByAgent(samples []prometheusSample) map[string]float64 {

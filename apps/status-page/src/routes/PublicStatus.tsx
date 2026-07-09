@@ -6,6 +6,7 @@ import type { ShellContext } from '@/components/AppShell';
 import { DeviceCard } from '@/components/DeviceCard';
 import { ErrorCard, SkeletonCard } from '@/components/layout';
 import { PhoneCard, WatchCard } from '@/components/MobileCards';
+import { WorkingNow } from '@/components/WorkingNow';
 import { isVirtualMachine } from '@/lib/status';
 
 const SKELETON_CARDS = 5;
@@ -18,8 +19,11 @@ export function PublicStatusApp() {
   }
 
   return (
-    <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {status == null ? <LoadingCards /> : <DeviceCards status={status} />}
+    <div className="grid gap-4">
+      {status != null && <WorkingNow agents={status.agents.filter(isWorking)} />}
+      <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {status == null ? <LoadingCards /> : <DeviceCards status={status} />}
+      </div>
     </div>
   );
 }
@@ -29,20 +33,14 @@ function LoadingCards() {
 }
 
 function DeviceCards({ status }: { status: NonNullable<ShellContext['status']> }) {
-  const working = workingAgentsByDevice(status.agents);
   const virtualMachines = status.devices.filter(isVirtualMachine);
   const personalDevices = status.devices.filter((device) => !isVirtualMachine(device));
 
   return (
     <>
-      <DeviceCard
-        device={status.server ?? null}
-        title="Server"
-        icon={<Server className="size-4" />}
-        agents={working.get(status.server?.deviceUid ?? '')}
-      />
+      <DeviceCard device={status.server ?? null} title="Server" icon={<Server className="size-4" />} />
       {virtualMachines.map((device) => (
-        <DeviceCard key={device.deviceUid} device={device} title="VM" icon={<Box className="size-4" />} agents={working.get(device.deviceUid)} />
+        <DeviceCard key={device.deviceUid} device={device} title="VM" icon={<Box className="size-4" />} />
       ))}
       {personalDevices.map((device) => (
         <DeviceCard
@@ -50,7 +48,6 @@ function DeviceCards({ status }: { status: NonNullable<ShellContext['status']> }
           device={device}
           title={device.role === DeviceRole.DESKTOP ? 'Mac' : 'Device'}
           icon={<Laptop className="size-4" />}
-          agents={working.get(device.deviceUid)}
         />
       ))}
       <PhoneCard mobile={status.mobile ?? null} />
@@ -59,16 +56,6 @@ function DeviceCards({ status }: { status: NonNullable<ShellContext['status']> }
   );
 }
 
-// A working agent animates on the card of the machine it works on. Prometheus
-// discovers an agent through its device's scrape target, and that device always
-// registers a node exporter too, so every working agent has a card to land on.
-function workingAgentsByDevice(agents: Agent[]): Map<string, Agent[]> {
-  const byDevice = new Map<string, Agent[]>();
-  for (const agent of agents) {
-    if (agent.state !== AgentState.RUNNING) continue;
-    const existing = byDevice.get(agent.deviceUid);
-    if (existing) existing.push(agent);
-    else byDevice.set(agent.deviceUid, [agent]);
-  }
-  return byDevice;
+function isWorking(agent: Agent): boolean {
+  return agent.state === AgentState.RUNNING;
 }

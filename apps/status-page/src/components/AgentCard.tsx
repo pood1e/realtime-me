@@ -5,6 +5,7 @@ import agentOrbitUrl from '@/assets/agents/agent-orbit.svg';
 import codexOrbitUrl from '@/assets/agents/codex-orbit.svg';
 import codexRibbonsUrl from '@/assets/agents/codex-ribbons.svg';
 import codexSparksUrl from '@/assets/agents/codex-sparks.svg';
+import codexSwarmUrl from '@/assets/agents/codex-swarm.svg';
 import type { Agent } from '@/gen/realtime/me/v1/status_pb';
 import { AgentState } from '@/gen/realtime/me/v1/status_types_pb';
 import { Badge } from '@/components/ui/badge';
@@ -24,37 +25,67 @@ type AgentMotionAsset = {
 
 const AGENT_MOTION_MIN_VISIBLE_MS = 10_000;
 
+// An agent's clip says how hard it is working: the more sub-agents it has out,
+// the busier the mascot. The tiers below are indexed by subagentTier(), and a
+// clip is picked from within the matching tier so the picture still varies.
+const SUBAGENT_TIER_BOUNDS = [0, 2, 4];
+
 // The Claw'd clips are Anthropic's artwork and are not distributed with this
 // repository — see src/assets/agents/NOTICE.md. They are discovered at build
 // time, so a checkout without them still builds and the Claude card falls back
 // to the original mascot. durationMs is each clip's own loop length, so a clip
 // is only swapped out on a whole-loop boundary rather than mid-animation.
-const CLAWD_CLIPS: Array<{ name: string; durationMs: number }> = [
-  { name: 'clawd-laptop', durationMs: 3_580 },
-  { name: 'clawd-magnifier', durationMs: 9_410 },
-  { name: 'clawd-crab-walking', durationMs: 1_660 },
-  { name: 'clawd-lurking', durationMs: 5_580 },
-  { name: 'clawd-racing-car', durationMs: 4_010 },
-  { name: 'clawd-soccer', durationMs: 4_880 },
-  { name: 'clawd-dancing', durationMs: 3_330 },
-  { name: 'clawd-jumping-happy', durationMs: 1_760 },
-  { name: 'clawd-waving', durationMs: 1_410 },
+const CLAWD_CLIP_DURATIONS_MS: Record<string, number> = {
+  'clawd-laptop': 3_580,
+  'clawd-magnifier': 9_410,
+  'clawd-crab-walking': 1_660,
+  'clawd-lurking': 5_580,
+  'clawd-racing-car': 4_010,
+  'clawd-soccer': 4_880,
+  'clawd-dancing': 3_330,
+  'clawd-jumping-happy': 1_760,
+  'clawd-waving': 1_410,
+};
+const CLAWD_TIER_CLIPS: string[][] = [
+  ['clawd-laptop', 'clawd-magnifier', 'clawd-lurking'],
+  ['clawd-crab-walking', 'clawd-waving'],
+  ['clawd-soccer', 'clawd-racing-car'],
+  ['clawd-dancing', 'clawd-jumping-happy'],
 ];
 
 const clawdClipUrls = import.meta.glob('../assets/agents/clawd/*.gif', { eager: true, import: 'default' }) as Record<string, string>;
 const clawdPosterUrls = import.meta.glob('../assets/agents/clawd/*.png', { eager: true, import: 'default' }) as Record<string, string>;
 
-const CLAWD_MOTION_ASSETS: AgentMotionAsset[] = CLAWD_CLIPS.flatMap((clip) => {
-  const src = clawdClipUrls[`../assets/agents/clawd/${clip.name}.gif`];
-  if (!src) return [];
-  return [{ src, durationMs: clip.durationMs, poster: clawdPosterUrls[`../assets/agents/clawd/${clip.name}.png`] }];
-});
-const CODEX_MOTION_ASSETS: AgentMotionAsset[] = [
-  { src: codexOrbitUrl, durationMs: 4_000 },
-  { src: codexRibbonsUrl, durationMs: 4_000 },
-  { src: codexSparksUrl, durationMs: 4_000 },
+const DEFAULT_MOTION_TIERS: AgentMotionAsset[][] = fill(SUBAGENT_TIER_BOUNDS.length + 1, [{ src: agentOrbitUrl, durationMs: 4_000 }]);
+const CODEX_MOTION_TIERS: AgentMotionAsset[][] = [
+  [{ src: codexOrbitUrl, durationMs: 4_000 }],
+  [{ src: codexSparksUrl, durationMs: 4_000 }],
+  [{ src: codexRibbonsUrl, durationMs: 4_000 }],
+  [{ src: codexSwarmUrl, durationMs: 4_000 }],
 ];
-const DEFAULT_MOTION_ASSETS: AgentMotionAsset[] = [{ src: agentOrbitUrl, durationMs: 4_000 }];
+const CLAWD_MOTION_TIERS: AgentMotionAsset[][] = clawdMotionTiers();
+
+// Every tier needs a clip, so a checkout missing any of the artwork falls back
+// wholesale rather than showing the mascot for some sub-agent counts only.
+function clawdMotionTiers(): AgentMotionAsset[][] {
+  const tiers = CLAWD_TIER_CLIPS.map((names) =>
+    names.flatMap((name) => {
+      const src = clawdClipUrls[`../assets/agents/clawd/${name}.gif`];
+      if (!src) return [];
+      return [{ src, durationMs: CLAWD_CLIP_DURATIONS_MS[name], poster: clawdPosterUrls[`../assets/agents/clawd/${name}.png`] }];
+    }),
+  );
+  return tiers.every((tier) => tier.length > 0) ? tiers : [];
+}
+
+function fill<T>(length: number, value: T): T[] {
+  return Array.from({ length }, () => value);
+}
+
+// subagentTier maps a sub-agent count onto a busyness tier: 0, 1-2, 3-4, 5+.
+function subagentTier(subagentCount: number): number {
+  return SUBAGENT_TIER_BOUNDS.filter((bound) => subagentCount > bound).length;
+}
 
 export function AgentCard({ agent }: { agent: Agent }) {
   const stateLabel = agentStateLabel(agent.state);
@@ -72,7 +103,11 @@ export function AgentCard({ agent }: { agent: Agent }) {
       </CardHeader>
       <CardContent className="grid gap-4">
         <AgentMotion agent={agent} />
-        <AgentDeviceBadge agent={agent} />
+        <div className="flex flex-wrap items-center gap-2">
+          <AgentDeviceBadge agent={agent} />
+          {agent.subagentCount > 0 && <Badge variant="secondary">{agent.subagentCount} working</Badge>}
+        </div>
+        {agent.model && <p className="truncate text-xs text-muted-foreground">{agent.model}</p>}
         {agent.budgetRemainingPercent !== undefined && (
           <div className="grid gap-2">
             <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
@@ -116,16 +151,10 @@ function AgentMotion({ agent }: { agent: Agent }) {
   );
 }
 
-// AgentMark animates beside a device's name: a small live sign that something is
-// working on that machine, not a reading to be compared with the gauges below.
-export function AgentMark({ agent }: { agent: Agent }) {
-  const label = agentMotionLabel(agent);
-  return <AgentClip agent={agent} className="agent-mark-image" alt={label} title={label} />;
-}
-
-// AgentClip cycles the agent's clips, swapping only on a whole-loop boundary.
-function AgentClip({ agent, className, alt, title }: { agent: Agent; className: string; alt: string; title?: string }) {
-  const assets = agentMotionAssets(agent.kind);
+// AgentClip cycles the clips of the agent's current tier, swapping only on a
+// whole-loop boundary.
+export function AgentClip({ agent, className, alt, title }: { agent: Agent; className: string; alt: string; title?: string }) {
+  const assets = agentMotionAssets(agent.kind, agent.subagentCount);
   const reducedMotion = usePrefersReducedMotion();
   const initialIndex = hashString(agent.uid) % assets.length;
   const [index, setIndex] = useState(initialIndex);
@@ -151,7 +180,7 @@ function AgentClip({ agent, className, alt, title }: { agent: Agent; className: 
 
 // The card no longer spells the agent out, so the label carries what the picture
 // cannot: which agent, and how much budget it has left.
-function agentMotionLabel(agent: Agent): string {
+export function agentMotionLabel(agent: Agent): string {
   const name = `${agentName(agent.kind)} working`;
   return agent.budgetRemainingPercent === undefined ? name : `${name} · ${agent.budgetRemainingPercent}% budget left`;
 }
@@ -167,10 +196,14 @@ function AgentDeviceBadge({ agent }: { agent: Agent }) {
   );
 }
 
-function agentMotionAssets(kind: string): AgentMotionAsset[] {
-  if (isClaudeAgent(kind) && CLAWD_MOTION_ASSETS.length > 0) return CLAWD_MOTION_ASSETS;
-  if (kind === 'codex') return CODEX_MOTION_ASSETS;
-  return DEFAULT_MOTION_ASSETS;
+function agentMotionAssets(kind: string, subagentCount: number): AgentMotionAsset[] {
+  return agentMotionTiers(kind)[subagentTier(subagentCount)];
+}
+
+function agentMotionTiers(kind: string): AgentMotionAsset[][] {
+  if (isClaudeAgent(kind) && CLAWD_MOTION_TIERS.length > 0) return CLAWD_MOTION_TIERS;
+  if (kind === 'codex') return CODEX_MOTION_TIERS;
+  return DEFAULT_MOTION_TIERS;
 }
 
 function agentMotionDelayMs(asset: AgentMotionAsset): number {

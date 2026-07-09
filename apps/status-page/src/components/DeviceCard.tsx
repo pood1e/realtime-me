@@ -1,8 +1,7 @@
 import { Activity, Cpu } from 'lucide-react';
 import type { ReactElement } from 'react';
-import type { Agent, DeviceState } from '@/gen/realtime/me/v1/status_pb';
+import type { DeviceState } from '@/gen/realtime/me/v1/status_pb';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AgentMark } from '@/components/AgentCard';
 import { deviceIcon } from '@/components/brand';
 import {
   AccessoryBadges,
@@ -30,14 +29,7 @@ import {
 } from '@/lib/metrics';
 import { deviceDisplayName } from '@/lib/status';
 
-export function DeviceCard({ device, title, icon, agents = [] }: {
-  device: DeviceState | null;
-  title: string;
-  icon: ReactElement;
-  // agents working on this device, if any. Their animation is the card's way of
-  // saying the machine is busy.
-  agents?: Agent[];
-}) {
+export function DeviceCard({ device, title, icon }: { device: DeviceState | null; title: string; icon: ReactElement }) {
   const displayName = deviceDisplayName(device, title);
   const memory = memoryValues(device);
   const disk = diskValues(device);
@@ -46,15 +38,13 @@ export function DeviceCard({ device, title, icon, agents = [] }: {
   const hasMemory = memory.percent !== undefined;
   const hasDisk = disk.percent !== undefined;
   const showCpuBadge = hasCpuCores && cpuUsage === undefined;
-  const hasAnyMetric = hasCpuCores || cpuUsage !== undefined || hasMemory || hasDisk || accessoryCount(device?.accessories) > 0;
-  const showNoMetrics = !hasAnyMetric && agents.length === 0;
+  const showNoMetrics = !(hasCpuCores || cpuUsage !== undefined || hasMemory || hasDisk || accessoryCount(device?.accessories) > 0);
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex min-w-0 items-center gap-2">
           {deviceIcon(device, icon)}
           <span className="truncate">{displayName}</span>
-          {agents.map((agent) => <AgentMark key={agent.uid} agent={agent} />)}
         </CardTitle>
         <CardAction className="flex items-center gap-2">
           <InlineTime value={device?.updateTime} />
