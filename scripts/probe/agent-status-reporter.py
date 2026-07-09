@@ -39,10 +39,13 @@ UUID_PATTERN = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9
 PROCESS_LINE_PATTERN = re.compile(r"\s*(\d+)\s+(.+)$")
 
 CODEX_FAILED_GOAL_STATES = {"blocked", "usage_limited", "budget_limited"}
-# Codex ends a turn with turn_complete, or turn_aborted when it is interrupted.
-CODEX_TURN_END_EVENTS = {"turn_complete", "turn_aborted"}
-# Records Codex only writes while a turn is under way.
-CODEX_TURN_WORK_EVENTS = {"turn_started", "function_call", "function_call_output", "reasoning", "user_message", "agent_message", "message"}
+# Codex brackets every turn with a start record and an end record, and persists
+# both whatever else the thread's history mode keeps. It still serialises them
+# under their v1 names -- protocol.rs renames TurnStarted to task_started and
+# TurnComplete to task_complete -- and accepts the v2 names only when reading,
+# so a rollout may carry either spelling depending on who wrote it.
+CODEX_TURN_START_EVENTS = {"task_started", "turn_started"}
+CODEX_TURN_END_EVENTS = {"task_complete", "turn_complete", "turn_aborted"}
 CODEX_SPAWN_EDGE_OPEN = "open"
 # The numeric suffix is a schema generation Codex bumps on a breaking rebuild, so
 # match the family rather than pinning the generation this exporter was written
@@ -325,27 +328,31 @@ def codex_open_threads(homes: list[Path], processes: dict[int, str]) -> dict[str
 def codex_activity(rollout: Path, now: float, active_window_seconds: int) -> tuple[bool, float]:
     """Whether this thread is mid-turn, and when it last wrote.
 
-    Only turn_complete and turn_aborted close a turn. An assistant message does
-    not: Codex interleaves messages with tool calls, so treating one as the end
-    would read a working thread as idle every time it narrated between calls.
-    Everything mid-turn is judged against the window instead, so a thread wedged
-    on a tool call eventually falls idle rather than working forever.
+    The newest bracket decides: a turn whose start has no end after it is still
+    running. What lies between the brackets is named after whichever tool the
+    model reached for, and Codex keeps or drops those records depending on how
+    the thread stores its history, so nothing between them is worth reading.
+
+    A turn long enough to bury its own start beyond the tail is still running,
+    which is why an absent bracket reads the same as an open one. Either way a
+    thread that wedges on a tool call stops writing, and the window retires it.
     """
-    fallback = modified_at(rollout)
-    for line in reversed(tail_lines(rollout)):
-        event = decode_json(line)
-        if not event:
-            continue
-        timestamp = parse_event_timestamp(event.get("timestamp"), fallback)
-        payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
-        payload_type = str(payload.get("type") or "")
-        if payload_type == "token_count":
-            continue  # usage accrues throughout a turn and ends none of it
+    written_at = modified_at(rollout)
+    events = [event for event in map(decode_json, reversed(tail_lines(rollout))) if event]
+    if events:
+        written_at = parse_event_timestamp(events[0].get("timestamp"), written_at)
+    for event in events:
+        payload_type = event_payload_type(event)
         if payload_type in CODEX_TURN_END_EVENTS:
-            return False, timestamp
-        if payload_type in CODEX_TURN_WORK_EVENTS:
-            return now - timestamp <= active_window_seconds, timestamp
-    return False, fallback
+            return False, written_at
+        if payload_type in CODEX_TURN_START_EVENTS:
+            break
+    return now - written_at <= active_window_seconds, written_at
+
+
+def event_payload_type(event: dict[str, Any]) -> str:
+    payload = event.get("payload")
+    return str(payload.get("type") or "") if isinstance(payload, dict) else ""
 
 
 def open_files(process_id: int) -> list[Path]:

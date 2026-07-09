@@ -98,7 +98,9 @@ transcript, and its own `busy` flag) plus the per-sub-agent transcripts beside
 it; Codex is read from the rollout `.jsonl` its process holds open and from
 `state_5.sqlite` / `goals_1.sqlite` in `$CODEX_HOME`. Neither agent's file layout
 is symmetric, so neither detection can be folded into the other: Codex holds its
-rollout open and closes each turn with `turn_complete`, while Claude Code appends
+rollout open and brackets each turn with `task_started` and `task_complete`
+(Codex serialises those v1 names and reads `turn_*` only as aliases; nothing
+between the brackets is worth reading), while Claude Code appends
 and closes, answers a background sub-agent the instant it launches, and splits
 one reply across `thinking`/`text`/`tool_use` records. A Claude sub-agent is
 therefore live until its session announces its `<task-id>`, and only a later
