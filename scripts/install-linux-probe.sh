@@ -160,7 +160,9 @@ node_exporter_arch() {
 
 install_node_exporter() {
   local arch archive workdir source_url filename args
-  if [[ -x $NODE_EXPORTER_BIN ]] && "$NODE_EXPORTER_BIN" --version 2>&1 | grep -q "version $NODE_EXPORTER_VERSION"; then
+  # -wF, because the version is a literal and "version 1.11.1" is a prefix of
+  # "version 1.11.10": a substring match would call the pin already satisfied.
+  if [[ -x $NODE_EXPORTER_BIN ]] && "$NODE_EXPORTER_BIN" --version 2>&1 | grep -qwF "version $NODE_EXPORTER_VERSION"; then
     log "node_exporter v$NODE_EXPORTER_VERSION already installed"; return
   fi
   arch=$(node_exporter_arch)

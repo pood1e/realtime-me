@@ -113,7 +113,9 @@ node_exporter_expected_sha256() {
 }
 
 install_node_exporter() {
-  if [[ -x $NODE_EXPORTER_BIN ]] && "$NODE_EXPORTER_BIN" --version 2>&1 | grep -q "version $NODE_EXPORTER_VERSION"; then
+  # -wF, because the version is a literal and "version 1.11.1" is a prefix of
+  # "version 1.11.10": a substring match would call the pin already satisfied.
+  if [[ -x $NODE_EXPORTER_BIN ]] && "$NODE_EXPORTER_BIN" --version 2>&1 | grep -qwF "version $NODE_EXPORTER_VERSION"; then
     log "node_exporter v$NODE_EXPORTER_VERSION already installed"; return
   fi
   local arch filename url archive workdir expected actual

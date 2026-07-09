@@ -74,6 +74,11 @@ def main() -> int:
     except ConnectError as error:
         print(f"target registration failed: {error.code}", file=sys.stderr)
         return 1
+    except OSError as error:
+        # The device is enrolled but owns no targets. Re-running is safe: the uid
+        # is cached, and RegisterScrapeTargets declares the complete set anyway.
+        print(f"target registration failed: {error}", file=sys.stderr)
+        return 1
 
     print(f"registered {args.name} ({device_uid}) at {args.host}", file=sys.stderr)
     print(device_uid)
