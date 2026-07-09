@@ -65,7 +65,7 @@ func (server *StatusServer) buildPublicStatus(ctx context.Context) *mev1.PublicS
 func (server *StatusServer) derivedStatus(ctx context.Context, now time.Time) derivedStatus {
 	server.cache.mutex.Lock()
 	defer server.cache.mutex.Unlock()
-	if !server.cache.cachedAt.IsZero() && now.Sub(server.cache.cachedAt) < derivedStatusTTL {
+	if !server.cache.cachedAt.IsZero() && time.Since(server.cache.cachedAt) < derivedStatusTTL {
 		return server.cache.value
 	}
 
@@ -89,7 +89,10 @@ func (server *StatusServer) derivedStatus(ctx context.Context, now time.Time) de
 	)
 
 	server.cache.value = fresh
-	server.cache.cachedAt = now
+	// Stamped now the fan-out is over, not when the request arrived: a rebuild
+	// that took longer than the TTL would otherwise be born expired, and every
+	// caller after it would rebuild again behind the same lock.
+	server.cache.cachedAt = time.Now()
 	return fresh
 }
 
