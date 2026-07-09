@@ -93,9 +93,12 @@ its cached uid and enroll again.
 
 **The agent exporter only reads what the agents already wrote, and never their
 titles.** It issues no request to any agent and runs no agent command. Claude
-Code is read from `~/.claude/sessions/<pid>.json` (which names the live pid, its
-transcript, and its own `busy` flag) plus the per-sub-agent transcripts beside
-it; Codex is read from the rollout `.jsonl` its process holds open and from
+Code is read from `~/.claude/sessions/<pid>.json` (which names the live pid, the
+tick the kernel started it on, its transcript, and its own `busy` flag) plus the
+per-sub-agent transcripts beside it; a pid is only on loan, and on a host that
+runs Claude Code the program that inherits one is often another `claude`, so a
+session counts only while `/proc/<pid>/stat` still reports the start tick it
+recorded — where a kernel does not publish that, the pid has to stand alone; Codex is read from the rollout `.jsonl` its process holds open and from
 `state_5.sqlite` / `goals_1.sqlite` in `$CODEX_HOME`. Neither agent's file layout
 is symmetric, so neither detection can be folded into the other: Codex holds its
 rollout open and brackets each turn with `task_started` and `task_complete`
@@ -156,10 +159,13 @@ run an arbitrary query. Don't reintroduce a `query=` parameter.
 - Prometheus runs without `--web.enable-lifecycle`: nothing here reloads it, and
   the flag serves unauthenticated `/-/reload` and `/-/quit`. Config changes need a
   container restart.
-- The status page's Worker proxies only `/realtime.me.v1.*` to
-  `STATUS_API_BASE_URL`, so the browser always sees one origin. It deliberately
-  proxies nothing under `/api/`: those are the gateway's control-plane routes,
-  such as scrape discovery, and a browser must never reach them.
+- The status page's Worker proxies the three read services — `StatusService`,
+  `ProfileService`, `MetricsService` — to `STATUS_API_BASE_URL` by name, so the
+  browser always sees one origin. Don't collapse them back to the
+  `/realtime.me.v1.*` package prefix: that also carries `IngestService` and
+  `EnrollmentService`, the write half of the API. It proxies nothing under
+  `/api/` either: those are the gateway's control-plane routes, such as scrape
+  discovery, and a browser must never reach them.
 - `STATUS_INGEST_TOKEN` (write) and `STATUS_QUERY_TOKEN` (read) are separate
   secrets and the gateway refuses to start without both. The read token reaches
   the internal dashboard, `MetricsService`, and scrape discovery; Prometheus

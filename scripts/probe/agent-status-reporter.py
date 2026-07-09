@@ -63,6 +63,9 @@ CLAUDE_SUBAGENT_RESUME_EPSILON_SECONDS = 5
 # The id is whatever the session names between the tags; never assume a charset.
 CLAUDE_TASK_ID_PATTERN = re.compile(r"<task-id>([^<]+)</task-id>")
 CLAUDE_MODEL_TAIL_BYTES = 96 * 1024
+# /proc/<pid>/stat holds the process's start tick in its 22nd field, counting the
+# pid and the bracketed comm the fields before it are read past.
+CLAUDE_PROC_STAT_START_TIME_INDEX = 19
 
 CODEX_KIND = "codex"
 CLAUDE_KIND = "claude"
@@ -427,9 +430,11 @@ def claude_live_sessions(home: Path, processes: dict[int, str]) -> list[ClaudeSe
     sessions = []
     for path in sessions_dir.glob("*.json"):
         data = read_json_object(path)
-        process_id = int(data.get("pid") or 0)
+        process_id = read_int(data.get("pid"))
         if "claude" not in processes.get(process_id, ""):
             continue  # the session file outlives the CLI that wrote it
+        if not started_the_process(process_id, str(data.get("procStart") or "")):
+            continue  # the pid is live, but the kernel has since handed it to someone else
         transcript = claude_transcript(home, str(data.get("cwd") or ""), str(data.get("sessionId") or ""))
         if not transcript or not transcript.exists():
             continue
@@ -442,6 +447,27 @@ def claude_live_sessions(home: Path, processes: dict[int, str]) -> list[ClaudeSe
             )
         )
     return sessions
+
+
+def started_the_process(process_id: int, started_at_ticks: str) -> bool:
+    """Whether the process holding this pid is the one the session wrote about.
+
+    A pid is only on loan. A session names both the pid and the tick the kernel
+    started it on, so a pid recycled to another program -- and on a machine that
+    runs Claude Code, the next program is often another `claude` -- is caught by
+    the tick, which no two processes on one boot can share. Linux publishes it as
+    the 22nd field of /proc/<pid>/stat, behind a comm that may itself hold spaces
+    and brackets. Where the kernel does not publish it, the pid has to stand.
+    """
+    if not started_at_ticks:
+        return True
+    try:
+        fields = Path(f"/proc/{process_id}/stat").read_text().rpartition(") ")[2].split()
+    except OSError:
+        return True
+    if len(fields) <= CLAUDE_PROC_STAT_START_TIME_INDEX:
+        return True
+    return fields[CLAUDE_PROC_STAT_START_TIME_INDEX] == started_at_ticks
 
 
 def claude_transcript(home: Path, cwd: str, session_id: str) -> Path | None:
@@ -532,6 +558,14 @@ def decode_json(line: str) -> dict[str, Any]:
     except json.JSONDecodeError:
         return {}
     return data if isinstance(data, dict) else {}
+
+
+def read_int(value: Any) -> int:
+    """A whole number from a field that was only ever meant to hold one."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
 
 
 def first_record(path: Path) -> dict[str, Any]:
