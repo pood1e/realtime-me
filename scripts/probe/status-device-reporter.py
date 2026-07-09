@@ -254,15 +254,20 @@ def darwin_nowplaying_cli() -> MediaSnapshot | None:
         return None
     if not nowplaying_cli_is_playing(command):
         return None
-    title = run([command, "get", "title"]).strip()
-    if not title:
+    # Every field is answered with the string "null" when MediaRemote has none,
+    # which survives .strip() and only empties once sanitized. Sanitize first, so
+    # a track named "null" is the only thing an empty title can mean.
+    title = sanitize_media_text(run([command, "get", "title"]))
+    player = sanitize_media_text(run([command, "get", "bundleIdentifier"]))
+    # MediaRemote keeps the last item long after the application that queued it
+    # has quit, and goes on calling it playing. Nothing owns that item, and
+    # nothing is coming out of the speakers: an unattributed track is a ghost.
+    if not title or not player:
         return None
-    artist = run([command, "get", "artist"]).strip()
-    player = run([command, "get", "bundleIdentifier"]).strip()
     return MediaSnapshot(
-        title=sanitize_media_text(title),
-        artist=sanitize_media_text(artist),
-        player=sanitize_media_text(player),
+        title=title,
+        artist=sanitize_media_text(run([command, "get", "artist"])),
+        player=player,
     )
 
 
