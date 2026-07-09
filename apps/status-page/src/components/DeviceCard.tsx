@@ -1,7 +1,8 @@
 import { Activity, Cpu } from 'lucide-react';
 import type { ReactElement } from 'react';
-import type { DeviceState } from '@/gen/realtime/me/v1/status_pb';
+import type { Agent, DeviceState } from '@/gen/realtime/me/v1/status_pb';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AgentMotion } from '@/components/AgentCard';
 import { deviceIcon } from '@/components/brand';
 import {
   AccessoryBadges,
@@ -29,10 +30,13 @@ import {
 } from '@/lib/metrics';
 import { deviceDisplayName } from '@/lib/status';
 
-export function DeviceCard({ device, title, icon }: {
+export function DeviceCard({ device, title, icon, agents = [] }: {
   device: DeviceState | null;
   title: string;
   icon: ReactElement;
+  // agents working on this device, if any. Their animation is the card's way of
+  // saying the machine is busy.
+  agents?: Agent[];
 }) {
   const displayName = deviceDisplayName(device, title);
   const memory = memoryValues(device);
@@ -43,6 +47,7 @@ export function DeviceCard({ device, title, icon }: {
   const hasDisk = disk.percent !== undefined;
   const showCpuBadge = hasCpuCores && cpuUsage === undefined;
   const hasAnyMetric = hasCpuCores || cpuUsage !== undefined || hasMemory || hasDisk || accessoryCount(device?.accessories) > 0;
+  const showNoMetrics = !hasAnyMetric && agents.length === 0;
   return (
     <Card>
       <CardHeader>
@@ -53,6 +58,11 @@ export function DeviceCard({ device, title, icon }: {
         </CardAction>
       </CardHeader>
       <CardContent className="flex h-full flex-col gap-4">
+        {agents.length > 0 && (
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {agents.map((agent) => <AgentMotion key={agent.uid} agent={agent} />)}
+          </div>
+        )}
         {(cpuUsage !== undefined || hasMemory || hasDisk || showCpuBadge) && (
           <div className="flex flex-wrap items-start justify-around gap-x-2 gap-y-3 py-1">
             {cpuUsage !== undefined && <RingGauge value={cpuUsage} label="CPU" detail={cpuText(device)} />}
@@ -66,7 +76,7 @@ export function DeviceCard({ device, title, icon }: {
             <AccessoryBadges accessories={device?.accessories} />
           </MetricBadges>
         )}
-        {!hasAnyMetric && <NoMetrics />}
+        {showNoMetrics && <NoMetrics />}
       </CardContent>
     </Card>
   );

@@ -107,7 +107,9 @@ export function agentIcon(kind: string): ReactElement {
   return <Bot className="size-4" />;
 }
 
-function AgentMotion({ agent }: { agent: Agent }) {
+// AgentMotion is also rendered on the public device card, so a working agent
+// shows up on the machine it is working on rather than in a section of its own.
+export function AgentMotion({ agent }: { agent: Agent }) {
   const assets = agentMotionAssets(agent.kind);
   const reducedMotion = usePrefersReducedMotion();
   const initialIndex = hashString(agent.uid) % assets.length;
@@ -129,11 +131,19 @@ function AgentMotion({ agent }: { agent: Agent }) {
   // A GIF animates no matter what the stylesheet says, so a viewer who asked for
   // reduced motion gets a still frame instead.
   const src = reducedMotion ? asset.poster ?? asset.src : asset.src;
+  const label = agentMotionLabel(agent);
   return (
-    <div className="agent-motion">
-      <img key={src} className="agent-motion-image" src={src} alt={`${agentName(agent.kind)} working`} />
+    <div className="agent-motion" title={label}>
+      <img key={src} className="agent-motion-image" src={src} alt={label} />
     </div>
   );
+}
+
+// The card no longer spells the agent out, so the label carries what the picture
+// cannot: which agent, and how much budget it has left.
+function agentMotionLabel(agent: Agent): string {
+  const name = `${agentName(agent.kind)} working`;
+  return agent.budgetRemainingPercent === undefined ? name : `${name} · ${agent.budgetRemainingPercent}% budget left`;
 }
 
 function AgentDeviceBadge({ agent }: { agent: Agent }) {
