@@ -33,6 +33,12 @@ const (
 	// maxConcurrentPrometheusQueries sizes the idle-connection pool to the widest
 	// concurrent fan-out a single status assembly performs.
 	maxConcurrentPrometheusQueries = 10
+
+	// maxAgentsPerSample bounds how many agents one exporter sample may claim to
+	// be running. The count decides how many messages the unauthenticated status
+	// assembly allocates, and the exporter that supplies it is a process on a
+	// probe host rather than something this gateway controls.
+	maxAgentsPerSample = 64
 )
 
 type PrometheusClient struct {
@@ -287,8 +293,8 @@ func (client *PrometheusClient) AgentStatuses(ctx context.Context) []*mev1.Agent
 	agents := make([]*mev1.Agent, 0, len(runningCounts))
 	for _, sample := range runningCounts {
 		kind := firstNonEmpty(sample.Metric["agent_kind"], sample.Metric["agent_id"])
-		count := int(math.Round(sample.Value))
-		if kind == "" || count <= 0 {
+		count := sampleCount(sample.Value)
+		if kind == "" || count == 0 {
 			continue
 		}
 		deviceUID := firstNonEmpty(sample.Metric["device_uid"], sample.Metric["device_id"])
@@ -442,7 +448,7 @@ func (client *PrometheusClient) queryVector(ctx context.Context, query string) [
 	}
 
 	var payload prometheusQueryResponse
-	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+	if err := json.NewDecoder(io.LimitReader(response.Body, maxPrometheusResponseSize)).Decode(&payload); err != nil {
 		return nil
 	}
 
@@ -455,8 +461,13 @@ func (client *PrometheusClient) queryVector(ctx context.Context, query string) [
 		if !ok {
 			continue
 		}
+		// Prometheus renders NaN and ±Inf as samples like any other. A missing
+		// sample is the honest answer for both: NaN survives every arithmetic
+		// guard downstream -- it clamps to NaN, rounds to NaN, and reaches the
+		// page as a full gauge captioned "NaN%" -- so it is refused here, where
+		// the range path already refuses it.
 		parsed, err := strconv.ParseFloat(value, 64)
-		if err != nil {
+		if err != nil || math.IsNaN(parsed) || math.IsInf(parsed, 0) {
 			continue
 		}
 		samples = append(samples, prometheusSample{Metric: result.Metric, Value: parsed})
@@ -554,8 +565,8 @@ func agentSubagents(samples []prometheusSample) map[string][]*mev1.Subagent {
 	subagents := make(map[string][]*mev1.Subagent, len(samples))
 	for _, sample := range samples {
 		kind := firstNonEmpty(sample.Metric["agent_kind"], sample.Metric["agent_id"])
-		count := int(math.Round(sample.Value))
-		if kind == "" || count <= 0 {
+		count := sampleCount(sample.Value)
+		if kind == "" || count == 0 {
 			continue
 		}
 		key := firstNonEmpty(sample.Metric["device_uid"], sample.Metric["device_id"]) + "/" + kind
@@ -653,6 +664,18 @@ func clampRatioPointer(value *float64) *float64 {
 
 func clampRatio(value float64) float64 {
 	return math.Max(0, math.Min(1, value))
+}
+
+// sampleCount reads a counting gauge as the number of things it counts. The
+// count sizes an allocation on an unauthenticated path, so a sample claiming
+// more than any host could be running is taken for as much of it as the gateway
+// is willing to draw, and one that counts nothing at all counts nothing.
+func sampleCount(value float64) int {
+	count := math.Round(value)
+	if math.IsNaN(count) || count < 1 {
+		return 0
+	}
+	return int(math.Min(maxAgentsPerSample, count))
 }
 
 func roundMetric(value float64) float64 {

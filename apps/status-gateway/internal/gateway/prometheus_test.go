@@ -1,9 +1,60 @@
 package gateway
 
 import (
+	"context"
+	"math"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
+
+// Prometheus renders an undefined expression as a sample like any other, and a
+// NaN clamps to NaN, rounds to NaN, and reaches the page as a full gauge ring
+// captioned "NaN%". A sample the gateway cannot draw is no sample at all.
+func TestQueryVectorDropsNonFiniteSamples(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(`{"data":{"result":[
+			{"metric":{"instance":"a"},"value":[1700000000,"NaN"]},
+			{"metric":{"instance":"b"},"value":[1700000000,"+Inf"]},
+			{"metric":{"instance":"c"},"value":[1700000000,"0.42"]}
+		]}}`))
+	}))
+	defer server.Close()
+
+	samples := NewPrometheusClient(server.URL).queryVector(context.Background(), `up`)
+	if len(samples) != 1 {
+		t.Fatalf("got %d samples, want only the finite one: %v", len(samples), samples)
+	}
+	if samples[0].Metric["instance"] != "c" || samples[0].Value != 0.42 {
+		t.Errorf("kept %v, want instance c at 0.42", samples[0])
+	}
+}
+
+// The count decides how many messages the unauthenticated status assembly
+// allocates, and it is written by an exporter on a probe host. Whatever it
+// claims, the gateway draws only what it is willing to draw.
+func TestSampleCountRefusesWhatItCannotDraw(t *testing.T) {
+	for _, testCase := range []struct {
+		name  string
+		value float64
+		want  int
+	}{
+		{"one agent", 1, 1},
+		{"three agents", 3, 3},
+		{"idle keeps the series alive at zero", 0, 0},
+		{"a negative count is no count", -1, 0},
+		{"an undefined count is no count", math.NaN(), 0},
+		{"half a billion agents is the cap", 5e8, maxAgentsPerSample},
+		{"an infinite count is the cap", math.Inf(1), maxAgentsPerSample},
+		{"minus infinity is no count", math.Inf(-1), 0},
+	} {
+		if got := sampleCount(testCase.value); got != testCase.want {
+			t.Errorf("%s: sampleCount(%v) = %d, want %d", testCase.name, testCase.value, got, testCase.want)
+		}
+	}
+}
 
 // A host can drive several agents of one kind at once. Each is its own card, so
 // each needs its own opaque identity -- and one that survives the next scrape,
