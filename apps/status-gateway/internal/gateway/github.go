@@ -199,8 +199,15 @@ func (publisher *GitHubStatusPublisher) sendRequest(ctx context.Context, status 
 	defer response.Body.Close()
 
 	var payload gitHubGraphQLResponse
-	_ = json.NewDecoder(response.Body).Decode(&payload)
-	if response.StatusCode >= 200 && response.StatusCode <= 299 && len(payload.Errors) == 0 {
+	decodeErr := json.NewDecoder(response.Body).Decode(&payload)
+	accepted := response.StatusCode >= 200 && response.StatusCode <= 299
+	if accepted && decodeErr != nil {
+		// A 2xx whose body is not the GraphQL answer never carried the mutation's
+		// result, and reading it as one would record a publish that never happened
+		// -- signature and all, which is what suppresses the retry it needs.
+		return gitHubUpdateResult{OK: false, Retryable: true, Message: "Unreadable response from GitHub"}
+	}
+	if accepted && len(payload.Errors) == 0 {
 		return gitHubUpdateResult{OK: true}
 	}
 	return gitHubUpdateResult{

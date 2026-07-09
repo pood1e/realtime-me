@@ -76,7 +76,9 @@ func metricRangeWindow(request *mev1.GetMetricRangeRequest) (time.Time, time.Tim
 	if step < minMetricRangeStep {
 		return time.Time{}, time.Time{}, 0, fmt.Errorf("step must be at least %s", minMetricRangeStep)
 	}
-	if end.Sub(start)/step > maxMetricRangePoints {
+	// query_range answers with both endpoints, so a window spanning n steps is
+	// n+1 points.
+	if end.Sub(start)/step+1 > maxMetricRangePoints {
 		return time.Time{}, time.Time{}, 0, fmt.Errorf("range and step yield more than %d points", maxMetricRangePoints)
 	}
 	return start, end, step, nil
