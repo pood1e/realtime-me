@@ -6,6 +6,7 @@ import me.realtime.protocol.toProtoTimestamp
 import me.realtime.protocol.v1.ActivityTotals
 import me.realtime.protocol.v1.HeartRateSample
 import me.realtime.protocol.v1.WatchSnapshot
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Base64
@@ -19,6 +20,12 @@ class WatchSnapshotRepository(private val context: Context) {
             .setBeatsPerMinute(beatsPerMinute)
             .setSampleTime(sampleTime.toProtoTimestamp())
             .build()
+    }
+
+    // Called when the sensor reports it has left the wrist, or that it cannot
+    // trust what it read. An absent heart rate says nobody is wearing this.
+    fun clearHeartRate(): WatchSnapshot = updateSnapshot { builder, _ ->
+        builder.clearHeartRate()
     }
 
     fun updateSteps(steps: Int, sampleTime: Instant): WatchSnapshot = updateSnapshot { builder, _ ->
@@ -48,6 +55,7 @@ class WatchSnapshotRepository(private val context: Context) {
             val now = Instant.now()
             applyUpdate(builder, now)
             resetStaleActivityTotals(builder, now)
+            retireStaleHeartRate(builder, now)
             builder.snapshotId = UUID.randomUUID().toString()
             builder.recordTime = now.toProtoTimestamp()
             builder.watchState = WatchStateReader.read(context)
@@ -59,6 +67,17 @@ class WatchSnapshotRepository(private val context: Context) {
         preferences.edit()
             .putString(SNAPSHOT_KEY, Base64.getEncoder().encodeToString(snapshot.toByteArray()))
             .apply()
+    }
+
+    // A heart rate is a reading, not a property of the watch. Once the sensor
+    // stops measuring, the last number would ride every later snapshot -- the
+    // battery refresh republishes it on a timer -- and a resting heart rate from
+    // this morning is indistinguishable on the page from one taken just now. A
+    // reading nothing has refreshed within the window is no longer a heart rate.
+    private fun retireStaleHeartRate(builder: WatchSnapshot.Builder, now: Instant) {
+        if (!builder.hasHeartRate()) return
+        val sampledAt = builder.heartRate.sampleTime.toJavaInstant()
+        if (Duration.between(sampledAt, now) > HEART_RATE_MAX_AGE) builder.clearHeartRate()
     }
 
     private fun resetStaleActivityTotals(builder: WatchSnapshot.Builder, now: Instant) {
@@ -77,6 +96,11 @@ class WatchSnapshotRepository(private val context: Context) {
     private companion object {
         const val PREFS_NAME = "watch_snapshot_repository"
         const val SNAPSHOT_KEY = "latest_snapshot"
+
+        // Passive monitoring batches its samples, so a worn watch can stay quiet
+        // for several minutes. This has to outlast that silence and still retire
+        // a reading long before it becomes a lie.
+        private val HEART_RATE_MAX_AGE: Duration = Duration.ofMinutes(15)
 
         // Guards the persisted-snapshot read-modify-write across all instances.
         private val SNAPSHOT_LOCK = Any()

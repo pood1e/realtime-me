@@ -5,6 +5,8 @@ import android.util.Log
 import androidx.health.services.client.PassiveListenerService
 import androidx.health.services.client.data.DataPointContainer
 import androidx.health.services.client.data.DataType
+import androidx.health.services.client.data.HeartRateAccuracy
+import androidx.health.services.client.data.SampleDataPoint
 import me.realtime.protocol.v1.ReportWatchSnapshotRequest
 import me.realtime.protocol.v1.WatchSnapshot
 import me.realtime.watch.state.WatchSnapshotRepository
@@ -45,8 +47,12 @@ private class PassiveHealthSnapshotUpdater(
 ) {
     fun update(dataPoints: DataPointContainer): WatchSnapshot? {
         var snapshot: WatchSnapshot? = null
-        latestHeartRate(dataPoints)?.let { sample ->
-            snapshot = repository.updateHeartRate(sample.beatsPerMinute, sample.sampleTime)
+        newestHeartRatePoint(dataPoints)?.let { point ->
+            val sample = wornHeartRate(point)
+            snapshot = when (sample) {
+                null -> repository.clearHeartRate()
+                else -> repository.updateHeartRate(sample.beatsPerMinute, sample.sampleTime)
+            }
         }
         latestDailySteps(dataPoints)?.let { sample ->
             snapshot = repository.updateSteps(sample.steps, sample.sampleTime)
@@ -54,14 +60,21 @@ private class PassiveHealthSnapshotUpdater(
         return snapshot
     }
 
-    private fun latestHeartRate(dataPoints: DataPointContainer): HeartRateSample? {
-        return dataPoints.getData(DataType.HEART_RATE_BPM)
-            .maxByOrNull { it.timeDurationFromBoot }
-            ?.let { point ->
-                val beatsPerMinute = point.value.roundToInt()
-                if (beatsPerMinute <= 0) return@let null
-                HeartRateSample(beatsPerMinute, point.getTimeInstant(bootInstant))
-            }
+    private fun newestHeartRatePoint(dataPoints: DataPointContainer): SampleDataPoint<Double>? {
+        return dataPoints.getData(DataType.HEART_RATE_BPM).maxByOrNull { it.timeDurationFromBoot }
+    }
+
+    // Health Services says NO_CONTACT when the watch has left the wrist, and
+    // UNRELIABLE when it cannot stand behind what it read. Either way there is no
+    // heart being measured, and the reading must retract the last one rather than
+    // leave it standing. A sensor that reports no accuracy at all is believed.
+    private fun wornHeartRate(point: SampleDataPoint<Double>): HeartRateSample? {
+        val sensorStatus = (point.accuracy as? HeartRateAccuracy)?.sensorStatus
+        if (sensorStatus == HeartRateAccuracy.SensorStatus.NO_CONTACT) return null
+        if (sensorStatus == HeartRateAccuracy.SensorStatus.UNRELIABLE) return null
+        val beatsPerMinute = point.value.roundToInt()
+        if (beatsPerMinute <= 0) return null
+        return HeartRateSample(beatsPerMinute, point.getTimeInstant(bootInstant))
     }
 
     private fun latestDailySteps(dataPoints: DataPointContainer): DailyStepsSample? {
