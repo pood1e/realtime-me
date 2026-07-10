@@ -147,7 +147,7 @@ func (f *Filesystem) Remove(_ context.Context, storageKey string) error {
 // NewWorkDir creates an isolated directory for one processing job.
 func (f *Filesystem) NewWorkDir(jobUID string) (string, error) {
 	if err := validateSegment(jobUID); err != nil {
-		return "", err
+		return "", fmt.Errorf("invalid processing job id: %w", err)
 	}
 	path := filepath.Join(f.work, jobUID)
 	if err := os.RemoveAll(path); err != nil {
@@ -176,10 +176,11 @@ func (f *Filesystem) PublishArtifact(sourcePath string, contentSHA256 []byte, ki
 	if len(contentSHA256) != sha256.Size {
 		return "", errors.New("invalid content hash")
 	}
-	for _, value := range []string{kind, variant} {
-		if err := validateSegment(value); err != nil {
-			return "", err
-		}
+	if err := validateSegment(kind); err != nil {
+		return "", fmt.Errorf("invalid artifact kind: %w", err)
+	}
+	if err := validateSegment(variant); err != nil {
+		return "", fmt.Errorf("invalid artifact variant: %w", err)
 	}
 	extension = strings.TrimPrefix(strings.ToLower(extension), ".")
 	if extension == "" || strings.ContainsAny(extension, `/\\\x00`) {
