@@ -80,6 +80,14 @@ export type Breadcrumb = Readonly<{
   label: string;
 }>;
 
+export type DialogSize = "compact" | "standard" | "preview";
+
+const dialogSizes: Record<DialogSize, string> = {
+  compact: "max-w-md",
+  standard: "max-w-2xl",
+  preview: "h-[calc(100dvh-1rem)] max-w-none sm:h-[min(90dvh,64rem)] sm:w-[calc(100vw-3rem)] xl:w-[calc(100vw-5rem)]",
+};
+
 export function Breadcrumbs({ items, onNavigate }: { items: readonly Breadcrumb[]; onNavigate?: (id: string) => void }) {
   return (
     <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1 overflow-x-auto text-sm text-slate-400">
@@ -103,9 +111,16 @@ export function Dialog({
   open,
   title,
   description,
+  size = "compact",
   onClose,
   children,
-}: PropsWithChildren<{ open: boolean; title: string; description?: string; onClose: () => void }>) {
+}: PropsWithChildren<{
+  open: boolean;
+  title: string;
+  description?: string;
+  size?: DialogSize;
+  onClose: () => void;
+}>) {
   useEffect(() => {
     if (!open) {
       return undefined;
@@ -124,13 +139,16 @@ export function Dialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center px-4 py-8" role="presentation">
+    <div className="fixed inset-0 z-50 grid place-items-center p-2 sm:px-6 sm:py-8" role="presentation">
       <button aria-label="Close dialog" className="absolute inset-0 bg-slate-950/75 backdrop-blur-sm" onClick={onClose} />
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialog-title"
-        className="relative z-10 max-h-full w-full max-w-md overflow-auto rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-2xl shadow-black/40"
+        className={cn(
+          "relative z-10 max-h-full w-full overflow-auto rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-2xl shadow-black/40",
+          dialogSizes[size],
+        )}
       >
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
@@ -232,8 +250,8 @@ export function DriveItemList({
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-slate-900/55">
-      <div className="hidden grid-cols-[minmax(0,1fr)_7rem_10rem_3rem] gap-4 border-b border-white/[0.08] px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500 sm:grid">
+    <div className="relative isolate rounded-xl border border-white/[0.08] bg-slate-900/55">
+      <div className="sticky top-0 z-10 hidden grid-cols-[minmax(0,1fr)_7rem_10rem_3rem] gap-4 rounded-t-xl border-b border-white/[0.08] bg-slate-900/95 px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500 backdrop-blur sm:grid xl:grid-cols-[minmax(20rem,1fr)_9rem_12rem_3rem]">
         <span>Name</span><span>Size</span><span>Modified</span><span aria-label="Actions" />
       </div>
       <div className="divide-y divide-white/[0.06]">
@@ -248,14 +266,14 @@ export function DriveItemList({
               onClick={() => onOpen(item)}
               onKeyDown={(event) => onKeyOpen(event, item)}
               className={cn(
-                "group grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 outline-none transition-colors hover:bg-white/[0.045] focus-visible:bg-white/[0.06] sm:grid-cols-[minmax(0,1fr)_7rem_10rem_3rem] sm:gap-4",
+                "group grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 outline-none transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-white/[0.045] focus-visible:bg-white/[0.06] sm:grid-cols-[minmax(0,1fr)_7rem_10rem_3rem] sm:gap-4 sm:first:rounded-t-none xl:grid-cols-[minmax(20rem,1fr)_9rem_12rem_3rem]",
                 selectedUid === uid && "bg-sky-400/10",
               )}
             >
               <div className="flex min-w-0 items-center gap-3">
                 <FileGlyph item={item} />
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-100">{driveItemName(item)}</p>
+                  <p className="truncate text-sm font-medium text-slate-100" title={driveItemName(item)}>{driveItemName(item)}</p>
                   <p className="mt-0.5 text-xs text-slate-500 sm:hidden">{isDirectory ? "Folder" : `${formatBytes(driveItemSize(item))} · ${formatDate(driveItemUpdatedAt(item))}`}</p>
                 </div>
               </div>

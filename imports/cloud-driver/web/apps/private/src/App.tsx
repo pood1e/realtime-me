@@ -402,10 +402,10 @@ function DriveWorkspace({
   });
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
+    <main className="h-dvh w-full overflow-hidden bg-slate-950 text-slate-100">
       <input ref={inputRef} onChange={uploadFiles} type="file" multiple className="hidden" />
-      <div className="mx-auto flex min-h-screen max-w-[1600px]">
-        <aside className="hidden w-60 shrink-0 border-r border-white/[0.07] bg-slate-950/75 px-4 py-5 lg:flex lg:flex-col">
+      <div className="flex h-full w-full">
+        <aside className="hidden h-full w-60 shrink-0 overflow-y-auto border-r border-white/[0.07] bg-slate-950/75 px-4 py-5 lg:flex lg:flex-col">
           <div className="mb-9 flex items-center gap-3 px-2">
             <div className="grid size-9 place-items-center rounded-xl bg-sky-400 text-slate-950"><Grid2X2 className="size-5" /></div>
             <div><p className="text-sm font-semibold tracking-tight text-white">个人云盘</p><p className="text-xs text-slate-500">私有文件空间</p></div>
@@ -419,8 +419,8 @@ function DriveWorkspace({
           </div>
         </aside>
 
-        <section className="min-w-0 flex-1 px-4 py-4 sm:px-7 sm:py-6">
-          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] pb-4 sm:pb-5">
+        <section className="flex h-full min-w-0 flex-1 flex-col overflow-hidden px-4 py-4 sm:px-6 sm:py-6 xl:px-8 2xl:px-10">
+          <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] pb-4 sm:pb-5">
             <div className="flex min-w-0 items-center gap-3">
               <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-sky-400 text-slate-950 lg:hidden"><Grid2X2 className="size-5" /></div>
               <div className="min-w-0">
@@ -447,7 +447,7 @@ function DriveWorkspace({
             </div>
           </header>
 
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-4 flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex rounded-lg border border-white/[0.08] bg-white/[0.025] p-1 lg:hidden">
               <NavButton compact active={view === "drive"} onClick={() => switchView("drive")} icon={<Grid2X2 className="size-4" />}>文件</NavButton>
               <NavButton compact active={view === "trash"} onClick={() => switchView("trash")} icon={<Trash2 className="size-4" />}>回收站</NavButton>
@@ -462,7 +462,7 @@ function DriveWorkspace({
             {isSearching ? <p className="text-sm text-slate-500">搜索结果</p> : null}
           </div>
 
-          <section className="mt-5">
+          <section className="mt-5 min-h-0 flex-1 overflow-y-auto pb-6">
             {error ? <InlineError message={error} onRetry={refresh} /> : null}
             {loading ? <LoadingIndicator label="正在读取文件" /> : null}
             {!loading && !error ? (
@@ -572,7 +572,7 @@ function ShareDialog({ item, client, open, busy, onClose, onBusyChange }: { item
       showToast("分享已撤销");
     } catch (revokeError) { showToast(asErrorMessage(revokeError), "error"); } finally { setRevokingUid(undefined); }
   };
-  return <Dialog open={open} title="创建分享链接" description={`“${driveItemName(item)}” 将以只读方式分享。`} onClose={onClose}><div className="space-y-5">{created ? <div className="rounded-lg border border-sky-300/20 bg-sky-300/[0.06] p-3"><p className="text-xs text-sky-200">新链接（仅本次显示）</p><p className="mt-1 break-all text-sm text-sky-100">{created.shareUrl}</p><div className="mt-3 flex justify-end"><Button size="sm" onClick={() => void copy()}><Link2 className="size-3.5" />复制链接</Button></div></div> : null}<form className="space-y-4" onSubmit={(event) => void createShare(event)}><label className="block text-sm text-slate-300">失效日期<input type="date" min={futureDate(1)} max={futureDate(30)} value={expiresOn} onChange={(event) => setExpiresOn(event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-white/10 bg-slate-950 px-3 text-sm text-white outline-none focus:border-sky-300" /></label><div className="flex justify-end gap-2"><Button variant="ghost" onClick={onClose}>关闭</Button><Button type="submit" disabled={busy}><Share2 className="size-4" />{busy ? "创建中" : "创建链接"}</Button></div></form><div className="border-t border-white/[0.08] pt-4"><p className="mb-2 text-sm font-medium text-slate-200">现有链接</p>{linksError ? <p className="text-xs text-rose-300">{linksError}</p> : links.length ? <div className="space-y-2">{links.map((link) => { const expired = (shareLinkExpiresAt(link)?.getTime() ?? Infinity) <= Date.now(); const revoked = Boolean(shareLinkRevokedAt(link)); return <div key={shareLinkUid(link)} className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.08] px-3 py-2"><div className="min-w-0"><p className="text-xs text-slate-200">到期：{shareLinkExpiresAt(link)?.toLocaleString("zh-CN") ?? "—"}</p><p className="mt-0.5 text-[11px] text-slate-500">{revoked ? "已撤销" : expired ? "已过期" : "有效"}</p></div>{!revoked && !expired ? <Button size="sm" variant="destructive" disabled={revokingUid === shareLinkUid(link)} onClick={() => void revoke(link)}>{revokingUid === shareLinkUid(link) ? "撤销中" : "撤销"}</Button> : null}</div>; })}</div> : <p className="text-xs text-slate-500">尚未创建分享链接。</p>}</div></div></Dialog>;
+  return <Dialog open={open} title="创建分享链接" description={`“${driveItemName(item)}” 将以只读方式分享。`} size="standard" onClose={onClose}><div className="space-y-5">{created ? <div className="rounded-lg border border-sky-300/20 bg-sky-300/[0.06] p-3"><p className="text-xs text-sky-200">新链接（仅本次显示）</p><p className="mt-1 break-all text-sm text-sky-100">{created.shareUrl}</p><div className="mt-3 flex justify-end"><Button size="sm" onClick={() => void copy()}><Link2 className="size-3.5" />复制链接</Button></div></div> : null}<form className="space-y-4" onSubmit={(event) => void createShare(event)}><label className="block text-sm text-slate-300">失效日期<input type="date" min={futureDate(1)} max={futureDate(30)} value={expiresOn} onChange={(event) => setExpiresOn(event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-white/10 bg-slate-950 px-3 text-sm text-white outline-none focus:border-sky-300" /></label><div className="flex justify-end gap-2"><Button variant="ghost" onClick={onClose}>关闭</Button><Button type="submit" disabled={busy}><Share2 className="size-4" />{busy ? "创建中" : "创建链接"}</Button></div></form><div className="border-t border-white/[0.08] pt-4"><p className="mb-2 text-sm font-medium text-slate-200">现有链接</p>{linksError ? <p className="text-xs text-rose-300">{linksError}</p> : links.length ? <div className="space-y-2">{links.map((link) => { const expired = (shareLinkExpiresAt(link)?.getTime() ?? Infinity) <= Date.now(); const revoked = Boolean(shareLinkRevokedAt(link)); return <div key={shareLinkUid(link)} className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.08] px-3 py-2"><div className="min-w-0"><p className="text-xs text-slate-200">到期：{shareLinkExpiresAt(link)?.toLocaleString("zh-CN") ?? "—"}</p><p className="mt-0.5 text-[11px] text-slate-500">{revoked ? "已撤销" : expired ? "已过期" : "有效"}</p></div>{!revoked && !expired ? <Button size="sm" variant="destructive" disabled={revokingUid === shareLinkUid(link)} onClick={() => void revoke(link)}>{revokingUid === shareLinkUid(link) ? "撤销中" : "撤销"}</Button> : null}</div>; })}</div> : <p className="text-xs text-slate-500">尚未创建分享链接。</p>}</div></div></Dialog>;
 }
 
 function PreviewDialog({ item, client, open, onClose }: { item: DriveItem; client: PrivateDriveClient; open: boolean; onClose: () => void }) {
@@ -581,7 +581,7 @@ function PreviewDialog({ item, client, open, onClose }: { item: DriveItem; clien
   const [error, setError] = useState<string>();
   useEffect(() => { const controller = new AbortController(); setText(undefined); setError(undefined); void client.getDownloadUrl(driveItemUid(item), controller.signal).then(setUrl).catch((loadError) => setError(asErrorMessage(loadError))); return () => controller.abort(); }, [client, item]);
   useEffect(() => { if (!url || !isText(item)) return; const controller = new AbortController(); void client.readText(url, controller.signal).then(setText).catch((loadError) => setError(asErrorMessage(loadError))); return () => controller.abort(); }, [client, item, url]);
-  return <Dialog open={open} title={driveItemName(item)} onClose={onClose}>{error ? <InlineError message={error} /> : null}<div className="min-h-48">{!url ? <LoadingIndicator label="正在准备预览" /> : isImage(item) ? <img src={url} referrerPolicy="no-referrer" alt={driveItemName(item)} className="max-h-[60vh] w-full rounded-lg object-contain" /> : isPdf(item) ? <iframe src={url} referrerPolicy="no-referrer" title={driveItemName(item)} className="h-[60vh] w-full rounded-lg border border-white/10 bg-white" /> : isText(item) ? text === undefined ? <LoadingIndicator label="正在载入文本" /> : <pre className="max-h-[60vh] overflow-auto rounded-lg border border-white/10 bg-slate-950 p-3 text-xs leading-5 text-slate-300">{text}</pre> : <EmptyState title="此文件不支持在线预览" detail="你可以下载后在本地打开。" />}</div>{url ? <div className="mt-4 flex justify-end"><a href={asDownloadUrl(url)} referrerPolicy="no-referrer" className="inline-flex h-10 items-center gap-2 rounded-lg bg-sky-500 px-4 text-sm font-medium text-slate-950 hover:bg-sky-300"><Download className="size-4" />下载</a></div> : null}</Dialog>;
+  return <Dialog open={open} title={driveItemName(item)} size="preview" onClose={onClose}>{error ? <InlineError message={error} /> : null}<div className="min-h-48">{!url ? <LoadingIndicator label="正在准备预览" /> : isImage(item) ? <img src={url} referrerPolicy="no-referrer" alt={driveItemName(item)} className="max-h-[calc(100dvh-10rem)] w-full rounded-lg object-contain sm:max-h-[calc(90dvh-10rem)]" /> : isPdf(item) ? <iframe src={url} referrerPolicy="no-referrer" title={driveItemName(item)} className="h-[calc(100dvh-10rem)] min-h-80 w-full rounded-lg border border-white/10 bg-white sm:h-[calc(90dvh-10rem)]" /> : isText(item) ? text === undefined ? <LoadingIndicator label="正在载入文本" /> : <pre className="max-h-[calc(100dvh-10rem)] overflow-auto rounded-lg border border-white/10 bg-slate-950 p-3 text-xs leading-5 text-slate-300 sm:max-h-[calc(90dvh-10rem)]">{text}</pre> : <EmptyState title="此文件不支持在线预览" detail="你可以下载后在本地打开。" />}</div>{url ? <div className="mt-4 flex justify-end"><a href={asDownloadUrl(url)} referrerPolicy="no-referrer" className="inline-flex h-10 items-center gap-2 rounded-lg bg-sky-500 px-4 text-sm font-medium text-slate-950 hover:bg-sky-300"><Download className="size-4" />下载</a></div> : null}</Dialog>;
 }
 
 function UploadQueue({ tasks, onDismiss, onRetry }: { tasks: readonly UploadTask[]; onDismiss: (id: string) => void; onRetry: (id: string) => void }) {

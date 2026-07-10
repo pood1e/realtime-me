@@ -108,19 +108,19 @@ function SharedWorkspace() {
   };
 
   if (state === "loading") {
-    return <ShareFrame><LoadingIndicator label="正在打开分享" /></ShareFrame>;
+    return <ShareFrame><CenteredState><LoadingIndicator label="正在打开分享" /></CenteredState></ShareFrame>;
   }
   if (state === "unavailable") {
-    return <ShareFrame><EmptyState icon={<Link2Off className="size-6" />} title="此分享链接不可用" detail="它可能已过期、被撤销，或链接地址不完整。" /></ShareFrame>;
+    return <ShareFrame><CenteredState><EmptyState icon={<Link2Off className="size-6" />} title="此分享链接不可用" detail="它可能已过期、被撤销，或链接地址不完整。" /></CenteredState></ShareFrame>;
   }
   if (state === "error" || !resolution || !token) {
-    return <ShareFrame><EmptyState icon={<AlertTriangle className="size-6" />} title="无法打开分享" detail={error ?? "请稍后重试。"} /></ShareFrame>;
+    return <ShareFrame><CenteredState><EmptyState icon={<AlertTriangle className="size-6" />} title="无法打开分享" detail={error ?? "请稍后重试。"} /></CenteredState></ShareFrame>;
   }
 
   const visibleItems = targetIsFolder ? items : [resolution.target];
   return (
     <ShareFrame>
-      <header className="border-b border-white/[0.08] pb-5">
+      <header className="shrink-0 border-b border-white/[0.08] pb-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="mb-3 flex items-center gap-2 text-xs text-sky-200"><ShieldCheck className="size-4" />只读分享</div>
@@ -130,7 +130,7 @@ function SharedWorkspace() {
         </div>
         <p className="mt-3 text-sm text-slate-500">有效期至 {shareLinkExpiresAt(resolution.shareLink)?.toLocaleString("zh-CN") ?? "—"}</p>
       </header>
-      <section className="mt-5">
+      <section className="mt-5 min-h-0 flex-1 overflow-y-auto pb-6">
         {error ? <InlineError message={error} onRetry={() => refreshItems()} /> : null}
         {loadingItems ? <LoadingIndicator label="正在读取分享内容" /> : null}
         {!loadingItems && !error ? <DriveItemList items={visibleItems} onOpen={openItem} empty={<EmptyState icon={<Folder className="size-6" />} title="此文件夹为空" />} /> : null}
@@ -141,7 +141,11 @@ function SharedWorkspace() {
 }
 
 function ShareFrame({ children }: { children: ReactNode }) {
-  return <main className="min-h-screen bg-slate-950 px-4 py-5 text-slate-100 sm:px-8 sm:py-10"><section className="mx-auto min-h-[calc(100vh-2.5rem)] max-w-5xl rounded-2xl border border-white/[0.08] bg-slate-900/50 p-5 shadow-2xl shadow-black/20 sm:p-8">{children}</section></main>;
+  return <main className="h-dvh w-full overflow-hidden bg-slate-950 text-slate-100"><section className="flex h-full w-full flex-col px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 2xl:px-10">{children}</section></main>;
+}
+
+function CenteredState({ children }: { children: ReactNode }) {
+  return <div className="flex min-h-0 flex-1 items-center justify-center">{children}</div>;
 }
 
 function PublicPreview({ item, token, client, open, onClose }: { item: DriveItem; token: string; client: PublicShareClient; open: boolean; onClose: () => void }) {
@@ -149,5 +153,5 @@ function PublicPreview({ item, token, client, open, onClose }: { item: DriveItem
   const [error, setError] = useState<string>();
   const url = client.contentUrl(token, driveItemUid(item));
   useEffect(() => { if (!isText(item)) return; const controller = new AbortController(); setText(undefined); setError(undefined); void client.readText(url, controller.signal).then(setText).catch((loadError) => setError(errorMessage(loadError))); return () => controller.abort(); }, [client, item, url]);
-  return <Dialog open={open} title={driveItemName(item)} onClose={onClose}>{error ? <InlineError message={error} /> : null}<div className="min-h-48">{isImage(item) ? <img src={url} referrerPolicy="no-referrer" alt={driveItemName(item)} className="max-h-[60vh] w-full rounded-lg object-contain" /> : isPdf(item) ? <iframe src={url} referrerPolicy="no-referrer" title={driveItemName(item)} className="h-[60vh] w-full rounded-lg border border-white/10 bg-white" /> : isText(item) ? text === undefined ? <LoadingIndicator label="正在载入文本" /> : <pre className="max-h-[60vh] overflow-auto rounded-lg border border-white/10 bg-slate-950 p-3 text-xs leading-5 text-slate-300">{text}</pre> : <EmptyState icon={<FilePlus2 className="size-6" />} title="此文件不支持在线预览" detail="你可以下载后在本地打开。" />}</div><div className="mt-4 flex justify-end"><a href={asDownloadUrl(url)} referrerPolicy="no-referrer" className="inline-flex h-10 items-center gap-2 rounded-lg bg-sky-500 px-4 text-sm font-medium text-slate-950 hover:bg-sky-300"><Download className="size-4" />下载</a></div></Dialog>;
+  return <Dialog open={open} title={driveItemName(item)} size="preview" onClose={onClose}>{error ? <InlineError message={error} /> : null}<div className="min-h-48">{isImage(item) ? <img src={url} referrerPolicy="no-referrer" alt={driveItemName(item)} className="max-h-[calc(100dvh-10rem)] w-full rounded-lg object-contain sm:max-h-[calc(90dvh-10rem)]" /> : isPdf(item) ? <iframe src={url} referrerPolicy="no-referrer" title={driveItemName(item)} className="h-[calc(100dvh-10rem)] min-h-80 w-full rounded-lg border border-white/10 bg-white sm:h-[calc(90dvh-10rem)]" /> : isText(item) ? text === undefined ? <LoadingIndicator label="正在载入文本" /> : <pre className="max-h-[calc(100dvh-10rem)] overflow-auto rounded-lg border border-white/10 bg-slate-950 p-3 text-xs leading-5 text-slate-300 sm:max-h-[calc(90dvh-10rem)]">{text}</pre> : <EmptyState icon={<FilePlus2 className="size-6" />} title="此文件不支持在线预览" detail="你可以下载后在本地打开。" />}</div><div className="mt-4 flex justify-end"><a href={asDownloadUrl(url)} referrerPolicy="no-referrer" className="inline-flex h-10 items-center gap-2 rounded-lg bg-sky-500 px-4 text-sm font-medium text-slate-950 hover:bg-sky-300"><Download className="size-4" />下载</a></div></Dialog>;
 }
