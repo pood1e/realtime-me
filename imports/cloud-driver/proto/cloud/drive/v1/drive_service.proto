@@ -30,6 +30,8 @@ service DriveService {
   rpc PurgeDriveItem(PurgeDriveItemRequest) returns (PurgeDriveItemResponse);
   // EmptyTrash permanently deletes every trashed item.
   rpc EmptyTrash(EmptyTrashRequest) returns (EmptyTrashResponse);
+  // ImportDriveFile claims a completed neutral upload as a drive file.
+  rpc ImportDriveFile(ImportDriveFileRequest) returns (ImportDriveFileResponse);
   // GetDownload returns the authenticated raw-download URL for an item.
   rpc GetDownload(GetDownloadRequest) returns (GetDownloadResponse);
 }
@@ -180,6 +182,22 @@ message EmptyTrashRequest {}
 
 // EmptyTrashResponse confirms that the trash was emptied.
 message EmptyTrashResponse {}
+
+// ImportDriveFileRequest places an uploaded file in the drive hierarchy.
+message ImportDriveFileRequest {
+  // upload_uid identifies a complete application-neutral upload.
+  string upload_uid = 1;
+  // parent_uid identifies the containing directory, or is empty for the root.
+  string parent_uid = 2;
+  // name is the destination basename.
+  string name = 3;
+}
+
+// ImportDriveFileResponse returns the created file.
+message ImportDriveFileResponse {
+  // item is the created drive file.
+  DriveItem item = 1;
+}
 
 // GetDownloadRequest identifies a private file to download.
 message GetDownloadRequest {

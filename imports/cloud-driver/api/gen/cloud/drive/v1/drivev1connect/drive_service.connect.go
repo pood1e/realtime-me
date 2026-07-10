@@ -65,6 +65,9 @@ const (
 	DriveServicePurgeDriveItemProcedure = "/cloud.drive.v1.DriveService/PurgeDriveItem"
 	// DriveServiceEmptyTrashProcedure is the fully-qualified name of the DriveService's EmptyTrash RPC.
 	DriveServiceEmptyTrashProcedure = "/cloud.drive.v1.DriveService/EmptyTrash"
+	// DriveServiceImportDriveFileProcedure is the fully-qualified name of the DriveService's
+	// ImportDriveFile RPC.
+	DriveServiceImportDriveFileProcedure = "/cloud.drive.v1.DriveService/ImportDriveFile"
 	// DriveServiceGetDownloadProcedure is the fully-qualified name of the DriveService's GetDownload
 	// RPC.
 	DriveServiceGetDownloadProcedure = "/cloud.drive.v1.DriveService/GetDownload"
@@ -94,6 +97,8 @@ type DriveServiceClient interface {
 	PurgeDriveItem(context.Context, *connect.Request[v1.PurgeDriveItemRequest]) (*connect.Response[v1.PurgeDriveItemResponse], error)
 	// EmptyTrash permanently deletes every trashed item.
 	EmptyTrash(context.Context, *connect.Request[v1.EmptyTrashRequest]) (*connect.Response[v1.EmptyTrashResponse], error)
+	// ImportDriveFile claims a completed neutral upload as a drive file.
+	ImportDriveFile(context.Context, *connect.Request[v1.ImportDriveFileRequest]) (*connect.Response[v1.ImportDriveFileResponse], error)
 	// GetDownload returns the authenticated raw-download URL for an item.
 	GetDownload(context.Context, *connect.Request[v1.GetDownloadRequest]) (*connect.Response[v1.GetDownloadResponse], error)
 }
@@ -175,6 +180,12 @@ func NewDriveServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(driveServiceMethods.ByName("EmptyTrash")),
 			connect.WithClientOptions(opts...),
 		),
+		importDriveFile: connect.NewClient[v1.ImportDriveFileRequest, v1.ImportDriveFileResponse](
+			httpClient,
+			baseURL+DriveServiceImportDriveFileProcedure,
+			connect.WithSchema(driveServiceMethods.ByName("ImportDriveFile")),
+			connect.WithClientOptions(opts...),
+		),
 		getDownload: connect.NewClient[v1.GetDownloadRequest, v1.GetDownloadResponse](
 			httpClient,
 			baseURL+DriveServiceGetDownloadProcedure,
@@ -197,6 +208,7 @@ type driveServiceClient struct {
 	restoreDriveItem *connect.Client[v1.RestoreDriveItemRequest, v1.RestoreDriveItemResponse]
 	purgeDriveItem   *connect.Client[v1.PurgeDriveItemRequest, v1.PurgeDriveItemResponse]
 	emptyTrash       *connect.Client[v1.EmptyTrashRequest, v1.EmptyTrashResponse]
+	importDriveFile  *connect.Client[v1.ImportDriveFileRequest, v1.ImportDriveFileResponse]
 	getDownload      *connect.Client[v1.GetDownloadRequest, v1.GetDownloadResponse]
 }
 
@@ -255,6 +267,11 @@ func (c *driveServiceClient) EmptyTrash(ctx context.Context, req *connect.Reques
 	return c.emptyTrash.CallUnary(ctx, req)
 }
 
+// ImportDriveFile calls cloud.drive.v1.DriveService.ImportDriveFile.
+func (c *driveServiceClient) ImportDriveFile(ctx context.Context, req *connect.Request[v1.ImportDriveFileRequest]) (*connect.Response[v1.ImportDriveFileResponse], error) {
+	return c.importDriveFile.CallUnary(ctx, req)
+}
+
 // GetDownload calls cloud.drive.v1.DriveService.GetDownload.
 func (c *driveServiceClient) GetDownload(ctx context.Context, req *connect.Request[v1.GetDownloadRequest]) (*connect.Response[v1.GetDownloadResponse], error) {
 	return c.getDownload.CallUnary(ctx, req)
@@ -284,6 +301,8 @@ type DriveServiceHandler interface {
 	PurgeDriveItem(context.Context, *connect.Request[v1.PurgeDriveItemRequest]) (*connect.Response[v1.PurgeDriveItemResponse], error)
 	// EmptyTrash permanently deletes every trashed item.
 	EmptyTrash(context.Context, *connect.Request[v1.EmptyTrashRequest]) (*connect.Response[v1.EmptyTrashResponse], error)
+	// ImportDriveFile claims a completed neutral upload as a drive file.
+	ImportDriveFile(context.Context, *connect.Request[v1.ImportDriveFileRequest]) (*connect.Response[v1.ImportDriveFileResponse], error)
 	// GetDownload returns the authenticated raw-download URL for an item.
 	GetDownload(context.Context, *connect.Request[v1.GetDownloadRequest]) (*connect.Response[v1.GetDownloadResponse], error)
 }
@@ -361,6 +380,12 @@ func NewDriveServiceHandler(svc DriveServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(driveServiceMethods.ByName("EmptyTrash")),
 		connect.WithHandlerOptions(opts...),
 	)
+	driveServiceImportDriveFileHandler := connect.NewUnaryHandler(
+		DriveServiceImportDriveFileProcedure,
+		svc.ImportDriveFile,
+		connect.WithSchema(driveServiceMethods.ByName("ImportDriveFile")),
+		connect.WithHandlerOptions(opts...),
+	)
 	driveServiceGetDownloadHandler := connect.NewUnaryHandler(
 		DriveServiceGetDownloadProcedure,
 		svc.GetDownload,
@@ -391,6 +416,8 @@ func NewDriveServiceHandler(svc DriveServiceHandler, opts ...connect.HandlerOpti
 			driveServicePurgeDriveItemHandler.ServeHTTP(w, r)
 		case DriveServiceEmptyTrashProcedure:
 			driveServiceEmptyTrashHandler.ServeHTTP(w, r)
+		case DriveServiceImportDriveFileProcedure:
+			driveServiceImportDriveFileHandler.ServeHTTP(w, r)
 		case DriveServiceGetDownloadProcedure:
 			driveServiceGetDownloadHandler.ServeHTTP(w, r)
 		default:
@@ -444,6 +471,10 @@ func (UnimplementedDriveServiceHandler) PurgeDriveItem(context.Context, *connect
 
 func (UnimplementedDriveServiceHandler) EmptyTrash(context.Context, *connect.Request[v1.EmptyTrashRequest]) (*connect.Response[v1.EmptyTrashResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.drive.v1.DriveService.EmptyTrash is not implemented"))
+}
+
+func (UnimplementedDriveServiceHandler) ImportDriveFile(context.Context, *connect.Request[v1.ImportDriveFileRequest]) (*connect.Response[v1.ImportDriveFileResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.drive.v1.DriveService.ImportDriveFile is not implemented"))
 }
 
 func (UnimplementedDriveServiceHandler) GetDownload(context.Context, *connect.Request[v1.GetDownloadRequest]) (*connect.Response[v1.GetDownloadResponse], error) {

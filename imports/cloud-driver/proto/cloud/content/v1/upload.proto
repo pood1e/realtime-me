@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package cloud.content.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "example.com/cloud-drive/api/gen/cloud/content/v1;contentv1";
+
+// UploadStatus identifies a resumable upload's lifecycle state.
+enum UploadStatus {
+  // UPLOAD_STATUS_UNSPECIFIED is not persisted.
+  UPLOAD_STATUS_UNSPECIFIED = 0;
+  // UPLOAD_STATUS_ACTIVE accepts chunks and may be claimed by an application.
+  UPLOAD_STATUS_ACTIVE = 1;
+  // UPLOAD_STATUS_CLAIMED has created exactly one application resource.
+  UPLOAD_STATUS_CLAIMED = 2;
+  // UPLOAD_STATUS_EXPIRED no longer accepts chunks.
+  UPLOAD_STATUS_EXPIRED = 3;
+}
+
+// UploadChunk describes an acknowledged byte range using an exclusive end offset.
+message UploadChunk {
+  // start_offset is the first included byte offset.
+  int64 start_offset = 1;
+  // end_offset is the first excluded byte offset.
+  int64 end_offset = 2;
+}
+
+// Upload is an application-neutral resumable browser upload.
+message Upload {
+  // uid is the server-assigned opaque identifier.
+  string uid = 1;
+  // file_name is the original browser-supplied basename.
+  string file_name = 2;
+  // content_type is the browser-supplied media type hint.
+  string content_type = 3;
+  // total_size_bytes is the exact expected size.
+  int64 total_size_bytes = 4;
+  // received_bytes is the sum of acknowledged ranges.
+  int64 received_bytes = 5;
+  // chunk_size_bytes is the maximum accepted chunk size.
+  int64 chunk_size_bytes = 6;
+  // chunks contains acknowledged ranges ordered by start offset.
+  repeated UploadChunk chunks = 7;
+  // status identifies the current lifecycle state.
+  UploadStatus status = 8;
+  // create_time is when the upload was created.
+  google.protobuf.Timestamp create_time = 9;
+  // expire_time is when an unfinished upload expires.
+  google.protobuf.Timestamp expire_time = 10;
+  // claimed_resource_uid identifies the created application resource.
+  string claimed_resource_uid = 11;
+}

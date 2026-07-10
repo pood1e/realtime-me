@@ -38,29 +38,48 @@ func run(logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	startupContext, cancelStartup := context.WithTimeout(context.Background(), 30*time.Second)
+	startupContext, cancelStartup := context.WithTimeout(context.Background(), 2*time.Hour)
 	defer cancelStartup()
 	store, err := postgres.Open(startupContext, cfg.DatabaseURL)
 	if err != nil {
 		return err
 	}
 	defer store.Close()
-	blobs, err := storage.NewFilesystem(cfg.DataRoot)
+	files, err := storage.NewFilesystem(cfg.DataRoot)
 	if err != nil {
 		return err
 	}
-	service := app.NewService(store, blobs, clock, cfg.ChunkSizeBytes, cfg.ReservedFreeBytes, cfg.UploadTTL, cfg.ShareAppOrigin)
-
-	purgeContext, cancelPurge := context.WithTimeout(context.Background(), 2*time.Minute)
-	if err := service.PurgeExpired(purgeContext); err != nil {
+	content := app.NewContentService(store, store, files, clock, cfg.ChunkSizeBytes, cfg.ReservedFreeBytes, cfg.UploadTTL)
+	if err := content.MigrateLegacyContent(startupContext); err != nil {
+		return err
+	}
+	adopted, err := store.AdoptDriveBooks(startupContext)
+	if err != nil {
+		return err
+	}
+	if adopted > 0 {
+		logger.Info("existing drive publications adopted", "count", adopted)
+	}
+	suite := &app.Suite{
+		Content:    content,
+		Drive:      app.NewDriveService(store, content, files, clock, cfg.ShareAppOrigin),
+		Books:      app.NewBookService(store, store, content, files),
+		Music:      app.NewMusicService(store, store, content, files, clock),
+		Images:     app.NewImageService(store, store, content, files, cfg.PublicAPIOrigin()),
+		Wallpapers: app.NewWallpaperService(store, store, files, cfg.PublicAPIOrigin()),
+		System:     app.NewSystemService(store, store, files, clock),
+		Retention:  app.NewRetentionService(store, content, clock),
+	}
+	purgeContext, cancelPurge := context.WithTimeout(context.Background(), 10*time.Minute)
+	if err := suite.Retention.PurgeExpired(purgeContext); err != nil {
 		logger.Error("startup retention cleanup failed", "error", err)
 	}
 	cancelPurge()
-	go runPurger(logger, service)
+	go runPurger(logger, suite.Retention)
 
 	server := &http.Server{
 		Addr:              cfg.ListenAddr,
-		Handler:           transport.NewHTTPHandler(cfg, service, sessions, logger),
+		Handler:           transport.NewHTTPHandler(cfg, suite, sessions, logger),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       2 * time.Minute,
 		WriteTimeout:      0,
@@ -74,7 +93,6 @@ func run(logger *slog.Logger) error {
 		logger.Info("server listening", "address", cfg.ListenAddr)
 		serverErrors <- server.ListenAndServe()
 	}()
-
 	select {
 	case err := <-serverErrors:
 		if errors.Is(err, http.ErrServerClosed) {
@@ -89,12 +107,12 @@ func run(logger *slog.Logger) error {
 	}
 }
 
-func runPurger(logger *slog.Logger, service *app.Service) {
+func runPurger(logger *slog.Logger, retention *app.RetentionService) {
 	ticker := time.NewTicker(time.Hour)
 	defer ticker.Stop()
 	for range ticker.C {
-		context, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-		if err := service.PurgeExpired(context); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		if err := retention.PurgeExpired(ctx); err != nil {
 			logger.Error("retention cleanup failed", "error", err)
 		}
 		cancel()

@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package cloud.music.v1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "example.com/cloud-drive/api/gen/cloud/music/v1;musicv1";
+
+// ProcessingStatus identifies tag and artwork extraction readiness.
+enum TrackProcessingStatus {
+  TRACK_PROCESSING_STATUS_UNSPECIFIED = 0;
+  TRACK_PROCESSING_STATUS_PENDING = 1;
+  TRACK_PROCESSING_STATUS_READY = 2;
+  TRACK_PROCESSING_STATUS_FAILED = 3;
+}
+
+// Track is one owner-managed audio recording.
+message Track {
+  string uid = 1;
+  string title = 2;
+  repeated string artists = 3;
+  string album = 4;
+  string album_artist = 5;
+  int32 track_number = 6;
+  int32 disc_number = 7;
+  int32 year = 8;
+  google.protobuf.Duration duration = 9;
+  string original_file_name = 10;
+  string content_type = 11;
+  int64 size_bytes = 12;
+  string artwork_url = 13;
+  string content_url = 14;
+  bool favorite = 15;
+  TrackProcessingStatus processing_status = 16;
+  google.protobuf.Timestamp create_time = 17;
+  google.protobuf.Timestamp update_time = 18;
+  google.protobuf.Timestamp delete_time = 19;
+}
+
+// Album summarizes visible tracks sharing an album label and album artist.
+message Album {
+  string uid = 1;
+  string title = 2;
+  string album_artist = 3;
+  int32 year = 4;
+  int32 track_count = 5;
+  string artwork_url = 6;
+}
+
+// Artist summarizes one visible display artist.
+message Artist {
+  string uid = 1;
+  string display_name = 2;
+  int32 track_count = 3;
+}
+
+// PlaybackEntry records one meaningful playback event.
+message PlaybackEntry {
+  string uid = 1;
+  Track track = 2;
+  google.protobuf.Timestamp play_time = 3;
+}

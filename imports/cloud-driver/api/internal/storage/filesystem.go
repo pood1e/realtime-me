@@ -9,23 +9,29 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+
+	"example.com/cloud-drive/api/internal/domain"
 )
 
-// Filesystem stores temporary uploads and immutable completed blobs.
+// Filesystem stores temporary uploads, immutable content, and derived artifacts.
 type Filesystem struct {
-	dataRoot string
-	uploads  string
-	blobs    string
+	dataRoot  string
+	uploads   string
+	objects   string
+	artifacts string
+	work      string
 }
 
-// NewFilesystem initializes the required private storage directories.
+// NewFilesystem initializes private storage directories.
 func NewFilesystem(dataRoot string) (*Filesystem, error) {
 	filesystem := &Filesystem{
-		dataRoot: dataRoot,
-		uploads:  filepath.Join(dataRoot, "uploads"),
-		blobs:    filepath.Join(dataRoot, "blobs"),
+		dataRoot:  dataRoot,
+		uploads:   filepath.Join(dataRoot, "uploads"),
+		objects:   filepath.Join(dataRoot, "objects", "sha256"),
+		artifacts: filepath.Join(dataRoot, "artifacts"),
+		work:      filepath.Join(dataRoot, "work"),
 	}
-	for _, directory := range []string{filesystem.uploads, filesystem.blobs} {
+	for _, directory := range []string{filesystem.uploads, filesystem.objects, filesystem.artifacts, filesystem.work} {
 		if err := os.MkdirAll(directory, 0o700); err != nil {
 			return nil, fmt.Errorf("create storage directory %q: %w", directory, err)
 		}
@@ -33,7 +39,7 @@ func NewFilesystem(dataRoot string) (*Filesystem, error) {
 	return filesystem, nil
 }
 
-// PrepareUpload creates an empty private temporary file for an upload session.
+// PrepareUpload creates an empty private temporary file.
 func (f *Filesystem) PrepareUpload(_ context.Context, uploadUID string) error {
 	path, err := f.uploadPath(uploadUID)
 	if err != nil {
@@ -60,7 +66,6 @@ func (f *Filesystem) WriteChunk(_ context.Context, uploadUID string, offset int6
 		return fmt.Errorf("open upload temporary file: %w", err)
 	}
 	defer file.Close()
-
 	written, err := file.WriteAt(data, offset)
 	if err != nil {
 		return fmt.Errorf("write upload chunk: %w", err)
@@ -71,42 +76,50 @@ func (f *Filesystem) WriteChunk(_ context.Context, uploadUID string, offset int6
 	return file.Sync()
 }
 
-// FinalizeUpload atomically publishes a complete temporary file as an immutable blob.
-func (f *Filesystem) FinalizeUpload(_ context.Context, uploadUID, itemUID string) error {
-	temporaryPath, err := f.uploadPath(uploadUID)
+// SealUpload publishes a complete upload under its SHA-256 content address.
+func (f *Filesystem) SealUpload(_ context.Context, uploadUID, fileName string) (domain.SealedContent, error) {
+	path, err := f.uploadPath(uploadUID)
 	if err != nil {
-		return err
+		return domain.SealedContent{}, err
 	}
-	blobPath, err := f.blobPath(itemUID)
+	sealed, err := f.inspectFile(path, fileName)
 	if err != nil {
-		return err
+		return domain.SealedContent{}, err
 	}
-	if _, err := os.Stat(blobPath); err == nil {
-		return f.syncBlobDirectory()
-	} else if !errors.Is(err, fs.ErrNotExist) {
-		return fmt.Errorf("stat final blob: %w", err)
+	if err := f.publishFile(path, sealed.StorageKey, false); err != nil {
+		return domain.SealedContent{}, err
 	}
-	if err := os.Rename(temporaryPath, blobPath); err != nil {
-		return fmt.Errorf("publish upload blob: %w", err)
-	}
-	return f.syncBlobDirectory()
+	return sealed, nil
 }
 
-// RemoveUpload deletes a temporary upload file after failed initialization.
+// InspectLegacyObject hashes a legacy object and publishes its content-addressed link.
+func (f *Filesystem) InspectLegacyObject(_ context.Context, content domain.ContentObject) (domain.SealedContent, error) {
+	path, err := f.storagePath(content.StorageKey)
+	if err != nil {
+		return domain.SealedContent{}, err
+	}
+	sealed, err := f.inspectFile(path, filepath.Base(content.StorageKey))
+	if err != nil {
+		return domain.SealedContent{}, err
+	}
+	if err := f.publishFile(path, sealed.StorageKey, false); err != nil {
+		return domain.SealedContent{}, err
+	}
+	return sealed, nil
+}
+
+// RemoveUpload deletes an unclaimed temporary upload.
 func (f *Filesystem) RemoveUpload(_ context.Context, uploadUID string) error {
 	path, err := f.uploadPath(uploadUID)
 	if err != nil {
 		return err
 	}
-	if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return fmt.Errorf("remove upload temporary file: %w", err)
-	}
-	return nil
+	return removeFile(path, "upload temporary file")
 }
 
-// OpenBlob opens an immutable blob for a range-capable HTTP response.
-func (f *Filesystem) OpenBlob(_ context.Context, storageKey string) (*os.File, error) {
-	path, err := f.blobPath(storageKey)
+// Open opens immutable source content or an artifact by relative storage key.
+func (f *Filesystem) Open(_ context.Context, storageKey string) (*os.File, error) {
+	path, err := f.storagePath(storageKey)
 	if err != nil {
 		return nil, err
 	}
@@ -115,21 +128,63 @@ func (f *Filesystem) OpenBlob(_ context.Context, storageKey string) (*os.File, e
 		return nil, err
 	}
 	if err != nil {
-		return nil, fmt.Errorf("open blob: %w", err)
+		return nil, fmt.Errorf("open stored file: %w", err)
 	}
 	return file, nil
 }
 
-// RemoveBlob removes an immutable blob during retention cleanup.
-func (f *Filesystem) RemoveBlob(_ context.Context, storageKey string) error {
-	path, err := f.blobPath(storageKey)
+// Remove deletes one stored file after metadata authorization.
+func (f *Filesystem) Remove(_ context.Context, storageKey string) error {
+	path, err := f.storagePath(storageKey)
 	if err != nil {
 		return err
 	}
-	if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return fmt.Errorf("remove blob: %w", err)
+	return removeFile(path, "stored file")
+}
+
+// NewWorkDir creates an isolated directory for one processing job.
+func (f *Filesystem) NewWorkDir(jobUID string) (string, error) {
+	if err := validateSegment(jobUID); err != nil {
+		return "", err
 	}
-	return nil
+	path := filepath.Join(f.work, jobUID)
+	if err := os.RemoveAll(path); err != nil {
+		return "", fmt.Errorf("reset processing directory: %w", err)
+	}
+	if err := os.Mkdir(path, 0o700); err != nil {
+		return "", fmt.Errorf("create processing directory: %w", err)
+	}
+	return path, nil
+}
+
+// RemoveWorkDir removes a processing job's temporary directory.
+func (f *Filesystem) RemoveWorkDir(path string) error {
+	clean, err := f.pathWithin(f.work, path)
+	if err != nil {
+		return err
+	}
+	if clean == f.work {
+		return errors.New("refusing to remove work root")
+	}
+	return os.RemoveAll(clean)
+}
+
+// PublishArtifact atomically installs a generated artifact file.
+func (f *Filesystem) PublishArtifact(sourcePath, contentUID, kind, variant, extension string) (string, error) {
+	for _, value := range []string{contentUID, kind, variant} {
+		if err := validateSegment(value); err != nil {
+			return "", err
+		}
+	}
+	extension = strings.TrimPrefix(strings.ToLower(extension), ".")
+	if extension == "" || strings.ContainsAny(extension, `/\\\x00`) {
+		return "", errors.New("unsafe artifact extension")
+	}
+	storageKey := filepath.ToSlash(filepath.Join("artifacts", contentUID, kind, variant+"."+extension))
+	if err := f.publishFile(sourcePath, storageKey, false); err != nil {
+		return "", err
+	}
+	return storageKey, nil
 }
 
 // FreeBytes returns currently available bytes on the data filesystem.
@@ -139,37 +194,4 @@ func (f *Filesystem) FreeBytes() (int64, error) {
 		return 0, fmt.Errorf("stat storage filesystem: %w", err)
 	}
 	return int64(stat.Bavail) * int64(stat.Bsize), nil
-}
-
-func (f *Filesystem) uploadPath(uploadUID string) (string, error) {
-	if err := validateKey(uploadUID); err != nil {
-		return "", err
-	}
-	return filepath.Join(f.uploads, uploadUID+".part"), nil
-}
-
-func (f *Filesystem) blobPath(storageKey string) (string, error) {
-	if err := validateKey(storageKey); err != nil {
-		return "", err
-	}
-	return filepath.Join(f.blobs, storageKey), nil
-}
-
-func (f *Filesystem) syncBlobDirectory() error {
-	directory, err := os.Open(f.blobs)
-	if err != nil {
-		return fmt.Errorf("open blob directory for sync: %w", err)
-	}
-	defer directory.Close()
-	if err := directory.Sync(); err != nil {
-		return fmt.Errorf("sync blob directory: %w", err)
-	}
-	return nil
-}
-
-func validateKey(value string) error {
-	if value == "" || value == "." || value == ".." || filepath.Base(value) != value || strings.ContainsRune(value, '\x00') {
-		return errors.New("unsafe storage key")
-	}
-	return nil
 }

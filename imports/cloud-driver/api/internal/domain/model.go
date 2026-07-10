@@ -16,6 +16,7 @@ const (
 type Item struct {
 	UID         string
 	ParentUID   *string
+	ContentUID  *string
 	Name        string
 	Kind        ItemKind
 	SizeBytes   int64
@@ -32,8 +33,8 @@ type UploadStatus string
 const (
 	// UploadStatusActive accepts new chunks.
 	UploadStatusActive UploadStatus = "active"
-	// UploadStatusCompleted has published a file.
-	UploadStatusCompleted UploadStatus = "completed"
+	// UploadStatusClaimed has created exactly one application resource.
+	UploadStatusClaimed UploadStatus = "claimed"
 	// UploadStatusExpired no longer accepts chunks.
 	UploadStatusExpired UploadStatus = "expired"
 )
@@ -41,8 +42,6 @@ const (
 // Upload describes a resumable file transfer.
 type Upload struct {
 	UID            string
-	ItemUID        string
-	ParentUID      *string
 	FileName       string
 	ContentType    string
 	TotalSizeBytes int64
@@ -51,6 +50,7 @@ type Upload struct {
 	Status         UploadStatus
 	CreateTime     time.Time
 	ExpireTime     time.Time
+	ClaimedUID     string
 	Chunks         []UploadChunk
 }
 

@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package cloud.music.v1;
+
+import "cloud/music/v1/track.proto";
+
+option go_package = "example.com/cloud-drive/api/gen/cloud/music/v1;musicv1";
+
+// MusicService manages the private audio catalog and playback state.
+service MusicService {
+  rpc GetTrack(GetTrackRequest) returns (GetTrackResponse);
+  rpc ListTracks(ListTracksRequest) returns (ListTracksResponse);
+  rpc ImportTrack(ImportTrackRequest) returns (ImportTrackResponse);
+  rpc SetTrackFavorite(SetTrackFavoriteRequest) returns (SetTrackFavoriteResponse);
+  rpc DeleteTrack(DeleteTrackRequest) returns (DeleteTrackResponse);
+  rpc RestoreTrack(RestoreTrackRequest) returns (RestoreTrackResponse);
+  rpc PurgeTrack(PurgeTrackRequest) returns (PurgeTrackResponse);
+  rpc EmptyTrackTrash(EmptyTrackTrashRequest) returns (EmptyTrackTrashResponse);
+  rpc RetryTrackProcessing(RetryTrackProcessingRequest) returns (RetryTrackProcessingResponse);
+  rpc ListAlbums(ListAlbumsRequest) returns (ListAlbumsResponse);
+  rpc ListArtists(ListArtistsRequest) returns (ListArtistsResponse);
+  rpc RecordPlayback(RecordPlaybackRequest) returns (RecordPlaybackResponse);
+  rpc ListPlaybackHistory(ListPlaybackHistoryRequest) returns (ListPlaybackHistoryResponse);
+}
+
+message GetTrackRequest { string track_uid = 1; }
+message GetTrackResponse { Track track = 1; }
+message ListTracksRequest {
+  string query = 1;
+  string album = 2;
+  string artist = 3;
+  bool favorites = 4;
+  bool trashed = 5;
+  int32 page_size = 6;
+  string page_token = 7;
+}
+message ListTracksResponse {
+  repeated Track tracks = 1;
+  string next_page_token = 2;
+}
+message ImportTrackRequest { string upload_uid = 1; }
+message ImportTrackResponse { Track track = 1; }
+message SetTrackFavoriteRequest {
+  string track_uid = 1;
+  bool favorite = 2;
+}
+message SetTrackFavoriteResponse { Track track = 1; }
+message DeleteTrackRequest { string track_uid = 1; }
+message DeleteTrackResponse { Track track = 1; }
+message RestoreTrackRequest { string track_uid = 1; }
+message RestoreTrackResponse { Track track = 1; }
+message PurgeTrackRequest { string track_uid = 1; }
+message PurgeTrackResponse {}
+message EmptyTrackTrashRequest {}
+message EmptyTrackTrashResponse {}
+message RetryTrackProcessingRequest { string track_uid = 1; }
+message RetryTrackProcessingResponse { Track track = 1; }
+message ListAlbumsRequest { string query = 1; }
+message ListAlbumsResponse { repeated Album albums = 1; }
+message ListArtistsRequest { string query = 1; }
+message ListArtistsResponse { repeated Artist artists = 1; }
+message RecordPlaybackRequest { string track_uid = 1; }
+message RecordPlaybackResponse { PlaybackEntry playback_entry = 1; }
+message ListPlaybackHistoryRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+message ListPlaybackHistoryResponse {
+  repeated PlaybackEntry playback_entries = 1;
+  string next_page_token = 2;
+}
