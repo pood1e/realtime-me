@@ -25,5 +25,5 @@ verify-web:
 	pnpm run build:web
 
 verify-ops:
-	bash -n ops/scripts/*.sh
-	shellcheck --severity=warning ops/scripts/*.sh
+	bash -n ops/scripts/*.sh ops/operator/*.sh
+	shellcheck --severity=warning ops/scripts/*.sh ops/operator/*.sh

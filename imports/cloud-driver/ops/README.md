@@ -136,6 +136,36 @@ sudo /opt/cloud-drive/ops/scripts/compose.sh -- logs --tail=100 cloudflared
 
 先复制 `ops/pages.env.example` 为被忽略的 `ops/pages.env`，填入 Pages 项目名和 API 地址。脚本会构建 `web/apps/private/dist` 与 `web/apps/share/dist`，生成与 API Origin 匹配的 CSP，再发布到配置的两个 Pages 项目。首次使用时先在 Cloudflare 创建项目并绑定上文域名。不要把真实域名、项目名或 Cloudflare API token 提交到仓库。
 
+## 持久化运维权限
+
+不要把部署用户加入 `docker` 组；Docker socket 等价于主机 root 权限。首次安装完成后，可由 root 为现有 SSH 用户安装受限运维网关：
+
+```bash
+sudo /opt/cloud-drive/ops/scripts/install-operator-access.sh --user <DEPLOY_USER>
+```
+
+脚本创建 `cloud-drive-operators` 组，但登录用户仍是普通非 root 用户。重新登录后，该组只能免密码调用以下四个 root-owned 固定入口，不能运行任意 sudo 或直接访问 Docker socket：
+
+```bash
+sudo -n cloud-drive-release-api
+sudo -n cloud-drive-backup-now
+sudo -n cloud-drive-status
+sudo -n cloud-drive-logs api        # api | postgres | cloudflared | backup
+```
+
+常规 API 发布先从 Git 提交生成干净的 staging，再触发发布入口：
+
+```bash
+stage=$(mktemp -d)
+git archive HEAD api | tar -x -C "$stage"
+rsync -a --delete --exclude=/Dockerfile \
+  "$stage/api/" <DEPLOY_USER>@<DEPLOY_HOST>:/var/lib/cloud-drive-release/incoming-api/
+ssh <DEPLOY_USER>@<DEPLOY_HOST> sudo -n cloud-drive-release-api
+rm -rf "$stage"
+```
+
+发布入口只更新 `api/` 源码，固定使用 root-owned Dockerfile、Compose、部署脚本和运行时配置；构建失败时自动恢复上一份 API 源码并重新部署。前端仍由开发机直接发布 Pages，不需要主机权限。Dockerfile、Compose、systemd 或 `ops/` 变更属于低频控制面操作，仍需显式 root 审核并重新安装相关入口。
+
 ## 明文增量备份
 
 创建 root-only 的备份配置：
