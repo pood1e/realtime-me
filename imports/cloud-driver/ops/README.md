@@ -158,7 +158,7 @@ sudo -n cloud-drive-logs api        # api | postgres | cloudflared | backup
 ```bash
 stage=$(mktemp -d)
 git archive HEAD api | tar -x -C "$stage"
-rsync -a --delete --exclude=/Dockerfile \
+rsync -rlt --delete --omit-dir-times --exclude=/Dockerfile \
   "$stage/api/" <DEPLOY_USER>@<DEPLOY_HOST>:/var/lib/cloud-drive-release/incoming-api/
 ssh <DEPLOY_USER>@<DEPLOY_HOST> sudo -n cloud-drive-release-api
 rm -rf "$stage"
