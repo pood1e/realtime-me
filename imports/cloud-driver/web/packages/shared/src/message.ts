@@ -3,22 +3,31 @@ import type { DriveItem, ShareLink, Upload } from "@cloud-drive/contracts";
 
 const MAX_SAFE_BIGINT = BigInt(Number.MAX_SAFE_INTEGER);
 
-function timestampToDate(value: DriveItem["updateTime"] | ShareLink["expireTime"]): Date | undefined {
+function timestampToDate(
+  value: DriveItem["updateTime"] | ShareLink["expireTime"],
+): Date | undefined {
   if (!value) {
     return undefined;
   }
 
-  if (value.seconds > MAX_SAFE_BIGINT / 1_000n || value.seconds < -MAX_SAFE_BIGINT / 1_000n) {
+  if (
+    value.seconds > MAX_SAFE_BIGINT / 1_000n ||
+    value.seconds < -MAX_SAFE_BIGINT / 1_000n
+  ) {
     return undefined;
   }
 
-  const date = new Date(Number(value.seconds) * 1_000 + Math.trunc(value.nanos / 1_000_000));
+  const date = new Date(
+    Number(value.seconds) * 1_000 + Math.trunc(value.nanos / 1_000_000),
+  );
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
 function asByteOffset(value: bigint): number {
   if (value < 0n || value > MAX_SAFE_BIGINT) {
-    throw new RangeError("The browser cannot address this upload range safely.");
+    throw new RangeError(
+      "The browser cannot address this upload range safely.",
+    );
   }
   return Number(value);
 }
@@ -75,8 +84,13 @@ export function uploadChunkSize(upload: Upload): number {
   return asByteOffset(upload.chunkSizeBytes);
 }
 
-export function uploadRanges(upload: Upload): ReadonlyArray<readonly [number, number]> {
-  return upload.chunks.map((chunk) => [asByteOffset(chunk.startOffset), asByteOffset(chunk.endOffset)] as const);
+export function uploadRanges(
+  upload: Upload,
+): ReadonlyArray<readonly [number, number]> {
+  return upload.chunks.map(
+    (chunk) =>
+      [asByteOffset(chunk.startOffset), asByteOffset(chunk.endOffset)] as const,
+  );
 }
 
 export function uploadReceivedBytes(upload: Upload): number {

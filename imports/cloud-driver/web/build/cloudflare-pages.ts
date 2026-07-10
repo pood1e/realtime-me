@@ -13,7 +13,11 @@ function apiOrigin(value: unknown, variableName: string): string {
   }
 
   const url = new URL(value);
-  if (url.protocol !== "https:" && url.hostname !== "localhost" && url.hostname !== "127.0.0.1") {
+  if (
+    url.protocol !== "https:" &&
+    url.hostname !== "localhost" &&
+    url.hostname !== "127.0.0.1"
+  ) {
     throw new Error(`${variableName} must use HTTPS outside local development`);
   }
   return url.origin;
@@ -27,30 +31,45 @@ function contentSecurityPolicy(origin: string): string {
     "frame-ancestors 'none'",
     "form-action 'self'",
     "script-src 'self'",
-    "style-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
     `img-src 'self' data: blob: ${origin}`,
     `media-src 'self' blob: ${origin}`,
+    `font-src 'self' data: blob: ${origin}`,
     `connect-src 'self' ${origin}`,
-    `frame-src ${origin}`,
+    `frame-src 'self' blob: ${origin}`,
+    "worker-src 'self' blob:",
     "upgrade-insecure-requests",
   ].join("; ");
 }
 
-export function cloudflarePagesHeaders(variableName: string, fallbackApiBase: string): Plugin {
+export function cloudflarePagesHeaders(
+  variableName: string,
+  fallbackApiBase: string,
+): Plugin {
   let origin = apiOrigin(fallbackApiBase, variableName);
 
   return {
     name: "cloud-drive-cloudflare-pages-headers",
     apply: "build",
     configResolved(config) {
-      origin = apiOrigin(config.env[variableName] ?? fallbackApiBase, variableName);
+      origin = apiOrigin(
+        config.env[variableName] ?? fallbackApiBase,
+        variableName,
+      );
     },
     generateBundle() {
-      const lines = ["/*", `  Content-Security-Policy: ${contentSecurityPolicy(origin)}`];
+      const lines = [
+        "/*",
+        `  Content-Security-Policy: ${contentSecurityPolicy(origin)}`,
+      ];
       for (const header of securityHeaders) {
         lines.push(`  ${header}`);
       }
-      this.emitFile({ type: "asset", fileName: "_headers", source: `${lines.join("\n")}\n` });
+      this.emitFile({
+        type: "asset",
+        fileName: "_headers",
+        source: `${lines.join("\n")}\n`,
+      });
     },
   };
 }

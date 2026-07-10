@@ -1,5 +1,5 @@
 {
-  "name": "@cloud-drive/share-portal",
+  "name": "@cloud-drive/share",
   "version": "0.0.0",
   "private": true,
   "type": "module",

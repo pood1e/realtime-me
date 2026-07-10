@@ -21,6 +21,7 @@ verify-api:
 	cd api && go vet ./... && go build ./...
 
 verify-web:
+	pnpm exec prettier --check 'web/apps/**/*.{ts,tsx,css,json,html}' 'web/packages/shared/**/*.{ts,tsx,css,json}' 'web/build/**/*.ts'
 	pnpm run typecheck:web
 	pnpm run build:web
 

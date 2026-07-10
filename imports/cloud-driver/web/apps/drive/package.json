@@ -1,5 +1,5 @@
 {
-  "name": "@cloud-drive/private-portal",
+  "name": "@cloud-drive/drive",
   "version": "0.0.0",
   "private": true,
   "type": "module",

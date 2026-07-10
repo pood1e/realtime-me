@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
@@ -14,7 +15,11 @@
     "@cloud-drive/contracts": "workspace:*",
     "@connectrpc/connect": "^2.1.2",
     "@connectrpc/connect-web": "^2.1.2",
-    "lucide-react": "^1.22.0"
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.22.0",
+    "radix-ui": "^1.6.2",
+    "tailwind-merge": "^3.4.0"
   },
   "peerDependencies": {
     "react": "^19.2.7",
