@@ -85,7 +85,7 @@ export type DialogSize = "compact" | "standard" | "preview";
 const dialogSizes: Record<DialogSize, string> = {
   compact: "max-w-md",
   standard: "max-w-2xl",
-  preview: "h-[calc(100dvh-1rem)] max-w-none sm:h-[min(90dvh,64rem)] sm:w-[calc(100vw-3rem)] xl:w-[calc(100vw-5rem)]",
+  preview: "max-w-5xl",
 };
 
 export function Breadcrumbs({ items, onNavigate }: { items: readonly Breadcrumb[]; onNavigate?: (id: string) => void }) {
