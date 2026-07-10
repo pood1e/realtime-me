@@ -29,7 +29,8 @@ import {
   driveItemIsDirectory,
   driveItemName,
   driveItemUid,
-  DriveItemList,
+  DriveItemView,
+  DriveViewModeToggle,
   EmptyState,
   FileGlyph,
   formatBytes,
@@ -45,6 +46,7 @@ import {
   shareLinkRevokedAt,
   shareLinkUid,
   ToastProvider,
+  useDriveViewMode,
   useToast,
 } from "@cloud-drive/shared";
 import { DEFAULT_PRIVATE_API_BASE } from "./config";
@@ -235,6 +237,7 @@ function DriveWorkspace({
 }) {
   const { showToast } = useToast();
   const [view, setView] = useState<View>("drive");
+  const [viewMode, setViewMode] = useDriveViewMode("cloud-drive.private.view-mode");
   const [trail, setTrail] = useState<readonly Trail[]>(ROOT_TRAIL);
   const [items, setItems] = useState<DriveItem[]>([]);
   const [query, setQuery] = useState("");
@@ -429,6 +432,7 @@ function DriveWorkspace({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <DriveViewModeToggle mode={viewMode} onChange={setViewMode} />
               {view === "drive" ? (
                 <>
                   <Button variant="outline" className="hidden sm:inline-flex" onClick={() => setDialog({ kind: "folder" })}>
@@ -466,7 +470,8 @@ function DriveWorkspace({
             {error ? <InlineError message={error} onRetry={refresh} /> : null}
             {loading ? <LoadingIndicator label="正在读取文件" /> : null}
             {!loading && !error ? (
-              <DriveItemList
+              <DriveItemView
+                mode={viewMode}
                 items={sortItems}
                 onOpen={openItem}
                 empty={<EmptyState icon={view === "trash" ? <Trash2 className="size-6" /> : <FilePlus2 className="size-6" />} title={view === "trash" ? "回收站为空" : isSearching ? "没有匹配的文件" : "这里还没有文件"} detail={view === "drive" && !isSearching ? "上传文件或新建文件夹，即可从这里开始管理。" : undefined} action={view === "drive" && !isSearching ? <Button onClick={() => inputRef.current?.click()}><UploadCloud className="size-4" />上传文件</Button> : undefined} />}

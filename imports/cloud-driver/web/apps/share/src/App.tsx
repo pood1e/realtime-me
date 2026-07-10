@@ -6,7 +6,8 @@ import {
   apiBaseUrl,
   Breadcrumbs,
   Dialog,
-  DriveItemList,
+  DriveItemView,
+  DriveViewModeToggle,
   EmptyState,
   InlineError,
   isImage,
@@ -18,6 +19,7 @@ import {
   type ResolvedShare,
   shareLinkExpiresAt,
   ToastProvider,
+  useDriveViewMode,
 } from "@cloud-drive/shared";
 import { driveItemIsDirectory, driveItemName, driveItemUid } from "@cloud-drive/shared";
 import { DEFAULT_SHARE_API_BASE } from "./config";
@@ -56,6 +58,7 @@ export function App() {
 
 function SharedWorkspace() {
   const client = useMemo(() => new PublicShareClient(API_BASE), []);
+  const [viewMode, setViewMode] = useDriveViewMode("cloud-drive.share.view-mode");
   const token = useMemo(getShareToken, []);
   const [state, setState] = useState<ViewState>(token ? "loading" : "unavailable");
   const [resolution, setResolution] = useState<ResolvedShare>();
@@ -126,14 +129,17 @@ function SharedWorkspace() {
             <div className="mb-3 flex items-center gap-2 text-xs text-sky-200"><ShieldCheck className="size-4" />只读分享</div>
             <Breadcrumbs items={trail} onNavigate={(id) => setTrail((current) => current.slice(0, current.findIndex((segment) => segment.id === id) + 1))} />
           </div>
-          <div className="hidden shrink-0 items-center gap-2 text-xs text-slate-500 sm:flex"><Grid2X2 className="size-4 text-sky-300" />个人云盘</div>
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="hidden items-center gap-2 text-xs text-slate-500 sm:flex"><Grid2X2 className="size-4 text-sky-300" />个人云盘</div>
+            <DriveViewModeToggle mode={viewMode} onChange={setViewMode} />
+          </div>
         </div>
         <p className="mt-3 text-sm text-slate-500">有效期至 {shareLinkExpiresAt(resolution.shareLink)?.toLocaleString("zh-CN") ?? "—"}</p>
       </header>
       <section className="mt-5 min-h-0 flex-1 overflow-y-auto pb-6">
         {error ? <InlineError message={error} onRetry={() => refreshItems()} /> : null}
         {loadingItems ? <LoadingIndicator label="正在读取分享内容" /> : null}
-        {!loadingItems && !error ? <DriveItemList items={visibleItems} onOpen={openItem} empty={<EmptyState icon={<Folder className="size-6" />} title="此文件夹为空" />} /> : null}
+        {!loadingItems && !error ? <DriveItemView mode={viewMode} items={visibleItems} onOpen={openItem} empty={<EmptyState icon={<Folder className="size-6" />} title="此文件夹为空" />} /> : null}
       </section>
       {preview ? <PublicPreview item={preview} token={token} client={client} open onClose={() => setPreview(undefined)} /> : null}
     </ShareFrame>

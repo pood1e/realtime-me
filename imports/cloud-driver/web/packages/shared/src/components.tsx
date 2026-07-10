@@ -10,6 +10,8 @@ import {
   FileImage,
   FileText,
   Folder,
+  LayoutGrid,
+  List as ListIcon,
   LoaderCircle,
   Music2,
   Video,
@@ -81,12 +83,34 @@ export type Breadcrumb = Readonly<{
 }>;
 
 export type DialogSize = "compact" | "standard" | "preview";
+export type DriveViewMode = "list" | "grid";
 
 const dialogSizes: Record<DialogSize, string> = {
   compact: "max-w-md",
   standard: "max-w-2xl",
   preview: "max-w-5xl",
 };
+
+function storedDriveViewMode(storageKey: string): DriveViewMode {
+  try {
+    return window.localStorage.getItem(storageKey) === "grid" ? "grid" : "list";
+  } catch {
+    return "list";
+  }
+}
+
+export function useDriveViewMode(storageKey: string) {
+  const [mode, setMode] = useState<DriveViewMode>(() => storedDriveViewMode(storageKey));
+  const selectMode = useCallback((nextMode: DriveViewMode) => {
+    setMode(nextMode);
+    try {
+      window.localStorage.setItem(storageKey, nextMode);
+    } catch {
+      // The selected mode remains active for this session when storage is unavailable.
+    }
+  }, [storageKey]);
+  return [mode, selectMode] as const;
+}
 
 export function Breadcrumbs({ items, onNavigate }: { items: readonly Breadcrumb[]; onNavigate?: (id: string) => void }) {
   return (
@@ -104,6 +128,19 @@ export function Breadcrumbs({ items, onNavigate }: { items: readonly Breadcrumb[
         </span>
       ))}
     </nav>
+  );
+}
+
+export function DriveViewModeToggle({ mode, onChange }: { mode: DriveViewMode; onChange: (mode: DriveViewMode) => void }) {
+  return (
+    <div role="group" aria-label="文件视图" className="flex shrink-0 rounded-lg border border-white/[0.08] bg-white/[0.025] p-1">
+      <IconButton label="列表视图" aria-pressed={mode === "list"} onClick={() => onChange("list")} className={cn(mode === "list" && "bg-sky-400/10 text-sky-200")}>
+        <ListIcon className="size-4" aria-hidden="true" />
+      </IconButton>
+      <IconButton label="网格视图" aria-pressed={mode === "grid"} onClick={() => onChange("grid")} className={cn(mode === "grid" && "bg-sky-400/10 text-sky-200")}>
+        <LayoutGrid className="size-4" aria-hidden="true" />
+      </IconButton>
+    </div>
   );
 }
 
@@ -225,30 +262,26 @@ export function FileGlyph({ item, className }: { item: DriveItem; className?: st
   return <File {...props} className={cn("size-5 text-slate-400", className)} />;
 }
 
-export function DriveItemList({
-  items,
-  empty,
-  selectedUid,
-  onOpen,
-  actions,
-}: {
+type DriveItemCollectionProps = {
   items: readonly DriveItem[];
-  empty: ReactNode;
   selectedUid?: string;
   onOpen: (item: DriveItem) => void;
   actions?: (item: DriveItem) => ReactNode;
-}) {
-  if (!items.length) {
-    return <>{empty}</>;
+};
+
+function openItemFromKeyboard(event: KeyboardEvent<HTMLElement>, item: DriveItem, onOpen: (item: DriveItem) => void) {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    onOpen(item);
   }
+}
 
-  const onKeyOpen = (event: KeyboardEvent<HTMLDivElement>, item: DriveItem) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onOpen(item);
-    }
-  };
-
+function DriveItemList({
+  items,
+  selectedUid,
+  onOpen,
+  actions,
+}: DriveItemCollectionProps) {
   return (
     <div className="relative isolate rounded-xl border border-white/[0.08] bg-slate-900/55">
       <div className="sticky top-0 z-10 hidden grid-cols-[minmax(0,1fr)_7rem_10rem_3rem] gap-4 rounded-t-xl border-b border-white/[0.08] bg-slate-900/95 px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500 backdrop-blur sm:grid xl:grid-cols-[minmax(20rem,1fr)_9rem_12rem_3rem]">
@@ -264,7 +297,7 @@ export function DriveItemList({
               tabIndex={0}
               key={uid}
               onClick={() => onOpen(item)}
-              onKeyDown={(event) => onKeyOpen(event, item)}
+              onKeyDown={(event) => openItemFromKeyboard(event, item, onOpen)}
               className={cn(
                 "group grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 outline-none transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-white/[0.045] focus-visible:bg-white/[0.06] sm:grid-cols-[minmax(0,1fr)_7rem_10rem_3rem] sm:gap-4 sm:first:rounded-t-none xl:grid-cols-[minmax(20rem,1fr)_9rem_12rem_3rem]",
                 selectedUid === uid && "bg-sky-400/10",
@@ -286,6 +319,53 @@ export function DriveItemList({
       </div>
     </div>
   );
+}
+
+function DriveItemGrid({ items, selectedUid, onOpen, actions }: DriveItemCollectionProps) {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]">
+      {items.map((item) => {
+        const uid = driveItemUid(item);
+        const isDirectory = driveItemIsDirectory(item);
+        return (
+          <div
+            role="button"
+            tabIndex={0}
+            key={uid}
+            onClick={() => onOpen(item)}
+            onKeyDown={(event) => openItemFromKeyboard(event, item, onOpen)}
+            className={cn(
+              "group flex min-h-40 cursor-pointer flex-col rounded-xl border border-white/[0.08] bg-slate-900/55 p-4 outline-none transition-colors hover:border-white/[0.16] hover:bg-white/[0.045] focus-visible:border-sky-300/50 focus-visible:ring-2 focus-visible:ring-sky-300/30",
+              selectedUid === uid && "border-sky-300/30 bg-sky-400/10",
+            )}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="grid size-11 place-items-center rounded-xl bg-white/[0.045]">
+                <FileGlyph item={item} className="size-7" />
+              </div>
+              <div className="flex justify-end" onClick={(event) => event.stopPropagation()}>{actions?.(item)}</div>
+            </div>
+            <div className="mt-5 min-w-0">
+              <p className="truncate text-sm font-medium text-slate-100" title={driveItemName(item)}>{driveItemName(item)}</p>
+              <p className="mt-1 text-xs text-slate-500">{isDirectory ? "Folder" : formatBytes(driveItemSize(item))}</p>
+              <p className="mt-1 truncate text-xs text-slate-600">{formatDate(driveItemUpdatedAt(item))}</p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function DriveItemView({
+  mode,
+  empty,
+  ...props
+}: DriveItemCollectionProps & { mode: DriveViewMode; empty: ReactNode }) {
+  if (!props.items.length) {
+    return <>{empty}</>;
+  }
+  return mode === "grid" ? <DriveItemGrid {...props} /> : <DriveItemList {...props} />;
 }
 
 type ToastVariant = "default" | "error";
