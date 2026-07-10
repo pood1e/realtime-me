@@ -21,6 +21,7 @@ import re
 import sqlite3
 import time
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -172,21 +173,32 @@ def running_processes() -> dict[int, str]:
 def codex_snapshot(homes: list[Path], processes: dict[int, str], now: float, active_window_seconds: int) -> AgentSnapshot:
     open_threads = codex_open_threads(homes, processes)
     subagent_ids = codex_subagent_ids(open_threads)
-    candidates = codex_candidates(homes, open_threads, subagent_ids, now, active_window_seconds)
-    if not candidates:
+    candidates = codex_candidates(homes, open_threads, now, active_window_seconds)
+    agents = [item for item in candidates if item.thread_id not in subagent_ids]
+    if not agents:
         return AgentSnapshot(kind=CODEX_KIND, state="idle")
 
-    candidates.sort(key=lambda item: (item.state != "idle", item.updated_at_seconds), reverse=True)
-    top = candidates[0]
-    threads = codex_threads(homes)
+    agents.sort(key=lambda item: (item.state != "idle", item.updated_at_seconds), reverse=True)
+    top = agents[0]
     return AgentSnapshot(
         kind=CODEX_KIND,
         state=top.state,
         model=top.model,
-        agent_models=tuple(sorted(item.model for item in candidates if item.state == "running")),
-        subagent_models=tuple(codex_model(threads.get(uid), open_threads[uid]) for uid in sorted(subagent_ids)),
+        agent_models=tuple(sorted(working_models(agents))),
+        subagent_models=tuple(sorted(working_models(item for item in candidates if item.thread_id in subagent_ids))),
         budget_remaining_percent=top.budget_remaining_percent,
     )
+
+
+def working_models(candidates: Iterable[CodexCandidate]) -> list[str]:
+    """The model each thread that is mid-turn runs, one entry per thread.
+
+    A sub-agent is held to the same test as the agent that spawned it. Codex
+    keeps a finished thread's rollout open for a while after its last turn ends,
+    so being alive is not being at work: only an open turn bracket is, and a
+    thread the window has retired has stopped writing either way.
+    """
+    return [item.model for item in candidates if item.state == "running"]
 
 
 def codex_model(thread: CodexThread | None, rollout: Path) -> str:
@@ -226,10 +238,10 @@ def codex_threads(homes: list[Path]) -> dict[str, CodexThread]:
 def codex_candidates(
     homes: list[Path],
     open_threads: dict[str, Path],
-    subagent_ids: set[str],
     now: float,
     active_window_seconds: int,
 ) -> list[CodexCandidate]:
+    """Every live thread, agent and sub-agent alike, with the state it is in."""
     threads = codex_threads(homes)
     goals: dict[str, CodexGoal] = {}
     for home in homes:
@@ -238,8 +250,6 @@ def codex_candidates(
 
     candidates: list[CodexCandidate] = []
     for thread_id, rollout in open_threads.items():
-        if thread_id in subagent_ids:
-            continue  # a sub-agent is counted, not reported as the agent itself
         # An open rollout is proof enough of a live thread. The databases only
         # add the model and the goal, and a schema generation this exporter has
         # never seen must not make Codex vanish from the page.
@@ -301,7 +311,7 @@ def read_codex_goals(database: Path) -> dict[str, CodexGoal]:
 
 
 def codex_subagent_ids(open_threads: dict[str, Path]) -> set[str]:
-    """The live threads that another thread spawned: the sub-agents working now.
+    """The live threads that another thread spawned, working or not.
 
     A spawned thread names its parent in the rollout it holds open, so the file
     that proves it is alive also says whose worker it is. The state database

@@ -110,7 +110,12 @@ is merely resumable and records none at all for an ephemeral one — while Claud
 and closes, answers a background sub-agent the instant it launches, and splits
 one reply across `thinking`/`text`/`tool_use` records. A Claude sub-agent is
 therefore live until its session announces its `<task-id>`, and only a later
-write means it was resumed. Prompts, objectives, task titles, sub-agent
+write means it was resumed. A Codex thread is alive for as long as its rollout is
+open, but Codex holds a spawned thread's rollout open well after that thread's
+last turn ended, so being alive is not being at work: an agent and a sub-agent
+alike count only while the newest bracket in the rollout is an open one. Every
+sub-agent the page draws is one more mascot, so a finished one that still counts
+is visible. Prompts, objectives, task titles, sub-agent
 descriptions and `threads.title` are never read into a metric — a `model` and a
 *count*, of agents and of sub-agents per model, are the only things added to
 `realtime_agent_*`. A host runs as many agents of one kind as it likes: three
