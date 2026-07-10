@@ -1,7 +1,6 @@
 import type { Agent, Subagent } from '@/gen/realtime/me/v1/status_pb';
-import { AgentClip, agentIcon, agentName } from '@/components/AgentCard';
-import { Badge } from '@/components/ui/badge';
-import { agentDeviceLabel, subagentLabel, subagentModelCounts } from '@/lib/status';
+import { AgentClip, SubagentBadge, agentIcon, agentName } from '@/components/AgentCard';
+import { agentDeviceLabel } from '@/lib/status';
 
 // Working agents live here rather than on the card of the machine they run on: a
 // device can host several at once, and stacking them beside its name crowds the
@@ -20,8 +19,8 @@ export function WorkingNow({ agents }: { agents: Agent[] }) {
 }
 
 // One clip for the agent, one for each sub-agent it has out, so the crowd is the
-// count. A sub-agent need not run the model that spawned it, so the models are
-// named on the page rather than left to a tooltip nobody hovers.
+// count. Each clip names its own model in its title, so the badge below need only
+// say how many are out.
 function WorkingAgent({ agent }: { agent: Agent }) {
   const device = agentDeviceLabel(agent);
   return (
@@ -45,11 +44,7 @@ function WorkingAgent({ agent }: { agent: Agent }) {
       </div>
       {agent.subagents.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {subagentModelCounts(agent.subagents).map(({ model, count }) => (
-            <Badge key={model} variant="secondary" className="font-normal">
-              {subagentLabel(model, count)}
-            </Badge>
-          ))}
+          <SubagentBadge subagents={agent.subagents} />
         </div>
       )}
     </div>

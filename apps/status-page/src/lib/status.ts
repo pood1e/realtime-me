@@ -38,7 +38,7 @@ export function agentDeviceLabel(agent: Agent): string {
 // The sub-agents an agent has out, grouped by the model each runs, busiest first.
 // A sub-agent need not run the model that spawned it, which is why they are
 // grouped by model rather than counted as heads.
-export function subagentModelCounts(subagents: Subagent[]): Array<{ model: string; count: number }> {
+function subagentModelCounts(subagents: Subagent[]): Array<{ model: string; count: number }> {
   const counts = new Map<string, number>();
   for (const subagent of subagents) counts.set(subagent.model, (counts.get(subagent.model) ?? 0) + 1);
   return [...counts]
@@ -46,11 +46,20 @@ export function subagentModelCounts(subagents: Subagent[]): Array<{ model: strin
     .sort((left, right) => right.count - left.count || left.model.localeCompare(right.model));
 }
 
-// A sub-agent whose model the exporter could not read is left nameable only by
-// its number, which is still worth showing.
-export function subagentLabel(model: string, count: number): string {
-  if (model) return `${count} × ${model}`;
+// How many sub-agents an agent has out. The models they run are the detail, not
+// the headline: a sub-agent usually runs the model that spawned it, and naming
+// it on the badge only repeats the agent's own model back to the reader.
+export function subagentCountLabel(count: number): string {
   return count === 1 ? '1 sub-agent' : `${count} sub-agents`;
+}
+
+// The models behind that count, for the badge's tooltip. Empty when the exporter
+// could read no model at all, which is the one case the count must stand alone.
+export function subagentModelSummary(subagents: Subagent[]): string {
+  return subagentModelCounts(subagents)
+    .filter(({ model }) => model)
+    .map(({ model, count }) => (count === 1 ? model : `${count} × ${model}`))
+    .join(' · ');
 }
 
 // humanLabel keeps only a name a person would recognise. A LAN address is not
