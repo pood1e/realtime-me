@@ -131,7 +131,9 @@ prune_snapshots() {
 
   mapfile -t snapshots < <(list_snapshot_names)
   remove_count=$((${#snapshots[@]} - SNAPSHOT_RETENTION_COUNT))
-  ((remove_count > 0)) || return
+  if ((remove_count <= 0)); then
+    return 0
+  fi
 
   for ((index = 0; index < remove_count; index++)); do
     rm -rf -- "${SNAPSHOTS_DIR:?}/${snapshots[$index]}"
