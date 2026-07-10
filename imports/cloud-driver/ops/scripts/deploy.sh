@@ -73,10 +73,11 @@ POSTGRES_PASSWORD=$(require_env_value "$ENV_FILE" POSTGRES_PASSWORD)
 POSTGRES_DB=$(require_env_value "$ENV_FILE" POSTGRES_DB)
 PASSWORD_HASH_BASE64=$(require_env_value "$ENV_FILE" PASSWORD_HASH_BASE64)
 SESSION_SECRET=$(require_env_value "$ENV_FILE" SESSION_SECRET)
-PRIVATE_APP_ORIGIN=$(require_env_value "$ENV_FILE" PRIVATE_APP_ORIGIN)
+PRIVATE_APP_ORIGINS=$(require_env_value "$ENV_FILE" PRIVATE_APP_ORIGINS)
+PUBLIC_APP_ORIGINS=$(require_env_value "$ENV_FILE" PUBLIC_APP_ORIGINS)
 SHARE_APP_ORIGIN=$(require_env_value "$ENV_FILE" SHARE_APP_ORIGIN)
 PRIVATE_API_HOST=$(require_env_value "$ENV_FILE" PRIVATE_API_HOST)
-SHARE_API_HOST=$(require_env_value "$ENV_FILE" SHARE_API_HOST)
+PUBLIC_API_HOST=$(require_env_value "$ENV_FILE" PUBLIC_API_HOST)
 VOLUME_MOUNT_DIR=$(require_env_value "$ENV_FILE" CLOUD_DRIVE_VOLUME_MOUNT_DIR)
 DATA_DIR=$(require_env_value "$ENV_FILE" CLOUD_DRIVE_DATA_DIR)
 POSTGRES_DIR=$(require_env_value "$ENV_FILE" CLOUD_DRIVE_POSTGRES_DIR)
@@ -107,7 +108,8 @@ FREE_BYTES=$(available_bytes "$VOLUME_MOUNT_DIR")
 # Avoid shellcheck's unused-variable warning while keeping all required values
 # secret and validating each one before Compose receives the environment file.
 : "$PASSWORD_HASH_BASE64" "$SESSION_SECRET"
-: "$PRIVATE_APP_ORIGIN" "$SHARE_APP_ORIGIN" "$PRIVATE_API_HOST" "$SHARE_API_HOST"
+: "$PRIVATE_APP_ORIGINS" "$PUBLIC_APP_ORIGINS" "$SHARE_APP_ORIGIN"
+: "$PRIVATE_API_HOST" "$PUBLIC_API_HOST"
 
 compose() {
   TUNNEL_TOKEN="$TUNNEL_TOKEN" docker compose \

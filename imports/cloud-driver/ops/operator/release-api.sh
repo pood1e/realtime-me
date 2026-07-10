@@ -41,7 +41,7 @@ rsync -a --delete --exclude=/Dockerfile --chown=root:root --chmod=Dgo-w,Fgo-w \
 
 INVALID_ENTRY=$(find -P "$SEALED_DIR" -mindepth 1 ! -type d ! -type f -print -quit)
 [[ -z "$INVALID_ENTRY" ]] || die "release contains an unsupported filesystem entry: $INVALID_ENTRY"
-for file in go.mod cmd/server/main.go vendor/modules.txt; do
+for file in go.mod cmd/server/main.go cmd/worker/main.go vendor/modules.txt; do
   [[ -f "$SEALED_DIR/$file" ]] || die "release is missing required API source: $file"
 done
 

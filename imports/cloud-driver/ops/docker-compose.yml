@@ -1,5 +1,11 @@
 name: cloud-drive
 
+x-app-image: &app-image
+  build:
+    context: .
+    dockerfile: api/Dockerfile
+  image: "${CLOUD_DRIVE_IMAGE:-cloud-drive:local}"
+
 services:
   postgres:
     image: "${POSTGRES_IMAGE:-postgres:18.4-alpine}"
@@ -27,9 +33,7 @@ services:
       - backend
 
   api:
-    build:
-      context: .
-      dockerfile: api/Dockerfile
+    <<: *app-image
     restart: unless-stopped
     depends_on:
       postgres:
@@ -40,10 +44,11 @@ services:
       LISTEN_ADDR: ":8080"
       PASSWORD_HASH_BASE64: "${PASSWORD_HASH_BASE64:?PASSWORD_HASH_BASE64 is required}"
       SESSION_SECRET: "${SESSION_SECRET:?SESSION_SECRET is required}"
-      PRIVATE_APP_ORIGIN: "${PRIVATE_APP_ORIGIN:?PRIVATE_APP_ORIGIN is required}"
+      PRIVATE_APP_ORIGINS: "${PRIVATE_APP_ORIGINS:?PRIVATE_APP_ORIGINS is required}"
+      PUBLIC_APP_ORIGINS: "${PUBLIC_APP_ORIGINS:?PUBLIC_APP_ORIGINS is required}"
       SHARE_APP_ORIGIN: "${SHARE_APP_ORIGIN:?SHARE_APP_ORIGIN is required}"
       PRIVATE_API_HOST: "${PRIVATE_API_HOST:?PRIVATE_API_HOST is required}"
-      SHARE_API_HOST: "${SHARE_API_HOST:?SHARE_API_HOST is required}"
+      PUBLIC_API_HOST: "${PUBLIC_API_HOST:?PUBLIC_API_HOST is required}"
     volumes:
       - type: bind
         source: "${CLOUD_DRIVE_DATA_DIR:?CLOUD_DRIVE_DATA_DIR is required}"
@@ -61,6 +66,25 @@ services:
     networks:
       - backend
       - edge
+
+  worker:
+    <<: *app-image
+    command: ["/usr/local/bin/cloud-drive-worker"]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgres://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}?sslmode=disable"
+      DATA_ROOT: /var/lib/cloud-drive
+    volumes:
+      - type: bind
+        source: "${CLOUD_DRIVE_DATA_DIR:?CLOUD_DRIVE_DATA_DIR is required}"
+        target: /var/lib/cloud-drive
+        bind:
+          create_host_path: false
+    networks:
+      - backend
 
   cloudflared:
     image: "${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.6.0}"

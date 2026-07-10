@@ -93,8 +93,8 @@ require_mountpoint "$BACKUP_MOUNT_DIR"
 require_root_owned_nonwritable_directory "$BACKUP_MOUNT_DIR"
 [[ -f "$VOLUME_MOUNT_DIR/.cloud-drive-volume" ]] || die "missing volume marker: $VOLUME_MOUNT_DIR/.cloud-drive-volume"
 [[ -d "$DATA_DIR" ]] || die "data directory does not exist: $DATA_DIR"
-IMMUTABLE_BLOBS_DIR="$DATA_DIR/blobs"
-[[ -d "$IMMUTABLE_BLOBS_DIR" ]] || die "immutable blob directory does not exist: $IMMUTABLE_BLOBS_DIR"
+IMMUTABLE_OBJECTS_DIR="$DATA_DIR/objects"
+[[ -d "$IMMUTABLE_OBJECTS_DIR" ]] || die "immutable object directory does not exist: $IMMUTABLE_OBJECTS_DIR"
 [[ -d "$BACKUP_STAGING_DIR" ]] || die "backup staging directory does not exist: $BACKUP_STAGING_DIR"
 
 PRIMARY_FREE_BYTES=$(available_bytes "$VOLUME_MOUNT_DIR")
@@ -142,8 +142,8 @@ prune_snapshots() {
 
 PREVIOUS_SNAPSHOT_NAME=$(list_snapshot_names | tail --lines=1)
 if [[ -z "$PREVIOUS_SNAPSHOT_NAME" ]]; then
-  SOURCE_BYTES=$(du --summarize --block-size=1 "$IMMUTABLE_BLOBS_DIR" | awk '{ print $1 }')
-  [[ "$SOURCE_BYTES" =~ ^[0-9]+$ ]] || die "could not determine immutable blob size: $IMMUTABLE_BLOBS_DIR"
+  SOURCE_BYTES=$(du --summarize --block-size=1 "$IMMUTABLE_OBJECTS_DIR" | awk '{ print $1 }')
+  [[ "$SOURCE_BYTES" =~ ^[0-9]+$ ]] || die "could not determine immutable object size: $IMMUTABLE_OBJECTS_DIR"
   ((BACKUP_FREE_BYTES >= SOURCE_BYTES + MIN_FREE_BYTES)) ||
     die 'USB backup volume lacks source-size capacity plus the 20 GiB safety margin'
 fi
@@ -177,15 +177,15 @@ SNAPSHOT_NAME=$(date --utc +%Y%m%dT%H%M%SZ)
 FINAL_SNAPSHOT="$SNAPSHOTS_DIR/$SNAPSHOT_NAME"
 [[ ! -e "$FINAL_SNAPSHOT" ]] || die "snapshot already exists: $FINAL_SNAPSHOT"
 INCOMPLETE_SNAPSHOT=$(mktemp --directory "$SNAPSHOTS_DIR/.incomplete.XXXXXXXX")
-install -d -o root -g root -m 0700 "$INCOMPLETE_SNAPSHOT/blobs"
+install -d -o root -g root -m 0700 "$INCOMPLETE_SNAPSHOT/objects"
 
 RSYNC_ARGUMENTS=(--archive --delete --numeric-ids)
 if [[ -n "$PREVIOUS_SNAPSHOT_NAME" ]]; then
-  RSYNC_ARGUMENTS+=(--link-dest="$SNAPSHOTS_DIR/$PREVIOUS_SNAPSHOT_NAME/blobs")
+  RSYNC_ARGUMENTS+=(--link-dest="$SNAPSHOTS_DIR/$PREVIOUS_SNAPSHOT_NAME/objects")
 fi
 
-note 'copying immutable blobs into a plain incremental snapshot'
-rsync "${RSYNC_ARGUMENTS[@]}" "$IMMUTABLE_BLOBS_DIR/" "$INCOMPLETE_SNAPSHOT/blobs/"
+note 'copying immutable objects into a plain incremental snapshot'
+rsync "${RSYNC_ARGUMENTS[@]}" "$IMMUTABLE_OBJECTS_DIR/" "$INCOMPLETE_SNAPSHOT/objects/"
 install -o root -g root -m 0600 "$DUMP_FILE" "$INCOMPLETE_SNAPSHOT/postgres.dump"
 sync --file-system "$INCOMPLETE_SNAPSHOT"
 
