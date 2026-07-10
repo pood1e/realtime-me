@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package cloud.drive.v1;
+
+option go_package = "example.com/cloud-drive/api/gen/cloud/drive/v1;drivev1";
+
+// SessionService authenticates the single drive owner and manages the browser session.
+service SessionService {
+  // Login verifies the owner password and starts a session.
+  rpc Login(LoginRequest) returns (LoginResponse);
+  // Logout ends the current browser session.
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  // GetSession returns the current authenticated session.
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+}
+
+// LoginRequest carries the single owner password.
+message LoginRequest {
+  // password is the owner password and is never persisted or returned.
+  string password = 1;
+}
+
+// LoginResponse confirms that the browser session cookie was created.
+message LoginResponse {}
+
+// LogoutRequest ends the session carried by the request cookie.
+message LogoutRequest {}
+
+// LogoutResponse confirms that the browser session cookie was cleared.
+message LogoutResponse {}
+
+// GetSessionRequest reads the session carried by the request cookie.
+message GetSessionRequest {}
+
+// GetSessionResponse confirms that the current browser session is authenticated.
+message GetSessionResponse {}

@@ -1,0 +1,17 @@
+[Unit]
+Description=Encrypted cloud-drive backup to USB restic repository
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+TimeoutStartSec=6h
+ExecStart=/opt/cloud-drive/ops/scripts/backup.sh --repo-dir /opt/cloud-drive --env-file /etc/cloud-drive/runtime.env --backup-env-file /etc/cloud-drive/backup.env
+

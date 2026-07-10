@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+package cloud.drive.v1;
+
+import "google/protobuf/timestamp.proto";
+import "cloud/drive/v1/item.proto";
+
+option go_package = "example.com/cloud-drive/api/gen/cloud/drive/v1;drivev1";
+
+// ShareLink grants read-only access to a file or directory until expiration.
+message ShareLink {
+  // uid is the server-assigned opaque share identifier.
+  string uid = 1;
+  // target_uid identifies the file or directory being shared.
+  string target_uid = 2;
+  // create_time is when the share link was created.
+  google.protobuf.Timestamp create_time = 3;
+  // expire_time is when the share link stops granting access.
+  google.protobuf.Timestamp expire_time = 4;
+  // revoke_time is when the share link was revoked, if applicable.
+  google.protobuf.Timestamp revoke_time = 5;
+}
+
+// ShareService manages read-only share links and public share browsing.
+service ShareService {
+  // CreateShareLink creates a share token for an existing item.
+  rpc CreateShareLink(CreateShareLinkRequest) returns (CreateShareLinkResponse);
+  // ListShareLinks lists existing owner share links for an item.
+  rpc ListShareLinks(ListShareLinksRequest) returns (ListShareLinksResponse);
+  // RevokeShareLink immediately disables a share link.
+  rpc RevokeShareLink(RevokeShareLinkRequest) returns (RevokeShareLinkResponse);
+  // ResolveShare resolves a public share token to its target metadata.
+  rpc ResolveShare(ResolveShareRequest) returns (ResolveShareResponse);
+  // ListSharedItems lists direct children within a shared directory.
+  rpc ListSharedItems(ListSharedItemsRequest) returns (ListSharedItemsResponse);
+  // GetSharedDownload returns a public raw-download URL within a share scope.
+  rpc GetSharedDownload(GetSharedDownloadRequest) returns (GetSharedDownloadResponse);
+}
+
+// CreateShareLinkRequest describes a new share link.
+message CreateShareLinkRequest {
+  // target_uid identifies the file or directory to share.
+  string target_uid = 1;
+  // expire_time is the requested expiration and defaults to seven days when omitted.
+  google.protobuf.Timestamp expire_time = 2;
+}
+
+// CreateShareLinkResponse returns the link metadata and one-time share URL.
+message CreateShareLinkResponse {
+  // share_link is persisted share metadata without its secret token.
+  ShareLink share_link = 1;
+  // share_url contains the token and is returned only at creation time.
+  string share_url = 2;
+}
+
+// ListShareLinksRequest selects share links for one target item.
+message ListShareLinksRequest {
+  // target_uid identifies the shared target item.
+  string target_uid = 1;
+  // page_size limits returned links and defaults to a server-selected value.
+  int32 page_size = 2;
+  // page_token resumes a previous list request.
+  string page_token = 3;
+}
+
+// ListShareLinksResponse contains owner-visible share metadata without tokens.
+message ListShareLinksResponse {
+  // share_links contains the requested metadata.
+  repeated ShareLink share_links = 1;
+  // next_page_token continues the list when non-empty.
+  string next_page_token = 2;
+}
+
+// RevokeShareLinkRequest identifies a share link to revoke.
+message RevokeShareLinkRequest {
+  // share_uid is the opaque share identifier.
+  string share_uid = 1;
+}
+
+// RevokeShareLinkResponse returns the revoked share metadata.
+message RevokeShareLinkResponse {
+  // share_link is the revoked share link.
+  ShareLink share_link = 1;
+}
+
+// ResolveShareRequest carries a public bearer token.
+message ResolveShareRequest {
+  // share_token is the opaque secret from a share URL.
+  string share_token = 1;
+}
+
+// ResolveShareResponse returns the active share link and its target.
+message ResolveShareResponse {
+  // share_link is the active share metadata.
+  ShareLink share_link = 1;
+  // target is the file or directory available through the share.
+  DriveItem target = 2;
+}
+
+// ListSharedItemsRequest lists one shared directory's children.
+message ListSharedItemsRequest {
+  // share_token is the opaque public bearer token.
+  string share_token = 1;
+  // parent_uid identifies a directory within the share, or is empty for its target.
+  string parent_uid = 2;
+  // page_size limits returned items and defaults to a server-selected value.
+  int32 page_size = 3;
+  // page_token resumes a previous shared list request.
+  string page_token = 4;
+}
+
+// ListSharedItemsResponse contains one page of shared children.
+message ListSharedItemsResponse {
+  // items contains the returned direct children.
+  repeated DriveItem items = 1;
+  // next_page_token continues the list when non-empty.
+  string next_page_token = 2;
+}
+
+// GetSharedDownloadRequest identifies a shared file to download.
+message GetSharedDownloadRequest {
+  // share_token is the opaque public bearer token.
+  string share_token = 1;
+  // item_uid identifies the file inside the share scope.
+  string item_uid = 2;
+}
+
+// GetSharedDownloadResponse returns metadata and a public raw-download URL.
+message GetSharedDownloadResponse {
+  // item is the shared downloadable file.
+  DriveItem item = 1;
+  // download_url is the relative public raw-download URL.
+  string download_url = 2;
+}

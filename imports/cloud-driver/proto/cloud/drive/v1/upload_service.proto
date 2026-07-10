@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package cloud.drive.v1;
+
+import "google/protobuf/timestamp.proto";
+import "cloud/drive/v1/item.proto";
+
+option go_package = "example.com/cloud-drive/api/gen/cloud/drive/v1;drivev1";
+
+// UploadStatus identifies an upload session's current lifecycle state.
+enum UploadStatus {
+  // UPLOAD_STATUS_UNSPECIFIED is not a valid persisted status.
+  UPLOAD_STATUS_UNSPECIFIED = 0;
+  // UPLOAD_STATUS_ACTIVE accepts chunks.
+  UPLOAD_STATUS_ACTIVE = 1;
+  // UPLOAD_STATUS_COMPLETED has created its drive item.
+  UPLOAD_STATUS_COMPLETED = 2;
+  // UPLOAD_STATUS_EXPIRED no longer accepts chunks.
+  UPLOAD_STATUS_EXPIRED = 3;
+}
+
+// UploadChunk describes an acknowledged byte range using an exclusive end offset.
+message UploadChunk {
+  // start_offset is the first included byte offset.
+  int64 start_offset = 1;
+  // end_offset is the first excluded byte offset.
+  int64 end_offset = 2;
+}
+
+// Upload is a resumable file-upload session.
+message Upload {
+  // uid is the server-assigned opaque upload identifier.
+  string uid = 1;
+  // parent_uid identifies the destination directory, or is empty for the root.
+  string parent_uid = 2;
+  // file_name is the basename for the completed file.
+  string file_name = 3;
+  // content_type is the file MIME type when supplied by the caller.
+  string content_type = 4;
+  // total_size_bytes is the expected complete file size.
+  int64 total_size_bytes = 5;
+  // received_bytes is the sum of acknowledged chunk lengths.
+  int64 received_bytes = 6;
+  // chunk_size_bytes is the maximum accepted chunk size.
+  int64 chunk_size_bytes = 7;
+  // chunks is the set of acknowledged ranges.
+  repeated UploadChunk chunks = 8;
+  // status identifies the current upload lifecycle state.
+  UploadStatus status = 9;
+  // create_time is when the upload session was created.
+  google.protobuf.Timestamp create_time = 10;
+  // expire_time is when an unfinished upload expires.
+  google.protobuf.Timestamp expire_time = 11;
+  // item_uid identifies the completed file when status is completed.
+  string item_uid = 12;
+}
+
+// UploadService creates, resumes, and completes upload sessions.
+service UploadService {
+  // StartUpload creates an active upload session.
+  rpc StartUpload(StartUploadRequest) returns (StartUploadResponse);
+  // GetUpload gets upload state and acknowledged ranges.
+  rpc GetUpload(GetUploadRequest) returns (GetUploadResponse);
+  // WriteUploadChunk writes one bounded raw chunk into an upload session.
+  rpc WriteUploadChunk(WriteUploadChunkRequest) returns (WriteUploadChunkResponse);
+  // CompleteUpload validates all ranges and publishes the file.
+  rpc CompleteUpload(CompleteUploadRequest) returns (CompleteUploadResponse);
+}
+
+// StartUploadRequest describes a file that will be uploaded.
+message StartUploadRequest {
+  // parent_uid identifies the destination directory, or is empty for the root.
+  string parent_uid = 1;
+  // file_name is the destination file basename.
+  string file_name = 2;
+  // content_type is the MIME type when known.
+  string content_type = 3;
+  // total_size_bytes is the exact expected file size.
+  int64 total_size_bytes = 4;
+}
+
+// StartUploadResponse returns the active upload and relative chunk endpoint.
+message StartUploadResponse {
+  // upload is the created session.
+  Upload upload = 1;
+  // chunk_url is the relative raw-byte chunk endpoint.
+  string chunk_url = 2;
+}
+
+// GetUploadRequest identifies an upload session.
+message GetUploadRequest {
+  // upload_uid is the opaque upload identifier.
+  string upload_uid = 1;
+}
+
+// GetUploadResponse returns an upload and its acknowledged ranges.
+message GetUploadResponse {
+  // upload is the current session state.
+  Upload upload = 1;
+}
+
+// WriteUploadChunkRequest carries a byte range for Connect clients.
+message WriteUploadChunkRequest {
+  // upload_uid is the opaque upload identifier.
+  string upload_uid = 1;
+  // start_offset is the first byte offset of data.
+  int64 start_offset = 2;
+  // total_size_bytes repeats the complete upload length.
+  int64 total_size_bytes = 3;
+  // data is the raw chunk bytes.
+  bytes data = 4;
+}
+
+// WriteUploadChunkResponse returns the updated upload state.
+message WriteUploadChunkResponse {
+  // upload is the upload after chunk acknowledgement.
+  Upload upload = 1;
+}
+
+// CompleteUploadRequest identifies an upload to publish.
+message CompleteUploadRequest {
+  // upload_uid is the opaque upload identifier.
+  string upload_uid = 1;
+}
+
+// CompleteUploadResponse returns the newly published drive item.
+message CompleteUploadResponse {
+  // item is the completed file.
+  DriveItem item = 1;
+}
