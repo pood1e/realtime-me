@@ -100,10 +100,14 @@ func (f *Filesystem) pathWithin(root, path string) (string, error) {
 }
 
 func validateSegment(value string) error {
-	if value == "" || value == "." || value == ".." || filepath.Base(value) != value || strings.ContainsAny(value, `/\\\x00`) {
+	if value == "" || value == "." || value == ".." || filepath.Base(value) != value || containsPathSeparatorOrNUL(value) {
 		return errors.New("unsafe storage segment")
 	}
 	return nil
+}
+
+func containsPathSeparatorOrNUL(value string) bool {
+	return strings.ContainsAny(value, `/\`) || strings.ContainsRune(value, '\x00')
 }
 
 func detectContentType(path, fileName string) (string, error) {

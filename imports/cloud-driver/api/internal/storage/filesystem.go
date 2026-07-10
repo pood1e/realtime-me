@@ -183,7 +183,7 @@ func (f *Filesystem) PublishArtifact(sourcePath string, contentSHA256 []byte, ki
 		return "", fmt.Errorf("invalid artifact variant: %w", err)
 	}
 	extension = strings.TrimPrefix(strings.ToLower(extension), ".")
-	if extension == "" || strings.ContainsAny(extension, `/\\\x00`) {
+	if extension == "" || containsPathSeparatorOrNUL(extension) {
 		return "", errors.New("unsafe artifact extension")
 	}
 	contentAddress := hex.EncodeToString(contentSHA256)
