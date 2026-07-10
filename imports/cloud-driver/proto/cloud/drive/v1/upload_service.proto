@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package cloud.drive.v1;
 
-import "google/protobuf/timestamp.proto";
 import "cloud/drive/v1/item.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "example.com/cloud-drive/api/gen/cloud/drive/v1;drivev1";
 

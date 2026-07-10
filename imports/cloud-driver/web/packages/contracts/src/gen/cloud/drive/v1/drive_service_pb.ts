@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file cloud/drive/v1/drive_service.proto.
  */
 export const file_cloud_drive_v1_drive_service: GenFile = /*@__PURE__*/
-  fileDesc("CiJjbG91ZC9kcml2ZS92MS9kcml2ZV9zZXJ2aWNlLnByb3RvEg5jbG91ZC5kcml2ZS52MSInChNHZXREcml2ZUl0ZW1SZXF1ZXN0EhAKCGl0ZW1fdWlkGAEgASgJIj8KFEdldERyaXZlSXRlbVJlc3BvbnNlEicKBGl0ZW0YASABKAsyGS5jbG91ZC5kcml2ZS52MS5Ecml2ZUl0ZW0iawoVTGlzdERyaXZlSXRlbXNSZXF1ZXN0EhIKCnBhcmVudF91aWQYASABKAkSFwoPaW5jbHVkZV90cmFzaGVkGAIgASgIEhEKCXBhZ2Vfc2l6ZRgDIAEoBRISCgpwYWdlX3Rva2VuGAQgASgJIlsKFkxpc3REcml2ZUl0ZW1zUmVzcG9uc2USKAoFaXRlbXMYASADKAsyGS5jbG91ZC5kcml2ZS52MS5Ecml2ZUl0ZW0SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIkAKF0xpc3RUcmFzaGVkSXRlbXNSZXF1ZXN0EhEKCXBhZ2Vfc2l6ZRgBIAEoBRISCgpwYWdlX3Rva2VuGAIgASgJIl0KGExpc3RUcmFzaGVkSXRlbXNSZXNwb25zZRIoCgVpdGVtcxgBIAMoCzIZLmNsb3VkLmRyaXZlLnYxLkRyaXZlSXRlbRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiTwoXU2VhcmNoRHJpdmVJdGVtc1JlcXVlc3QSDQoFcXVlcnkYASABKAkSEQoJcGFnZV9zaXplGAIgASgFEhIKCnBhZ2VfdG9rZW4YAyABKAkiXQoYU2VhcmNoRHJpdmVJdGVtc1Jlc3BvbnNlEigKBWl0ZW1zGAEgAygLMhkuY2xvdWQuZHJpdmUudjEuRHJpdmVJdGVtEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSI6ChZDcmVhdGVEaXJlY3RvcnlSZXF1ZXN0EhIKCnBhcmVudF91aWQYASABKAkSDAoEbmFtZRgCIAEoCSJCChdDcmVhdGVEaXJlY3RvcnlSZXNwb25zZRInCgRpdGVtGAEgASgLMhkuY2xvdWQuZHJpdmUudjEuRHJpdmVJdGVtIjgKFlJlbmFtZURyaXZlSXRlbVJlcXVlc3QSEAoIaXRlbV91aWQYASABKAkSDAoEbmFtZRgCIAEoCSJCChdSZW5hbWVEcml2ZUl0ZW1SZXNwb25zZRInCgRpdGVtGAEgASgLMhkuY2xvdWQuZHJpdmUudjEuRHJpdmVJdGVtIjwKFE1vdmVEcml2ZUl0ZW1SZXF1ZXN0EhAKCGl0ZW1fdWlkGAEgASgJEhIKCnBhcmVudF91aWQYAiABKAkiQAoVTW92ZURyaXZlSXRlbVJlc3BvbnNlEicKBGl0ZW0YASABKAsyGS5jbG91ZC5kcml2ZS52MS5Ecml2ZUl0ZW0iKgoWRGVsZXRlRHJpdmVJdGVtUmVxdWVzdBIQCghpdGVtX3VpZBgBIAEoCSJCChdEZWxldGVEcml2ZUl0ZW1SZXNwb25zZRInCgRpdGVtGAEgASgLMhkuY2xvdWQuZHJpdmUudjEuRHJpdmVJdGVtIisKF1Jlc3RvcmVEcml2ZUl0ZW1SZXF1ZXN0EhAKCGl0ZW1fdWlkGAEgASgJIkMKGFJlc3RvcmVEcml2ZUl0ZW1SZXNwb25zZRInCgRpdGVtGAEgASgLMhkuY2xvdWQuZHJpdmUudjEuRHJpdmVJdGVtIiYKEkdldERvd25sb2FkUmVxdWVzdBIQCghpdGVtX3VpZBgBIAEoCSJUChNHZXREb3dubG9hZFJlc3BvbnNlEicKBGl0ZW0YASABKAsyGS5jbG91ZC5kcml2ZS52MS5Ecml2ZUl0ZW0SFAoMZG93bmxvYWRfdXJsGAIgASgJMuEHCgxEcml2ZVNlcnZpY2USWQoMR2V0RHJpdmVJdGVtEiMuY2xvdWQuZHJpdmUudjEuR2V0RHJpdmVJdGVtUmVxdWVzdBokLmNsb3VkLmRyaXZlLnYxLkdldERyaXZlSXRlbVJlc3BvbnNlEl8KDkxpc3REcml2ZUl0ZW1zEiUuY2xvdWQuZHJpdmUudjEuTGlzdERyaXZlSXRlbXNSZXF1ZXN0GiYuY2xvdWQuZHJpdmUudjEuTGlzdERyaXZlSXRlbXNSZXNwb25zZRJlChBMaXN0VHJhc2hlZEl0ZW1zEicuY2xvdWQuZHJpdmUudjEuTGlzdFRyYXNoZWRJdGVtc1JlcXVlc3QaKC5jbG91ZC5kcml2ZS52MS5MaXN0VHJhc2hlZEl0ZW1zUmVzcG9uc2USZQoQU2VhcmNoRHJpdmVJdGVtcxInLmNsb3VkLmRyaXZlLnYxLlNlYXJjaERyaXZlSXRlbXNSZXF1ZXN0GiguY2xvdWQuZHJpdmUudjEuU2VhcmNoRHJpdmVJdGVtc1Jlc3BvbnNlEmIKD0NyZWF0ZURpcmVjdG9yeRImLmNsb3VkLmRyaXZlLnYxLkNyZWF0ZURpcmVjdG9yeVJlcXVlc3QaJy5jbG91ZC5kcml2ZS52MS5DcmVhdGVEaXJlY3RvcnlSZXNwb25zZRJiCg9SZW5hbWVEcml2ZUl0ZW0SJi5jbG91ZC5kcml2ZS52MS5SZW5hbWVEcml2ZUl0ZW1SZXF1ZXN0GicuY2xvdWQuZHJpdmUudjEuUmVuYW1lRHJpdmVJdGVtUmVzcG9uc2USXAoNTW92ZURyaXZlSXRlbRIkLmNsb3VkLmRyaXZlLnYxLk1vdmVEcml2ZUl0ZW1SZXF1ZXN0GiUuY2xvdWQuZHJpdmUudjEuTW92ZURyaXZlSXRlbVJlc3BvbnNlEmIKD0RlbGV0ZURyaXZlSXRlbRImLmNsb3VkLmRyaXZlLnYxLkRlbGV0ZURyaXZlSXRlbVJlcXVlc3QaJy5jbG91ZC5kcml2ZS52MS5EZWxldGVEcml2ZUl0ZW1SZXNwb25zZRJlChBSZXN0b3JlRHJpdmVJdGVtEicuY2xvdWQuZHJpdmUudjEuUmVzdG9yZURyaXZlSXRlbVJlcXVlc3QaKC5jbG91ZC5kcml2ZS52MS5SZXN0b3JlRHJpdmVJdGVtUmVzcG9uc2USVgoLR2V0RG93bmxvYWQSIi5jbG91ZC5kcml2ZS52MS5HZXREb3dubG9hZFJlcXVlc3QaIy5jbG91ZC5kcml2ZS52MS5HZXREb3dubG9hZFJlc3BvbnNlQjhaNmV4YW1wbGUuY29tL2Nsb3VkLWRyaXZlL2FwaS9nZW4vY2xvdWQvZHJpdmUvdjE7ZHJpdmV2MWIGcHJvdG8z", [file_cloud_drive_v1_item]);
+  fileDesc("CiJjbG91ZC9kcml2ZS92MS9kcml2ZV9zZXJ2aWNlLnByb3RvEg5jbG91ZC5kcml2ZS52MSInChNHZXREcml2ZUl0ZW1SZXF1ZXN0EhAKCGl0ZW1fdWlkGAEgASgJIj8KFEdldERyaXZlSXRlbVJlc3BvbnNlEicKBGl0ZW0YASABKAsyGS5jbG91ZC5kcml2ZS52MS5Ecml2ZUl0ZW0iawoVTGlzdERyaXZlSXRlbXNSZXF1ZXN0EhIKCnBhcmVudF91aWQYASABKAkSFwoPaW5jbHVkZV90cmFzaGVkGAIgASgIEhEKCXBhZ2Vfc2l6ZRgDIAEoBRISCgpwYWdlX3Rva2VuGAQgASgJIlsKFkxpc3REcml2ZUl0ZW1zUmVzcG9uc2USKAoFaXRlbXMYASADKAsyGS5jbG91ZC5kcml2ZS52MS5Ecml2ZUl0ZW0SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIkAKF0xpc3RUcmFzaGVkSXRlbXNSZXF1ZXN0EhEKCXBhZ2Vfc2l6ZRgBIAEoBRISCgpwYWdlX3Rva2VuGAIgASgJIl0KGExpc3RUcmFzaGVkSXRlbXNSZXNwb25zZRIoCgVpdGVtcxgBIAMoCzIZLmNsb3VkLmRyaXZlLnYxLkRyaXZlSXRlbRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiTwoXU2VhcmNoRHJpdmVJdGVtc1JlcXVlc3QSDQoFcXVlcnkYASABKAkSEQoJcGFnZV9zaXplGAIgASgFEhIKCnBhZ2VfdG9rZW4YAyABKAkiXQoYU2VhcmNoRHJpdmVJdGVtc1Jlc3BvbnNlEigKBWl0ZW1zGAEgAygLMhkuY2xvdWQuZHJpdmUudjEuRHJpdmVJdGVtEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSI6ChZDcmVhdGVEaXJlY3RvcnlSZXF1ZXN0EhIKCnBhcmVudF91aWQYASABKAkSDAoEbmFtZRgCIAEoCSJCChdDcmVhdGVEaXJlY3RvcnlSZXNwb25zZRInCgRpdGVtGAEgASgLMhkuY2xvdWQuZHJpdmUudjEuRHJpdmVJdGVtIjgKFlJlbmFtZURyaXZlSXRlbVJlcXVlc3QSEAoIaXRlbV91aWQYASABKAkSDAoEbmFtZRgCIAEoCSJCChdSZW5hbWVEcml2ZUl0ZW1SZXNwb25zZRInCgRpdGVtGAEgASgLMhkuY2xvdWQuZHJpdmUudjEuRHJpdmVJdGVtIjwKFE1vdmVEcml2ZUl0ZW1SZXF1ZXN0EhAKCGl0ZW1fdWlkGAEgASgJEhIKCnBhcmVudF91aWQYAiABKAkiQAoVTW92ZURyaXZlSXRlbVJlc3BvbnNlEicKBGl0ZW0YASABKAsyGS5jbG91ZC5kcml2ZS52MS5Ecml2ZUl0ZW0iKgoWRGVsZXRlRHJpdmVJdGVtUmVxdWVzdBIQCghpdGVtX3VpZBgBIAEoCSJCChdEZWxldGVEcml2ZUl0ZW1SZXNwb25zZRInCgRpdGVtGAEgASgLMhkuY2xvdWQuZHJpdmUudjEuRHJpdmVJdGVtIisKF1Jlc3RvcmVEcml2ZUl0ZW1SZXF1ZXN0EhAKCGl0ZW1fdWlkGAEgASgJIkMKGFJlc3RvcmVEcml2ZUl0ZW1SZXNwb25zZRInCgRpdGVtGAEgASgLMhkuY2xvdWQuZHJpdmUudjEuRHJpdmVJdGVtIikKFVB1cmdlRHJpdmVJdGVtUmVxdWVzdBIQCghpdGVtX3VpZBgBIAEoCSIYChZQdXJnZURyaXZlSXRlbVJlc3BvbnNlIhMKEUVtcHR5VHJhc2hSZXF1ZXN0IhQKEkVtcHR5VHJhc2hSZXNwb25zZSImChJHZXREb3dubG9hZFJlcXVlc3QSEAoIaXRlbV91aWQYASABKAkiVAoTR2V0RG93bmxvYWRSZXNwb25zZRInCgRpdGVtGAEgASgLMhkuY2xvdWQuZHJpdmUudjEuRHJpdmVJdGVtEhQKDGRvd25sb2FkX3VybBgCIAEoCTKXCQoMRHJpdmVTZXJ2aWNlElkKDEdldERyaXZlSXRlbRIjLmNsb3VkLmRyaXZlLnYxLkdldERyaXZlSXRlbVJlcXVlc3QaJC5jbG91ZC5kcml2ZS52MS5HZXREcml2ZUl0ZW1SZXNwb25zZRJfCg5MaXN0RHJpdmVJdGVtcxIlLmNsb3VkLmRyaXZlLnYxLkxpc3REcml2ZUl0ZW1zUmVxdWVzdBomLmNsb3VkLmRyaXZlLnYxLkxpc3REcml2ZUl0ZW1zUmVzcG9uc2USZQoQTGlzdFRyYXNoZWRJdGVtcxInLmNsb3VkLmRyaXZlLnYxLkxpc3RUcmFzaGVkSXRlbXNSZXF1ZXN0GiguY2xvdWQuZHJpdmUudjEuTGlzdFRyYXNoZWRJdGVtc1Jlc3BvbnNlEmUKEFNlYXJjaERyaXZlSXRlbXMSJy5jbG91ZC5kcml2ZS52MS5TZWFyY2hEcml2ZUl0ZW1zUmVxdWVzdBooLmNsb3VkLmRyaXZlLnYxLlNlYXJjaERyaXZlSXRlbXNSZXNwb25zZRJiCg9DcmVhdGVEaXJlY3RvcnkSJi5jbG91ZC5kcml2ZS52MS5DcmVhdGVEaXJlY3RvcnlSZXF1ZXN0GicuY2xvdWQuZHJpdmUudjEuQ3JlYXRlRGlyZWN0b3J5UmVzcG9uc2USYgoPUmVuYW1lRHJpdmVJdGVtEiYuY2xvdWQuZHJpdmUudjEuUmVuYW1lRHJpdmVJdGVtUmVxdWVzdBonLmNsb3VkLmRyaXZlLnYxLlJlbmFtZURyaXZlSXRlbVJlc3BvbnNlElwKDU1vdmVEcml2ZUl0ZW0SJC5jbG91ZC5kcml2ZS52MS5Nb3ZlRHJpdmVJdGVtUmVxdWVzdBolLmNsb3VkLmRyaXZlLnYxLk1vdmVEcml2ZUl0ZW1SZXNwb25zZRJiCg9EZWxldGVEcml2ZUl0ZW0SJi5jbG91ZC5kcml2ZS52MS5EZWxldGVEcml2ZUl0ZW1SZXF1ZXN0GicuY2xvdWQuZHJpdmUudjEuRGVsZXRlRHJpdmVJdGVtUmVzcG9uc2USZQoQUmVzdG9yZURyaXZlSXRlbRInLmNsb3VkLmRyaXZlLnYxLlJlc3RvcmVEcml2ZUl0ZW1SZXF1ZXN0GiguY2xvdWQuZHJpdmUudjEuUmVzdG9yZURyaXZlSXRlbVJlc3BvbnNlEl8KDlB1cmdlRHJpdmVJdGVtEiUuY2xvdWQuZHJpdmUudjEuUHVyZ2VEcml2ZUl0ZW1SZXF1ZXN0GiYuY2xvdWQuZHJpdmUudjEuUHVyZ2VEcml2ZUl0ZW1SZXNwb25zZRJTCgpFbXB0eVRyYXNoEiEuY2xvdWQuZHJpdmUudjEuRW1wdHlUcmFzaFJlcXVlc3QaIi5jbG91ZC5kcml2ZS52MS5FbXB0eVRyYXNoUmVzcG9uc2USVgoLR2V0RG93bmxvYWQSIi5jbG91ZC5kcml2ZS52MS5HZXREb3dubG9hZFJlcXVlc3QaIy5jbG91ZC5kcml2ZS52MS5HZXREb3dubG9hZFJlc3BvbnNlQjhaNmV4YW1wbGUuY29tL2Nsb3VkLWRyaXZlL2FwaS9nZW4vY2xvdWQvZHJpdmUvdjE7ZHJpdmV2MWIGcHJvdG8z", [file_cloud_drive_v1_item]);
 
 /**
  * GetDriveItemRequest identifies an item to retrieve.
@@ -477,6 +477,72 @@ export const RestoreDriveItemResponseSchema: GenMessage<RestoreDriveItemResponse
   messageDesc(file_cloud_drive_v1_drive_service, 17);
 
 /**
+ * PurgeDriveItemRequest identifies a trashed item to delete permanently.
+ *
+ * @generated from message cloud.drive.v1.PurgeDriveItemRequest
+ */
+export type PurgeDriveItemRequest = Message<"cloud.drive.v1.PurgeDriveItemRequest"> & {
+  /**
+   * item_uid identifies the trashed root item.
+   *
+   * @generated from field: string item_uid = 1;
+   */
+  itemUid: string;
+};
+
+/**
+ * Describes the message cloud.drive.v1.PurgeDriveItemRequest.
+ * Use `create(PurgeDriveItemRequestSchema)` to create a new message.
+ */
+export const PurgeDriveItemRequestSchema: GenMessage<PurgeDriveItemRequest> = /*@__PURE__*/
+  messageDesc(file_cloud_drive_v1_drive_service, 18);
+
+/**
+ * PurgeDriveItemResponse confirms that the item hierarchy was deleted permanently.
+ *
+ * @generated from message cloud.drive.v1.PurgeDriveItemResponse
+ */
+export type PurgeDriveItemResponse = Message<"cloud.drive.v1.PurgeDriveItemResponse"> & {
+};
+
+/**
+ * Describes the message cloud.drive.v1.PurgeDriveItemResponse.
+ * Use `create(PurgeDriveItemResponseSchema)` to create a new message.
+ */
+export const PurgeDriveItemResponseSchema: GenMessage<PurgeDriveItemResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_drive_v1_drive_service, 19);
+
+/**
+ * EmptyTrashRequest requests permanent deletion of every trashed item.
+ *
+ * @generated from message cloud.drive.v1.EmptyTrashRequest
+ */
+export type EmptyTrashRequest = Message<"cloud.drive.v1.EmptyTrashRequest"> & {
+};
+
+/**
+ * Describes the message cloud.drive.v1.EmptyTrashRequest.
+ * Use `create(EmptyTrashRequestSchema)` to create a new message.
+ */
+export const EmptyTrashRequestSchema: GenMessage<EmptyTrashRequest> = /*@__PURE__*/
+  messageDesc(file_cloud_drive_v1_drive_service, 20);
+
+/**
+ * EmptyTrashResponse confirms that the trash was emptied.
+ *
+ * @generated from message cloud.drive.v1.EmptyTrashResponse
+ */
+export type EmptyTrashResponse = Message<"cloud.drive.v1.EmptyTrashResponse"> & {
+};
+
+/**
+ * Describes the message cloud.drive.v1.EmptyTrashResponse.
+ * Use `create(EmptyTrashResponseSchema)` to create a new message.
+ */
+export const EmptyTrashResponseSchema: GenMessage<EmptyTrashResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_drive_v1_drive_service, 21);
+
+/**
  * GetDownloadRequest identifies a private file to download.
  *
  * @generated from message cloud.drive.v1.GetDownloadRequest
@@ -495,7 +561,7 @@ export type GetDownloadRequest = Message<"cloud.drive.v1.GetDownloadRequest"> & 
  * Use `create(GetDownloadRequestSchema)` to create a new message.
  */
 export const GetDownloadRequestSchema: GenMessage<GetDownloadRequest> = /*@__PURE__*/
-  messageDesc(file_cloud_drive_v1_drive_service, 18);
+  messageDesc(file_cloud_drive_v1_drive_service, 22);
 
 /**
  * GetDownloadResponse returns metadata and a relative raw-download URL.
@@ -523,7 +589,7 @@ export type GetDownloadResponse = Message<"cloud.drive.v1.GetDownloadResponse"> 
  * Use `create(GetDownloadResponseSchema)` to create a new message.
  */
 export const GetDownloadResponseSchema: GenMessage<GetDownloadResponse> = /*@__PURE__*/
-  messageDesc(file_cloud_drive_v1_drive_service, 19);
+  messageDesc(file_cloud_drive_v1_drive_service, 23);
 
 /**
  * DriveService manages the private drive hierarchy and private downloads.
@@ -620,6 +686,26 @@ export const DriveService: GenService<{
     methodKind: "unary";
     input: typeof RestoreDriveItemRequestSchema;
     output: typeof RestoreDriveItemResponseSchema;
+  },
+  /**
+   * PurgeDriveItem permanently deletes a trashed item and any descendants.
+   *
+   * @generated from rpc cloud.drive.v1.DriveService.PurgeDriveItem
+   */
+  purgeDriveItem: {
+    methodKind: "unary";
+    input: typeof PurgeDriveItemRequestSchema;
+    output: typeof PurgeDriveItemResponseSchema;
+  },
+  /**
+   * EmptyTrash permanently deletes every trashed item.
+   *
+   * @generated from rpc cloud.drive.v1.DriveService.EmptyTrash
+   */
+  emptyTrash: {
+    methodKind: "unary";
+    input: typeof EmptyTrashRequestSchema;
+    output: typeof EmptyTrashResponseSchema;
   },
   /**
    * GetDownload returns the authenticated raw-download URL for an item.

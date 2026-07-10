@@ -768,7 +768,7 @@ var File_cloud_drive_v1_share_service_proto protoreflect.FileDescriptor
 
 const file_cloud_drive_v1_share_service_proto_rawDesc = "" +
 	"\n" +
-	"\"cloud/drive/v1/share_service.proto\x12\x0ecloud.drive.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19cloud/drive/v1/item.proto\"\xf3\x01\n" +
+	"\"cloud/drive/v1/share_service.proto\x12\x0ecloud.drive.v1\x1a\x19cloud/drive/v1/item.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf3\x01\n" +
 	"\tShareLink\x12\x10\n" +
 	"\x03uid\x18\x01 \x01(\tR\x03uid\x12\x1d\n" +
 	"\n" +

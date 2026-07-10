@@ -107,6 +107,22 @@ func (s *ConnectServer) RestoreDriveItem(ctx context.Context, request *connect.R
 	return connect.NewResponse(&cloud_drivev1.RestoreDriveItemResponse{Item: itemProto(item)}), nil
 }
 
+// PurgeDriveItem implements DriveService.PurgeDriveItem.
+func (s *ConnectServer) PurgeDriveItem(ctx context.Context, request *connect.Request[cloud_drivev1.PurgeDriveItemRequest]) (*connect.Response[cloud_drivev1.PurgeDriveItemResponse], error) {
+	if err := s.service.PurgeItem(ctx, request.Msg.GetItemUid()); err != nil {
+		return nil, connectError(err)
+	}
+	return connect.NewResponse(&cloud_drivev1.PurgeDriveItemResponse{}), nil
+}
+
+// EmptyTrash implements DriveService.EmptyTrash.
+func (s *ConnectServer) EmptyTrash(ctx context.Context, _ *connect.Request[cloud_drivev1.EmptyTrashRequest]) (*connect.Response[cloud_drivev1.EmptyTrashResponse], error) {
+	if err := s.service.EmptyTrash(ctx); err != nil {
+		return nil, connectError(err)
+	}
+	return connect.NewResponse(&cloud_drivev1.EmptyTrashResponse{}), nil
+}
+
 // GetDownload implements DriveService.GetDownload.
 func (s *ConnectServer) GetDownload(ctx context.Context, request *connect.Request[cloud_drivev1.GetDownloadRequest]) (*connect.Response[cloud_drivev1.GetDownloadResponse], error) {
 	item, err := s.service.GetItem(ctx, request.Msg.GetItemUid())

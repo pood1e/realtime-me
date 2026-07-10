@@ -17,6 +17,8 @@ type Store interface {
 	MoveItem(context.Context, string, *string) (Item, error)
 	TrashItem(context.Context, string) (Item, error)
 	RestoreItem(context.Context, string) (Item, error)
+	PurgeTrashedItem(context.Context, string) ([]Item, error)
+	EmptyTrash(context.Context) ([]Item, error)
 	CreateUpload(context.Context, Upload) (Upload, error)
 	ReservedUploadBytes(context.Context) (int64, error)
 	GetUpload(context.Context, string) (Upload, error)

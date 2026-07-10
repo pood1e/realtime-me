@@ -609,20 +609,51 @@ func (s *Store) DeleteUpload(ctx context.Context, uid string) error {
 	return nil
 }
 
-// PurgeTrashedItems atomically removes eligible metadata, returning blobs for later orphan cleanup.
+// PurgeTrashedItem permanently removes one trashed hierarchy.
+func (s *Store) PurgeTrashedItem(ctx context.Context, uid string) ([]domain.Item, error) {
+	item, err := s.GetItem(ctx, uid, true)
+	if err != nil {
+		return nil, err
+	}
+	if item.DeleteTime == nil {
+		return nil, fmt.Errorf("%w: drive item is not trashed", domain.ErrConflict)
+	}
+	return s.purgeTrashed(ctx, `WITH RECURSIVE subtree AS (
+		SELECT uid FROM drive_items WHERE uid = $1 AND delete_time IS NOT NULL
+		UNION ALL
+		SELECT child.uid FROM drive_items child JOIN subtree ON child.parent_uid = subtree.uid
+		WHERE child.delete_time IS NOT NULL
+	) SELECT uid FROM subtree`, true, uid)
+}
+
+// EmptyTrash atomically removes all trashed metadata.
+func (s *Store) EmptyTrash(ctx context.Context) ([]domain.Item, error) {
+	return s.purgeTrashed(ctx, "SELECT uid FROM drive_items WHERE delete_time IS NOT NULL", false)
+}
+
+// PurgeTrashedItems atomically removes expired trash metadata.
 func (s *Store) PurgeTrashedItems(ctx context.Context, cutoff time.Time) ([]domain.Item, error) {
+	return s.purgeTrashed(ctx, "SELECT uid FROM drive_items WHERE delete_time IS NOT NULL AND delete_time <= $1", false, cutoff)
+}
+
+func (s *Store) purgeTrashed(ctx context.Context, candidatesQuery string, requireMatch bool, arguments ...any) ([]domain.Item, error) {
 	transaction, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("begin trash purge: %w", err)
 	}
 	defer transaction.Rollback(ctx)
 	if _, err := transaction.Exec(ctx, `DELETE FROM share_links
-		WHERE target_uid IN (SELECT uid FROM drive_items WHERE delete_time IS NOT NULL AND delete_time <= $1)`, cutoff); err != nil {
-		return nil, fmt.Errorf("purge expired share links: %w", err)
+		WHERE target_uid IN (`+candidatesQuery+`)`, arguments...); err != nil {
+		return nil, fmt.Errorf("purge trash share links: %w", err)
 	}
-	rows, err := transaction.Query(ctx, "DELETE FROM drive_items WHERE delete_time IS NOT NULL AND delete_time <= $1 RETURNING "+itemColumns, cutoff)
+	if _, err := transaction.Exec(ctx, `DELETE FROM uploads
+		WHERE item_uid IN (`+candidatesQuery+`)`, arguments...); err != nil {
+		return nil, fmt.Errorf("purge trash uploads: %w", err)
+	}
+	deleteQuery := `DELETE FROM drive_items WHERE uid IN (` + candidatesQuery + ") RETURNING " + itemColumns
+	rows, err := transaction.Query(ctx, deleteQuery, arguments...)
 	if err != nil {
-		return nil, fmt.Errorf("purge expired drive items: %w", err)
+		return nil, fmt.Errorf("purge trash drive items: %w", err)
 	}
 	items := make([]domain.Item, 0)
 	for rows.Next() {
@@ -638,6 +669,9 @@ func (s *Store) PurgeTrashedItems(ctx context.Context, cutoff time.Time) ([]doma
 		return nil, fmt.Errorf("iterate purged drive items: %w", err)
 	}
 	rows.Close()
+	if requireMatch && len(items) == 0 {
+		return nil, fmt.Errorf("%w: drive item is no longer trashed", domain.ErrConflict)
+	}
 	if err := transaction.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("commit trash purge: %w", err)
 	}

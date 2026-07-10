@@ -26,6 +26,10 @@ service DriveService {
   rpc DeleteDriveItem(DeleteDriveItemRequest) returns (DeleteDriveItemResponse);
   // RestoreDriveItem restores an item and any descendants from the trash.
   rpc RestoreDriveItem(RestoreDriveItemRequest) returns (RestoreDriveItemResponse);
+  // PurgeDriveItem permanently deletes a trashed item and any descendants.
+  rpc PurgeDriveItem(PurgeDriveItemRequest) returns (PurgeDriveItemResponse);
+  // EmptyTrash permanently deletes every trashed item.
+  rpc EmptyTrash(EmptyTrashRequest) returns (EmptyTrashResponse);
   // GetDownload returns the authenticated raw-download URL for an item.
   rpc GetDownload(GetDownloadRequest) returns (GetDownloadResponse);
 }
@@ -161,6 +165,21 @@ message RestoreDriveItemResponse {
   // item is the restored root item.
   DriveItem item = 1;
 }
+
+// PurgeDriveItemRequest identifies a trashed item to delete permanently.
+message PurgeDriveItemRequest {
+  // item_uid identifies the trashed root item.
+  string item_uid = 1;
+}
+
+// PurgeDriveItemResponse confirms that the item hierarchy was deleted permanently.
+message PurgeDriveItemResponse {}
+
+// EmptyTrashRequest requests permanent deletion of every trashed item.
+message EmptyTrashRequest {}
+
+// EmptyTrashResponse confirms that the trash was emptied.
+message EmptyTrashResponse {}
 
 // GetDownloadRequest identifies a private file to download.
 message GetDownloadRequest {

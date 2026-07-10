@@ -714,7 +714,7 @@ var File_cloud_drive_v1_upload_service_proto protoreflect.FileDescriptor
 
 const file_cloud_drive_v1_upload_service_proto_rawDesc = "" +
 	"\n" +
-	"#cloud/drive/v1/upload_service.proto\x12\x0ecloud.drive.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19cloud/drive/v1/item.proto\"O\n" +
+	"#cloud/drive/v1/upload_service.proto\x12\x0ecloud.drive.v1\x1a\x19cloud/drive/v1/item.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"O\n" +
 	"\vUploadChunk\x12!\n" +
 	"\fstart_offset\x18\x01 \x01(\x03R\vstartOffset\x12\x1d\n" +
 	"\n" +

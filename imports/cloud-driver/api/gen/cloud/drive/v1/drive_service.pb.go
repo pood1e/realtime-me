@@ -957,6 +957,163 @@ func (x *RestoreDriveItemResponse) GetItem() *DriveItem {
 	return nil
 }
 
+// PurgeDriveItemRequest identifies a trashed item to delete permanently.
+type PurgeDriveItemRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// item_uid identifies the trashed root item.
+	ItemUid       string `protobuf:"bytes,1,opt,name=item_uid,json=itemUid,proto3" json:"item_uid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PurgeDriveItemRequest) Reset() {
+	*x = PurgeDriveItemRequest{}
+	mi := &file_cloud_drive_v1_drive_service_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PurgeDriveItemRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PurgeDriveItemRequest) ProtoMessage() {}
+
+func (x *PurgeDriveItemRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_cloud_drive_v1_drive_service_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PurgeDriveItemRequest.ProtoReflect.Descriptor instead.
+func (*PurgeDriveItemRequest) Descriptor() ([]byte, []int) {
+	return file_cloud_drive_v1_drive_service_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *PurgeDriveItemRequest) GetItemUid() string {
+	if x != nil {
+		return x.ItemUid
+	}
+	return ""
+}
+
+// PurgeDriveItemResponse confirms that the item hierarchy was deleted permanently.
+type PurgeDriveItemResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PurgeDriveItemResponse) Reset() {
+	*x = PurgeDriveItemResponse{}
+	mi := &file_cloud_drive_v1_drive_service_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PurgeDriveItemResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PurgeDriveItemResponse) ProtoMessage() {}
+
+func (x *PurgeDriveItemResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cloud_drive_v1_drive_service_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PurgeDriveItemResponse.ProtoReflect.Descriptor instead.
+func (*PurgeDriveItemResponse) Descriptor() ([]byte, []int) {
+	return file_cloud_drive_v1_drive_service_proto_rawDescGZIP(), []int{19}
+}
+
+// EmptyTrashRequest requests permanent deletion of every trashed item.
+type EmptyTrashRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EmptyTrashRequest) Reset() {
+	*x = EmptyTrashRequest{}
+	mi := &file_cloud_drive_v1_drive_service_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EmptyTrashRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EmptyTrashRequest) ProtoMessage() {}
+
+func (x *EmptyTrashRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_cloud_drive_v1_drive_service_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EmptyTrashRequest.ProtoReflect.Descriptor instead.
+func (*EmptyTrashRequest) Descriptor() ([]byte, []int) {
+	return file_cloud_drive_v1_drive_service_proto_rawDescGZIP(), []int{20}
+}
+
+// EmptyTrashResponse confirms that the trash was emptied.
+type EmptyTrashResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EmptyTrashResponse) Reset() {
+	*x = EmptyTrashResponse{}
+	mi := &file_cloud_drive_v1_drive_service_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EmptyTrashResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EmptyTrashResponse) ProtoMessage() {}
+
+func (x *EmptyTrashResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cloud_drive_v1_drive_service_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EmptyTrashResponse.ProtoReflect.Descriptor instead.
+func (*EmptyTrashResponse) Descriptor() ([]byte, []int) {
+	return file_cloud_drive_v1_drive_service_proto_rawDescGZIP(), []int{21}
+}
+
 // GetDownloadRequest identifies a private file to download.
 type GetDownloadRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -968,7 +1125,7 @@ type GetDownloadRequest struct {
 
 func (x *GetDownloadRequest) Reset() {
 	*x = GetDownloadRequest{}
-	mi := &file_cloud_drive_v1_drive_service_proto_msgTypes[18]
+	mi := &file_cloud_drive_v1_drive_service_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -980,7 +1137,7 @@ func (x *GetDownloadRequest) String() string {
 func (*GetDownloadRequest) ProtoMessage() {}
 
 func (x *GetDownloadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_drive_v1_drive_service_proto_msgTypes[18]
+	mi := &file_cloud_drive_v1_drive_service_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -993,7 +1150,7 @@ func (x *GetDownloadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDownloadRequest.ProtoReflect.Descriptor instead.
 func (*GetDownloadRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_drive_v1_drive_service_proto_rawDescGZIP(), []int{18}
+	return file_cloud_drive_v1_drive_service_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetDownloadRequest) GetItemUid() string {
@@ -1016,7 +1173,7 @@ type GetDownloadResponse struct {
 
 func (x *GetDownloadResponse) Reset() {
 	*x = GetDownloadResponse{}
-	mi := &file_cloud_drive_v1_drive_service_proto_msgTypes[19]
+	mi := &file_cloud_drive_v1_drive_service_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1028,7 +1185,7 @@ func (x *GetDownloadResponse) String() string {
 func (*GetDownloadResponse) ProtoMessage() {}
 
 func (x *GetDownloadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_drive_v1_drive_service_proto_msgTypes[19]
+	mi := &file_cloud_drive_v1_drive_service_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1041,7 +1198,7 @@ func (x *GetDownloadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDownloadResponse.ProtoReflect.Descriptor instead.
 func (*GetDownloadResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_drive_v1_drive_service_proto_rawDescGZIP(), []int{19}
+	return file_cloud_drive_v1_drive_service_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *GetDownloadResponse) GetItem() *DriveItem {
@@ -1116,12 +1273,17 @@ const file_cloud_drive_v1_drive_service_proto_rawDesc = "" +
 	"\x17RestoreDriveItemRequest\x12\x19\n" +
 	"\bitem_uid\x18\x01 \x01(\tR\aitemUid\"I\n" +
 	"\x18RestoreDriveItemResponse\x12-\n" +
-	"\x04item\x18\x01 \x01(\v2\x19.cloud.drive.v1.DriveItemR\x04item\"/\n" +
+	"\x04item\x18\x01 \x01(\v2\x19.cloud.drive.v1.DriveItemR\x04item\"2\n" +
+	"\x15PurgeDriveItemRequest\x12\x19\n" +
+	"\bitem_uid\x18\x01 \x01(\tR\aitemUid\"\x18\n" +
+	"\x16PurgeDriveItemResponse\"\x13\n" +
+	"\x11EmptyTrashRequest\"\x14\n" +
+	"\x12EmptyTrashResponse\"/\n" +
 	"\x12GetDownloadRequest\x12\x19\n" +
 	"\bitem_uid\x18\x01 \x01(\tR\aitemUid\"g\n" +
 	"\x13GetDownloadResponse\x12-\n" +
 	"\x04item\x18\x01 \x01(\v2\x19.cloud.drive.v1.DriveItemR\x04item\x12!\n" +
-	"\fdownload_url\x18\x02 \x01(\tR\vdownloadUrl2\xe1\a\n" +
+	"\fdownload_url\x18\x02 \x01(\tR\vdownloadUrl2\x97\t\n" +
 	"\fDriveService\x12Y\n" +
 	"\fGetDriveItem\x12#.cloud.drive.v1.GetDriveItemRequest\x1a$.cloud.drive.v1.GetDriveItemResponse\x12_\n" +
 	"\x0eListDriveItems\x12%.cloud.drive.v1.ListDriveItemsRequest\x1a&.cloud.drive.v1.ListDriveItemsResponse\x12e\n" +
@@ -1131,7 +1293,10 @@ const file_cloud_drive_v1_drive_service_proto_rawDesc = "" +
 	"\x0fRenameDriveItem\x12&.cloud.drive.v1.RenameDriveItemRequest\x1a'.cloud.drive.v1.RenameDriveItemResponse\x12\\\n" +
 	"\rMoveDriveItem\x12$.cloud.drive.v1.MoveDriveItemRequest\x1a%.cloud.drive.v1.MoveDriveItemResponse\x12b\n" +
 	"\x0fDeleteDriveItem\x12&.cloud.drive.v1.DeleteDriveItemRequest\x1a'.cloud.drive.v1.DeleteDriveItemResponse\x12e\n" +
-	"\x10RestoreDriveItem\x12'.cloud.drive.v1.RestoreDriveItemRequest\x1a(.cloud.drive.v1.RestoreDriveItemResponse\x12V\n" +
+	"\x10RestoreDriveItem\x12'.cloud.drive.v1.RestoreDriveItemRequest\x1a(.cloud.drive.v1.RestoreDriveItemResponse\x12_\n" +
+	"\x0ePurgeDriveItem\x12%.cloud.drive.v1.PurgeDriveItemRequest\x1a&.cloud.drive.v1.PurgeDriveItemResponse\x12S\n" +
+	"\n" +
+	"EmptyTrash\x12!.cloud.drive.v1.EmptyTrashRequest\x1a\".cloud.drive.v1.EmptyTrashResponse\x12V\n" +
 	"\vGetDownload\x12\".cloud.drive.v1.GetDownloadRequest\x1a#.cloud.drive.v1.GetDownloadResponseB8Z6example.com/cloud-drive/api/gen/cloud/drive/v1;drivev1b\x06proto3"
 
 var (
@@ -1146,7 +1311,7 @@ func file_cloud_drive_v1_drive_service_proto_rawDescGZIP() []byte {
 	return file_cloud_drive_v1_drive_service_proto_rawDescData
 }
 
-var file_cloud_drive_v1_drive_service_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_cloud_drive_v1_drive_service_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_cloud_drive_v1_drive_service_proto_goTypes = []any{
 	(*GetDriveItemRequest)(nil),      // 0: cloud.drive.v1.GetDriveItemRequest
 	(*GetDriveItemResponse)(nil),     // 1: cloud.drive.v1.GetDriveItemResponse
@@ -1166,21 +1331,25 @@ var file_cloud_drive_v1_drive_service_proto_goTypes = []any{
 	(*DeleteDriveItemResponse)(nil),  // 15: cloud.drive.v1.DeleteDriveItemResponse
 	(*RestoreDriveItemRequest)(nil),  // 16: cloud.drive.v1.RestoreDriveItemRequest
 	(*RestoreDriveItemResponse)(nil), // 17: cloud.drive.v1.RestoreDriveItemResponse
-	(*GetDownloadRequest)(nil),       // 18: cloud.drive.v1.GetDownloadRequest
-	(*GetDownloadResponse)(nil),      // 19: cloud.drive.v1.GetDownloadResponse
-	(*DriveItem)(nil),                // 20: cloud.drive.v1.DriveItem
+	(*PurgeDriveItemRequest)(nil),    // 18: cloud.drive.v1.PurgeDriveItemRequest
+	(*PurgeDriveItemResponse)(nil),   // 19: cloud.drive.v1.PurgeDriveItemResponse
+	(*EmptyTrashRequest)(nil),        // 20: cloud.drive.v1.EmptyTrashRequest
+	(*EmptyTrashResponse)(nil),       // 21: cloud.drive.v1.EmptyTrashResponse
+	(*GetDownloadRequest)(nil),       // 22: cloud.drive.v1.GetDownloadRequest
+	(*GetDownloadResponse)(nil),      // 23: cloud.drive.v1.GetDownloadResponse
+	(*DriveItem)(nil),                // 24: cloud.drive.v1.DriveItem
 }
 var file_cloud_drive_v1_drive_service_proto_depIdxs = []int32{
-	20, // 0: cloud.drive.v1.GetDriveItemResponse.item:type_name -> cloud.drive.v1.DriveItem
-	20, // 1: cloud.drive.v1.ListDriveItemsResponse.items:type_name -> cloud.drive.v1.DriveItem
-	20, // 2: cloud.drive.v1.ListTrashedItemsResponse.items:type_name -> cloud.drive.v1.DriveItem
-	20, // 3: cloud.drive.v1.SearchDriveItemsResponse.items:type_name -> cloud.drive.v1.DriveItem
-	20, // 4: cloud.drive.v1.CreateDirectoryResponse.item:type_name -> cloud.drive.v1.DriveItem
-	20, // 5: cloud.drive.v1.RenameDriveItemResponse.item:type_name -> cloud.drive.v1.DriveItem
-	20, // 6: cloud.drive.v1.MoveDriveItemResponse.item:type_name -> cloud.drive.v1.DriveItem
-	20, // 7: cloud.drive.v1.DeleteDriveItemResponse.item:type_name -> cloud.drive.v1.DriveItem
-	20, // 8: cloud.drive.v1.RestoreDriveItemResponse.item:type_name -> cloud.drive.v1.DriveItem
-	20, // 9: cloud.drive.v1.GetDownloadResponse.item:type_name -> cloud.drive.v1.DriveItem
+	24, // 0: cloud.drive.v1.GetDriveItemResponse.item:type_name -> cloud.drive.v1.DriveItem
+	24, // 1: cloud.drive.v1.ListDriveItemsResponse.items:type_name -> cloud.drive.v1.DriveItem
+	24, // 2: cloud.drive.v1.ListTrashedItemsResponse.items:type_name -> cloud.drive.v1.DriveItem
+	24, // 3: cloud.drive.v1.SearchDriveItemsResponse.items:type_name -> cloud.drive.v1.DriveItem
+	24, // 4: cloud.drive.v1.CreateDirectoryResponse.item:type_name -> cloud.drive.v1.DriveItem
+	24, // 5: cloud.drive.v1.RenameDriveItemResponse.item:type_name -> cloud.drive.v1.DriveItem
+	24, // 6: cloud.drive.v1.MoveDriveItemResponse.item:type_name -> cloud.drive.v1.DriveItem
+	24, // 7: cloud.drive.v1.DeleteDriveItemResponse.item:type_name -> cloud.drive.v1.DriveItem
+	24, // 8: cloud.drive.v1.RestoreDriveItemResponse.item:type_name -> cloud.drive.v1.DriveItem
+	24, // 9: cloud.drive.v1.GetDownloadResponse.item:type_name -> cloud.drive.v1.DriveItem
 	0,  // 10: cloud.drive.v1.DriveService.GetDriveItem:input_type -> cloud.drive.v1.GetDriveItemRequest
 	2,  // 11: cloud.drive.v1.DriveService.ListDriveItems:input_type -> cloud.drive.v1.ListDriveItemsRequest
 	4,  // 12: cloud.drive.v1.DriveService.ListTrashedItems:input_type -> cloud.drive.v1.ListTrashedItemsRequest
@@ -1190,19 +1359,23 @@ var file_cloud_drive_v1_drive_service_proto_depIdxs = []int32{
 	12, // 16: cloud.drive.v1.DriveService.MoveDriveItem:input_type -> cloud.drive.v1.MoveDriveItemRequest
 	14, // 17: cloud.drive.v1.DriveService.DeleteDriveItem:input_type -> cloud.drive.v1.DeleteDriveItemRequest
 	16, // 18: cloud.drive.v1.DriveService.RestoreDriveItem:input_type -> cloud.drive.v1.RestoreDriveItemRequest
-	18, // 19: cloud.drive.v1.DriveService.GetDownload:input_type -> cloud.drive.v1.GetDownloadRequest
-	1,  // 20: cloud.drive.v1.DriveService.GetDriveItem:output_type -> cloud.drive.v1.GetDriveItemResponse
-	3,  // 21: cloud.drive.v1.DriveService.ListDriveItems:output_type -> cloud.drive.v1.ListDriveItemsResponse
-	5,  // 22: cloud.drive.v1.DriveService.ListTrashedItems:output_type -> cloud.drive.v1.ListTrashedItemsResponse
-	7,  // 23: cloud.drive.v1.DriveService.SearchDriveItems:output_type -> cloud.drive.v1.SearchDriveItemsResponse
-	9,  // 24: cloud.drive.v1.DriveService.CreateDirectory:output_type -> cloud.drive.v1.CreateDirectoryResponse
-	11, // 25: cloud.drive.v1.DriveService.RenameDriveItem:output_type -> cloud.drive.v1.RenameDriveItemResponse
-	13, // 26: cloud.drive.v1.DriveService.MoveDriveItem:output_type -> cloud.drive.v1.MoveDriveItemResponse
-	15, // 27: cloud.drive.v1.DriveService.DeleteDriveItem:output_type -> cloud.drive.v1.DeleteDriveItemResponse
-	17, // 28: cloud.drive.v1.DriveService.RestoreDriveItem:output_type -> cloud.drive.v1.RestoreDriveItemResponse
-	19, // 29: cloud.drive.v1.DriveService.GetDownload:output_type -> cloud.drive.v1.GetDownloadResponse
-	20, // [20:30] is the sub-list for method output_type
-	10, // [10:20] is the sub-list for method input_type
+	18, // 19: cloud.drive.v1.DriveService.PurgeDriveItem:input_type -> cloud.drive.v1.PurgeDriveItemRequest
+	20, // 20: cloud.drive.v1.DriveService.EmptyTrash:input_type -> cloud.drive.v1.EmptyTrashRequest
+	22, // 21: cloud.drive.v1.DriveService.GetDownload:input_type -> cloud.drive.v1.GetDownloadRequest
+	1,  // 22: cloud.drive.v1.DriveService.GetDriveItem:output_type -> cloud.drive.v1.GetDriveItemResponse
+	3,  // 23: cloud.drive.v1.DriveService.ListDriveItems:output_type -> cloud.drive.v1.ListDriveItemsResponse
+	5,  // 24: cloud.drive.v1.DriveService.ListTrashedItems:output_type -> cloud.drive.v1.ListTrashedItemsResponse
+	7,  // 25: cloud.drive.v1.DriveService.SearchDriveItems:output_type -> cloud.drive.v1.SearchDriveItemsResponse
+	9,  // 26: cloud.drive.v1.DriveService.CreateDirectory:output_type -> cloud.drive.v1.CreateDirectoryResponse
+	11, // 27: cloud.drive.v1.DriveService.RenameDriveItem:output_type -> cloud.drive.v1.RenameDriveItemResponse
+	13, // 28: cloud.drive.v1.DriveService.MoveDriveItem:output_type -> cloud.drive.v1.MoveDriveItemResponse
+	15, // 29: cloud.drive.v1.DriveService.DeleteDriveItem:output_type -> cloud.drive.v1.DeleteDriveItemResponse
+	17, // 30: cloud.drive.v1.DriveService.RestoreDriveItem:output_type -> cloud.drive.v1.RestoreDriveItemResponse
+	19, // 31: cloud.drive.v1.DriveService.PurgeDriveItem:output_type -> cloud.drive.v1.PurgeDriveItemResponse
+	21, // 32: cloud.drive.v1.DriveService.EmptyTrash:output_type -> cloud.drive.v1.EmptyTrashResponse
+	23, // 33: cloud.drive.v1.DriveService.GetDownload:output_type -> cloud.drive.v1.GetDownloadResponse
+	22, // [22:34] is the sub-list for method output_type
+	10, // [10:22] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
 	10, // [10:10] is the sub-list for extension extendee
 	0,  // [0:10] is the sub-list for field type_name
@@ -1220,7 +1393,7 @@ func file_cloud_drive_v1_drive_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cloud_drive_v1_drive_service_proto_rawDesc), len(file_cloud_drive_v1_drive_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

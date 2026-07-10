@@ -9,6 +9,7 @@ import {
   CreateShareLinkRequestSchema,
   DeleteDriveItemRequestSchema,
   DriveService,
+  EmptyTrashRequestSchema,
   GetDownloadRequestSchema,
   GetDriveItemRequestSchema,
   GetSessionRequestSchema,
@@ -18,6 +19,7 @@ import {
   ListSharedItemsResponseSchema,
   ListTrashedItemsRequestSchema,
   MoveDriveItemRequestSchema,
+  PurgeDriveItemRequestSchema,
   RenameDriveItemRequestSchema,
   ResolveShareResponseSchema,
   RestoreDriveItemRequestSchema,
@@ -289,6 +291,14 @@ export class PrivateDriveClient {
   async restoreDriveItem(itemUid: string, signal?: AbortSignal): Promise<DriveItem> {
     const response = await this.drive.restoreDriveItem(create(RestoreDriveItemRequestSchema, { itemUid }), { signal });
     return required(response.item, "item");
+  }
+
+  async purgeDriveItem(itemUid: string, signal?: AbortSignal): Promise<void> {
+    await this.drive.purgeDriveItem(create(PurgeDriveItemRequestSchema, { itemUid }), { signal });
+  }
+
+  async emptyTrash(signal?: AbortSignal): Promise<void> {
+    await this.drive.emptyTrash(create(EmptyTrashRequestSchema), { signal });
   }
 
   async createShareLink(targetUid: string, expireTime: Date, signal?: AbortSignal): Promise<CreatedShareLink> {

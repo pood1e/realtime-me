@@ -123,6 +123,24 @@ func (s *Service) RestoreItem(ctx context.Context, itemUID string) (domain.Item,
 	return s.store.RestoreItem(ctx, itemUID)
 }
 
+// PurgeItem permanently removes a trashed hierarchy and its file content.
+func (s *Service) PurgeItem(ctx context.Context, itemUID string) error {
+	items, err := s.store.PurgeTrashedItem(ctx, itemUID)
+	if err != nil {
+		return err
+	}
+	return s.removePurgedBlobs(ctx, items)
+}
+
+// EmptyTrash permanently removes every trashed hierarchy and its file content.
+func (s *Service) EmptyTrash(ctx context.Context) error {
+	items, err := s.store.EmptyTrash(ctx)
+	if err != nil {
+		return err
+	}
+	return s.removePurgedBlobs(ctx, items)
+}
+
 // StartUpload reserves capacity and creates a resumable session.
 func (s *Service) StartUpload(ctx context.Context, parentUID *string, fileName, contentType string, totalSizeBytes int64) (domain.Upload, error) {
 	if err := validateName(fileName); err != nil {
@@ -348,9 +366,13 @@ func (s *Service) PurgeExpired(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	return s.removePurgedBlobs(ctx, items)
+}
+
+func (s *Service) removePurgedBlobs(ctx context.Context, items []domain.Item) error {
 	for _, item := range items {
 		if item.Kind == domain.ItemKindFile {
-			if err := s.blobs.RemoveBlob(ctx, item.StorageKey); err != nil {
+			if err := s.blobs.RemoveBlob(ctx, item.StorageKey); err != nil && !errors.Is(err, fs.ErrNotExist) {
 				return err
 			}
 		}

@@ -65,7 +65,8 @@ type UploadTask = Readonly<{
 type Trail = Readonly<{ id: string; label: string }>;
 type DialogState =
   | Readonly<{ kind: "folder" }>
-  | Readonly<{ kind: "rename" | "move" | "share" | "preview"; item: DriveItem }>
+  | Readonly<{ kind: "rename" | "move" | "share" | "preview" | "purge"; item: DriveItem }>
+  | Readonly<{ kind: "empty-trash" }>
   | null;
 type SessionState = "checking" | "authenticated" | "unauthenticated" | "unavailable";
 
@@ -444,7 +445,12 @@ function DriveWorkspace({
                     上传
                   </Button>
                 </>
-              ) : null}
+              ) : (
+                <Button variant="destructive" disabled={busy || loading || items.length === 0} onClick={() => setDialog({ kind: "empty-trash" })}>
+                  <Trash2 className="size-4" />
+                  清空回收站
+                </Button>
+              )}
               <IconButton label="退出登录" disabled={loggingOut} onClick={() => void logout()}>
                 <LogOut className="size-4" />
               </IconButton>
@@ -475,7 +481,7 @@ function DriveWorkspace({
                 items={sortItems}
                 onOpen={openItem}
                 empty={<EmptyState icon={view === "trash" ? <Trash2 className="size-6" /> : <FilePlus2 className="size-6" />} title={view === "trash" ? "回收站为空" : isSearching ? "没有匹配的文件" : "这里还没有文件"} detail={view === "drive" && !isSearching ? "上传文件或新建文件夹，即可从这里开始管理。" : undefined} action={view === "drive" && !isSearching ? <Button onClick={() => inputRef.current?.click()}><UploadCloud className="size-4" />上传文件</Button> : undefined} />}
-                actions={(item) => <ItemActions item={item} inTrash={view === "trash"} onRename={() => setDialog({ kind: "rename", item })} onMove={() => setDialog({ kind: "move", item })} onShare={() => setDialog({ kind: "share", item })} onPreview={() => setDialog({ kind: "preview", item })} onDelete={() => void execute(() => client.deleteDriveItem(driveItemUid(item)), "已移入回收站")} onRestore={() => void execute(() => client.restoreDriveItem(driveItemUid(item)), "已恢复")}/>} 
+                actions={(item) => <ItemActions item={item} inTrash={view === "trash"} onRename={() => setDialog({ kind: "rename", item })} onMove={() => setDialog({ kind: "move", item })} onShare={() => setDialog({ kind: "share", item })} onPreview={() => setDialog({ kind: "preview", item })} onDelete={() => void execute(() => client.deleteDriveItem(driveItemUid(item)), "已移入回收站")} onRestore={() => void execute(() => client.restoreDriveItem(driveItemUid(item)), "已恢复")} onPurge={() => setDialog({ kind: "purge", item })}/>}
               />
             ) : null}
           </section>
@@ -488,6 +494,8 @@ function DriveWorkspace({
       {dialog?.kind === "move" ? <MoveDialog item={dialog.item} open busy={busy} currentDirectories={items.filter(driveItemIsDirectory)} onClose={() => setDialog(null)} onMove={(parentUid) => void execute(() => client.moveDriveItem(driveItemUid(dialog.item), parentUid), "已移动")} /> : null}
       {dialog?.kind === "share" ? <ShareDialog item={dialog.item} client={client} open busy={busy} onClose={() => setDialog(null)} onBusyChange={setBusy} /> : null}
       {dialog?.kind === "preview" ? <PreviewDialog item={dialog.item} client={client} open onClose={() => setDialog(null)} /> : null}
+      {dialog?.kind === "purge" ? <DestructiveConfirmationDialog busy={busy} title={`永久删除“${driveItemName(dialog.item)}”？`} description={driveItemIsDirectory(dialog.item) ? "文件夹及其中全部内容将被永久删除，无法恢复。" : "文件将被永久删除，无法恢复。"} confirmLabel="永久删除" onClose={() => setDialog(null)} onConfirm={() => void execute(() => client.purgeDriveItem(driveItemUid(dialog.item)), "已永久删除")} /> : null}
+      {dialog?.kind === "empty-trash" ? <DestructiveConfirmationDialog busy={busy} title="清空回收站？" description="回收站中的全部文件和文件夹将被永久删除，无法恢复。" confirmLabel="清空回收站" onClose={() => setDialog(null)} onConfirm={() => void execute(() => client.emptyTrash(), "回收站已清空")} /> : null}
     </main>
   );
 }
@@ -496,7 +504,7 @@ function NavButton({ active, compact, icon, children, onClick }: { active: boole
   return <button type="button" onClick={onClick} className={cn("flex items-center gap-3 rounded-lg text-sm transition-colors", compact ? "flex-1 justify-center px-3 py-2" : "w-full px-3 py-2.5", active ? "bg-sky-400/10 text-sky-200" : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200")}>{icon}{children}</button>;
 }
 
-function ItemActions({ item, inTrash, onRename, onMove, onShare, onPreview, onDelete, onRestore }: { item: DriveItem; inTrash: boolean; onRename: () => void; onMove: () => void; onShare: () => void; onPreview: () => void; onDelete: () => void; onRestore: () => void }) {
+function ItemActions({ item, inTrash, onRename, onMove, onShare, onPreview, onDelete, onRestore, onPurge }: { item: DriveItem; inTrash: boolean; onRename: () => void; onMove: () => void; onShare: () => void; onPreview: () => void; onDelete: () => void; onRestore: () => void; onPurge: () => void }) {
   const [open, setOpen] = useState(false);
   const action = (callback: () => void) => { callback(); setOpen(false); };
   return (
@@ -504,7 +512,7 @@ function ItemActions({ item, inTrash, onRename, onMove, onShare, onPreview, onDe
       <Button aria-label="更多操作" title="更多操作" size="icon" variant="ghost" onClick={() => setOpen((value) => !value)}><MoreHorizontal className="size-4" /></Button>
       {open ? <div className="absolute right-0 top-10 z-20 w-36 rounded-xl border border-white/10 bg-slate-800 p-1 shadow-xl shadow-black/30">
         {!inTrash && !driveItemIsDirectory(item) ? <MenuButton icon={<Download className="size-3.5" />} onClick={() => action(onPreview)}>预览与下载</MenuButton> : null}
-        {!inTrash ? <><MenuButton icon={<Pencil className="size-3.5" />} onClick={() => action(onRename)}>重命名</MenuButton><MenuButton icon={<MoveRight className="size-3.5" />} onClick={() => action(onMove)}>移动</MenuButton><MenuButton icon={<Share2 className="size-3.5" />} onClick={() => action(onShare)}>创建分享</MenuButton><MenuButton destructive icon={<Trash2 className="size-3.5" />} onClick={() => action(onDelete)}>移入回收站</MenuButton></> : <MenuButton icon={<ArchiveRestore className="size-3.5" />} onClick={() => action(onRestore)}>恢复</MenuButton>}
+        {!inTrash ? <><MenuButton icon={<Pencil className="size-3.5" />} onClick={() => action(onRename)}>重命名</MenuButton><MenuButton icon={<MoveRight className="size-3.5" />} onClick={() => action(onMove)}>移动</MenuButton><MenuButton icon={<Share2 className="size-3.5" />} onClick={() => action(onShare)}>创建分享</MenuButton><MenuButton destructive icon={<Trash2 className="size-3.5" />} onClick={() => action(onDelete)}>移入回收站</MenuButton></> : <><MenuButton icon={<ArchiveRestore className="size-3.5" />} onClick={() => action(onRestore)}>恢复</MenuButton><MenuButton destructive icon={<Trash2 className="size-3.5" />} onClick={() => action(onPurge)}>永久删除</MenuButton></>}
       </div> : null}
     </div>
   );
@@ -512,6 +520,11 @@ function ItemActions({ item, inTrash, onRename, onMove, onShare, onPreview, onDe
 
 function MenuButton({ icon, children, destructive, onClick }: { icon: ReactNode; children: ReactNode; destructive?: boolean; onClick: () => void }) {
   return <button type="button" onClick={onClick} className={cn("flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-colors hover:bg-white/[0.08]", destructive ? "text-rose-300" : "text-slate-200")}>{icon}{children}</button>;
+}
+
+function DestructiveConfirmationDialog({ busy, title, description, confirmLabel, onClose, onConfirm }: { busy: boolean; title: string; description: string; confirmLabel: string; onClose: () => void; onConfirm: () => void }) {
+  const close = () => { if (!busy) onClose(); };
+  return <Dialog open title={title} description={description} onClose={close}><div className="flex justify-end gap-2"><Button variant="ghost" disabled={busy} onClick={close}>取消</Button><Button variant="destructive" disabled={busy} onClick={onConfirm}>{busy ? "处理中" : confirmLabel}</Button></div></Dialog>;
 }
 
 function FolderDialog({ open, busy, onClose, onCreate }: { open: boolean; busy: boolean; onClose: () => void; onCreate: (name: string) => void }) {
