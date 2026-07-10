@@ -201,7 +201,7 @@ export function agentMotionLabel(agent: Agent): string {
 // The badge counts the sub-agents out; the models they run are named in its
 // title. A sub-agent almost always runs the model that spawned it, which the
 // agent already shows, so the count is the news and the model is the exception.
-export function SubagentBadge({ subagents }: { subagents: Subagent[] }) {
+function SubagentBadge({ subagents }: { subagents: Subagent[] }) {
   if (subagents.length === 0) return null;
   const count = subagentCountLabel(subagents.length);
   const models = subagentModelSummary(subagents);

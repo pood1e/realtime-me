@@ -1,5 +1,5 @@
 import type { Agent, Subagent } from '@/gen/realtime/me/v1/status_pb';
-import { AgentClip, SubagentBadge, agentIcon, agentName } from '@/components/AgentCard';
+import { AgentClip, agentName } from '@/components/AgentCard';
 import { agentDeviceLabel } from '@/lib/status';
 
 // Working agents live here rather than on the card of the machine they run on: a
@@ -19,34 +19,23 @@ export function WorkingNow({ agents }: { agents: Agent[] }) {
 }
 
 // One clip for the agent, one for each sub-agent it has out, so the crowd is the
-// count. Each clip names its own model in its title, so the badge below need only
-// say how many are out.
+// count and the crowd is all of it. What each mascot is, which model it runs and
+// which machine it runs on are written into its own title: a public page owes a
+// passer-by a glance, and whoever wants the readings behind it has the dashboard.
 function WorkingAgent({ agent }: { agent: Agent }) {
-  const device = agentDeviceLabel(agent);
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <div className="flex items-end gap-1">
-        <AgentClip kind={agent.kind} seed={agent.uid} className="working-agent-image" alt={agentTitle(agent)} title={agentTitle(agent)} />
-        {agent.subagents.map((subagent, index) => (
-          <AgentClip
-            key={index}
-            kind={agent.kind}
-            seed={`${agent.uid}:${index}`}
-            className="working-subagent-image"
-            alt={subagentTitle(agent, subagent)}
-            title={subagentTitle(agent, subagent)}
-          />
-        ))}
-      </div>
-      <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-        <span className="[&_svg]:size-3.5">{agentIcon(agent.kind)}</span>
-        <span className="truncate">{[agent.model || agentName(agent.kind), device].filter(Boolean).join(' · ')}</span>
-      </div>
-      {agent.subagents.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          <SubagentBadge subagents={agent.subagents} />
-        </div>
-      )}
+    <div className="flex items-end gap-1">
+      <AgentClip kind={agent.kind} seed={agent.uid} className="working-agent-image" alt={agentTitle(agent)} title={agentTitle(agent)} />
+      {agent.subagents.map((subagent, index) => (
+        <AgentClip
+          key={index}
+          kind={agent.kind}
+          seed={`${agent.uid}:${index}`}
+          className="working-subagent-image"
+          alt={subagentTitle(agent, subagent)}
+          title={subagentTitle(agent, subagent)}
+        />
+      ))}
     </div>
   );
 }
