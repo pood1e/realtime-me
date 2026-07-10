@@ -24,7 +24,7 @@ sudo install -o root -g root -m 0400 \
 
 ## 首次主机初始化
 
-先安装 Docker Engine（含 Compose v2）、LVM2、`restic`、`rsync`、`util-linux` 与 `openssl`，并确认目标卷组有足够可用空间。以下脚本会创建并格式化一个**新的**逻辑卷；它拒绝复用已有卷。卷组名和容量必须显式提供，不保存在仓库中。
+先安装 Docker Engine（含 Compose v2）、LVM2、`rsync`、`util-linux` 与 `openssl`，并确认目标卷组有足够可用空间。以下脚本会创建并格式化一个**新的**逻辑卷；它拒绝复用已有卷。卷组名和容量必须显式提供，不保存在仓库中。
 
 ```bash
 sudo /opt/cloud-drive/ops/scripts/initialize-storage.sh \
@@ -136,33 +136,34 @@ sudo /opt/cloud-drive/ops/scripts/compose.sh -- logs --tail=100 cloudflared
 
 先复制 `ops/pages.env.example` 为被忽略的 `ops/pages.env`，填入 Pages 项目名和 API 地址。脚本会构建 `web/apps/private/dist` 与 `web/apps/share/dist`，生成与 API Origin 匹配的 CSP，再发布到配置的两个 Pages 项目。首次使用时先在 Cloudflare 创建项目并绑定上文域名。不要把真实域名、项目名或 Cloudflare API token 提交到仓库。
 
-## 加密 restic 备份
+## 明文增量备份
 
 创建 root-only 的备份配置：
 
 ```bash
-sudo install -o root -g root -m 0400 /dev/null /etc/cloud-drive/restic-password
-sudo sh -c 'umask 077; openssl rand -base64 48 > /etc/cloud-drive/restic-password'
 sudo install -o root -g root -m 0600 /dev/null /etc/cloud-drive/backup.env
 sudoedit /etc/cloud-drive/backup.env
 ```
 
-`backup.env` 只允许如下无引号的键值；`RESTIC_REPOSITORY` 必须位于 USB 挂载点内：
+`backup.env` 使用如下无引号的键值；`BACKUP_ROOT_DIR` 必须位于 USB 挂载点内：
 
 ```dotenv
 BACKUP_MOUNT_DIR=/mnt/cloud-drive-backup
-RESTIC_REPOSITORY=/mnt/cloud-drive-backup/restic-repository
-RESTIC_PASSWORD_FILE=/etc/cloud-drive/restic-password
+BACKUP_ROOT_DIR=/mnt/cloud-drive-backup/cloud-drive-backups
 ```
 
-初始化一次加密仓库并启用每日定时任务：
+启用每日定时任务，并立即执行一次以验证完整备份链路：
 
 ```bash
-sudo /opt/cloud-drive/ops/scripts/init-restic-repository.sh
 sudo /opt/cloud-drive/ops/scripts/install-backup-timer.sh
+sudo systemctl start cloud-drive-backup.service
+sudo systemctl status --no-pager cloud-drive-backup.service
 sudo systemctl list-timers cloud-drive-backup.timer
+sudo readlink -f /mnt/cloud-drive-backup/cloud-drive-backups/latest
 ```
 
-定时器每天运行一次，并在六小时窗口内随机延迟，避免在仓库中暴露实际运行时刻。流程为：导出一致的 PostgreSQL custom dump、备份**仅** `files/blobs/` 与该 dump、保留最近 30 个每日快照、每周日运行 `restic check`。临时 `files/uploads/` 分片不会备份。USB 未挂载、根配置不安全、源/备份卷低于 20 GiB 安全余量、首次备份容量明显不足或任一 restic/数据库命令失败都会让 systemd 单元失败并写入 journal，不会静默跳过。
+定时器每天运行一次，并在六小时窗口内随机延迟。每个成功快照位于 `cloud-drive-backups/snapshots/<UTC时间>/`，包含可直接读取的 `blobs/` 与未加密的 PostgreSQL custom dump `postgres.dump`；`latest` 原子指向最新成功快照。未变化的 blob 通过 ext4 硬链接复用空间，保留最近 30 个成功快照。临时 `files/uploads/` 分片不会备份。
 
-恢复演练应先恢复到隔离目录并验证内容，再在维护窗口中恢复 PostgreSQL dump；至少定期测试一个 blob 与数据库元数据的完整恢复。
+USB 未挂载、根配置不安全、源/备份卷低于 20 GiB 安全余量、首次备份容量明显不足或任一 `rsync`/数据库命令失败都会让 systemd 单元失败并写入 journal；未完成快照会清理，不会替换 `latest`。这些快照没有加密，能够读取移动硬盘的人也能读取全部文件和数据库备份。
+
+恢复演练应先从 `latest` 复制到隔离目录，使用 `pg_restore --list postgres.dump` 验证数据库归档，再测试一个 blob 与对应元数据。正式恢复时先停止写入，在维护窗口中恢复 PostgreSQL dump 与同一快照中的 `blobs/`，不要混用不同日期的内容。

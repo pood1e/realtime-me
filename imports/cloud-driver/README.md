@@ -31,8 +31,8 @@ flowchart LR
     Postgres[("PostgreSQL<br/>元数据")]
     Files[("LVM / ext4<br/>blobs + uploads")]
     Timer["systemd timer"]
-    Backup["backup.sh<br/>pg_dump + restic"]
-    Repository[("USB ext4<br/>加密 restic 仓库")]
+    Backup["backup.sh<br/>pg_dump + rsync"]
+    Repository[("USB ext4<br/>30 个明文增量快照")]
   end
 
   Owner -->|"加载静态应用"| PrivatePages
@@ -95,7 +95,7 @@ flowchart LR
 | 分享前端 | `web/apps/share` | 解析分享令牌、只读浏览、预览与下载 |
 | 前端公共层 | `web/packages` | 生成契约、ConnectRPC 客户端、共享组件和格式化逻辑 |
 | 后端 | `api` | Host 隔离、认证、分享授权、业务服务、PostgreSQL 与文件系统适配器 |
-| 运维 | `ops` | Compose、Tunnel token 挂载、LVM 初始化、Pages 发布和加密备份 |
+| 运维 | `ops` | Compose、Tunnel token 挂载、LVM 初始化、Pages 发布和明文增量备份 |
 
 ### 数据与安全边界
 
@@ -103,7 +103,7 @@ flowchart LR
 - 私有 API 除健康检查与登录外均要求 24 小时签名会话 Cookie，并严格校验 Origin。
 - 分享 API 只挂载解析、目录浏览、预览和下载能力；分享令牌决定可读范围。
 - 上传使用有界分片和临时 `uploads/`，完成后发布为 `blobs/`；备份不包含未完成分片。
-- 每日备份将 PostgreSQL 一致性 dump 与 `blobs/` 写入独立 USB 上的加密 restic 仓库。
+- 每日备份将 PostgreSQL 一致性 dump 与 `blobs/` 写入独立 USB 上的明文增量快照，保留最近 30 份。
 
 实际域名、Cloudflare 项目名、Tunnel 标识、部署主机、卷组和容量均为部署时配置，
 不写入版本控制。仓库中的 `example.com` 仅为文档占位域名。
@@ -113,7 +113,7 @@ flowchart LR
 ## 本地开发
 
 前端、后端和部署变量都通过相应的 `.env.example` 配置。不要提交真实域名、
-Cloudflare 资源标识、主机信息、Tunnel token、数据库密码、登录密码、会话密钥或备份密码。
+Cloudflare 资源标识、主机信息、Tunnel token、数据库密码、登录密码或会话密钥。
 
 ```sh
 pnpm install

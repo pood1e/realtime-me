@@ -1,5 +1,5 @@
 [Unit]
-Description=Run the cloud-drive encrypted backup once per day
+Description=Run the cloud-drive plain backup once per day
 
 [Timer]
 OnCalendar=daily

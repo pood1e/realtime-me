@@ -13,7 +13,7 @@ usage() {
   cat <<'USAGE'
 Usage: install-backup-timer.sh [--repo-dir PATH]
 
-Installs and enables the cloud-drive daily restic backup timer. The unit uses
+Installs and enables the cloud-drive daily plain-snapshot backup timer. The unit uses
 the canonical production checkout at /opt/cloud-drive.
 USAGE
 }
@@ -50,4 +50,3 @@ install -o root -g root -m 0644 \
 systemctl daemon-reload
 systemctl enable --now cloud-drive-backup.timer
 systemctl status --no-pager cloud-drive-backup.timer
-

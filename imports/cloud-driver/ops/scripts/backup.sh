@@ -11,20 +11,21 @@ ENV_FILE=/etc/cloud-drive/runtime.env
 BACKUP_ENV_FILE=/etc/cloud-drive/backup.env
 COMPOSE_FILE=
 MIN_FREE_BYTES=$((20 * 1024 * 1024 * 1024))
-RESTIC_CHECK_WEEKDAY=7
+SNAPSHOT_RETENTION_COUNT=30
 
 usage() {
   cat <<'USAGE'
 Usage: backup.sh [options]
 
-Creates a consistent PostgreSQL dump, backs up file data and the dump to an
-encrypted restic repository, retains 30 daily snapshots, and runs a repository
-check every Sunday. A missing USB mount or insufficient capacity is a failure.
+Creates a consistent PostgreSQL dump and a plain rsync snapshot containing the
+dump and immutable file data. Unchanged files are hard-linked from the previous
+snapshot, and the latest 30 successful snapshots are retained. A missing USB
+mount or insufficient capacity is a failure.
 
 Options:
   --repo-dir PATH          Checked-out cloud-drive repository
   --env-file PATH          Root-only Compose environment file
-  --backup-env-file PATH   Root-only restic configuration file
+  --backup-env-file PATH   Root-only backup configuration file
   --compose-file PATH      Compose file
   -h, --help               Show this help
 USAGE
@@ -59,7 +60,7 @@ while (($# > 0)); do
 done
 
 require_root
-for command in docker restic mountpoint flock date du df awk rm tr; do
+for command in docker mountpoint flock date du df awk rm tr rsync install mktemp find sort tail mv ln sync; do
   require_command "$command"
 done
 
@@ -80,13 +81,12 @@ VOLUME_MOUNT_DIR=$(require_env_value "$ENV_FILE" CLOUD_DRIVE_VOLUME_MOUNT_DIR)
 DATA_DIR=$(require_env_value "$ENV_FILE" CLOUD_DRIVE_DATA_DIR)
 BACKUP_STAGING_DIR=$(require_env_value "$ENV_FILE" CLOUD_DRIVE_BACKUP_STAGING_DIR)
 BACKUP_MOUNT_DIR=$(require_env_value "$BACKUP_ENV_FILE" BACKUP_MOUNT_DIR)
-RESTIC_REPOSITORY=$(require_env_value "$BACKUP_ENV_FILE" RESTIC_REPOSITORY)
-RESTIC_PASSWORD_FILE=$(require_env_value "$BACKUP_ENV_FILE" RESTIC_PASSWORD_FILE)
+BACKUP_ROOT_DIR=$(require_env_value "$BACKUP_ENV_FILE" BACKUP_ROOT_DIR)
 
 [[ "$VOLUME_MOUNT_DIR" == /* && "$DATA_DIR" == "$VOLUME_MOUNT_DIR"/* ]] || die 'CLOUD_DRIVE_DATA_DIR must be below CLOUD_DRIVE_VOLUME_MOUNT_DIR'
 [[ "$BACKUP_STAGING_DIR" == "$VOLUME_MOUNT_DIR"/* ]] || die 'CLOUD_DRIVE_BACKUP_STAGING_DIR must be below CLOUD_DRIVE_VOLUME_MOUNT_DIR'
 [[ "$BACKUP_MOUNT_DIR" == /* ]] || die 'BACKUP_MOUNT_DIR must be an absolute path'
-[[ "$RESTIC_REPOSITORY" == "$BACKUP_MOUNT_DIR"/* ]] || die 'RESTIC_REPOSITORY must be located on BACKUP_MOUNT_DIR'
+[[ "$BACKUP_ROOT_DIR" == "$BACKUP_MOUNT_DIR"/* ]] || die 'BACKUP_ROOT_DIR must be located below BACKUP_MOUNT_DIR'
 
 require_mountpoint "$VOLUME_MOUNT_DIR"
 require_mountpoint "$BACKUP_MOUNT_DIR"
@@ -96,8 +96,6 @@ require_root_owned_nonwritable_directory "$BACKUP_MOUNT_DIR"
 IMMUTABLE_BLOBS_DIR="$DATA_DIR/blobs"
 [[ -d "$IMMUTABLE_BLOBS_DIR" ]] || die "immutable blob directory does not exist: $IMMUTABLE_BLOBS_DIR"
 [[ -d "$BACKUP_STAGING_DIR" ]] || die "backup staging directory does not exist: $BACKUP_STAGING_DIR"
-require_secure_root_file "$RESTIC_PASSWORD_FILE"
-[[ -s "$RESTIC_PASSWORD_FILE" ]] || die "restic password file is empty: $RESTIC_PASSWORD_FILE"
 
 PRIMARY_FREE_BYTES=$(available_bytes "$VOLUME_MOUNT_DIR")
 BACKUP_FREE_BYTES=$(available_bytes "$BACKUP_MOUNT_DIR")
@@ -106,15 +104,47 @@ BACKUP_FREE_BYTES=$(available_bytes "$BACKUP_MOUNT_DIR")
 ((PRIMARY_FREE_BYTES >= MIN_FREE_BYTES)) || die "less than 20 GiB free on primary data volume: $VOLUME_MOUNT_DIR"
 ((BACKUP_FREE_BYTES >= MIN_FREE_BYTES)) || die "less than 20 GiB free on USB backup volume: $BACKUP_MOUNT_DIR"
 
-# Reject clearly impossible first backups before writing a database dump. Restic
-# still reports a non-zero failure if a later snapshot exhausts remaining space.
-SOURCE_BYTES=$(du --summarize --block-size=1 "$IMMUTABLE_BLOBS_DIR" | awk '{ print $1 }')
-[[ "$SOURCE_BYTES" =~ ^[0-9]+$ ]] || die "could not determine immutable blob size: $IMMUTABLE_BLOBS_DIR"
-((BACKUP_FREE_BYTES >= SOURCE_BYTES + MIN_FREE_BYTES)) || die 'USB backup volume lacks source-size capacity plus the 20 GiB safety margin'
-
 LOCK_FILE=/run/lock/cloud-drive-backup.lock
 exec 9>"$LOCK_FILE"
 flock -n 9 || die 'another cloud-drive backup is already running'
+
+SNAPSHOTS_DIR="$BACKUP_ROOT_DIR/snapshots"
+install -d -o root -g root -m 0700 "$BACKUP_ROOT_DIR" "$SNAPSHOTS_DIR"
+require_root_owned_nonwritable_directory "$BACKUP_ROOT_DIR"
+require_root_owned_nonwritable_directory "$SNAPSHOTS_DIR"
+
+list_snapshot_names() {
+  local name
+
+  find "$SNAPSHOTS_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' |
+    while IFS= read -r name; do
+      if [[ "$name" =~ ^[0-9]{8}T[0-9]{6}Z$ ]]; then
+        printf '%s\n' "$name"
+      fi
+    done |
+    LC_ALL=C sort
+}
+
+prune_snapshots() {
+  local -a snapshots
+  local index remove_count
+
+  mapfile -t snapshots < <(list_snapshot_names)
+  remove_count=$((${#snapshots[@]} - SNAPSHOT_RETENTION_COUNT))
+  ((remove_count > 0)) || return
+
+  for ((index = 0; index < remove_count; index++)); do
+    rm -rf -- "${SNAPSHOTS_DIR:?}/${snapshots[$index]}"
+  done
+}
+
+PREVIOUS_SNAPSHOT_NAME=$(list_snapshot_names | tail --lines=1)
+if [[ -z "$PREVIOUS_SNAPSHOT_NAME" ]]; then
+  SOURCE_BYTES=$(du --summarize --block-size=1 "$IMMUTABLE_BLOBS_DIR" | awk '{ print $1 }')
+  [[ "$SOURCE_BYTES" =~ ^[0-9]+$ ]] || die "could not determine immutable blob size: $IMMUTABLE_BLOBS_DIR"
+  ((BACKUP_FREE_BYTES >= SOURCE_BYTES + MIN_FREE_BYTES)) ||
+    die 'USB backup volume lacks source-size capacity plus the 20 GiB safety margin'
+fi
 
 compose() {
   TUNNEL_TOKEN="$TUNNEL_TOKEN" docker compose \
@@ -126,8 +156,12 @@ compose() {
 }
 
 DUMP_FILE="$BACKUP_STAGING_DIR/postgres.dump"
+INCOMPLETE_SNAPSHOT=
+TEMPORARY_LATEST_LINK=
 cleanup() {
   rm -f -- "$DUMP_FILE"
+  [[ -z "$INCOMPLETE_SNAPSHOT" ]] || rm -rf -- "$INCOMPLETE_SNAPSHOT"
+  [[ -z "$TEMPORARY_LATEST_LINK" ]] || rm -f -- "$TEMPORARY_LATEST_LINK"
 }
 trap cleanup EXIT
 
@@ -137,15 +171,29 @@ compose exec --no-TTY postgres pg_dump --username "$POSTGRES_USER" --dbname "$PO
 unset TUNNEL_TOKEN
 [[ -s "$DUMP_FILE" ]] || die 'PostgreSQL dump is empty'
 
-note 'backing up immutable blobs and PostgreSQL dump with restic'
-RESTIC_REPOSITORY="$RESTIC_REPOSITORY" RESTIC_PASSWORD_FILE="$RESTIC_PASSWORD_FILE" \
-  restic backup --tag cloud-drive "$IMMUTABLE_BLOBS_DIR" "$DUMP_FILE"
-RESTIC_REPOSITORY="$RESTIC_REPOSITORY" RESTIC_PASSWORD_FILE="$RESTIC_PASSWORD_FILE" \
-  restic forget --tag cloud-drive --group-by host,tags --keep-daily 30 --prune
+SNAPSHOT_NAME=$(date --utc +%Y%m%dT%H%M%SZ)
+FINAL_SNAPSHOT="$SNAPSHOTS_DIR/$SNAPSHOT_NAME"
+[[ ! -e "$FINAL_SNAPSHOT" ]] || die "snapshot already exists: $FINAL_SNAPSHOT"
+INCOMPLETE_SNAPSHOT=$(mktemp --directory "$SNAPSHOTS_DIR/.incomplete.XXXXXXXX")
+install -d -o root -g root -m 0700 "$INCOMPLETE_SNAPSHOT/blobs"
 
-if [[ $(date +%u) -eq $RESTIC_CHECK_WEEKDAY ]]; then
-  note 'running scheduled restic repository check'
-  RESTIC_REPOSITORY="$RESTIC_REPOSITORY" RESTIC_PASSWORD_FILE="$RESTIC_PASSWORD_FILE" restic check
+RSYNC_ARGUMENTS=(--archive --delete --numeric-ids)
+if [[ -n "$PREVIOUS_SNAPSHOT_NAME" ]]; then
+  RSYNC_ARGUMENTS+=(--link-dest="$SNAPSHOTS_DIR/$PREVIOUS_SNAPSHOT_NAME/blobs")
 fi
 
-note 'backup completed'
+note 'copying immutable blobs into a plain incremental snapshot'
+rsync "${RSYNC_ARGUMENTS[@]}" "$IMMUTABLE_BLOBS_DIR/" "$INCOMPLETE_SNAPSHOT/blobs/"
+install -o root -g root -m 0600 "$DUMP_FILE" "$INCOMPLETE_SNAPSHOT/postgres.dump"
+sync --file-system "$INCOMPLETE_SNAPSHOT"
+
+mv --no-target-directory "$INCOMPLETE_SNAPSHOT" "$FINAL_SNAPSHOT"
+INCOMPLETE_SNAPSHOT=
+TEMPORARY_LATEST_LINK="$BACKUP_ROOT_DIR/.latest.$SNAPSHOT_NAME"
+ln --symbolic "snapshots/$SNAPSHOT_NAME" "$TEMPORARY_LATEST_LINK"
+mv --force --no-target-directory "$TEMPORARY_LATEST_LINK" "$BACKUP_ROOT_DIR/latest"
+TEMPORARY_LATEST_LINK=
+
+prune_snapshots
+sync --file-system "$BACKUP_ROOT_DIR"
+note "plain backup completed: $FINAL_SNAPSHOT"
