@@ -25,7 +25,7 @@ type Files interface {
 	Open(context.Context, string) (*os.File, error)
 	NewWorkDir(string) (string, error)
 	RemoveWorkDir(string) error
-	PublishArtifact(string, string, string, string, string) (string, error)
+	PublishArtifact(string, []byte, string, string, string) (string, error)
 }
 
 // Worker performs bounded local metadata and derivative processing.

@@ -39,7 +39,7 @@ func (w *Worker) processBook(ctx context.Context, job domain.ProcessingJob, work
 	}
 	var cover *domain.Artifact
 	if coverPath != "" {
-		storageKey, err := w.files.PublishArtifact(coverPath, content.UID, "book_cover", "default", filepath.Ext(coverPath))
+		storageKey, err := w.files.PublishArtifact(coverPath, content.SHA256, "book_cover", "default", filepath.Ext(coverPath))
 		if err != nil {
 			return err
 		}
@@ -73,7 +73,7 @@ func (w *Worker) processTrack(ctx context.Context, job domain.ProcessingJob, wor
 	var artwork *domain.Artifact
 	artworkPath := filepath.Join(workDir, "artwork.jpg")
 	if err := runCommand(ctx, "ffmpeg", "-y", "-v", "error", "-i", source, "-map", "0:v:0", "-frames:v", "1", artworkPath); err == nil {
-		storageKey, err := w.files.PublishArtifact(artworkPath, content.UID, "track_artwork", "default", "jpg")
+		storageKey, err := w.files.PublishArtifact(artworkPath, content.SHA256, "track_artwork", "default", "jpg")
 		if err != nil {
 			return err
 		}
@@ -103,7 +103,7 @@ func (w *Worker) processImage(ctx context.Context, job domain.ProcessingJob, wor
 	if err := runCommand(ctx, "vipsthumbnail", source, "--size", "1600x1600", "--output", previewPath+"[Q=82,strip]"); err != nil {
 		return err
 	}
-	storageKey, err := w.files.PublishArtifact(previewPath, content.UID, "image_preview", "default", "webp")
+	storageKey, err := w.files.PublishArtifact(previewPath, content.SHA256, "image_preview", "default", "webp")
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func (w *Worker) processWallpaper(ctx context.Context, job domain.ProcessingJob,
 		if err != nil {
 			return err
 		}
-		storageKey, err := w.files.PublishArtifact(target, content.UID, "wallpaper", strconv.Itoa(requestedWidth), "webp")
+		storageKey, err := w.files.PublishArtifact(target, content.SHA256, "wallpaper", strconv.Itoa(requestedWidth), "webp")
 		if err != nil {
 			return err
 		}

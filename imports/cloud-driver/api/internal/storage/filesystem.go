@@ -2,6 +2,8 @@ package storage
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -170,8 +172,11 @@ func (f *Filesystem) RemoveWorkDir(path string) error {
 }
 
 // PublishArtifact atomically installs a generated artifact file.
-func (f *Filesystem) PublishArtifact(sourcePath, contentUID, kind, variant, extension string) (string, error) {
-	for _, value := range []string{contentUID, kind, variant} {
+func (f *Filesystem) PublishArtifact(sourcePath string, contentSHA256 []byte, kind, variant, extension string) (string, error) {
+	if len(contentSHA256) != sha256.Size {
+		return "", errors.New("invalid content hash")
+	}
+	for _, value := range []string{kind, variant} {
 		if err := validateSegment(value); err != nil {
 			return "", err
 		}
@@ -180,7 +185,8 @@ func (f *Filesystem) PublishArtifact(sourcePath, contentUID, kind, variant, exte
 	if extension == "" || strings.ContainsAny(extension, `/\\\x00`) {
 		return "", errors.New("unsafe artifact extension")
 	}
-	storageKey := filepath.ToSlash(filepath.Join("artifacts", contentUID, kind, variant+"."+extension))
+	contentAddress := hex.EncodeToString(contentSHA256)
+	storageKey := filepath.ToSlash(filepath.Join("artifacts", contentAddress, kind, variant+"."+extension))
 	if err := f.publishFile(sourcePath, storageKey, false); err != nil {
 		return "", err
 	}
