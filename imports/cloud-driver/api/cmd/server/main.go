@@ -39,7 +39,7 @@ func run(logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	startupContext, cancelStartup := context.WithTimeout(context.Background(), 2*time.Hour)
+	startupContext, cancelStartup := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancelStartup()
 	store, err := postgres.Open(startupContext, cfg.DatabaseURL)
 	if err != nil {
@@ -62,21 +62,11 @@ func run(logger *slog.Logger) error {
 		return err
 	}
 	content := app.NewContentService(store, store, files, clock, cfg.ChunkSizeBytes, cfg.ReservedFreeBytes, cfg.UploadTTL)
-	if err := content.MigrateLegacyContent(startupContext); err != nil {
-		return err
-	}
-	adopted, err := store.AdoptDriveBooks(startupContext)
-	if err != nil {
-		return err
-	}
-	if adopted > 0 {
-		logger.Info("existing drive publications adopted", "count", adopted)
-	}
 	suite := &app.Suite{
 		Content: content,
 		Drive:   app.NewDriveService(store, content, files, clock, cfg.ShareAppOrigin),
 		Books:   app.NewBookService(store, store, content, files),
-		Music: app.NewMusicService(store, store, content, files, clock, app.MusicProviderDependencies{
+		Music: app.NewMusicSuite(store, store, content, files, clock, app.MusicProviderDependencies{
 			Store: store, Registry: providerRegistry, Credentials: credentialBox,
 		}),
 		Images:     app.NewImageService(store, store, content, files, cfg.PublicAPIOrigin()),

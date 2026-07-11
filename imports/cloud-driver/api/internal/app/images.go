@@ -18,12 +18,12 @@ type ImageService struct {
 	store           domain.ImageStore
 	contents        domain.ContentStore
 	content         *ContentService
-	files           ContentFiles
+	files           ContentReader
 	publicAPIOrigin string
 }
 
 // NewImageService constructs the private image application.
-func NewImageService(store domain.ImageStore, contents domain.ContentStore, content *ContentService, files ContentFiles, publicAPIOrigin string) *ImageService {
+func NewImageService(store domain.ImageStore, contents domain.ContentStore, content *ContentService, files ContentReader, publicAPIOrigin string) *ImageService {
 	return &ImageService{store: store, contents: contents, content: content, files: files, publicAPIOrigin: strings.TrimRight(publicAPIOrigin, "/")}
 }
 
@@ -32,7 +32,10 @@ func (s *ImageService) Get(ctx context.Context, uid string) (domain.Image, error
 }
 
 func (s *ImageService) List(ctx context.Context, query string, albumUID *string, trashed bool, pageSize int, pageToken string) (domain.ImagePage, error) {
-	return s.store.ListImages(ctx, strings.TrimSpace(query), emptyToNil(albumUID), trashed, pageSize, pageToken)
+	return s.store.ListImages(ctx, domain.ImageListQuery{
+		Query: strings.TrimSpace(query), AlbumUID: emptyToNil(albumUID),
+		Trashed: trashed, PageSize: pageSize, PageToken: pageToken,
+	})
 }
 
 func (s *ImageService) Import(ctx context.Context, uploadUID string, albumUID *string) (domain.Image, error) {
@@ -46,7 +49,7 @@ func (s *ImageService) Import(ctx context.Context, uploadUID string, albumUID *s
 		return domain.Image{}, err
 	}
 	if upload.Status != domain.UploadStatusClaimed {
-		s.content.FinishClaim(ctx, uploadUID)
+		_ = s.content.FinishClaim(ctx, uploadUID)
 	}
 	return image, nil
 }

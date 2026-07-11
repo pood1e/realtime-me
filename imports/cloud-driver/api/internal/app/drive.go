@@ -26,24 +26,25 @@ const (
 type DriveService struct {
 	store          domain.DriveStore
 	content        *ContentService
-	files          ContentFiles
+	files          ContentReader
 	clock          domain.Clock
 	shareAppOrigin string
 }
 
 // NewDriveService constructs the drive application.
-func NewDriveService(store domain.DriveStore, content *ContentService, files ContentFiles, clock domain.Clock, shareAppOrigin string) *DriveService {
+func NewDriveService(store domain.DriveStore, content *ContentService, files ContentReader, clock domain.Clock, shareAppOrigin string) *DriveService {
 	return &DriveService{store: store, content: content, files: files, clock: clock, shareAppOrigin: strings.TrimRight(shareAppOrigin, "/")}
 }
-
-func (s *DriveService) Ping(ctx context.Context) error { return s.store.Ping(ctx) }
 
 func (s *DriveService) GetItem(ctx context.Context, uid string) (domain.Item, error) {
 	return s.store.GetItem(ctx, uid, false)
 }
 
 func (s *DriveService) ListItems(ctx context.Context, parentUID *string, includeTrashed bool, pageSize int, pageToken string) (domain.Page, error) {
-	return s.store.ListItems(ctx, emptyToNil(parentUID), includeTrashed, pageSize, pageToken)
+	return s.store.ListItems(ctx, domain.DriveListQuery{
+		ParentUID: emptyToNil(parentUID), IncludeTrashed: includeTrashed,
+		PageSize: pageSize, PageToken: pageToken,
+	})
 }
 
 func (s *DriveService) ListTrashedItems(ctx context.Context, pageSize int, pageToken string) (domain.Page, error) {
@@ -112,7 +113,7 @@ func (s *DriveService) ImportFile(ctx context.Context, uploadUID string, parentU
 		return domain.Item{}, err
 	}
 	if upload.Status != domain.UploadStatusClaimed {
-		s.content.FinishClaim(ctx, uploadUID)
+		_ = s.content.FinishClaim(ctx, uploadUID)
 	}
 	return item, nil
 }

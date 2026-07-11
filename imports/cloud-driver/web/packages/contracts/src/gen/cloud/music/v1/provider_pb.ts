@@ -12,7 +12,41 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file cloud/music/v1/provider.proto.
  */
 export const file_cloud_music_v1_provider: GenFile = /*@__PURE__*/
-  fileDesc("Ch1jbG91ZC9tdXNpYy92MS9wcm92aWRlci5wcm90bxIOY2xvdWQubXVzaWMudjEihQIKDVBsYXlhYmxlVHJhY2sSLwoIcHJvdmlkZXIYASABKA4yHS5jbG91ZC5tdXNpYy52MS5NdXNpY1Byb3ZpZGVyEhAKCHRyYWNrX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg8KB2FydGlzdHMYBCADKAkSDQoFYWxidW0YBSABKAkSKwoIZHVyYXRpb24YBiABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb24SEwoLYXJ0d29ya191cmwYByABKAkSFAoMcHJvdmlkZXJfdXJsGAggASgJEhAKCHBsYXlhYmxlGAkgASgIEhgKEGx5cmljc19hdmFpbGFibGUYCiABKAgi/QIKElByb3ZpZGVyQ29ubmVjdGlvbhIvCghwcm92aWRlchgBIAEoDjIdLmNsb3VkLm11c2ljLnYxLk11c2ljUHJvdmlkZXISOAoGc3RhdHVzGAIgASgOMiguY2xvdWQubXVzaWMudjEuUHJvdmlkZXJDb25uZWN0aW9uU3RhdHVzEhIKCmFjY291bnRfaWQYAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJEhIKCmF2YXRhcl91cmwYBSABKAkSEgoKbWVtYmVyc2hpcBgGIAEoCRI6ChZtZW1iZXJzaGlwX2V4cGlyZV90aW1lGAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgt1cGRhdGVfdGltZRgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASPQoMY2FwYWJpbGl0aWVzGAkgAygOMicuY2xvdWQubXVzaWMudjEuTXVzaWNQcm92aWRlckNhcGFiaWxpdHkiSwoTUHJvdmlkZXJRckNoYWxsZW5nZRINCgVpbWFnZRgBIAEoDBIUCgxjb250ZW50X3R5cGUYAiABKAkSDwoHcGF5bG9hZBgDIAEoCSI2ChlQcm92aWRlclJlZGlyZWN0Q2hhbGxlbmdlEhkKEWF1dGhvcml6YXRpb25fdXJsGAEgASgJIsoCChlQcm92aWRlckNvbm5lY3Rpb25BdHRlbXB0EgsKA3VpZBgBIAEoCRIvCghwcm92aWRlchgCIAEoDjIdLmNsb3VkLm11c2ljLnYxLk11c2ljUHJvdmlkZXISPwoGc3RhdHVzGAMgASgOMi8uY2xvdWQubXVzaWMudjEuUHJvdmlkZXJDb25uZWN0aW9uQXR0ZW1wdFN0YXR1cxIvCgtleHBpcmVfdGltZRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMQoCcXIYBSABKAsyIy5jbG91ZC5tdXNpYy52MS5Qcm92aWRlclFyQ2hhbGxlbmdlSAASPQoIcmVkaXJlY3QYBiABKAsyKS5jbG91ZC5tdXNpYy52MS5Qcm92aWRlclJlZGlyZWN0Q2hhbGxlbmdlSABCCwoJY2hhbGxlbmdlIlsKFFByb3ZpZGVyU2VhcmNoQ3Vyc29yEi8KCHByb3ZpZGVyGAEgASgOMh0uY2xvdWQubXVzaWMudjEuTXVzaWNQcm92aWRlchISCgpwYWdlX3Rva2VuGAIgASgJIsQBChNQcm92aWRlclNlYXJjaEdyb3VwEi8KCHByb3ZpZGVyGAEgASgOMh0uY2xvdWQubXVzaWMudjEuTXVzaWNQcm92aWRlchI0CgZzdGF0dXMYAiABKA4yJC5jbG91ZC5tdXNpYy52MS5Qcm92aWRlclNlYXJjaFN0YXR1cxItCgZ0cmFja3MYAyADKAsyHS5jbG91ZC5tdXNpYy52MS5QbGF5YWJsZVRyYWNrEhcKD25leHRfcGFnZV90b2tlbhgEIAEoCSJqChNEaXJlY3RBdWRpb1BsYXliYWNrEgsKA3VybBgBIAEoCRIUCgxjb250ZW50X3R5cGUYAiABKAkSMAoHcXVhbGl0eRgDIAEoDjIfLmNsb3VkLm11c2ljLnYxLlBsYXliYWNrUXVhbGl0eSIeCg9TcG90aWZ5UGxheWJhY2sSCwoDdXJpGAEgASgJIvMBChJQbGF5YmFja0Rlc2NyaXB0b3ISLwoIcHJvdmlkZXIYASABKA4yHS5jbG91ZC5tdXNpYy52MS5NdXNpY1Byb3ZpZGVyEi8KC2V4cGlyZV90aW1lGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI7CgxkaXJlY3RfYXVkaW8YAyABKAsyIy5jbG91ZC5tdXNpYy52MS5EaXJlY3RBdWRpb1BsYXliYWNrSAASMgoHc3BvdGlmeRgEIAEoCzIfLmNsb3VkLm11c2ljLnYxLlNwb3RpZnlQbGF5YmFja0gAQgoKCHBsYXliYWNrIkkKBUx5cmljEhIKCnBsYWluX3RleHQYASABKAkSEwoLc3luY2VkX3RleHQYAiABKAkSFwoPdHJhbnNsYXRlZF90ZXh0GAMgASgJKqoBCg1NdXNpY1Byb3ZpZGVyEh4KGk1VU0lDX1BST1ZJREVSX1VOU1BFQ0lGSUVEEAASGAoUTVVTSUNfUFJPVklERVJfTE9DQUwQARIbChdNVVNJQ19QUk9WSURFUl9RUV9NVVNJQxACEiYKIk1VU0lDX1BST1ZJREVSX05FVEVBU0VfQ0xPVURfTVVTSUMQAxIaChZNVVNJQ19QUk9WSURFUl9TUE9USUZZEAQqqwIKGFByb3ZpZGVyQ29ubmVjdGlvblN0YXR1cxIqCiZQUk9WSURFUl9DT05ORUNUSU9OX1NUQVRVU19VTlNQRUNJRklFRBAAEisKJ1BST1ZJREVSX0NPTk5FQ1RJT05fU1RBVFVTX0RJU0NPTk5FQ1RFRBABEigKJFBST1ZJREVSX0NPTk5FQ1RJT05fU1RBVFVTX0NPTk5FQ1RFRBACEjEKLVBST1ZJREVSX0NPTk5FQ1RJT05fU1RBVFVTX1JFQ09OTkVDVF9SRVFVSVJFRBADEioKJlBST1ZJREVSX0NPTk5FQ1RJT05fU1RBVFVTX1VOQVZBSUxBQkxFEAQSLQopUFJPVklERVJfQ09OTkVDVElPTl9TVEFUVVNfTk9UX0NPTkZJR1VSRUQQBSr2AgofUHJvdmlkZXJDb25uZWN0aW9uQXR0ZW1wdFN0YXR1cxIyCi5QUk9WSURFUl9DT05ORUNUSU9OX0FUVEVNUFRfU1RBVFVTX1VOU1BFQ0lGSUVEEAASLgoqUFJPVklERVJfQ09OTkVDVElPTl9BVFRFTVBUX1NUQVRVU19XQUlUSU5HEAESLgoqUFJPVklERVJfQ09OTkVDVElPTl9BVFRFTVBUX1NUQVRVU19TQ0FOTkVEEAISMAosUFJPVklERVJfQ09OTkVDVElPTl9BVFRFTVBUX1NUQVRVU19DT05ORUNURUQQAxIuCipQUk9WSURFUl9DT05ORUNUSU9OX0FUVEVNUFRfU1RBVFVTX0VYUElSRUQQBBIuCipQUk9WSURFUl9DT05ORUNUSU9OX0FUVEVNUFRfU1RBVFVTX1JFRlVTRUQQBRItCilQUk9WSURFUl9DT05ORUNUSU9OX0FUVEVNUFRfU1RBVFVTX0ZBSUxFRBAGKuEBChRQcm92aWRlclNlYXJjaFN0YXR1cxImCiJQUk9WSURFUl9TRUFSQ0hfU1RBVFVTX1VOU1BFQ0lGSUVEEAASIAocUFJPVklERVJfU0VBUkNIX1NUQVRVU19SRUFEWRABEigKJFBST1ZJREVSX1NFQVJDSF9TVEFUVVNfTk9UX0NPTk5FQ1RFRBACEiYKIlBST1ZJREVSX1NFQVJDSF9TVEFUVVNfVU5BVkFJTEFCTEUQAxItCilQUk9WSURFUl9TRUFSQ0hfU1RBVFVTX1JFQ09OTkVDVF9SRVFVSVJFRBAEKpMBCg9QbGF5YmFja1F1YWxpdHkSIAocUExBWUJBQ0tfUVVBTElUWV9VTlNQRUNJRklFRBAAEiQKIFBMQVlCQUNLX1FVQUxJVFlfQkVTVF9DT01QQVRJQkxFEAESGQoVUExBWUJBQ0tfUVVBTElUWV9ISUdIEAISHQoZUExBWUJBQ0tfUVVBTElUWV9TVEFOREFSRBADKvwCChdNdXNpY1Byb3ZpZGVyQ2FwYWJpbGl0eRIpCiVNVVNJQ19QUk9WSURFUl9DQVBBQklMSVRZX1VOU1BFQ0lGSUVEEAASMAosTVVTSUNfUFJPVklERVJfQ0FQQUJJTElUWV9BQ0NPVU5UX0NPTk5FQ1RJT04QARIsCihNVVNJQ19QUk9WSURFUl9DQVBBQklMSVRZX0NBVEFMT0dfU0VBUkNIEAISJgoiTVVTSUNfUFJPVklERVJfQ0FQQUJJTElUWV9QTEFZQkFDSxADEiQKIE1VU0lDX1BST1ZJREVSX0NBUEFCSUxJVFlfTFlSSUNTEAQSKwonTVVTSUNfUFJPVklERVJfQ0FQQUJJTElUWV9CUk9XU0VSX1RPS0VOEAUSLQopTVVTSUNfUFJPVklERVJfQ0FQQUJJTElUWV9QTEFZTElTVF9JTVBPUlQQBhIsCihNVVNJQ19QUk9WSURFUl9DQVBBQklMSVRZX0xPQ0FMX0RPV05MT0FEEAdCOFo2ZXhhbXBsZS5jb20vY2xvdWQtZHJpdmUvYXBpL2dlbi9jbG91ZC9tdXNpYy92MTttdXNpY3YxYgZwcm90bzM", [file_google_protobuf_duration, file_google_protobuf_timestamp]);
+  fileDesc("Ch1jbG91ZC9tdXNpYy92MS9wcm92aWRlci5wcm90bxIOY2xvdWQubXVzaWMudjEiiQEKElByb3ZpZGVyRGVzY3JpcHRvchIKCgJpZBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSPQoMY2FwYWJpbGl0aWVzGAMgAygOMicuY2xvdWQubXVzaWMudjEuTXVzaWNQcm92aWRlckNhcGFiaWxpdHkSEgoKY29uZmlndXJlZBgEIAEoCCLpAQoNUGxheWFibGVUcmFjaxITCgtwcm92aWRlcl9pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRIPCgdhcnRpc3RzGAQgAygJEg0KBWFsYnVtGAUgASgJEisKCGR1cmF0aW9uGAYgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uEhMKC2FydHdvcmtfdXJsGAcgASgJEhQKDHByb3ZpZGVyX3VybBgIIAEoCRIQCghwbGF5YWJsZRgJIAEoCBIYChBseXJpY3NfYXZhaWxhYmxlGAogASgIIuECChJQcm92aWRlckNvbm5lY3Rpb24SEwoLcHJvdmlkZXJfaWQYASABKAkSOAoGc3RhdHVzGAIgASgOMiguY2xvdWQubXVzaWMudjEuUHJvdmlkZXJDb25uZWN0aW9uU3RhdHVzEhIKCmFjY291bnRfaWQYAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJEhIKCmF2YXRhcl91cmwYBSABKAkSEgoKbWVtYmVyc2hpcBgGIAEoCRI6ChZtZW1iZXJzaGlwX2V4cGlyZV90aW1lGAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgt1cGRhdGVfdGltZRgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASPQoMY2FwYWJpbGl0aWVzGAkgAygOMicuY2xvdWQubXVzaWMudjEuTXVzaWNQcm92aWRlckNhcGFiaWxpdHkiSwoTUHJvdmlkZXJRckNoYWxsZW5nZRINCgVpbWFnZRgBIAEoDBIUCgxjb250ZW50X3R5cGUYAiABKAkSDwoHcGF5bG9hZBgDIAEoCSI2ChlQcm92aWRlclJlZGlyZWN0Q2hhbGxlbmdlEhkKEWF1dGhvcml6YXRpb25fdXJsGAEgASgJIq4CChlQcm92aWRlckNvbm5lY3Rpb25BdHRlbXB0EgsKA3VpZBgBIAEoCRITCgtwcm92aWRlcl9pZBgCIAEoCRI/CgZzdGF0dXMYAyABKA4yLy5jbG91ZC5tdXNpYy52MS5Qcm92aWRlckNvbm5lY3Rpb25BdHRlbXB0U3RhdHVzEi8KC2V4cGlyZV90aW1lGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIxCgJxchgFIAEoCzIjLmNsb3VkLm11c2ljLnYxLlByb3ZpZGVyUXJDaGFsbGVuZ2VIABI9CghyZWRpcmVjdBgGIAEoCzIpLmNsb3VkLm11c2ljLnYxLlByb3ZpZGVyUmVkaXJlY3RDaGFsbGVuZ2VIAEILCgljaGFsbGVuZ2UiPwoUUHJvdmlkZXJTZWFyY2hDdXJzb3ISEwoLcHJvdmlkZXJfaWQYASABKAkSEgoKcGFnZV90b2tlbhgCIAEoCSKoAQoTUHJvdmlkZXJTZWFyY2hHcm91cBITCgtwcm92aWRlcl9pZBgBIAEoCRI0CgZzdGF0dXMYAiABKA4yJC5jbG91ZC5tdXNpYy52MS5Qcm92aWRlclNlYXJjaFN0YXR1cxItCgZ0cmFja3MYAyADKAsyHS5jbG91ZC5tdXNpYy52MS5QbGF5YWJsZVRyYWNrEhcKD25leHRfcGFnZV90b2tlbhgEIAEoCSJqChNEaXJlY3RBdWRpb1BsYXliYWNrEgsKA3VybBgBIAEoCRIUCgxjb250ZW50X3R5cGUYAiABKAkSMAoHcXVhbGl0eRgDIAEoDjIfLmNsb3VkLm11c2ljLnYxLlBsYXliYWNrUXVhbGl0eSI7ChNQcm92aWRlclNka1BsYXliYWNrEg4KBnNka19pZBgBIAEoCRIUCgxyZXNvdXJjZV91cmkYAiABKAki4AEKElBsYXliYWNrRGVzY3JpcHRvchITCgtwcm92aWRlcl9pZBgBIAEoCRIvCgtleHBpcmVfdGltZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASOwoMZGlyZWN0X2F1ZGlvGAMgASgLMiMuY2xvdWQubXVzaWMudjEuRGlyZWN0QXVkaW9QbGF5YmFja0gAEjsKDHByb3ZpZGVyX3NkaxgEIAEoCzIjLmNsb3VkLm11c2ljLnYxLlByb3ZpZGVyU2RrUGxheWJhY2tIAEIKCghwbGF5YmFjayJJCgVMeXJpYxISCgpwbGFpbl90ZXh0GAEgASgJEhMKC3N5bmNlZF90ZXh0GAIgASgJEhcKD3RyYW5zbGF0ZWRfdGV4dBgDIAEoCSqrAgoYUHJvdmlkZXJDb25uZWN0aW9uU3RhdHVzEioKJlBST1ZJREVSX0NPTk5FQ1RJT05fU1RBVFVTX1VOU1BFQ0lGSUVEEAASKwonUFJPVklERVJfQ09OTkVDVElPTl9TVEFUVVNfRElTQ09OTkVDVEVEEAESKAokUFJPVklERVJfQ09OTkVDVElPTl9TVEFUVVNfQ09OTkVDVEVEEAISMQotUFJPVklERVJfQ09OTkVDVElPTl9TVEFUVVNfUkVDT05ORUNUX1JFUVVJUkVEEAMSKgomUFJPVklERVJfQ09OTkVDVElPTl9TVEFUVVNfVU5BVkFJTEFCTEUQBBItCilQUk9WSURFUl9DT05ORUNUSU9OX1NUQVRVU19OT1RfQ09ORklHVVJFRBAFKvYCCh9Qcm92aWRlckNvbm5lY3Rpb25BdHRlbXB0U3RhdHVzEjIKLlBST1ZJREVSX0NPTk5FQ1RJT05fQVRURU1QVF9TVEFUVVNfVU5TUEVDSUZJRUQQABIuCipQUk9WSURFUl9DT05ORUNUSU9OX0FUVEVNUFRfU1RBVFVTX1dBSVRJTkcQARIuCipQUk9WSURFUl9DT05ORUNUSU9OX0FUVEVNUFRfU1RBVFVTX1NDQU5ORUQQAhIwCixQUk9WSURFUl9DT05ORUNUSU9OX0FUVEVNUFRfU1RBVFVTX0NPTk5FQ1RFRBADEi4KKlBST1ZJREVSX0NPTk5FQ1RJT05fQVRURU1QVF9TVEFUVVNfRVhQSVJFRBAEEi4KKlBST1ZJREVSX0NPTk5FQ1RJT05fQVRURU1QVF9TVEFUVVNfUkVGVVNFRBAFEi0KKVBST1ZJREVSX0NPTk5FQ1RJT05fQVRURU1QVF9TVEFUVVNfRkFJTEVEEAYq4QEKFFByb3ZpZGVyU2VhcmNoU3RhdHVzEiYKIlBST1ZJREVSX1NFQVJDSF9TVEFUVVNfVU5TUEVDSUZJRUQQABIgChxQUk9WSURFUl9TRUFSQ0hfU1RBVFVTX1JFQURZEAESKAokUFJPVklERVJfU0VBUkNIX1NUQVRVU19OT1RfQ09OTkVDVEVEEAISJgoiUFJPVklERVJfU0VBUkNIX1NUQVRVU19VTkFWQUlMQUJMRRADEi0KKVBST1ZJREVSX1NFQVJDSF9TVEFUVVNfUkVDT05ORUNUX1JFUVVJUkVEEAQqkwEKD1BsYXliYWNrUXVhbGl0eRIgChxQTEFZQkFDS19RVUFMSVRZX1VOU1BFQ0lGSUVEEAASJAogUExBWUJBQ0tfUVVBTElUWV9CRVNUX0NPTVBBVElCTEUQARIZChVQTEFZQkFDS19RVUFMSVRZX0hJR0gQAhIdChlQTEFZQkFDS19RVUFMSVRZX1NUQU5EQVJEEAMq/AIKF011c2ljUHJvdmlkZXJDYXBhYmlsaXR5EikKJU1VU0lDX1BST1ZJREVSX0NBUEFCSUxJVFlfVU5TUEVDSUZJRUQQABIwCixNVVNJQ19QUk9WSURFUl9DQVBBQklMSVRZX0FDQ09VTlRfQ09OTkVDVElPThABEiwKKE1VU0lDX1BST1ZJREVSX0NBUEFCSUxJVFlfQ0FUQUxPR19TRUFSQ0gQAhImCiJNVVNJQ19QUk9WSURFUl9DQVBBQklMSVRZX1BMQVlCQUNLEAMSJAogTVVTSUNfUFJPVklERVJfQ0FQQUJJTElUWV9MWVJJQ1MQBBIrCidNVVNJQ19QUk9WSURFUl9DQVBBQklMSVRZX0JST1dTRVJfVE9LRU4QBRItCilNVVNJQ19QUk9WSURFUl9DQVBBQklMSVRZX1BMQVlMSVNUX0lNUE9SVBAGEiwKKE1VU0lDX1BST1ZJREVSX0NBUEFCSUxJVFlfTE9DQUxfRE9XTkxPQUQQB0I4WjZleGFtcGxlLmNvbS9jbG91ZC1kcml2ZS9hcGkvZ2VuL2Nsb3VkL211c2ljL3YxO211c2ljdjFiBnByb3RvMw", [file_google_protobuf_duration, file_google_protobuf_timestamp]);
+
+/**
+ * ProviderDescriptor exposes one registered plugin without fixing IDs in the contract.
+ *
+ * @generated from message cloud.music.v1.ProviderDescriptor
+ */
+export type ProviderDescriptor = Message<"cloud.music.v1.ProviderDescriptor"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string display_name = 2;
+   */
+  displayName: string;
+
+  /**
+   * @generated from field: repeated cloud.music.v1.MusicProviderCapability capabilities = 3;
+   */
+  capabilities: MusicProviderCapability[];
+
+  /**
+   * @generated from field: bool configured = 4;
+   */
+  configured: boolean;
+};
+
+/**
+ * Describes the message cloud.music.v1.ProviderDescriptor.
+ * Use `create(ProviderDescriptorSchema)` to create a new message.
+ */
+export const ProviderDescriptorSchema: GenMessage<ProviderDescriptor> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_provider, 0);
 
 /**
  * PlayableTrack is the normalized read model shared by search and history.
@@ -21,9 +55,9 @@ export const file_cloud_music_v1_provider: GenFile = /*@__PURE__*/
  */
 export type PlayableTrack = Message<"cloud.music.v1.PlayableTrack"> & {
   /**
-   * @generated from field: cloud.music.v1.MusicProvider provider = 1;
+   * @generated from field: string provider_id = 1;
    */
-  provider: MusicProvider;
+  providerId: string;
 
   /**
    * @generated from field: string track_id = 2;
@@ -76,7 +110,7 @@ export type PlayableTrack = Message<"cloud.music.v1.PlayableTrack"> & {
  * Use `create(PlayableTrackSchema)` to create a new message.
  */
 export const PlayableTrackSchema: GenMessage<PlayableTrack> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_provider, 0);
+  messageDesc(file_cloud_music_v1_provider, 1);
 
 /**
  * ProviderConnection contains public account state and never contains credentials.
@@ -85,9 +119,9 @@ export const PlayableTrackSchema: GenMessage<PlayableTrack> = /*@__PURE__*/
  */
 export type ProviderConnection = Message<"cloud.music.v1.ProviderConnection"> & {
   /**
-   * @generated from field: cloud.music.v1.MusicProvider provider = 1;
+   * @generated from field: string provider_id = 1;
    */
-  provider: MusicProvider;
+  providerId: string;
 
   /**
    * @generated from field: cloud.music.v1.ProviderConnectionStatus status = 2;
@@ -135,7 +169,7 @@ export type ProviderConnection = Message<"cloud.music.v1.ProviderConnection"> & 
  * Use `create(ProviderConnectionSchema)` to create a new message.
  */
 export const ProviderConnectionSchema: GenMessage<ProviderConnection> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_provider, 1);
+  messageDesc(file_cloud_music_v1_provider, 2);
 
 /**
  * ProviderQrChallenge contains one short-lived login image.
@@ -164,7 +198,7 @@ export type ProviderQrChallenge = Message<"cloud.music.v1.ProviderQrChallenge"> 
  * Use `create(ProviderQrChallengeSchema)` to create a new message.
  */
 export const ProviderQrChallengeSchema: GenMessage<ProviderQrChallenge> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_provider, 2);
+  messageDesc(file_cloud_music_v1_provider, 3);
 
 /**
  * ProviderRedirectChallenge contains one trusted provider authorization URL.
@@ -183,7 +217,7 @@ export type ProviderRedirectChallenge = Message<"cloud.music.v1.ProviderRedirect
  * Use `create(ProviderRedirectChallengeSchema)` to create a new message.
  */
 export const ProviderRedirectChallengeSchema: GenMessage<ProviderRedirectChallenge> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_provider, 3);
+  messageDesc(file_cloud_music_v1_provider, 4);
 
 /**
  * ProviderConnectionAttempt is one bounded interactive login operation.
@@ -197,9 +231,9 @@ export type ProviderConnectionAttempt = Message<"cloud.music.v1.ProviderConnecti
   uid: string;
 
   /**
-   * @generated from field: cloud.music.v1.MusicProvider provider = 2;
+   * @generated from field: string provider_id = 2;
    */
-  provider: MusicProvider;
+  providerId: string;
 
   /**
    * @generated from field: cloud.music.v1.ProviderConnectionAttemptStatus status = 3;
@@ -234,7 +268,7 @@ export type ProviderConnectionAttempt = Message<"cloud.music.v1.ProviderConnecti
  * Use `create(ProviderConnectionAttemptSchema)` to create a new message.
  */
 export const ProviderConnectionAttemptSchema: GenMessage<ProviderConnectionAttempt> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_provider, 4);
+  messageDesc(file_cloud_music_v1_provider, 5);
 
 /**
  * ProviderSearchCursor requests the first or a subsequent page for one source.
@@ -243,9 +277,9 @@ export const ProviderConnectionAttemptSchema: GenMessage<ProviderConnectionAttem
  */
 export type ProviderSearchCursor = Message<"cloud.music.v1.ProviderSearchCursor"> & {
   /**
-   * @generated from field: cloud.music.v1.MusicProvider provider = 1;
+   * @generated from field: string provider_id = 1;
    */
-  provider: MusicProvider;
+  providerId: string;
 
   /**
    * @generated from field: string page_token = 2;
@@ -258,7 +292,7 @@ export type ProviderSearchCursor = Message<"cloud.music.v1.ProviderSearchCursor"
  * Use `create(ProviderSearchCursorSchema)` to create a new message.
  */
 export const ProviderSearchCursorSchema: GenMessage<ProviderSearchCursor> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_provider, 5);
+  messageDesc(file_cloud_music_v1_provider, 6);
 
 /**
  * ProviderSearchGroup is one source's independent search result.
@@ -267,9 +301,9 @@ export const ProviderSearchCursorSchema: GenMessage<ProviderSearchCursor> = /*@_
  */
 export type ProviderSearchGroup = Message<"cloud.music.v1.ProviderSearchGroup"> & {
   /**
-   * @generated from field: cloud.music.v1.MusicProvider provider = 1;
+   * @generated from field: string provider_id = 1;
    */
-  provider: MusicProvider;
+  providerId: string;
 
   /**
    * @generated from field: cloud.music.v1.ProviderSearchStatus status = 2;
@@ -292,7 +326,7 @@ export type ProviderSearchGroup = Message<"cloud.music.v1.ProviderSearchGroup"> 
  * Use `create(ProviderSearchGroupSchema)` to create a new message.
  */
 export const ProviderSearchGroupSchema: GenMessage<ProviderSearchGroup> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_provider, 6);
+  messageDesc(file_cloud_music_v1_provider, 7);
 
 /**
  * DirectAudioPlayback is a short-lived browser-compatible audio URL.
@@ -321,26 +355,31 @@ export type DirectAudioPlayback = Message<"cloud.music.v1.DirectAudioPlayback"> 
  * Use `create(DirectAudioPlaybackSchema)` to create a new message.
  */
 export const DirectAudioPlaybackSchema: GenMessage<DirectAudioPlayback> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_provider, 7);
+  messageDesc(file_cloud_music_v1_provider, 8);
 
 /**
- * SpotifyPlayback identifies content played only through the official SDK.
+ * ProviderSdkPlayback identifies content played through a provider browser SDK.
  *
- * @generated from message cloud.music.v1.SpotifyPlayback
+ * @generated from message cloud.music.v1.ProviderSdkPlayback
  */
-export type SpotifyPlayback = Message<"cloud.music.v1.SpotifyPlayback"> & {
+export type ProviderSdkPlayback = Message<"cloud.music.v1.ProviderSdkPlayback"> & {
   /**
-   * @generated from field: string uri = 1;
+   * @generated from field: string sdk_id = 1;
    */
-  uri: string;
+  sdkId: string;
+
+  /**
+   * @generated from field: string resource_uri = 2;
+   */
+  resourceUri: string;
 };
 
 /**
- * Describes the message cloud.music.v1.SpotifyPlayback.
- * Use `create(SpotifyPlaybackSchema)` to create a new message.
+ * Describes the message cloud.music.v1.ProviderSdkPlayback.
+ * Use `create(ProviderSdkPlaybackSchema)` to create a new message.
  */
-export const SpotifyPlaybackSchema: GenMessage<SpotifyPlayback> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_provider, 8);
+export const ProviderSdkPlaybackSchema: GenMessage<ProviderSdkPlayback> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_provider, 9);
 
 /**
  * PlaybackDescriptor selects the source-specific playback implementation.
@@ -349,9 +388,9 @@ export const SpotifyPlaybackSchema: GenMessage<SpotifyPlayback> = /*@__PURE__*/
  */
 export type PlaybackDescriptor = Message<"cloud.music.v1.PlaybackDescriptor"> & {
   /**
-   * @generated from field: cloud.music.v1.MusicProvider provider = 1;
+   * @generated from field: string provider_id = 1;
    */
-  provider: MusicProvider;
+  providerId: string;
 
   /**
    * @generated from field: google.protobuf.Timestamp expire_time = 2;
@@ -369,10 +408,10 @@ export type PlaybackDescriptor = Message<"cloud.music.v1.PlaybackDescriptor"> & 
     case: "directAudio";
   } | {
     /**
-     * @generated from field: cloud.music.v1.SpotifyPlayback spotify = 4;
+     * @generated from field: cloud.music.v1.ProviderSdkPlayback provider_sdk = 4;
      */
-    value: SpotifyPlayback;
-    case: "spotify";
+    value: ProviderSdkPlayback;
+    case: "providerSdk";
   } | { case: undefined; value?: undefined };
 };
 
@@ -381,7 +420,7 @@ export type PlaybackDescriptor = Message<"cloud.music.v1.PlaybackDescriptor"> & 
  * Use `create(PlaybackDescriptorSchema)` to create a new message.
  */
 export const PlaybackDescriptorSchema: GenMessage<PlaybackDescriptor> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_provider, 9);
+  messageDesc(file_cloud_music_v1_provider, 10);
 
 /**
  * Lyric contains provider-supplied text without cross-provider substitution.
@@ -410,45 +449,7 @@ export type Lyric = Message<"cloud.music.v1.Lyric"> & {
  * Use `create(LyricSchema)` to create a new message.
  */
 export const LyricSchema: GenMessage<Lyric> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_provider, 10);
-
-/**
- * MusicProvider identifies one isolated music catalog and playback source.
- *
- * @generated from enum cloud.music.v1.MusicProvider
- */
-export enum MusicProvider {
-  /**
-   * @generated from enum value: MUSIC_PROVIDER_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * @generated from enum value: MUSIC_PROVIDER_LOCAL = 1;
-   */
-  LOCAL = 1,
-
-  /**
-   * @generated from enum value: MUSIC_PROVIDER_QQ_MUSIC = 2;
-   */
-  QQ_MUSIC = 2,
-
-  /**
-   * @generated from enum value: MUSIC_PROVIDER_NETEASE_CLOUD_MUSIC = 3;
-   */
-  NETEASE_CLOUD_MUSIC = 3,
-
-  /**
-   * @generated from enum value: MUSIC_PROVIDER_SPOTIFY = 4;
-   */
-  SPOTIFY = 4,
-}
-
-/**
- * Describes the enum cloud.music.v1.MusicProvider.
- */
-export const MusicProviderSchema: GenEnum<MusicProvider> = /*@__PURE__*/
-  enumDesc(file_cloud_music_v1_provider, 0);
+  messageDesc(file_cloud_music_v1_provider, 11);
 
 /**
  * ProviderConnectionStatus describes whether a provider account can be used.
@@ -491,7 +492,7 @@ export enum ProviderConnectionStatus {
  * Describes the enum cloud.music.v1.ProviderConnectionStatus.
  */
 export const ProviderConnectionStatusSchema: GenEnum<ProviderConnectionStatus> = /*@__PURE__*/
-  enumDesc(file_cloud_music_v1_provider, 1);
+  enumDesc(file_cloud_music_v1_provider, 0);
 
 /**
  * ProviderConnectionAttemptStatus describes an interactive login attempt.
@@ -539,7 +540,7 @@ export enum ProviderConnectionAttemptStatus {
  * Describes the enum cloud.music.v1.ProviderConnectionAttemptStatus.
  */
 export const ProviderConnectionAttemptStatusSchema: GenEnum<ProviderConnectionAttemptStatus> = /*@__PURE__*/
-  enumDesc(file_cloud_music_v1_provider, 2);
+  enumDesc(file_cloud_music_v1_provider, 1);
 
 /**
  * ProviderSearchStatus describes one independently loaded search group.
@@ -577,7 +578,7 @@ export enum ProviderSearchStatus {
  * Describes the enum cloud.music.v1.ProviderSearchStatus.
  */
 export const ProviderSearchStatusSchema: GenEnum<ProviderSearchStatus> = /*@__PURE__*/
-  enumDesc(file_cloud_music_v1_provider, 3);
+  enumDesc(file_cloud_music_v1_provider, 2);
 
 /**
  * PlaybackQuality selects a browser-compatible direct audio tier.
@@ -610,7 +611,7 @@ export enum PlaybackQuality {
  * Describes the enum cloud.music.v1.PlaybackQuality.
  */
 export const PlaybackQualitySchema: GenEnum<PlaybackQuality> = /*@__PURE__*/
-  enumDesc(file_cloud_music_v1_provider, 4);
+  enumDesc(file_cloud_music_v1_provider, 3);
 
 /**
  * MusicProviderCapability describes an optional plugin contract.
@@ -663,5 +664,5 @@ export enum MusicProviderCapability {
  * Describes the enum cloud.music.v1.MusicProviderCapability.
  */
 export const MusicProviderCapabilitySchema: GenEnum<MusicProviderCapability> = /*@__PURE__*/
-  enumDesc(file_cloud_music_v1_provider, 5);
+  enumDesc(file_cloud_music_v1_provider, 4);
 

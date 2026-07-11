@@ -47,7 +47,7 @@ func (c *Client) SongURL(ctx context.Context, request SongURLRequest) (SongURL, 
 			return resource, nil
 		}
 	}
-	return SongURL{}, &ProviderError{Operation: songURLOperation, Kind: ErrorKindUnavailable}
+	return SongURL{}, &ProviderError{Operation: songURLOperation, Kind: ErrorKindNotFound}
 }
 
 func (c *Client) requestSongURL(ctx context.Context, songID int64, quality string) (SongURL, bool, error) {

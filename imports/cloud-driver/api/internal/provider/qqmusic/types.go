@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"strings"
 	"time"
+
+	"example.com/cloud-drive/api/internal/provider/failure"
 )
 
 // Credentials contains the reusable QQ Music login state returned by QQLogin.
@@ -185,6 +187,8 @@ const (
 	ErrorKindUnauthorized ErrorKind = "unauthorized"
 	ErrorKindForbidden    ErrorKind = "forbidden"
 	ErrorKindUnavailable  ErrorKind = "unavailable"
+	ErrorKindNotFound     ErrorKind = "not_found"
+	ErrorKindRateLimited  ErrorKind = "rate_limited"
 )
 
 // Error deliberately contains no request URL, response body, cookie, or
@@ -201,6 +205,24 @@ func (err *Error) Error() string {
 		return fmt.Sprintf("qqmusic %s: %s (code %d)", err.Operation, err.Message, err.Code)
 	}
 	return fmt.Sprintf("qqmusic %s: %s", err.Operation, err.Message)
+}
+
+// FailureKind exposes only the provider-neutral category to adapter code.
+func (err *Error) FailureKind() failure.Kind {
+	switch err.Kind {
+	case ErrorKindInvalidInput:
+		return failure.Invalid
+	case ErrorKindUnauthorized:
+		return failure.Unauthorized
+	case ErrorKindForbidden:
+		return failure.Forbidden
+	case ErrorKindNotFound:
+		return failure.NotFound
+	case ErrorKindRateLimited:
+		return failure.RateLimited
+	default:
+		return failure.Unavailable
+	}
 }
 
 func providerError(operation string, kind ErrorKind, message string, code int) error {

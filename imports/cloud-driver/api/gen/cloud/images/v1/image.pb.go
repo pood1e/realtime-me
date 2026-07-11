@@ -7,6 +7,7 @@
 package imagesv1
 
 import (
+	v1 "example.com/cloud-drive/api/gen/cloud/content/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -22,59 +23,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// ProcessingStatus identifies image validation and preview readiness.
-type ImageProcessingStatus int32
-
-const (
-	ImageProcessingStatus_IMAGE_PROCESSING_STATUS_UNSPECIFIED ImageProcessingStatus = 0
-	ImageProcessingStatus_IMAGE_PROCESSING_STATUS_PENDING     ImageProcessingStatus = 1
-	ImageProcessingStatus_IMAGE_PROCESSING_STATUS_READY       ImageProcessingStatus = 2
-	ImageProcessingStatus_IMAGE_PROCESSING_STATUS_FAILED      ImageProcessingStatus = 3
-)
-
-// Enum value maps for ImageProcessingStatus.
-var (
-	ImageProcessingStatus_name = map[int32]string{
-		0: "IMAGE_PROCESSING_STATUS_UNSPECIFIED",
-		1: "IMAGE_PROCESSING_STATUS_PENDING",
-		2: "IMAGE_PROCESSING_STATUS_READY",
-		3: "IMAGE_PROCESSING_STATUS_FAILED",
-	}
-	ImageProcessingStatus_value = map[string]int32{
-		"IMAGE_PROCESSING_STATUS_UNSPECIFIED": 0,
-		"IMAGE_PROCESSING_STATUS_PENDING":     1,
-		"IMAGE_PROCESSING_STATUS_READY":       2,
-		"IMAGE_PROCESSING_STATUS_FAILED":      3,
-	}
-)
-
-func (x ImageProcessingStatus) Enum() *ImageProcessingStatus {
-	p := new(ImageProcessingStatus)
-	*p = x
-	return p
-}
-
-func (x ImageProcessingStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ImageProcessingStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_cloud_images_v1_image_proto_enumTypes[0].Descriptor()
-}
-
-func (ImageProcessingStatus) Type() protoreflect.EnumType {
-	return &file_cloud_images_v1_image_proto_enumTypes[0]
-}
-
-func (x ImageProcessingStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ImageProcessingStatus.Descriptor instead.
-func (ImageProcessingStatus) EnumDescriptor() ([]byte, []int) {
-	return file_cloud_images_v1_image_proto_rawDescGZIP(), []int{0}
-}
-
 // Image is one private image asset.
 type Image struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
@@ -88,7 +36,7 @@ type Image struct {
 	Height           int32                  `protobuf:"varint,8,opt,name=height,proto3" json:"height,omitempty"`
 	PreviewUrl       string                 `protobuf:"bytes,9,opt,name=preview_url,json=previewUrl,proto3" json:"preview_url,omitempty"`
 	OriginalUrl      string                 `protobuf:"bytes,10,opt,name=original_url,json=originalUrl,proto3" json:"original_url,omitempty"`
-	ProcessingStatus ImageProcessingStatus  `protobuf:"varint,11,opt,name=processing_status,json=processingStatus,proto3,enum=cloud.images.v1.ImageProcessingStatus" json:"processing_status,omitempty"`
+	ProcessingStatus v1.ProcessingStatus    `protobuf:"varint,11,opt,name=processing_status,json=processingStatus,proto3,enum=cloud.content.v1.ProcessingStatus" json:"processing_status,omitempty"`
 	CreateTime       *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	UpdateTime       *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	DeleteTime       *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=delete_time,json=deleteTime,proto3" json:"delete_time,omitempty"`
@@ -196,11 +144,11 @@ func (x *Image) GetOriginalUrl() string {
 	return ""
 }
 
-func (x *Image) GetProcessingStatus() ImageProcessingStatus {
+func (x *Image) GetProcessingStatus() v1.ProcessingStatus {
 	if x != nil {
 		return x.ProcessingStatus
 	}
-	return ImageProcessingStatus_IMAGE_PROCESSING_STATUS_UNSPECIFIED
+	return v1.ProcessingStatus(0)
 }
 
 func (x *Image) GetCreateTime() *timestamppb.Timestamp {
@@ -374,7 +322,7 @@ var File_cloud_images_v1_image_proto protoreflect.FileDescriptor
 
 const file_cloud_images_v1_image_proto_rawDesc = "" +
 	"\n" +
-	"\x1bcloud/images/v1/image.proto\x12\x0fcloud.images.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc7\x04\n" +
+	"\x1bcloud/images/v1/image.proto\x12\x0fcloud.images.v1\x1a!cloud/content/v1/processing.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc3\x04\n" +
 	"\x05Image\x12\x10\n" +
 	"\x03uid\x18\x01 \x01(\tR\x03uid\x12\x1b\n" +
 	"\talbum_uid\x18\x02 \x01(\tR\balbumUid\x12!\n" +
@@ -388,8 +336,8 @@ const file_cloud_images_v1_image_proto_rawDesc = "" +
 	"\vpreview_url\x18\t \x01(\tR\n" +
 	"previewUrl\x12!\n" +
 	"\foriginal_url\x18\n" +
-	" \x01(\tR\voriginalUrl\x12S\n" +
-	"\x11processing_status\x18\v \x01(\x0e2&.cloud.images.v1.ImageProcessingStatusR\x10processingStatus\x12;\n" +
+	" \x01(\tR\voriginalUrl\x12O\n" +
+	"\x11processing_status\x18\v \x01(\x0e2\".cloud.content.v1.ProcessingStatusR\x10processingStatus\x12;\n" +
 	"\vcreate_time\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"createTime\x12;\n" +
 	"\vupdate_time\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\n" +
@@ -412,12 +360,7 @@ const file_cloud_images_v1_image_proto_rawDesc = "" +
 	"\vcreate_time\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"createTime\x12;\n" +
 	"\vrevoke_time\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"revokeTime*\xac\x01\n" +
-	"\x15ImageProcessingStatus\x12'\n" +
-	"#IMAGE_PROCESSING_STATUS_UNSPECIFIED\x10\x00\x12#\n" +
-	"\x1fIMAGE_PROCESSING_STATUS_PENDING\x10\x01\x12!\n" +
-	"\x1dIMAGE_PROCESSING_STATUS_READY\x10\x02\x12\"\n" +
-	"\x1eIMAGE_PROCESSING_STATUS_FAILED\x10\x03B:Z8example.com/cloud-drive/api/gen/cloud/images/v1;imagesv1b\x06proto3"
+	"revokeTimeB:Z8example.com/cloud-drive/api/gen/cloud/images/v1;imagesv1b\x06proto3"
 
 var (
 	file_cloud_images_v1_image_proto_rawDescOnce sync.Once
@@ -431,17 +374,16 @@ func file_cloud_images_v1_image_proto_rawDescGZIP() []byte {
 	return file_cloud_images_v1_image_proto_rawDescData
 }
 
-var file_cloud_images_v1_image_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_cloud_images_v1_image_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_cloud_images_v1_image_proto_goTypes = []any{
-	(ImageProcessingStatus)(0),    // 0: cloud.images.v1.ImageProcessingStatus
-	(*Image)(nil),                 // 1: cloud.images.v1.Image
-	(*ImageAlbum)(nil),            // 2: cloud.images.v1.ImageAlbum
-	(*ImageLink)(nil),             // 3: cloud.images.v1.ImageLink
+	(*Image)(nil),                 // 0: cloud.images.v1.Image
+	(*ImageAlbum)(nil),            // 1: cloud.images.v1.ImageAlbum
+	(*ImageLink)(nil),             // 2: cloud.images.v1.ImageLink
+	(v1.ProcessingStatus)(0),      // 3: cloud.content.v1.ProcessingStatus
 	(*timestamppb.Timestamp)(nil), // 4: google.protobuf.Timestamp
 }
 var file_cloud_images_v1_image_proto_depIdxs = []int32{
-	0, // 0: cloud.images.v1.Image.processing_status:type_name -> cloud.images.v1.ImageProcessingStatus
+	3, // 0: cloud.images.v1.Image.processing_status:type_name -> cloud.content.v1.ProcessingStatus
 	4, // 1: cloud.images.v1.Image.create_time:type_name -> google.protobuf.Timestamp
 	4, // 2: cloud.images.v1.Image.update_time:type_name -> google.protobuf.Timestamp
 	4, // 3: cloud.images.v1.Image.delete_time:type_name -> google.protobuf.Timestamp
@@ -465,14 +407,13 @@ func file_cloud_images_v1_image_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cloud_images_v1_image_proto_rawDesc), len(file_cloud_images_v1_image_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      0,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_cloud_images_v1_image_proto_goTypes,
 		DependencyIndexes: file_cloud_images_v1_image_proto_depIdxs,
-		EnumInfos:         file_cloud_images_v1_image_proto_enumTypes,
 		MessageInfos:      file_cloud_images_v1_image_proto_msgTypes,
 	}.Build()
 	File_cloud_images_v1_image_proto = out.File

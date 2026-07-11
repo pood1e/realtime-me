@@ -17,7 +17,7 @@ func resolveSpotifyPlayback(trackID string, credentials []byte) (domain.Playback
 		return domain.PlaybackDescriptor{}, nil, fmt.Errorf("%w: invalid Spotify track ID", domain.ErrInvalidArgument)
 	}
 	return domain.PlaybackDescriptor{
-		Provider: domain.MusicProviderSpotify, SpotifyURI: "spotify:track:" + trackID,
+		Provider: domain.MusicProviderSpotify, SDKID: "spotify_web_playback", ResourceURI: "spotify:track:" + trackID,
 	}, credentials, nil
 }
 

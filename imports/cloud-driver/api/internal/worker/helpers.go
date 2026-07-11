@@ -3,9 +3,25 @@ package worker
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
+	"time"
+
+	"example.com/cloud-drive/api/internal/domain"
 )
+
+type failureDecision struct {
+	Code    string
+	Retry   bool
+	RetryAt time.Time
+}
+
+type unsupportedProcessorError struct{ kind domain.ProcessingJobKind }
+
+func (e *unsupportedProcessorError) Error() string {
+	return fmt.Sprintf("unsupported processing job kind %q", e.kind)
+}
 
 func extensionForContent(contentType string) string {
 	return map[string]string{
@@ -75,8 +91,44 @@ func firstNonEmpty(values ...string) string {
 }
 
 func errorCode(err error) string {
+	var unsupported *unsupportedProcessorError
+	if errors.As(err, &unsupported) {
+		return "unsupported_job_kind"
+	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return "timeout"
 	}
+	if errors.Is(err, domain.ErrProviderReconnectRequired) {
+		return "provider_reconnect_required"
+	}
+	if errors.Is(err, domain.ErrResourceExhausted) {
+		return "storage_exhausted"
+	}
+	if errors.Is(err, domain.ErrRateLimited) {
+		return "rate_limited"
+	}
 	return "processing_failed"
+}
+
+func classifyFailure(err error, attempts int, now time.Time) failureDecision {
+	retry := true
+	var unsupported *unsupportedProcessorError
+	if errors.As(err, &unsupported) ||
+		errors.Is(err, domain.ErrInvalidArgument) ||
+		errors.Is(err, domain.ErrForbidden) ||
+		errors.Is(err, domain.ErrConflict) ||
+		errors.Is(err, domain.ErrProviderReconnectRequired) {
+		retry = false
+	}
+	backoff := time.Duration(attempts*attempts) * 30 * time.Second
+	if backoff < 30*time.Second {
+		backoff = 30 * time.Second
+	}
+	if backoff > 30*time.Minute {
+		backoff = 30 * time.Minute
+	}
+	if errors.Is(err, domain.ErrRateLimited) && backoff < 5*time.Minute {
+		backoff = 5 * time.Minute
+	}
+	return failureDecision{Code: errorCode(err), Retry: retry, RetryAt: now.Add(backoff)}
 }

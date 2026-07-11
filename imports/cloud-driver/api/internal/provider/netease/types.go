@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"strconv"
 	"time"
+
+	"example.com/cloud-drive/api/internal/provider/failure"
 )
 
 // CredentialCookie is one persisted NetEase session cookie.
@@ -206,6 +208,8 @@ const (
 	ErrorKindUnauthorized ErrorKind = "unauthorized"
 	ErrorKindUpstream     ErrorKind = "upstream"
 	ErrorKindUnavailable  ErrorKind = "unavailable"
+	ErrorKindNotFound     ErrorKind = "not_found"
+	ErrorKindRateLimited  ErrorKind = "rate_limited"
 )
 
 // ProviderError is deliberately limited to non-sensitive diagnostics.
@@ -232,7 +236,27 @@ func (e *ProviderError) Error() string {
 		return "netease " + e.Operation + ": authentication required"
 	case ErrorKindUnavailable:
 		return "netease " + e.Operation + ": song is unavailable"
+	case ErrorKindNotFound:
+		return "netease " + e.Operation + ": resource not found"
+	case ErrorKindRateLimited:
+		return "netease " + e.Operation + ": request rate limited"
 	default:
 		return "netease " + e.Operation + ": upstream request rejected with code " + strconv.Itoa(e.UpstreamCode)
+	}
+}
+
+// FailureKind exposes only the provider-neutral category to adapter code.
+func (e *ProviderError) FailureKind() failure.Kind {
+	switch e.Kind {
+	case ErrorKindInvalid:
+		return failure.Invalid
+	case ErrorKindUnauthorized:
+		return failure.Unauthorized
+	case ErrorKindNotFound:
+		return failure.NotFound
+	case ErrorKindRateLimited:
+		return failure.RateLimited
+	default:
+		return failure.Unavailable
 	}
 }

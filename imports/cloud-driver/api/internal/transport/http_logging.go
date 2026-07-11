@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type responseRecorder struct {
@@ -13,8 +15,15 @@ type responseRecorder struct {
 }
 
 func (recorder *responseRecorder) WriteHeader(status int) {
+	if recorder.status != 0 {
+		return
+	}
 	recorder.status = status
 	recorder.ResponseWriter.WriteHeader(status)
+}
+
+func (recorder *responseRecorder) Unwrap() http.ResponseWriter {
+	return recorder.ResponseWriter
 }
 func (recorder *responseRecorder) Write(body []byte) (int, error) {
 	if recorder.status == 0 {
@@ -26,13 +35,16 @@ func (recorder *responseRecorder) Write(body []byte) (int, error) {
 func requestLogger(logger *slog.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		started := time.Now()
+		requestID := uuid.NewString()
+		writer.Header().Set("X-Request-ID", requestID)
 		recorder := &responseRecorder{ResponseWriter: writer}
 		next.ServeHTTP(recorder, request)
 		status := recorder.status
 		if status == 0 {
 			status = http.StatusOK
 		}
-		logger.Info("request complete", "method", request.Method, "path", redactedPath(request.URL.Path), "status", status, "duration", time.Since(started))
+		logger.Info("request complete", "request_id", requestID, "method", request.Method,
+			"path", redactedPath(request.URL.Path), "status", status, "duration", time.Since(started))
 	})
 }
 

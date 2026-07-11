@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"example.com/cloud-drive/api/internal/app"
 	"example.com/cloud-drive/api/internal/config"
 	"example.com/cloud-drive/api/internal/domain"
 	"example.com/cloud-drive/api/internal/provider"
@@ -50,7 +51,10 @@ func run(logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	providerRegistry, err := provider.NewRegistry(provider.RegistryConfig{})
+	providerRegistry, err := provider.NewRegistry(provider.RegistryConfig{
+		SpotifyClientID: cfg.SpotifyClientID, SpotifyClientSecret: cfg.SpotifyClientSecret,
+		SpotifyRedirectURI: cfg.SpotifyRedirectURI,
+	})
 	if err != nil {
 		return err
 	}
@@ -59,11 +63,15 @@ func run(logger *slog.Logger) error {
 		return err
 	}
 	clock := domain.SystemClock{}
+	playlistService := app.NewMusicPlaylistService(store, clock, app.MusicProviderDependencies{
+		Store: store, Registry: providerRegistry, Credentials: credentialBox,
+	})
 	music := contentworker.MusicProcessors{
 		Downloads: contentworker.NewMusicDownloader(
 			store, store, providerRegistry, credentialBox, files, downloadHTTPClient, clock, cfg.ReservedFreeBytes,
 		),
-		Artwork: contentworker.NewMusicArtworkImporter(store, files, downloadHTTPClient),
+		Artwork:         contentworker.NewMusicArtworkImporter(store, files, downloadHTTPClient),
+		PlaylistImports: contentworker.NewPlaylistImporter(store, playlistService),
 	}
 	logger.Info("content worker started")
 	return contentworker.New(store, files, clock, logger, music).Run(ctx)

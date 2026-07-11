@@ -39,9 +39,9 @@ const (
 	// ContentUploadServiceGetUploadProcedure is the fully-qualified name of the ContentUploadService's
 	// GetUpload RPC.
 	ContentUploadServiceGetUploadProcedure = "/cloud.content.v1.ContentUploadService/GetUpload"
-	// ContentUploadServiceWriteUploadChunkProcedure is the fully-qualified name of the
-	// ContentUploadService's WriteUploadChunk RPC.
-	ContentUploadServiceWriteUploadChunkProcedure = "/cloud.content.v1.ContentUploadService/WriteUploadChunk"
+	// ContentUploadServiceFinalizeUploadProcedure is the fully-qualified name of the
+	// ContentUploadService's FinalizeUpload RPC.
+	ContentUploadServiceFinalizeUploadProcedure = "/cloud.content.v1.ContentUploadService/FinalizeUpload"
 	// ContentUploadServiceAbandonUploadProcedure is the fully-qualified name of the
 	// ContentUploadService's AbandonUpload RPC.
 	ContentUploadServiceAbandonUploadProcedure = "/cloud.content.v1.ContentUploadService/AbandonUpload"
@@ -53,8 +53,8 @@ type ContentUploadServiceClient interface {
 	StartUpload(context.Context, *connect.Request[v1.StartUploadRequest]) (*connect.Response[v1.StartUploadResponse], error)
 	// GetUpload returns upload state and acknowledged ranges.
 	GetUpload(context.Context, *connect.Request[v1.GetUploadRequest]) (*connect.Response[v1.GetUploadResponse], error)
-	// WriteUploadChunk writes one bounded chunk for Connect clients.
-	WriteUploadChunk(context.Context, *connect.Request[v1.WriteUploadChunkRequest]) (*connect.Response[v1.WriteUploadChunkResponse], error)
+	// FinalizeUpload queues hashing and publication after every byte is present.
+	FinalizeUpload(context.Context, *connect.Request[v1.FinalizeUploadRequest]) (*connect.Response[v1.FinalizeUploadResponse], error)
 	// AbandonUpload removes an unclaimed upload.
 	AbandonUpload(context.Context, *connect.Request[v1.AbandonUploadRequest]) (*connect.Response[v1.AbandonUploadResponse], error)
 }
@@ -82,10 +82,10 @@ func NewContentUploadServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(contentUploadServiceMethods.ByName("GetUpload")),
 			connect.WithClientOptions(opts...),
 		),
-		writeUploadChunk: connect.NewClient[v1.WriteUploadChunkRequest, v1.WriteUploadChunkResponse](
+		finalizeUpload: connect.NewClient[v1.FinalizeUploadRequest, v1.FinalizeUploadResponse](
 			httpClient,
-			baseURL+ContentUploadServiceWriteUploadChunkProcedure,
-			connect.WithSchema(contentUploadServiceMethods.ByName("WriteUploadChunk")),
+			baseURL+ContentUploadServiceFinalizeUploadProcedure,
+			connect.WithSchema(contentUploadServiceMethods.ByName("FinalizeUpload")),
 			connect.WithClientOptions(opts...),
 		),
 		abandonUpload: connect.NewClient[v1.AbandonUploadRequest, v1.AbandonUploadResponse](
@@ -99,10 +99,10 @@ func NewContentUploadServiceClient(httpClient connect.HTTPClient, baseURL string
 
 // contentUploadServiceClient implements ContentUploadServiceClient.
 type contentUploadServiceClient struct {
-	startUpload      *connect.Client[v1.StartUploadRequest, v1.StartUploadResponse]
-	getUpload        *connect.Client[v1.GetUploadRequest, v1.GetUploadResponse]
-	writeUploadChunk *connect.Client[v1.WriteUploadChunkRequest, v1.WriteUploadChunkResponse]
-	abandonUpload    *connect.Client[v1.AbandonUploadRequest, v1.AbandonUploadResponse]
+	startUpload    *connect.Client[v1.StartUploadRequest, v1.StartUploadResponse]
+	getUpload      *connect.Client[v1.GetUploadRequest, v1.GetUploadResponse]
+	finalizeUpload *connect.Client[v1.FinalizeUploadRequest, v1.FinalizeUploadResponse]
+	abandonUpload  *connect.Client[v1.AbandonUploadRequest, v1.AbandonUploadResponse]
 }
 
 // StartUpload calls cloud.content.v1.ContentUploadService.StartUpload.
@@ -115,9 +115,9 @@ func (c *contentUploadServiceClient) GetUpload(ctx context.Context, req *connect
 	return c.getUpload.CallUnary(ctx, req)
 }
 
-// WriteUploadChunk calls cloud.content.v1.ContentUploadService.WriteUploadChunk.
-func (c *contentUploadServiceClient) WriteUploadChunk(ctx context.Context, req *connect.Request[v1.WriteUploadChunkRequest]) (*connect.Response[v1.WriteUploadChunkResponse], error) {
-	return c.writeUploadChunk.CallUnary(ctx, req)
+// FinalizeUpload calls cloud.content.v1.ContentUploadService.FinalizeUpload.
+func (c *contentUploadServiceClient) FinalizeUpload(ctx context.Context, req *connect.Request[v1.FinalizeUploadRequest]) (*connect.Response[v1.FinalizeUploadResponse], error) {
+	return c.finalizeUpload.CallUnary(ctx, req)
 }
 
 // AbandonUpload calls cloud.content.v1.ContentUploadService.AbandonUpload.
@@ -132,8 +132,8 @@ type ContentUploadServiceHandler interface {
 	StartUpload(context.Context, *connect.Request[v1.StartUploadRequest]) (*connect.Response[v1.StartUploadResponse], error)
 	// GetUpload returns upload state and acknowledged ranges.
 	GetUpload(context.Context, *connect.Request[v1.GetUploadRequest]) (*connect.Response[v1.GetUploadResponse], error)
-	// WriteUploadChunk writes one bounded chunk for Connect clients.
-	WriteUploadChunk(context.Context, *connect.Request[v1.WriteUploadChunkRequest]) (*connect.Response[v1.WriteUploadChunkResponse], error)
+	// FinalizeUpload queues hashing and publication after every byte is present.
+	FinalizeUpload(context.Context, *connect.Request[v1.FinalizeUploadRequest]) (*connect.Response[v1.FinalizeUploadResponse], error)
 	// AbandonUpload removes an unclaimed upload.
 	AbandonUpload(context.Context, *connect.Request[v1.AbandonUploadRequest]) (*connect.Response[v1.AbandonUploadResponse], error)
 }
@@ -157,10 +157,10 @@ func NewContentUploadServiceHandler(svc ContentUploadServiceHandler, opts ...con
 		connect.WithSchema(contentUploadServiceMethods.ByName("GetUpload")),
 		connect.WithHandlerOptions(opts...),
 	)
-	contentUploadServiceWriteUploadChunkHandler := connect.NewUnaryHandler(
-		ContentUploadServiceWriteUploadChunkProcedure,
-		svc.WriteUploadChunk,
-		connect.WithSchema(contentUploadServiceMethods.ByName("WriteUploadChunk")),
+	contentUploadServiceFinalizeUploadHandler := connect.NewUnaryHandler(
+		ContentUploadServiceFinalizeUploadProcedure,
+		svc.FinalizeUpload,
+		connect.WithSchema(contentUploadServiceMethods.ByName("FinalizeUpload")),
 		connect.WithHandlerOptions(opts...),
 	)
 	contentUploadServiceAbandonUploadHandler := connect.NewUnaryHandler(
@@ -175,8 +175,8 @@ func NewContentUploadServiceHandler(svc ContentUploadServiceHandler, opts ...con
 			contentUploadServiceStartUploadHandler.ServeHTTP(w, r)
 		case ContentUploadServiceGetUploadProcedure:
 			contentUploadServiceGetUploadHandler.ServeHTTP(w, r)
-		case ContentUploadServiceWriteUploadChunkProcedure:
-			contentUploadServiceWriteUploadChunkHandler.ServeHTTP(w, r)
+		case ContentUploadServiceFinalizeUploadProcedure:
+			contentUploadServiceFinalizeUploadHandler.ServeHTTP(w, r)
 		case ContentUploadServiceAbandonUploadProcedure:
 			contentUploadServiceAbandonUploadHandler.ServeHTTP(w, r)
 		default:
@@ -196,8 +196,8 @@ func (UnimplementedContentUploadServiceHandler) GetUpload(context.Context, *conn
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.content.v1.ContentUploadService.GetUpload is not implemented"))
 }
 
-func (UnimplementedContentUploadServiceHandler) WriteUploadChunk(context.Context, *connect.Request[v1.WriteUploadChunkRequest]) (*connect.Response[v1.WriteUploadChunkResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.content.v1.ContentUploadService.WriteUploadChunk is not implemented"))
+func (UnimplementedContentUploadServiceHandler) FinalizeUpload(context.Context, *connect.Request[v1.FinalizeUploadRequest]) (*connect.Response[v1.FinalizeUploadResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.content.v1.ContentUploadService.FinalizeUpload is not implemented"))
 }
 
 func (UnimplementedContentUploadServiceHandler) AbandonUpload(context.Context, *connect.Request[v1.AbandonUploadRequest]) (*connect.Response[v1.AbandonUploadResponse], error) {

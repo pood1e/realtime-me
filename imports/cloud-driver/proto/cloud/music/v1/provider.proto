@@ -7,15 +7,6 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "example.com/cloud-drive/api/gen/cloud/music/v1;musicv1";
 
-// MusicProvider identifies one isolated music catalog and playback source.
-enum MusicProvider {
-  MUSIC_PROVIDER_UNSPECIFIED = 0;
-  MUSIC_PROVIDER_LOCAL = 1;
-  MUSIC_PROVIDER_QQ_MUSIC = 2;
-  MUSIC_PROVIDER_NETEASE_CLOUD_MUSIC = 3;
-  MUSIC_PROVIDER_SPOTIFY = 4;
-}
-
 // ProviderConnectionStatus describes whether a provider account can be used.
 enum ProviderConnectionStatus {
   PROVIDER_CONNECTION_STATUS_UNSPECIFIED = 0;
@@ -66,9 +57,17 @@ enum MusicProviderCapability {
   MUSIC_PROVIDER_CAPABILITY_LOCAL_DOWNLOAD = 7;
 }
 
+// ProviderDescriptor exposes one registered plugin without fixing IDs in the contract.
+message ProviderDescriptor {
+  string id = 1;
+  string display_name = 2;
+  repeated MusicProviderCapability capabilities = 3;
+  bool configured = 4;
+}
+
 // PlayableTrack is the normalized read model shared by search and history.
 message PlayableTrack {
-  MusicProvider provider = 1;
+  string provider_id = 1;
   string track_id = 2;
   string title = 3;
   repeated string artists = 4;
@@ -82,7 +81,7 @@ message PlayableTrack {
 
 // ProviderConnection contains public account state and never contains credentials.
 message ProviderConnection {
-  MusicProvider provider = 1;
+  string provider_id = 1;
   ProviderConnectionStatus status = 2;
   string account_id = 3;
   string display_name = 4;
@@ -108,7 +107,7 @@ message ProviderRedirectChallenge {
 // ProviderConnectionAttempt is one bounded interactive login operation.
 message ProviderConnectionAttempt {
   string uid = 1;
-  MusicProvider provider = 2;
+  string provider_id = 2;
   ProviderConnectionAttemptStatus status = 3;
   google.protobuf.Timestamp expire_time = 4;
   oneof challenge {
@@ -119,13 +118,13 @@ message ProviderConnectionAttempt {
 
 // ProviderSearchCursor requests the first or a subsequent page for one source.
 message ProviderSearchCursor {
-  MusicProvider provider = 1;
+  string provider_id = 1;
   string page_token = 2;
 }
 
 // ProviderSearchGroup is one source's independent search result.
 message ProviderSearchGroup {
-  MusicProvider provider = 1;
+  string provider_id = 1;
   ProviderSearchStatus status = 2;
   repeated PlayableTrack tracks = 3;
   string next_page_token = 4;
@@ -138,18 +137,19 @@ message DirectAudioPlayback {
   PlaybackQuality quality = 3;
 }
 
-// SpotifyPlayback identifies content played only through the official SDK.
-message SpotifyPlayback {
-  string uri = 1;
+// ProviderSdkPlayback identifies content played through a provider browser SDK.
+message ProviderSdkPlayback {
+  string sdk_id = 1;
+  string resource_uri = 2;
 }
 
 // PlaybackDescriptor selects the source-specific playback implementation.
 message PlaybackDescriptor {
-  MusicProvider provider = 1;
+  string provider_id = 1;
   google.protobuf.Timestamp expire_time = 2;
   oneof playback {
     DirectAudioPlayback direct_audio = 3;
-    SpotifyPlayback spotify = 4;
+    ProviderSdkPlayback provider_sdk = 4;
   }
 }
 

@@ -14,14 +14,14 @@ import (
 
 // WallpaperService manages private publication and the public read-only catalog.
 type WallpaperService struct {
-	store           domain.ImageStore
+	store           domain.WallpaperStore
 	contents        domain.ContentStore
-	files           ContentFiles
+	files           ContentReader
 	publicAPIOrigin string
 }
 
 // NewWallpaperService constructs wallpaper publication and public access.
-func NewWallpaperService(store domain.ImageStore, contents domain.ContentStore, files ContentFiles, publicAPIOrigin string) *WallpaperService {
+func NewWallpaperService(store domain.WallpaperStore, contents domain.ContentStore, files ContentReader, publicAPIOrigin string) *WallpaperService {
 	return &WallpaperService{store: store, contents: contents, files: files, publicAPIOrigin: strings.TrimRight(publicAPIOrigin, "/")}
 }
 
@@ -30,7 +30,10 @@ func (s *WallpaperService) Get(ctx context.Context, uid string) (domain.Wallpape
 }
 
 func (s *WallpaperService) List(ctx context.Context, query, tag, orientation string, pageSize int, pageToken string) (domain.WallpaperPage, error) {
-	return s.store.ListWallpapers(ctx, strings.TrimSpace(query), strings.TrimSpace(tag), orientation, pageSize, pageToken)
+	return s.store.ListWallpapers(ctx, domain.WallpaperListQuery{
+		Query: strings.TrimSpace(query), Tag: strings.TrimSpace(tag), Orientation: orientation,
+		PageSize: pageSize, PageToken: pageToken,
+	})
 }
 
 func (s *WallpaperService) Publish(ctx context.Context, imageUID, title string, tags []string) (domain.Wallpaper, error) {

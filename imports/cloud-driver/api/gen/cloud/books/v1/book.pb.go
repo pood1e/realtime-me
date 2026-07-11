@@ -7,6 +7,7 @@
 package booksv1
 
 import (
+	v1 "example.com/cloud-drive/api/gen/cloud/content/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -75,63 +76,6 @@ func (BookFormat) EnumDescriptor() ([]byte, []int) {
 	return file_cloud_books_v1_book_proto_rawDescGZIP(), []int{0}
 }
 
-// ProcessingStatus identifies derived-metadata readiness.
-type BookProcessingStatus int32
-
-const (
-	// BOOK_PROCESSING_STATUS_UNSPECIFIED is not persisted.
-	BookProcessingStatus_BOOK_PROCESSING_STATUS_UNSPECIFIED BookProcessingStatus = 0
-	// BOOK_PROCESSING_STATUS_PENDING is queued or running.
-	BookProcessingStatus_BOOK_PROCESSING_STATUS_PENDING BookProcessingStatus = 1
-	// BOOK_PROCESSING_STATUS_READY has usable derived metadata.
-	BookProcessingStatus_BOOK_PROCESSING_STATUS_READY BookProcessingStatus = 2
-	// BOOK_PROCESSING_STATUS_FAILED requires an explicit retry.
-	BookProcessingStatus_BOOK_PROCESSING_STATUS_FAILED BookProcessingStatus = 3
-)
-
-// Enum value maps for BookProcessingStatus.
-var (
-	BookProcessingStatus_name = map[int32]string{
-		0: "BOOK_PROCESSING_STATUS_UNSPECIFIED",
-		1: "BOOK_PROCESSING_STATUS_PENDING",
-		2: "BOOK_PROCESSING_STATUS_READY",
-		3: "BOOK_PROCESSING_STATUS_FAILED",
-	}
-	BookProcessingStatus_value = map[string]int32{
-		"BOOK_PROCESSING_STATUS_UNSPECIFIED": 0,
-		"BOOK_PROCESSING_STATUS_PENDING":     1,
-		"BOOK_PROCESSING_STATUS_READY":       2,
-		"BOOK_PROCESSING_STATUS_FAILED":      3,
-	}
-)
-
-func (x BookProcessingStatus) Enum() *BookProcessingStatus {
-	p := new(BookProcessingStatus)
-	*p = x
-	return p
-}
-
-func (x BookProcessingStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (BookProcessingStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_cloud_books_v1_book_proto_enumTypes[1].Descriptor()
-}
-
-func (BookProcessingStatus) Type() protoreflect.EnumType {
-	return &file_cloud_books_v1_book_proto_enumTypes[1]
-}
-
-func (x BookProcessingStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use BookProcessingStatus.Descriptor instead.
-func (BookProcessingStatus) EnumDescriptor() ([]byte, []int) {
-	return file_cloud_books_v1_book_proto_rawDescGZIP(), []int{1}
-}
-
 // Book is one owner-managed publication.
 type Book struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -160,7 +104,7 @@ type Book struct {
 	// content_url is an authenticated Range-capable relative URL.
 	ContentUrl string `protobuf:"bytes,12,opt,name=content_url,json=contentUrl,proto3" json:"content_url,omitempty"`
 	// processing_status reports metadata and cover extraction readiness.
-	ProcessingStatus BookProcessingStatus `protobuf:"varint,13,opt,name=processing_status,json=processingStatus,proto3,enum=cloud.books.v1.BookProcessingStatus" json:"processing_status,omitempty"`
+	ProcessingStatus v1.ProcessingStatus `protobuf:"varint,13,opt,name=processing_status,json=processingStatus,proto3,enum=cloud.content.v1.ProcessingStatus" json:"processing_status,omitempty"`
 	// create_time is when the book entered the catalog.
 	CreateTime *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// update_time is the latest metadata change.
@@ -285,11 +229,11 @@ func (x *Book) GetContentUrl() string {
 	return ""
 }
 
-func (x *Book) GetProcessingStatus() BookProcessingStatus {
+func (x *Book) GetProcessingStatus() v1.ProcessingStatus {
 	if x != nil {
 		return x.ProcessingStatus
 	}
-	return BookProcessingStatus_BOOK_PROCESSING_STATUS_UNSPECIFIED
+	return v1.ProcessingStatus(0)
 }
 
 func (x *Book) GetCreateTime() *timestamppb.Timestamp {
@@ -605,7 +549,7 @@ var File_cloud_books_v1_book_proto protoreflect.FileDescriptor
 
 const file_cloud_books_v1_book_proto_rawDesc = "" +
 	"\n" +
-	"\x19cloud/books/v1/book.proto\x12\x0ecloud.books.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8f\x05\n" +
+	"\x19cloud/books/v1/book.proto\x12\x0ecloud.books.v1\x1a!cloud/content/v1/processing.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8d\x05\n" +
 	"\x04Book\x12\x10\n" +
 	"\x03uid\x18\x01 \x01(\tR\x03uid\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
@@ -622,8 +566,8 @@ const file_cloud_books_v1_book_proto_rawDesc = "" +
 	" \x01(\x05R\tpageCount\x12\x1b\n" +
 	"\tcover_url\x18\v \x01(\tR\bcoverUrl\x12\x1f\n" +
 	"\vcontent_url\x18\f \x01(\tR\n" +
-	"contentUrl\x12Q\n" +
-	"\x11processing_status\x18\r \x01(\x0e2$.cloud.books.v1.BookProcessingStatusR\x10processingStatus\x12;\n" +
+	"contentUrl\x12O\n" +
+	"\x11processing_status\x18\r \x01(\x0e2\".cloud.content.v1.ProcessingStatusR\x10processingStatus\x12;\n" +
 	"\vcreate_time\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"createTime\x12;\n" +
 	"\vupdate_time\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\n" +
@@ -657,12 +601,7 @@ const file_cloud_books_v1_book_proto_rawDesc = "" +
 	"BookFormat\x12\x1b\n" +
 	"\x17BOOK_FORMAT_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fBOOK_FORMAT_PDF\x10\x01\x12\x14\n" +
-	"\x10BOOK_FORMAT_EPUB\x10\x02*\xa7\x01\n" +
-	"\x14BookProcessingStatus\x12&\n" +
-	"\"BOOK_PROCESSING_STATUS_UNSPECIFIED\x10\x00\x12\"\n" +
-	"\x1eBOOK_PROCESSING_STATUS_PENDING\x10\x01\x12 \n" +
-	"\x1cBOOK_PROCESSING_STATUS_READY\x10\x02\x12!\n" +
-	"\x1dBOOK_PROCESSING_STATUS_FAILED\x10\x03B8Z6example.com/cloud-drive/api/gen/cloud/books/v1;booksv1b\x06proto3"
+	"\x10BOOK_FORMAT_EPUB\x10\x02B8Z6example.com/cloud-drive/api/gen/cloud/books/v1;booksv1b\x06proto3"
 
 var (
 	file_cloud_books_v1_book_proto_rawDescOnce sync.Once
@@ -676,27 +615,27 @@ func file_cloud_books_v1_book_proto_rawDescGZIP() []byte {
 	return file_cloud_books_v1_book_proto_rawDescData
 }
 
-var file_cloud_books_v1_book_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_cloud_books_v1_book_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_cloud_books_v1_book_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_cloud_books_v1_book_proto_goTypes = []any{
 	(BookFormat)(0),               // 0: cloud.books.v1.BookFormat
-	(BookProcessingStatus)(0),     // 1: cloud.books.v1.BookProcessingStatus
-	(*Book)(nil),                  // 2: cloud.books.v1.Book
-	(*Shelf)(nil),                 // 3: cloud.books.v1.Shelf
-	(*PdfLocation)(nil),           // 4: cloud.books.v1.PdfLocation
-	(*EpubLocation)(nil),          // 5: cloud.books.v1.EpubLocation
-	(*ReadingProgress)(nil),       // 6: cloud.books.v1.ReadingProgress
+	(*Book)(nil),                  // 1: cloud.books.v1.Book
+	(*Shelf)(nil),                 // 2: cloud.books.v1.Shelf
+	(*PdfLocation)(nil),           // 3: cloud.books.v1.PdfLocation
+	(*EpubLocation)(nil),          // 4: cloud.books.v1.EpubLocation
+	(*ReadingProgress)(nil),       // 5: cloud.books.v1.ReadingProgress
+	(v1.ProcessingStatus)(0),      // 6: cloud.content.v1.ProcessingStatus
 	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
 }
 var file_cloud_books_v1_book_proto_depIdxs = []int32{
 	0, // 0: cloud.books.v1.Book.format:type_name -> cloud.books.v1.BookFormat
-	1, // 1: cloud.books.v1.Book.processing_status:type_name -> cloud.books.v1.BookProcessingStatus
+	6, // 1: cloud.books.v1.Book.processing_status:type_name -> cloud.content.v1.ProcessingStatus
 	7, // 2: cloud.books.v1.Book.create_time:type_name -> google.protobuf.Timestamp
 	7, // 3: cloud.books.v1.Book.update_time:type_name -> google.protobuf.Timestamp
 	7, // 4: cloud.books.v1.Book.delete_time:type_name -> google.protobuf.Timestamp
 	7, // 5: cloud.books.v1.Shelf.create_time:type_name -> google.protobuf.Timestamp
-	4, // 6: cloud.books.v1.ReadingProgress.pdf:type_name -> cloud.books.v1.PdfLocation
-	5, // 7: cloud.books.v1.ReadingProgress.epub:type_name -> cloud.books.v1.EpubLocation
+	3, // 6: cloud.books.v1.ReadingProgress.pdf:type_name -> cloud.books.v1.PdfLocation
+	4, // 7: cloud.books.v1.ReadingProgress.epub:type_name -> cloud.books.v1.EpubLocation
 	7, // 8: cloud.books.v1.ReadingProgress.update_time:type_name -> google.protobuf.Timestamp
 	9, // [9:9] is the sub-list for method output_type
 	9, // [9:9] is the sub-list for method input_type
@@ -719,7 +658,7 @@ func file_cloud_books_v1_book_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cloud_books_v1_book_proto_rawDesc), len(file_cloud_books_v1_book_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      1,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,

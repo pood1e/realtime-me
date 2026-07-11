@@ -17,19 +17,22 @@ func (s *Store) GetImageForProcessing(ctx context.Context, uid string) (domain.I
 }
 
 // CompleteImageProcessing stores dimensions and a safe preview.
-func (s *Store) CompleteImageProcessing(ctx context.Context, uid string, width, height int, preview *domain.Artifact) error {
+func (s *Store) CompleteImageProcessing(ctx context.Context, job domain.ProcessingJob, width, height int, preview *domain.Artifact) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin image processing completion: %w", err)
 	}
 	defer tx.Rollback(ctx)
+	if err := lockProcessingJobLease(ctx, tx, job); err != nil {
+		return err
+	}
 	if preview != nil {
 		if err := upsertArtifact(ctx, tx, *preview); err != nil {
 			return err
 		}
 	}
 	if _, err := tx.Exec(ctx, `UPDATE images SET width = $2, height = $3,
-		processing_status = 'ready', update_time = now() WHERE uid = $1`, uid, width, height); err != nil {
+		processing_status = 'ready', update_time = now() WHERE uid = $1`, job.ResourceUID, width, height); err != nil {
 		return fmt.Errorf("complete image processing: %w", err)
 	}
 	return tx.Commit(ctx)
@@ -50,41 +53,57 @@ func (s *Store) GetWallpaperForProcessing(ctx context.Context, uid string) (doma
 }
 
 // CompleteWallpaperProcessing stores dominant color and responsive variants.
-func (s *Store) CompleteWallpaperProcessing(ctx context.Context, uid, dominantColor string, variants []domain.Artifact) error {
+func (s *Store) CompleteWallpaperProcessing(ctx context.Context, job domain.ProcessingJob, dominantColor string, variants []domain.Artifact) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin wallpaper processing completion: %w", err)
 	}
 	defer tx.Rollback(ctx)
+	if err := lockProcessingJobLease(ctx, tx, job); err != nil {
+		return err
+	}
 	for _, variant := range variants {
 		if err := upsertArtifact(ctx, tx, variant); err != nil {
 			return err
 		}
 	}
 	if _, err := tx.Exec(ctx, `UPDATE wallpapers SET dominant_color = $2, update_time = now()
-		WHERE uid = $1`, uid, dominantColor); err != nil {
+		WHERE uid = $1`, job.ResourceUID, dominantColor); err != nil {
 		return fmt.Errorf("complete wallpaper processing: %w", err)
 	}
 	return tx.Commit(ctx)
 }
 
 func (s *Store) listWallpaperArtifacts(ctx context.Context, imageUID string) ([]domain.Artifact, error) {
+	artifacts, err := s.listWallpaperArtifactsByImage(ctx, []string{imageUID})
+	if err != nil {
+		return nil, err
+	}
+	return artifacts[imageUID], nil
+}
+
+func (s *Store) listWallpaperArtifactsByImage(ctx context.Context, imageUIDs []string) (map[string][]domain.Artifact, error) {
+	artifacts := make(map[string][]domain.Artifact, len(imageUIDs))
+	if len(imageUIDs) == 0 {
+		return artifacts, nil
+	}
 	rows, err := s.pool.Query(ctx, `SELECT artifact.uid, artifact.content_uid, artifact.kind, artifact.variant,
-		artifact.content_type, artifact.storage_key, artifact.width, artifact.height, artifact.create_time
+		artifact.content_type, artifact.storage_key, artifact.width, artifact.height, artifact.create_time, image.uid
 		FROM content_artifacts artifact JOIN images image ON image.content_uid = artifact.content_uid
-		WHERE image.uid = $1 AND artifact.kind = 'wallpaper' ORDER BY artifact.width`, imageUID)
+		WHERE image.uid = ANY($1) AND artifact.kind = 'wallpaper' ORDER BY image.uid, artifact.width`, imageUIDs)
 	if err != nil {
 		return nil, fmt.Errorf("list wallpaper variants: %w", err)
 	}
 	defer rows.Close()
-	var artifacts []domain.Artifact
 	for rows.Next() {
 		var artifact domain.Artifact
+		var imageUID string
 		if err := rows.Scan(&artifact.UID, &artifact.ContentUID, &artifact.Kind, &artifact.Variant,
-			&artifact.ContentType, &artifact.StorageKey, &artifact.Width, &artifact.Height, &artifact.CreateTime); err != nil {
+			&artifact.ContentType, &artifact.StorageKey, &artifact.Width, &artifact.Height, &artifact.CreateTime,
+			&imageUID); err != nil {
 			return nil, fmt.Errorf("scan wallpaper variant: %w", err)
 		}
-		artifacts = append(artifacts, artifact)
+		artifacts[imageUID] = append(artifacts[imageUID], artifact)
 	}
 	return artifacts, rows.Err()
 }

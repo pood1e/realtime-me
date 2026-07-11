@@ -2,8 +2,10 @@
 // @generated from file cloud/images/v1/image.proto (package cloud.images.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
-import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { ProcessingStatus } from "../../content/v1/processing_pb.js";
+import { file_cloud_content_v1_processing } from "../../content/v1/processing_pb.js";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file cloud/images/v1/image.proto.
  */
 export const file_cloud_images_v1_image: GenFile = /*@__PURE__*/
-  fileDesc("ChtjbG91ZC9pbWFnZXMvdjEvaW1hZ2UucHJvdG8SD2Nsb3VkLmltYWdlcy52MSKjAwoFSW1hZ2USCwoDdWlkGAEgASgJEhEKCWFsYnVtX3VpZBgCIAEoCRIUCgxkaXNwbGF5X25hbWUYAyABKAkSGgoSb3JpZ2luYWxfZmlsZV9uYW1lGAQgASgJEhQKDGNvbnRlbnRfdHlwZRgFIAEoCRISCgpzaXplX2J5dGVzGAYgASgDEg0KBXdpZHRoGAcgASgFEg4KBmhlaWdodBgIIAEoBRITCgtwcmV2aWV3X3VybBgJIAEoCRIUCgxvcmlnaW5hbF91cmwYCiABKAkSQQoRcHJvY2Vzc2luZ19zdGF0dXMYCyABKA4yJi5jbG91ZC5pbWFnZXMudjEuSW1hZ2VQcm9jZXNzaW5nU3RhdHVzEi8KC2NyZWF0ZV90aW1lGAwgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgt1cGRhdGVfdGltZRgNIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZGVsZXRlX3RpbWUYDiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wInUKCkltYWdlQWxidW0SCwoDdWlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRITCgtpbWFnZV9jb3VudBgDIAEoBRIvCgtjcmVhdGVfdGltZRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAioQEKCUltYWdlTGluaxILCgN1aWQYASABKAkSEQoJaW1hZ2VfdWlkGAIgASgJEhIKCnB1YmxpY191cmwYAyABKAkSLwoLY3JlYXRlX3RpbWUYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KC3Jldm9rZV90aW1lGAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCqsAQoVSW1hZ2VQcm9jZXNzaW5nU3RhdHVzEicKI0lNQUdFX1BST0NFU1NJTkdfU1RBVFVTX1VOU1BFQ0lGSUVEEAASIwofSU1BR0VfUFJPQ0VTU0lOR19TVEFUVVNfUEVORElORxABEiEKHUlNQUdFX1BST0NFU1NJTkdfU1RBVFVTX1JFQURZEAISIgoeSU1BR0VfUFJPQ0VTU0lOR19TVEFUVVNfRkFJTEVEEANCOlo4ZXhhbXBsZS5jb20vY2xvdWQtZHJpdmUvYXBpL2dlbi9jbG91ZC9pbWFnZXMvdjE7aW1hZ2VzdjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
+  fileDesc("ChtjbG91ZC9pbWFnZXMvdjEvaW1hZ2UucHJvdG8SD2Nsb3VkLmltYWdlcy52MSKfAwoFSW1hZ2USCwoDdWlkGAEgASgJEhEKCWFsYnVtX3VpZBgCIAEoCRIUCgxkaXNwbGF5X25hbWUYAyABKAkSGgoSb3JpZ2luYWxfZmlsZV9uYW1lGAQgASgJEhQKDGNvbnRlbnRfdHlwZRgFIAEoCRISCgpzaXplX2J5dGVzGAYgASgDEg0KBXdpZHRoGAcgASgFEg4KBmhlaWdodBgIIAEoBRITCgtwcmV2aWV3X3VybBgJIAEoCRIUCgxvcmlnaW5hbF91cmwYCiABKAkSPQoRcHJvY2Vzc2luZ19zdGF0dXMYCyABKA4yIi5jbG91ZC5jb250ZW50LnYxLlByb2Nlc3NpbmdTdGF0dXMSLwoLY3JlYXRlX3RpbWUYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KC3VwZGF0ZV90aW1lGA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtkZWxldGVfdGltZRgOIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAidQoKSW1hZ2VBbGJ1bRILCgN1aWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEhMKC2ltYWdlX2NvdW50GAMgASgFEi8KC2NyZWF0ZV90aW1lGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKhAQoJSW1hZ2VMaW5rEgsKA3VpZBgBIAEoCRIRCglpbWFnZV91aWQYAiABKAkSEgoKcHVibGljX3VybBgDIAEoCRIvCgtjcmVhdGVfdGltZRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLcmV2b2tlX3RpbWUYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQjpaOGV4YW1wbGUuY29tL2Nsb3VkLWRyaXZlL2FwaS9nZW4vY2xvdWQvaW1hZ2VzL3YxO2ltYWdlc3YxYgZwcm90bzM", [file_cloud_content_v1_processing, file_google_protobuf_timestamp]);
 
 /**
  * Image is one private image asset.
@@ -71,9 +73,9 @@ export type Image = Message<"cloud.images.v1.Image"> & {
   originalUrl: string;
 
   /**
-   * @generated from field: cloud.images.v1.ImageProcessingStatus processing_status = 11;
+   * @generated from field: cloud.content.v1.ProcessingStatus processing_status = 11;
    */
-  processingStatus: ImageProcessingStatus;
+  processingStatus: ProcessingStatus;
 
   /**
    * @generated from field: google.protobuf.Timestamp create_time = 12;
@@ -170,37 +172,4 @@ export type ImageLink = Message<"cloud.images.v1.ImageLink"> & {
  */
 export const ImageLinkSchema: GenMessage<ImageLink> = /*@__PURE__*/
   messageDesc(file_cloud_images_v1_image, 2);
-
-/**
- * ProcessingStatus identifies image validation and preview readiness.
- *
- * @generated from enum cloud.images.v1.ImageProcessingStatus
- */
-export enum ImageProcessingStatus {
-  /**
-   * @generated from enum value: IMAGE_PROCESSING_STATUS_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * @generated from enum value: IMAGE_PROCESSING_STATUS_PENDING = 1;
-   */
-  PENDING = 1,
-
-  /**
-   * @generated from enum value: IMAGE_PROCESSING_STATUS_READY = 2;
-   */
-  READY = 2,
-
-  /**
-   * @generated from enum value: IMAGE_PROCESSING_STATUS_FAILED = 3;
-   */
-  FAILED = 3,
-}
-
-/**
- * Describes the enum cloud.images.v1.ImageProcessingStatus.
- */
-export const ImageProcessingStatusSchema: GenEnum<ImageProcessingStatus> = /*@__PURE__*/
-  enumDesc(file_cloud_images_v1_image, 0);
 

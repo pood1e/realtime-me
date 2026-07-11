@@ -12,10 +12,18 @@ import (
 
 const providerSearchPageSize = 10
 
-func (s *MusicService) SearchMusic(ctx context.Context, query string, cursors map[domain.MusicProvider]string) ([]domain.ProviderSearchGroup, error) {
+func (s *MusicProviderService) SearchMusic(ctx context.Context, query string, cursors map[domain.MusicProvider]string) ([]domain.ProviderSearchGroup, error) {
 	query = strings.TrimSpace(query)
-	if query == "" {
-		return nil, fmt.Errorf("%w: music search query is required", domain.ErrInvalidArgument)
+	if query == "" || len([]rune(query)) > 256 {
+		return nil, fmt.Errorf("%w: music search query must contain 1 to 256 characters", domain.ErrInvalidArgument)
+	}
+	for provider := range cursors {
+		if provider == domain.MusicProviderLocal {
+			continue
+		}
+		if _, registered := s.providers.Get(provider); !registered {
+			return nil, fmt.Errorf("%w: unknown music provider", domain.ErrInvalidArgument)
+		}
 	}
 	providers := s.orderedSearchProviders(cursors)
 	groups := make([]domain.ProviderSearchGroup, len(providers))
@@ -32,10 +40,12 @@ func (s *MusicService) SearchMusic(ctx context.Context, query string, cursors ma
 }
 
 // ResolvePlayback creates a fresh source-specific descriptor.
-func (s *MusicService) searchProvider(ctx context.Context, provider domain.MusicProvider, query, pageToken string) domain.ProviderSearchGroup {
+func (s *MusicProviderService) searchProvider(ctx context.Context, provider domain.MusicProvider, query, pageToken string) domain.ProviderSearchGroup {
 	group := domain.ProviderSearchGroup{Provider: provider}
 	if provider == domain.MusicProviderLocal {
-		page, err := s.store.ListTracks(ctx, query, "", "", false, false, providerSearchPageSize, pageToken)
+		page, err := s.store.ListTracks(ctx, domain.TrackListQuery{
+			Query: query, PageSize: providerSearchPageSize, PageToken: pageToken,
+		})
 		if err != nil {
 			group.Status = domain.ProviderSearchUnavailable
 			return group
@@ -81,7 +91,7 @@ func (s *MusicService) searchProvider(ctx context.Context, provider domain.Music
 			group.Status = domain.ProviderSearchUnavailable
 			return group
 		}
-		normalized, err := s.validatePlaybackTrack(ctx, track)
+		normalized, err := s.tracks.Validate(ctx, track)
 		if err != nil {
 			group.Status = domain.ProviderSearchUnavailable
 			return group
@@ -94,7 +104,7 @@ func (s *MusicService) searchProvider(ctx context.Context, provider domain.Music
 	return group
 }
 
-func (s *MusicService) orderedSearchProviders(cursors map[domain.MusicProvider]string) []domain.MusicProvider {
+func (s *MusicProviderService) orderedSearchProviders(cursors map[domain.MusicProvider]string) []domain.MusicProvider {
 	order := []domain.MusicProvider{domain.MusicProviderLocal}
 	for _, adapter := range s.providers.List() {
 		order = append(order, adapter.Provider())

@@ -34,7 +34,7 @@ func (s *Store) GetMusicDownload(ctx context.Context, itemUID string) (domain.Mu
 }
 
 // CompleteMusicDownload imports downloaded audio and links matching playlist entries.
-func (s *Store) CompleteMusicDownload(ctx context.Context, item domain.PlaylistTrack, sealed domain.SealedContent) error {
+func (s *Store) CompleteMusicDownload(ctx context.Context, job domain.ProcessingJob, sealed domain.SealedContent) error {
 	if !supportedAudioType(sealed.ContentType) {
 		return fmt.Errorf("%w: downloaded source is not supported audio", domain.ErrInvalidArgument)
 	}
@@ -43,8 +43,11 @@ func (s *Store) CompleteMusicDownload(ctx context.Context, item domain.PlaylistT
 		return fmt.Errorf("begin music download completion: %w", err)
 	}
 	defer tx.Rollback(ctx)
+	if err := lockProcessingJobLease(ctx, tx, job); err != nil {
+		return err
+	}
 	locked, err := scanPlaylistTrack(tx.QueryRow(ctx, "SELECT "+playlistTrackColumns+
-		" FROM music_playlist_tracks item WHERE item.uid = $1 FOR UPDATE", item.UID))
+		" FROM music_playlist_tracks item WHERE item.uid = $1 FOR UPDATE", job.ResourceUID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return fmt.Errorf("%w: playlist track", domain.ErrNotFound)
 	}
@@ -59,40 +62,47 @@ func (s *Store) CompleteMusicDownload(ctx context.Context, item domain.PlaylistT
 	if err != nil {
 		return err
 	}
-	if trackUID == "" {
+	createdTrack := trackUID == ""
+	if createdTrack {
 		trackUID = uuid.NewString()
 		fileName := downloadedTrackFileName(locked.Track, content.ContentType)
 		_, err = tx.Exec(ctx, `INSERT INTO tracks (uid, content_uid, title, artists, album, duration_ms,
-			original_file_name, processing_status, source_provider, source_track_id)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9)`, trackUID, content.UID,
+			original_file_name, processing_status)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')`, trackUID, content.UID,
 			locked.Track.Title, locked.Track.Artists, locked.Track.Album, locked.Track.Duration.Milliseconds(),
-			fileName, locked.Track.Provider, locked.Track.TrackID)
+			fileName)
 		if err != nil {
 			return fmt.Errorf("create downloaded track: %w", err)
 		}
-		if err := enqueueJob(ctx, tx, "track", trackUID); err != nil {
+		if err := enqueueJob(ctx, tx, domain.ProcessingJobTrack, trackUID); err != nil {
 			return err
 		}
 	} else {
-		_, err = tx.Exec(ctx, `UPDATE tracks SET delete_time = NULL, update_time = now(),
-			source_provider = COALESCE(source_provider, $2), source_track_id = COALESCE(source_track_id, $3)
-			WHERE uid = $1`, trackUID, locked.Track.Provider, locked.Track.TrackID)
+		_, err = tx.Exec(ctx, "UPDATE tracks SET delete_time = NULL, update_time = now() WHERE uid = $1", trackUID)
 		if err != nil {
 			return fmt.Errorf("restore downloaded track: %w", err)
 		}
 	}
+	if _, err := tx.Exec(ctx, `INSERT INTO music_track_sources (provider_id, external_track_id, track_uid)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (provider_id, external_track_id) DO UPDATE SET track_uid = EXCLUDED.track_uid`,
+		locked.Track.Provider, locked.Track.TrackID, trackUID); err != nil {
+		return fmt.Errorf("link downloaded track source: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `UPDATE music_playlist_tracks SET download_status = 'completed',
-		local_track_uid = $3 WHERE provider = $1 AND external_track_id = $2`, locked.Track.Provider,
+		local_track_uid = $3 WHERE provider_id = $1 AND external_track_id = $2`, locked.Track.Provider,
 		locked.Track.TrackID, trackUID); err != nil {
 		return fmt.Errorf("link downloaded playlist tracks: %w", err)
 	}
 	if _, err := tx.Exec(ctx, `UPDATE music_playlists SET update_time = now() WHERE uid IN
-		(SELECT playlist_uid FROM music_playlist_tracks WHERE provider = $1 AND external_track_id = $2)`,
+		(SELECT playlist_uid FROM music_playlist_tracks WHERE provider_id = $1 AND external_track_id = $2)`,
 		locked.Track.Provider, locked.Track.TrackID); err != nil {
 		return fmt.Errorf("touch downloaded playlists: %w", err)
 	}
-	if err := enqueueJob(ctx, tx, "music_artwork", trackUID); err != nil {
-		return err
+	if !createdTrack {
+		if err := queueProviderArtworkIfMissing(ctx, tx, trackUID); err != nil {
+			return err
+		}
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit music download: %w", err)
@@ -102,7 +112,7 @@ func (s *Store) CompleteMusicDownload(ctx context.Context, item domain.PlaylistT
 
 func findDownloadedTrack(ctx context.Context, tx pgx.Tx, provider domain.MusicProvider, trackID, contentUID string) (string, error) {
 	var uid string
-	err := tx.QueryRow(ctx, `SELECT uid FROM tracks WHERE source_provider = $1 AND source_track_id = $2`,
+	err := tx.QueryRow(ctx, `SELECT track_uid FROM music_track_sources WHERE provider_id = $1 AND external_track_id = $2`,
 		provider, trackID).Scan(&uid)
 	if err == nil {
 		return uid, nil

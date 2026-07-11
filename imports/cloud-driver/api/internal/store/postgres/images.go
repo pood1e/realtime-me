@@ -39,21 +39,21 @@ func (s *Store) GetImage(ctx context.Context, uid string, includeTrashed bool) (
 }
 
 // ListImages lists private image assets.
-func (s *Store) ListImages(ctx context.Context, queryText string, albumUID *string, trashed bool, pageSize int, pageToken string) (domain.ImagePage, error) {
-	cursor, err := decodeCursor(pageToken)
+func (s *Store) ListImages(ctx context.Context, filter domain.ImageListQuery) (domain.ImagePage, error) {
+	cursor, err := decodeCursor(filter.PageToken)
 	if err != nil {
 		return domain.ImagePage{}, err
 	}
-	pageSize = normalizePageSize(pageSize)
+	pageSize := normalizePageSize(filter.PageSize)
 	query := "SELECT " + imageColumns + " FROM " + imageFrom
 	arguments := []any{}
-	conditions := []string{"image.delete_time IS " + map[bool]string{true: "NOT NULL", false: "NULL"}[trashed]}
-	if queryText != "" {
-		arguments = append(arguments, queryText)
+	conditions := []string{"image.delete_time IS " + map[bool]string{true: "NOT NULL", false: "NULL"}[filter.Trashed]}
+	if filter.Query != "" {
+		arguments = append(arguments, filter.Query)
 		conditions = append(conditions, fmt.Sprintf("image.display_name ILIKE '%%' || $%d || '%%'", len(arguments)))
 	}
-	if albumUID != nil {
-		arguments = append(arguments, *albumUID)
+	if filter.AlbumUID != nil {
+		arguments = append(arguments, *filter.AlbumUID)
 		conditions = append(conditions, fmt.Sprintf("image.album_uid = $%d", len(arguments)))
 	}
 	if cursor != nil {
@@ -106,7 +106,7 @@ func (s *Store) ImportImage(ctx context.Context, uploadUID string, albumUID *str
 	if err := validateImageAlbum(ctx, tx, albumUID); err != nil {
 		return domain.Image{}, err
 	}
-	content, err := upsertContent(ctx, tx, sealed)
+	content, err := contentForUpload(ctx, tx, upload, sealed)
 	if err != nil {
 		return domain.Image{}, err
 	}
@@ -136,7 +136,7 @@ func (s *Store) ImportImage(ctx context.Context, uploadUID string, albumUID *str
 		displayName(upload.FileName), upload.FileName); err != nil {
 		return domain.Image{}, fmt.Errorf("create image: %w", err)
 	}
-	if err := enqueueJob(ctx, tx, "image", imageUID); err != nil {
+	if err := enqueueJob(ctx, tx, domain.ProcessingJobImage, imageUID); err != nil {
 		return domain.Image{}, err
 	}
 	if err := markUploadClaimed(ctx, tx, uploadUID, imageUID); err != nil {
@@ -251,7 +251,7 @@ func (s *Store) QueueImageProcessing(ctx context.Context, uid string) (domain.Im
 	if command.RowsAffected() == 0 {
 		return domain.Image{}, fmt.Errorf("%w: image", domain.ErrNotFound)
 	}
-	if err := enqueueJob(ctx, tx, "image", uid); err != nil {
+	if err := enqueueJob(ctx, tx, domain.ProcessingJobImage, uid); err != nil {
 		return domain.Image{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {

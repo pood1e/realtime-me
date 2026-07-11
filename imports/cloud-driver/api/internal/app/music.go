@@ -10,15 +10,41 @@ import (
 	"example.com/cloud-drive/api/internal/domain"
 )
 
-// MusicService manages the private music application independently of the drive.
-type MusicService struct {
-	store         domain.MusicStore
+// MusicSuite groups independently addressable music application services.
+type MusicSuite struct {
+	Library   *MusicLibraryService
+	Providers *MusicProviderService
+	Playlists *MusicPlaylistService
+}
+
+// MusicLibraryService owns the local catalog and playback history.
+type MusicLibraryService struct {
+	store    domain.MusicLibraryStore
+	contents domain.ContentStore
+	content  *ContentService
+	files    ContentReader
+	clock    domain.Clock
+	tracks   *musicTrackValidator
+}
+
+// MusicProviderService owns external account, search, and playback operations.
+type MusicProviderService struct {
+	*musicProviderSession
+	store  domain.MusicLibraryStore
+	tracks *musicTrackValidator
+}
+
+// MusicPlaylistService owns imported playlist snapshots and downloads.
+type MusicPlaylistService struct {
+	*musicProviderSession
+	store  domain.MusicPlaylistStore
+	tracks *musicTrackValidator
+}
+
+type musicProviderSession struct {
 	providerStore domain.MusicProviderStore
 	providers     domain.MusicProviderRegistry
 	credentials   CredentialProtector
-	contents      domain.ContentStore
-	content       *ContentService
-	files         ContentFiles
 	clock         domain.Clock
 }
 
@@ -35,23 +61,46 @@ type MusicProviderDependencies struct {
 	Credentials CredentialProtector
 }
 
-// NewMusicService constructs the music application service.
-func NewMusicService(store domain.MusicStore, contents domain.ContentStore, content *ContentService, files ContentFiles, clock domain.Clock, providers MusicProviderDependencies) *MusicService {
-	return &MusicService{
-		store: store, providerStore: providers.Store, providers: providers.Registry, credentials: providers.Credentials,
-		contents: contents, content: content, files: files, clock: clock,
+// NewMusicSuite constructs the music application around one shared provider session.
+func NewMusicSuite(store domain.MusicStore, contents domain.ContentStore, content *ContentService, files ContentReader, clock domain.Clock, providers MusicProviderDependencies) *MusicSuite {
+	session := newMusicProviderSession(clock, providers)
+	tracks := &musicTrackValidator{store: store, providers: providers.Registry}
+	return &MusicSuite{
+		Library: &MusicLibraryService{
+			store: store, contents: contents, content: content, files: files, clock: clock, tracks: tracks,
+		},
+		Providers: &MusicProviderService{musicProviderSession: session, store: store, tracks: tracks},
+		Playlists: &MusicPlaylistService{musicProviderSession: session, store: store, tracks: tracks},
 	}
 }
 
-func (s *MusicService) Get(ctx context.Context, uid string) (domain.Track, error) {
+// NewMusicPlaylistService constructs the worker-safe playlist import service.
+func NewMusicPlaylistService(store domain.MusicStore, clock domain.Clock, providers MusicProviderDependencies) *MusicPlaylistService {
+	return &MusicPlaylistService{
+		musicProviderSession: newMusicProviderSession(clock, providers), store: store,
+		tracks: &musicTrackValidator{store: store, providers: providers.Registry},
+	}
+}
+
+func newMusicProviderSession(clock domain.Clock, providers MusicProviderDependencies) *musicProviderSession {
+	return &musicProviderSession{
+		providerStore: providers.Store, providers: providers.Registry,
+		credentials: providers.Credentials, clock: clock,
+	}
+}
+
+func (s *MusicLibraryService) Get(ctx context.Context, uid string) (domain.Track, error) {
 	return s.store.GetTrack(ctx, uid, false)
 }
 
-func (s *MusicService) List(ctx context.Context, query, album, artist string, favorites, trashed bool, pageSize int, pageToken string) (domain.TrackPage, error) {
-	return s.store.ListTracks(ctx, strings.TrimSpace(query), strings.TrimSpace(album), strings.TrimSpace(artist), favorites, trashed, pageSize, pageToken)
+func (s *MusicLibraryService) List(ctx context.Context, query, album, artist string, favorites, trashed bool, pageSize int, pageToken string) (domain.TrackPage, error) {
+	return s.store.ListTracks(ctx, domain.TrackListQuery{
+		Query: strings.TrimSpace(query), Album: strings.TrimSpace(album), Artist: strings.TrimSpace(artist),
+		Favorites: favorites, Trashed: trashed, PageSize: pageSize, PageToken: pageToken,
+	})
 }
 
-func (s *MusicService) Import(ctx context.Context, uploadUID string) (domain.Track, error) {
+func (s *MusicLibraryService) Import(ctx context.Context, uploadUID string) (domain.Track, error) {
 	upload, sealed, unlock, err := s.content.SealForClaim(ctx, uploadUID)
 	if err != nil {
 		return domain.Track{}, err
@@ -62,62 +111,54 @@ func (s *MusicService) Import(ctx context.Context, uploadUID string) (domain.Tra
 		return domain.Track{}, err
 	}
 	if upload.Status != domain.UploadStatusClaimed {
-		s.content.FinishClaim(ctx, uploadUID)
+		_ = s.content.FinishClaim(ctx, uploadUID)
 	}
 	return track, nil
 }
 
-func (s *MusicService) SetFavorite(ctx context.Context, uid string, favorite bool) (domain.Track, error) {
+func (s *MusicLibraryService) SetFavorite(ctx context.Context, uid string, favorite bool) (domain.Track, error) {
 	return s.store.SetTrackFavorite(ctx, uid, favorite)
 }
 
-func (s *MusicService) Trash(ctx context.Context, uid string) (domain.Track, error) {
+func (s *MusicLibraryService) Trash(ctx context.Context, uid string) (domain.Track, error) {
 	return s.store.TrashTrack(ctx, uid)
 }
 
-func (s *MusicService) Restore(ctx context.Context, uid string) (domain.Track, error) {
+func (s *MusicLibraryService) Restore(ctx context.Context, uid string) (domain.Track, error) {
 	return s.store.RestoreTrack(ctx, uid)
 }
 
-func (s *MusicService) Purge(ctx context.Context, uid string) error {
+func (s *MusicLibraryService) Purge(ctx context.Context, uid string) error {
 	if err := s.store.PurgeTrack(ctx, uid); err != nil {
 		return err
 	}
 	return s.content.CollectGarbage(ctx)
 }
 
-func (s *MusicService) EmptyTrash(ctx context.Context) error {
+func (s *MusicLibraryService) EmptyTrash(ctx context.Context) error {
 	if err := s.store.EmptyTrackTrash(ctx); err != nil {
 		return err
 	}
 	return s.content.CollectGarbage(ctx)
 }
 
-func (s *MusicService) RetryProcessing(ctx context.Context, uid string) (domain.Track, error) {
+func (s *MusicLibraryService) RetryProcessing(ctx context.Context, uid string) (domain.Track, error) {
 	return s.store.QueueTrackProcessing(ctx, uid)
 }
 
-func (s *MusicService) ListAlbums(ctx context.Context, query string) ([]domain.Album, error) {
-	return s.store.ListAlbums(ctx, strings.TrimSpace(query))
-}
-
-func (s *MusicService) ListArtists(ctx context.Context, query string) ([]domain.Artist, error) {
-	return s.store.ListArtists(ctx, strings.TrimSpace(query))
-}
-
-func (s *MusicService) RecordPlayback(ctx context.Context, track domain.PlayableTrack) (domain.PlaybackEntry, error) {
-	validated, err := s.validatePlaybackTrack(ctx, track)
+func (s *MusicLibraryService) RecordPlayback(ctx context.Context, track domain.PlayableTrack) (domain.PlaybackEntry, error) {
+	validated, err := s.tracks.Validate(ctx, track)
 	if err != nil {
 		return domain.PlaybackEntry{}, err
 	}
 	return s.store.RecordPlayback(ctx, domain.PlaybackEntry{UID: uuid.NewString(), Track: validated, PlayTime: s.clock.Now().UTC()})
 }
 
-func (s *MusicService) ListPlaybackHistory(ctx context.Context, pageSize int, pageToken string) (domain.PlaybackPage, error) {
+func (s *MusicLibraryService) ListPlaybackHistory(ctx context.Context, pageSize int, pageToken string) (domain.PlaybackPage, error) {
 	return s.store.ListPlaybackHistory(ctx, pageSize, pageToken)
 }
 
-func (s *MusicService) OpenContent(ctx context.Context, uid string) (*os.File, domain.Track, error) {
+func (s *MusicLibraryService) OpenContent(ctx context.Context, uid string) (*os.File, domain.Track, error) {
 	track, err := s.store.GetTrack(ctx, uid, false)
 	if err != nil {
 		return nil, domain.Track{}, err
@@ -130,7 +171,7 @@ func (s *MusicService) OpenContent(ctx context.Context, uid string) (*os.File, d
 	return file, track, err
 }
 
-func (s *MusicService) OpenArtwork(ctx context.Context, uid string) (*os.File, domain.Track, error) {
+func (s *MusicLibraryService) OpenArtwork(ctx context.Context, uid string) (*os.File, domain.Track, error) {
 	track, err := s.store.GetTrack(ctx, uid, false)
 	if err != nil {
 		return nil, domain.Track{}, err

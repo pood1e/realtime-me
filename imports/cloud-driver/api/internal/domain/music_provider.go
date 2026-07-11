@@ -36,6 +36,7 @@ type ProviderLoginPoll struct {
 // MusicProviderAdapter is the common identity shared by every compile-time plugin.
 type MusicProviderAdapter interface {
 	Provider() MusicProvider
+	DisplayName() string
 	Configured() bool
 }
 

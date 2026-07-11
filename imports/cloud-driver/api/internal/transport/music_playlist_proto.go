@@ -8,13 +8,36 @@ import (
 
 func playlistProto(playlist domain.Playlist) *musicv1.Playlist {
 	return &musicv1.Playlist{
-		Uid: playlist.UID, Provider: musicProviderProto(playlist.Provider), ExternalId: playlist.ExternalID,
+		Uid: playlist.UID, ProviderId: string(playlist.Provider), ExternalId: playlist.ExternalID,
 		DisplayName: playlist.DisplayName, ArtworkUrl: playlist.ArtworkURL, ProviderUrl: playlist.ProviderURL,
 		TrackCount: int32(playlist.TrackCount), DownloadableTrackCount: int32(playlist.DownloadableTrackCount),
 		PendingTrackCount:   int32(playlist.PendingTrackCount),
 		CompletedTrackCount: int32(playlist.CompletedTrackCount), FailedTrackCount: int32(playlist.FailedTrackCount),
 		DownloadSupported: playlist.DownloadSupported, CreateTime: timestamppb.New(playlist.CreateTime),
 		UpdateTime: timestamppb.New(playlist.UpdateTime),
+	}
+}
+
+func playlistImportProto(operation domain.PlaylistImport) *musicv1.PlaylistImport {
+	return &musicv1.PlaylistImport{
+		Uid: operation.UID, ProviderId: string(operation.Provider), Status: playlistImportStatusProto(operation.Status),
+		PlaylistUid: operation.PlaylistUID, FailureCode: operation.FailureCode,
+		CreateTime: timestamppb.New(operation.CreateTime), UpdateTime: timestamppb.New(operation.UpdateTime),
+	}
+}
+
+func playlistImportStatusProto(status domain.PlaylistImportStatus) musicv1.PlaylistImportStatus {
+	switch status {
+	case domain.PlaylistImportPending:
+		return musicv1.PlaylistImportStatus_PLAYLIST_IMPORT_STATUS_PENDING
+	case domain.PlaylistImportRunning:
+		return musicv1.PlaylistImportStatus_PLAYLIST_IMPORT_STATUS_RUNNING
+	case domain.PlaylistImportCompleted:
+		return musicv1.PlaylistImportStatus_PLAYLIST_IMPORT_STATUS_COMPLETED
+	case domain.PlaylistImportFailed:
+		return musicv1.PlaylistImportStatus_PLAYLIST_IMPORT_STATUS_FAILED
+	default:
+		return musicv1.PlaylistImportStatus_PLAYLIST_IMPORT_STATUS_UNSPECIFIED
 	}
 }
 

@@ -20,7 +20,7 @@ const maximumTrackDownloadBytes int64 = 2 << 30
 // MusicDownloadStore persists provider downloads and their local track links.
 type MusicDownloadStore interface {
 	GetMusicDownload(context.Context, string) (domain.MusicDownload, error)
-	CompleteMusicDownload(context.Context, domain.PlaylistTrack, domain.SealedContent) error
+	CompleteMusicDownload(context.Context, domain.ProcessingJob, domain.SealedContent) error
 }
 
 // CredentialProtector decrypts and rotates provider credentials.
@@ -59,8 +59,8 @@ func NewMusicDownloader(
 }
 
 // Process resolves and persists one playlist track.
-func (d *MusicDownloader) Process(ctx context.Context, itemUID, workDir string) error {
-	download, err := d.store.GetMusicDownload(ctx, itemUID)
+func (d *MusicDownloader) Process(ctx context.Context, job domain.ProcessingJob, workDir string) error {
+	download, err := d.store.GetMusicDownload(ctx, job.ResourceUID)
 	if err != nil {
 		return err
 	}
@@ -95,11 +95,11 @@ func (d *MusicDownloader) Process(ctx context.Context, itemUID, workDir string) 
 	if err != nil {
 		return err
 	}
-	sealed, err := d.files.PublishSource(sourcePath, fileName)
+	sealed, err := d.files.PublishSource(ctx, sourcePath, fileName)
 	if err != nil {
 		return err
 	}
-	return d.store.CompleteMusicDownload(ctx, download.PlaylistTrack, sealed)
+	return d.store.CompleteMusicDownload(ctx, job, sealed)
 }
 
 func (d *MusicDownloader) fetch(ctx context.Context, resource domain.ProviderDownload, item domain.PlaylistTrack, workDir string) (string, string, error) {

@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	"example.com/cloud-drive/api/internal/provider/failure"
 )
 
 const (
@@ -25,10 +27,18 @@ const (
 	maximumBodySize = 4 << 20
 )
 
+type classifiedError struct {
+	message string
+	kind    failure.Kind
+}
+
+func (e *classifiedError) Error() string             { return e.message }
+func (e *classifiedError) FailureKind() failure.Kind { return e.kind }
+
 var (
-	ErrInvalidConfiguration = errors.New("invalid Spotify configuration")
-	ErrInvalidCredentials   = errors.New("invalid Spotify credentials")
-	ErrInvalidLoginAttempt  = errors.New("invalid Spotify login attempt")
+	ErrInvalidConfiguration = &classifiedError{message: "invalid Spotify configuration", kind: failure.Invalid}
+	ErrInvalidCredentials   = &classifiedError{message: "invalid Spotify credentials", kind: failure.Unauthorized}
+	ErrInvalidLoginAttempt  = &classifiedError{message: "invalid Spotify login attempt", kind: failure.Invalid}
 )
 
 type Client struct {

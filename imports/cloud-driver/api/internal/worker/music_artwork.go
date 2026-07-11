@@ -24,7 +24,7 @@ const (
 // MusicArtworkStore resolves and persists local artwork for provider tracks.
 type MusicArtworkStore interface {
 	GetMusicArtwork(context.Context, string) (domain.ContentObject, string, error)
-	CompleteMusicArtwork(context.Context, domain.Artifact) error
+	CompleteMusicArtwork(context.Context, domain.ProcessingJob, domain.Artifact) error
 }
 
 // MusicArtworkImporter stores a bounded provider image as a local JPEG artifact.
@@ -40,8 +40,8 @@ func NewMusicArtworkImporter(store MusicArtworkStore, files Files, httpClient *h
 }
 
 // Process imports artwork for one already-downloaded provider track.
-func (i *MusicArtworkImporter) Process(ctx context.Context, trackUID, workDir string) error {
-	content, artworkURL, err := i.store.GetMusicArtwork(ctx, trackUID)
+func (i *MusicArtworkImporter) Process(ctx context.Context, job domain.ProcessingJob, workDir string) error {
+	content, artworkURL, err := i.store.GetMusicArtwork(ctx, job.ResourceUID)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (i *MusicArtworkImporter) Process(ctx context.Context, trackUID, workDir st
 	if err != nil {
 		return err
 	}
-	return i.store.CompleteMusicArtwork(ctx, domain.Artifact{
+	return i.store.CompleteMusicArtwork(ctx, job, domain.Artifact{
 		UID: uuid.NewString(), ContentUID: content.UID, Kind: "track_artwork", Variant: "default",
 		ContentType: "image/jpeg", StorageKey: storageKey, Width: width, Height: height,
 	})

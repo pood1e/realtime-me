@@ -58,12 +58,15 @@ func (s *Store) GetBookForProcessing(ctx context.Context, uid string) (domain.Bo
 }
 
 // CompleteBookProcessing persists extracted metadata and optional cover.
-func (s *Store) CompleteBookProcessing(ctx context.Context, uid, title string, authors []string, pageCount int, cover *domain.Artifact) error {
+func (s *Store) CompleteBookProcessing(ctx context.Context, job domain.ProcessingJob, title string, authors []string, pageCount int, cover *domain.Artifact) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin book processing completion: %w", err)
 	}
 	defer tx.Rollback(ctx)
+	if err := lockProcessingJobLease(ctx, tx, job); err != nil {
+		return err
+	}
 	if cover != nil {
 		if err := upsertArtifact(ctx, tx, *cover); err != nil {
 			return err
@@ -72,7 +75,7 @@ func (s *Store) CompleteBookProcessing(ctx context.Context, uid, title string, a
 	_, err = tx.Exec(ctx, `UPDATE books SET
 		title = CASE WHEN title = regexp_replace(original_file_name, '\.[^.]+$', '') AND $2 <> '' THEN $2 ELSE title END,
 		authors = CASE WHEN cardinality(authors) = 0 AND cardinality($3::text[]) > 0 THEN $3 ELSE authors END,
-		page_count = $4, processing_status = 'ready', update_time = now() WHERE uid = $1`, uid, title, authors, pageCount)
+		page_count = $4, processing_status = 'ready', update_time = now() WHERE uid = $1`, job.ResourceUID, title, authors, pageCount)
 	if err != nil {
 		return fmt.Errorf("complete book processing: %w", err)
 	}

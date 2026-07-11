@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"example.com/cloud-drive/api/internal/domain"
 )
@@ -79,12 +80,12 @@ func (f *Filesystem) WriteChunk(_ context.Context, uploadUID string, offset int6
 }
 
 // SealUpload publishes a complete upload under its SHA-256 content address.
-func (f *Filesystem) SealUpload(_ context.Context, uploadUID, fileName string) (domain.SealedContent, error) {
+func (f *Filesystem) SealUpload(ctx context.Context, uploadUID, fileName string) (domain.SealedContent, error) {
 	path, err := f.uploadPath(uploadUID)
 	if err != nil {
 		return domain.SealedContent{}, err
 	}
-	sealed, err := f.inspectFile(path, fileName)
+	sealed, err := f.inspectFile(ctx, path, fileName)
 	if err != nil {
 		return domain.SealedContent{}, err
 	}
@@ -95,12 +96,12 @@ func (f *Filesystem) SealUpload(_ context.Context, uploadUID, fileName string) (
 }
 
 // InspectLegacyObject hashes a legacy object and publishes its content-addressed link.
-func (f *Filesystem) InspectLegacyObject(_ context.Context, content domain.ContentObject) (domain.SealedContent, error) {
+func (f *Filesystem) InspectLegacyObject(ctx context.Context, content domain.ContentObject) (domain.SealedContent, error) {
 	path, err := f.storagePath(content.StorageKey)
 	if err != nil {
 		return domain.SealedContent{}, err
 	}
-	sealed, err := f.inspectFile(path, filepath.Base(content.StorageKey))
+	sealed, err := f.inspectFile(ctx, path, filepath.Base(content.StorageKey))
 	if err != nil {
 		return domain.SealedContent{}, err
 	}
@@ -142,6 +143,77 @@ func (f *Filesystem) Remove(_ context.Context, storageKey string) error {
 		return err
 	}
 	return removeFile(path, "stored file")
+}
+
+// WalkStoredFiles visits source objects and derived artifacts without following links.
+func (f *Filesystem) WalkStoredFiles(ctx context.Context, visit func(domain.StoredFile) error) error {
+	for _, root := range []string{f.objects, f.artifacts} {
+		err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
+			}
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			if entry.IsDir() {
+				return nil
+			}
+			info, err := entry.Info()
+			if err != nil {
+				return err
+			}
+			if !info.Mode().IsRegular() {
+				return nil
+			}
+			relative, err := filepath.Rel(f.dataRoot, path)
+			if err != nil {
+				return fmt.Errorf("resolve stored file key: %w", err)
+			}
+			return visit(domain.StoredFile{
+				StorageKey:   filepath.ToSlash(relative),
+				ActivityTime: fileActivityTime(info),
+			})
+		})
+		if err != nil {
+			return fmt.Errorf("walk stored files: %w", err)
+		}
+	}
+	return nil
+}
+
+// RemoveStoredFileIfOlder rechecks age under an advisory file lock before deletion.
+func (f *Filesystem) RemoveStoredFileIfOlder(_ context.Context, storageKey string, cutoff time.Time) error {
+	path, err := f.storagePath(storageKey)
+	if err != nil {
+		return err
+	}
+	file, err := os.Open(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("open stored file for reconciliation: %w", err)
+	}
+	defer file.Close()
+	if err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX); err != nil {
+		return fmt.Errorf("lock stored file for reconciliation: %w", err)
+	}
+	defer syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+	info, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("stat stored file for reconciliation: %w", err)
+	}
+	current, err := os.Stat(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("recheck stored file for reconciliation: %w", err)
+	}
+	if !os.SameFile(info, current) || !fileActivityTime(info).Before(cutoff) {
+		return nil
+	}
+	return removeFile(path, "orphaned stored file")
 }
 
 // NewWorkDir creates an isolated directory for one processing job.
@@ -188,15 +260,15 @@ func (f *Filesystem) PublishArtifact(sourcePath string, contentSHA256 []byte, ki
 	}
 	contentAddress := hex.EncodeToString(contentSHA256)
 	storageKey := filepath.ToSlash(filepath.Join("artifacts", contentAddress, kind, variant+"."+extension))
-	if err := f.publishFile(sourcePath, storageKey, false); err != nil {
+	if err := f.replaceFile(sourcePath, storageKey); err != nil {
 		return "", err
 	}
 	return storageKey, nil
 }
 
 // PublishSource installs a worker-created source file in content-addressed storage.
-func (f *Filesystem) PublishSource(sourcePath, fileName string) (domain.SealedContent, error) {
-	sealed, err := f.inspectFile(sourcePath, fileName)
+func (f *Filesystem) PublishSource(ctx context.Context, sourcePath, fileName string) (domain.SealedContent, error) {
+	sealed, err := f.inspectFile(ctx, sourcePath, fileName)
 	if err != nil {
 		return domain.SealedContent{}, err
 	}

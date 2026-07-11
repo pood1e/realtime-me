@@ -15,62 +15,97 @@ const (
 	maximumImportedPlaylistSize = 5000
 )
 
-// ImportPlaylist resolves and stores one provider playlist snapshot.
-func (s *MusicService) ImportPlaylist(ctx context.Context, provider domain.MusicProvider, source string) (domain.Playlist, error) {
+// QueuePlaylistImport validates access and creates one durable import operation.
+func (s *MusicPlaylistService) QueuePlaylistImport(ctx context.Context, provider domain.MusicProvider, source string) (domain.PlaylistImport, error) {
 	source = strings.TrimSpace(source)
 	if provider == "" || provider == domain.MusicProviderLocal || source == "" || len(source) > maximumPlaylistSourceLength {
-		return domain.Playlist{}, fmt.Errorf("%w: provider and playlist source are required", domain.ErrInvalidArgument)
+		return domain.PlaylistImport{}, fmt.Errorf("%w: provider and playlist source are required", domain.ErrInvalidArgument)
 	}
-	connection, credentials, err := s.providerCredentials(ctx, provider)
-	if err != nil {
-		return domain.Playlist{}, err
+	if _, _, err := s.providerCredentials(ctx, provider); err != nil {
+		return domain.PlaylistImport{}, err
 	}
 	adapter, err := s.providerAdapter(provider)
 	if err != nil {
-		return domain.Playlist{}, err
+		return domain.PlaylistImport{}, err
+	}
+	if _, supported := adapter.(domain.MusicPlaylistImporter); !supported {
+		return domain.PlaylistImport{}, fmt.Errorf("%w: provider does not expose playlists", domain.ErrConflict)
+	}
+	now := s.clock.Now().UTC()
+	return s.store.QueuePlaylistImport(ctx, domain.PlaylistImport{
+		UID: uuid.NewString(), Provider: provider, Source: source,
+		Status: domain.PlaylistImportPending, CreateTime: now, UpdateTime: now,
+	})
+}
+
+// GetPlaylistImport returns one durable import operation.
+func (s *MusicPlaylistService) GetPlaylistImport(ctx context.Context, uid string) (domain.PlaylistImport, error) {
+	return s.store.GetPlaylistImport(ctx, strings.TrimSpace(uid))
+}
+
+// ResolvePlaylistImport loads and normalizes provider data for the local worker.
+func (s *MusicPlaylistService) ResolvePlaylistImport(ctx context.Context, operation domain.PlaylistImport) (domain.Playlist, []domain.PlayableTrack, error) {
+	connection, credentials, err := s.providerCredentials(ctx, operation.Provider)
+	if err != nil {
+		return domain.Playlist{}, nil, err
+	}
+	adapter, err := s.providerAdapter(operation.Provider)
+	if err != nil {
+		return domain.Playlist{}, nil, err
 	}
 	importer, supported := adapter.(domain.MusicPlaylistImporter)
 	if !supported {
-		return domain.Playlist{}, fmt.Errorf("%w: provider does not expose playlists", domain.ErrConflict)
+		return domain.Playlist{}, nil, fmt.Errorf("%w: provider does not expose playlists", domain.ErrConflict)
 	}
-	providerPlaylist, updated, err := importer.ImportPlaylist(ctx, credentials, source)
+	providerPlaylist, updated, err := importer.ImportPlaylist(ctx, credentials, operation.Source)
 	if err != nil {
 		s.markProviderFailure(ctx, connection, err)
-		return domain.Playlist{}, err
+		return domain.Playlist{}, nil, err
 	}
-	if err := validateProviderPlaylist(provider, providerPlaylist); err != nil {
-		return domain.Playlist{}, err
+	if err := validateProviderPlaylist(operation.Provider, providerPlaylist); err != nil {
+		return domain.Playlist{}, nil, err
+	}
+	normalizedTracks := make([]domain.PlayableTrack, 0, len(providerPlaylist.Tracks))
+	for _, track := range providerPlaylist.Tracks {
+		normalized, err := s.tracks.Validate(ctx, track)
+		if err != nil {
+			return domain.Playlist{}, nil, fmt.Errorf("%w: provider playlist contains invalid metadata", domain.ErrUnavailable)
+		}
+		normalizedTracks = append(normalizedTracks, normalized)
 	}
 	if err := s.persistCredentialUpdate(ctx, connection, credentials, updated); err != nil {
-		return domain.Playlist{}, err
+		return domain.Playlist{}, nil, err
 	}
 	now := s.clock.Now().UTC()
 	_, downloadSupported := adapter.(domain.MusicTrackDownloader)
-	return s.store.ImportPlaylist(ctx, domain.Playlist{
-		UID: uuid.NewString(), Provider: provider, ExternalID: strings.TrimSpace(providerPlaylist.ExternalID),
-		DisplayName: strings.TrimSpace(providerPlaylist.DisplayName), ArtworkURL: strings.TrimSpace(providerPlaylist.ArtworkURL),
-		ProviderURL: strings.TrimSpace(providerPlaylist.ProviderURL), DownloadSupported: downloadSupported,
+	playlist := domain.Playlist{
+		UID: uuid.NewString(), Provider: operation.Provider,
+		ExternalID:  truncateText(strings.TrimSpace(providerPlaylist.ExternalID), 512),
+		DisplayName: truncateText(strings.TrimSpace(providerPlaylist.DisplayName), 512),
+		ArtworkURL:  validatedProviderURL(providerPlaylist.ArtworkURL),
+		ProviderURL: validatedProviderURL(providerPlaylist.ProviderURL), DownloadSupported: downloadSupported,
 		CreateTime: now, UpdateTime: now,
-	}, providerPlaylist.Tracks)
+	}
+	return playlist, normalizedTracks, nil
 }
 
 // GetPlaylist returns one imported playlist.
-func (s *MusicService) GetPlaylist(ctx context.Context, uid string) (domain.Playlist, error) {
+func (s *MusicPlaylistService) GetPlaylist(ctx context.Context, uid string) (domain.Playlist, error) {
 	return s.store.GetPlaylist(ctx, strings.TrimSpace(uid))
 }
 
 // ListPlaylists lists imported playlists.
-func (s *MusicService) ListPlaylists(ctx context.Context, pageSize int, pageToken string) (domain.PlaylistPage, error) {
+func (s *MusicPlaylistService) ListPlaylists(ctx context.Context, pageSize int, pageToken string) (domain.PlaylistPage, error) {
 	return s.store.ListPlaylists(ctx, pageSize, pageToken)
 }
 
 // ListPlaylistTracks lists one playlist in provider order.
-func (s *MusicService) ListPlaylistTracks(ctx context.Context, uid string, pageSize int, pageToken string) (domain.PlaylistTrackPage, error) {
+func (s *MusicPlaylistService) ListPlaylistTracks(ctx context.Context, uid string, pageSize int, pageToken string) (domain.PlaylistTrackPage, error) {
 	return s.store.ListPlaylistTracks(ctx, strings.TrimSpace(uid), pageSize, pageToken)
 }
 
 // DownloadPlaylist queues every locally missing direct-audio track.
-func (s *MusicService) DownloadPlaylist(ctx context.Context, uid string) (domain.Playlist, error) {
+func (s *MusicPlaylistService) DownloadPlaylist(ctx context.Context, uid string) (domain.Playlist, error) {
 	playlist, err := s.store.GetPlaylist(ctx, strings.TrimSpace(uid))
 	if err != nil {
 		return domain.Playlist{}, err
@@ -89,12 +124,13 @@ func (s *MusicService) DownloadPlaylist(ctx context.Context, uid string) (domain
 }
 
 // DeletePlaylist removes an imported snapshot without deleting downloaded tracks.
-func (s *MusicService) DeletePlaylist(ctx context.Context, uid string) error {
+func (s *MusicPlaylistService) DeletePlaylist(ctx context.Context, uid string) error {
 	return s.store.DeletePlaylist(ctx, strings.TrimSpace(uid))
 }
 
 func validateProviderPlaylist(provider domain.MusicProvider, playlist domain.ProviderPlaylist) error {
-	if strings.TrimSpace(playlist.ExternalID) == "" || strings.TrimSpace(playlist.DisplayName) == "" ||
+	if strings.TrimSpace(playlist.ExternalID) == "" || len(playlist.ExternalID) > 512 ||
+		strings.TrimSpace(playlist.DisplayName) == "" || len(playlist.DisplayName) > 512 ||
 		len(playlist.Tracks) > maximumImportedPlaylistSize {
 		return fmt.Errorf("%w: provider playlist is incomplete or too large", domain.ErrUnavailable)
 	}

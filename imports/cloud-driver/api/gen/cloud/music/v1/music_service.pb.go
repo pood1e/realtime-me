@@ -854,27 +854,26 @@ func (x *RetryTrackProcessingResponse) GetTrack() *Track {
 	return nil
 }
 
-type ListAlbumsRequest struct {
+type ListProvidersRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListAlbumsRequest) Reset() {
-	*x = ListAlbumsRequest{}
+func (x *ListProvidersRequest) Reset() {
+	*x = ListProvidersRequest{}
 	mi := &file_cloud_music_v1_music_service_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListAlbumsRequest) String() string {
+func (x *ListProvidersRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListAlbumsRequest) ProtoMessage() {}
+func (*ListProvidersRequest) ProtoMessage() {}
 
-func (x *ListAlbumsRequest) ProtoReflect() protoreflect.Message {
+func (x *ListProvidersRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_cloud_music_v1_music_service_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -886,39 +885,32 @@ func (x *ListAlbumsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListAlbumsRequest.ProtoReflect.Descriptor instead.
-func (*ListAlbumsRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListProvidersRequest.ProtoReflect.Descriptor instead.
+func (*ListProvidersRequest) Descriptor() ([]byte, []int) {
 	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{18}
 }
 
-func (x *ListAlbumsRequest) GetQuery() string {
-	if x != nil {
-		return x.Query
-	}
-	return ""
-}
-
-type ListAlbumsResponse struct {
+type ListProvidersResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Albums        []*Album               `protobuf:"bytes,1,rep,name=albums,proto3" json:"albums,omitempty"`
+	Providers     []*ProviderDescriptor  `protobuf:"bytes,1,rep,name=providers,proto3" json:"providers,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListAlbumsResponse) Reset() {
-	*x = ListAlbumsResponse{}
+func (x *ListProvidersResponse) Reset() {
+	*x = ListProvidersResponse{}
 	mi := &file_cloud_music_v1_music_service_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListAlbumsResponse) String() string {
+func (x *ListProvidersResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListAlbumsResponse) ProtoMessage() {}
+func (*ListProvidersResponse) ProtoMessage() {}
 
-func (x *ListAlbumsResponse) ProtoReflect() protoreflect.Message {
+func (x *ListProvidersResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_cloud_music_v1_music_service_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -930,102 +922,14 @@ func (x *ListAlbumsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListAlbumsResponse.ProtoReflect.Descriptor instead.
-func (*ListAlbumsResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListProvidersResponse.ProtoReflect.Descriptor instead.
+func (*ListProvidersResponse) Descriptor() ([]byte, []int) {
 	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{19}
 }
 
-func (x *ListAlbumsResponse) GetAlbums() []*Album {
+func (x *ListProvidersResponse) GetProviders() []*ProviderDescriptor {
 	if x != nil {
-		return x.Albums
-	}
-	return nil
-}
-
-type ListArtistsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListArtistsRequest) Reset() {
-	*x = ListArtistsRequest{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[20]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListArtistsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListArtistsRequest) ProtoMessage() {}
-
-func (x *ListArtistsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[20]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListArtistsRequest.ProtoReflect.Descriptor instead.
-func (*ListArtistsRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{20}
-}
-
-func (x *ListArtistsRequest) GetQuery() string {
-	if x != nil {
-		return x.Query
-	}
-	return ""
-}
-
-type ListArtistsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Artists       []*Artist              `protobuf:"bytes,1,rep,name=artists,proto3" json:"artists,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListArtistsResponse) Reset() {
-	*x = ListArtistsResponse{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[21]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListArtistsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListArtistsResponse) ProtoMessage() {}
-
-func (x *ListArtistsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[21]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListArtistsResponse.ProtoReflect.Descriptor instead.
-func (*ListArtistsResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{21}
-}
-
-func (x *ListArtistsResponse) GetArtists() []*Artist {
-	if x != nil {
-		return x.Artists
+		return x.Providers
 	}
 	return nil
 }
@@ -1038,7 +942,7 @@ type ListProviderConnectionsRequest struct {
 
 func (x *ListProviderConnectionsRequest) Reset() {
 	*x = ListProviderConnectionsRequest{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[22]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1050,7 +954,7 @@ func (x *ListProviderConnectionsRequest) String() string {
 func (*ListProviderConnectionsRequest) ProtoMessage() {}
 
 func (x *ListProviderConnectionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[22]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1063,7 +967,7 @@ func (x *ListProviderConnectionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProviderConnectionsRequest.ProtoReflect.Descriptor instead.
 func (*ListProviderConnectionsRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{22}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{20}
 }
 
 type ListProviderConnectionsResponse struct {
@@ -1075,7 +979,7 @@ type ListProviderConnectionsResponse struct {
 
 func (x *ListProviderConnectionsResponse) Reset() {
 	*x = ListProviderConnectionsResponse{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[23]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1087,7 +991,7 @@ func (x *ListProviderConnectionsResponse) String() string {
 func (*ListProviderConnectionsResponse) ProtoMessage() {}
 
 func (x *ListProviderConnectionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[23]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1100,7 +1004,7 @@ func (x *ListProviderConnectionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProviderConnectionsResponse.ProtoReflect.Descriptor instead.
 func (*ListProviderConnectionsResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{23}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListProviderConnectionsResponse) GetConnections() []*ProviderConnection {
@@ -1112,14 +1016,14 @@ func (x *ListProviderConnectionsResponse) GetConnections() []*ProviderConnection
 
 type BeginProviderConnectionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      MusicProvider          `protobuf:"varint,1,opt,name=provider,proto3,enum=cloud.music.v1.MusicProvider" json:"provider,omitempty"`
+	ProviderId    string                 `protobuf:"bytes,1,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BeginProviderConnectionRequest) Reset() {
 	*x = BeginProviderConnectionRequest{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[24]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1131,7 +1035,7 @@ func (x *BeginProviderConnectionRequest) String() string {
 func (*BeginProviderConnectionRequest) ProtoMessage() {}
 
 func (x *BeginProviderConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[24]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1144,14 +1048,14 @@ func (x *BeginProviderConnectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginProviderConnectionRequest.ProtoReflect.Descriptor instead.
 func (*BeginProviderConnectionRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{24}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{22}
 }
 
-func (x *BeginProviderConnectionRequest) GetProvider() MusicProvider {
+func (x *BeginProviderConnectionRequest) GetProviderId() string {
 	if x != nil {
-		return x.Provider
+		return x.ProviderId
 	}
-	return MusicProvider_MUSIC_PROVIDER_UNSPECIFIED
+	return ""
 }
 
 type BeginProviderConnectionResponse struct {
@@ -1163,7 +1067,7 @@ type BeginProviderConnectionResponse struct {
 
 func (x *BeginProviderConnectionResponse) Reset() {
 	*x = BeginProviderConnectionResponse{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[25]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1175,7 +1079,7 @@ func (x *BeginProviderConnectionResponse) String() string {
 func (*BeginProviderConnectionResponse) ProtoMessage() {}
 
 func (x *BeginProviderConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[25]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1188,7 +1092,7 @@ func (x *BeginProviderConnectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginProviderConnectionResponse.ProtoReflect.Descriptor instead.
 func (*BeginProviderConnectionResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{25}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *BeginProviderConnectionResponse) GetAttempt() *ProviderConnectionAttempt {
@@ -1207,7 +1111,7 @@ type GetProviderConnectionAttemptRequest struct {
 
 func (x *GetProviderConnectionAttemptRequest) Reset() {
 	*x = GetProviderConnectionAttemptRequest{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[26]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1219,7 +1123,7 @@ func (x *GetProviderConnectionAttemptRequest) String() string {
 func (*GetProviderConnectionAttemptRequest) ProtoMessage() {}
 
 func (x *GetProviderConnectionAttemptRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[26]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1232,7 +1136,7 @@ func (x *GetProviderConnectionAttemptRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use GetProviderConnectionAttemptRequest.ProtoReflect.Descriptor instead.
 func (*GetProviderConnectionAttemptRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{26}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *GetProviderConnectionAttemptRequest) GetAttemptUid() string {
@@ -1251,7 +1155,7 @@ type GetProviderConnectionAttemptResponse struct {
 
 func (x *GetProviderConnectionAttemptResponse) Reset() {
 	*x = GetProviderConnectionAttemptResponse{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[27]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1263,7 +1167,7 @@ func (x *GetProviderConnectionAttemptResponse) String() string {
 func (*GetProviderConnectionAttemptResponse) ProtoMessage() {}
 
 func (x *GetProviderConnectionAttemptResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[27]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1276,7 +1180,7 @@ func (x *GetProviderConnectionAttemptResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use GetProviderConnectionAttemptResponse.ProtoReflect.Descriptor instead.
 func (*GetProviderConnectionAttemptResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{27}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *GetProviderConnectionAttemptResponse) GetAttempt() *ProviderConnectionAttempt {
@@ -1288,14 +1192,14 @@ func (x *GetProviderConnectionAttemptResponse) GetAttempt() *ProviderConnectionA
 
 type DisconnectProviderRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      MusicProvider          `protobuf:"varint,1,opt,name=provider,proto3,enum=cloud.music.v1.MusicProvider" json:"provider,omitempty"`
+	ProviderId    string                 `protobuf:"bytes,1,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DisconnectProviderRequest) Reset() {
 	*x = DisconnectProviderRequest{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[28]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1307,7 +1211,7 @@ func (x *DisconnectProviderRequest) String() string {
 func (*DisconnectProviderRequest) ProtoMessage() {}
 
 func (x *DisconnectProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[28]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1320,14 +1224,14 @@ func (x *DisconnectProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisconnectProviderRequest.ProtoReflect.Descriptor instead.
 func (*DisconnectProviderRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{28}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{26}
 }
 
-func (x *DisconnectProviderRequest) GetProvider() MusicProvider {
+func (x *DisconnectProviderRequest) GetProviderId() string {
 	if x != nil {
-		return x.Provider
+		return x.ProviderId
 	}
-	return MusicProvider_MUSIC_PROVIDER_UNSPECIFIED
+	return ""
 }
 
 type DisconnectProviderResponse struct {
@@ -1338,7 +1242,7 @@ type DisconnectProviderResponse struct {
 
 func (x *DisconnectProviderResponse) Reset() {
 	*x = DisconnectProviderResponse{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[29]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1350,7 +1254,7 @@ func (x *DisconnectProviderResponse) String() string {
 func (*DisconnectProviderResponse) ProtoMessage() {}
 
 func (x *DisconnectProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[29]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1363,7 +1267,7 @@ func (x *DisconnectProviderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisconnectProviderResponse.ProtoReflect.Descriptor instead.
 func (*DisconnectProviderResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{29}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{27}
 }
 
 type SearchMusicRequest struct {
@@ -1376,7 +1280,7 @@ type SearchMusicRequest struct {
 
 func (x *SearchMusicRequest) Reset() {
 	*x = SearchMusicRequest{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[30]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1388,7 +1292,7 @@ func (x *SearchMusicRequest) String() string {
 func (*SearchMusicRequest) ProtoMessage() {}
 
 func (x *SearchMusicRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[30]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1401,7 +1305,7 @@ func (x *SearchMusicRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchMusicRequest.ProtoReflect.Descriptor instead.
 func (*SearchMusicRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{30}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *SearchMusicRequest) GetQuery() string {
@@ -1427,7 +1331,7 @@ type SearchMusicResponse struct {
 
 func (x *SearchMusicResponse) Reset() {
 	*x = SearchMusicResponse{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[31]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1439,7 +1343,7 @@ func (x *SearchMusicResponse) String() string {
 func (*SearchMusicResponse) ProtoMessage() {}
 
 func (x *SearchMusicResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[31]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1452,7 +1356,7 @@ func (x *SearchMusicResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchMusicResponse.ProtoReflect.Descriptor instead.
 func (*SearchMusicResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{31}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *SearchMusicResponse) GetGroups() []*ProviderSearchGroup {
@@ -1464,7 +1368,7 @@ func (x *SearchMusicResponse) GetGroups() []*ProviderSearchGroup {
 
 type ResolvePlaybackRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      MusicProvider          `protobuf:"varint,1,opt,name=provider,proto3,enum=cloud.music.v1.MusicProvider" json:"provider,omitempty"`
+	ProviderId    string                 `protobuf:"bytes,1,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
 	TrackId       string                 `protobuf:"bytes,2,opt,name=track_id,json=trackId,proto3" json:"track_id,omitempty"`
 	Quality       PlaybackQuality        `protobuf:"varint,3,opt,name=quality,proto3,enum=cloud.music.v1.PlaybackQuality" json:"quality,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1473,7 +1377,7 @@ type ResolvePlaybackRequest struct {
 
 func (x *ResolvePlaybackRequest) Reset() {
 	*x = ResolvePlaybackRequest{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[32]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1485,7 +1389,7 @@ func (x *ResolvePlaybackRequest) String() string {
 func (*ResolvePlaybackRequest) ProtoMessage() {}
 
 func (x *ResolvePlaybackRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[32]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1498,14 +1402,14 @@ func (x *ResolvePlaybackRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolvePlaybackRequest.ProtoReflect.Descriptor instead.
 func (*ResolvePlaybackRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{32}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{30}
 }
 
-func (x *ResolvePlaybackRequest) GetProvider() MusicProvider {
+func (x *ResolvePlaybackRequest) GetProviderId() string {
 	if x != nil {
-		return x.Provider
+		return x.ProviderId
 	}
-	return MusicProvider_MUSIC_PROVIDER_UNSPECIFIED
+	return ""
 }
 
 func (x *ResolvePlaybackRequest) GetTrackId() string {
@@ -1531,7 +1435,7 @@ type ResolvePlaybackResponse struct {
 
 func (x *ResolvePlaybackResponse) Reset() {
 	*x = ResolvePlaybackResponse{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[33]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1543,7 +1447,7 @@ func (x *ResolvePlaybackResponse) String() string {
 func (*ResolvePlaybackResponse) ProtoMessage() {}
 
 func (x *ResolvePlaybackResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[33]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1556,7 +1460,7 @@ func (x *ResolvePlaybackResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolvePlaybackResponse.ProtoReflect.Descriptor instead.
 func (*ResolvePlaybackResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{33}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ResolvePlaybackResponse) GetPlayback() *PlaybackDescriptor {
@@ -1568,7 +1472,7 @@ func (x *ResolvePlaybackResponse) GetPlayback() *PlaybackDescriptor {
 
 type GetProviderLyricsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      MusicProvider          `protobuf:"varint,1,opt,name=provider,proto3,enum=cloud.music.v1.MusicProvider" json:"provider,omitempty"`
+	ProviderId    string                 `protobuf:"bytes,1,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
 	TrackId       string                 `protobuf:"bytes,2,opt,name=track_id,json=trackId,proto3" json:"track_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1576,7 +1480,7 @@ type GetProviderLyricsRequest struct {
 
 func (x *GetProviderLyricsRequest) Reset() {
 	*x = GetProviderLyricsRequest{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[34]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1588,7 +1492,7 @@ func (x *GetProviderLyricsRequest) String() string {
 func (*GetProviderLyricsRequest) ProtoMessage() {}
 
 func (x *GetProviderLyricsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[34]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1601,14 +1505,14 @@ func (x *GetProviderLyricsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProviderLyricsRequest.ProtoReflect.Descriptor instead.
 func (*GetProviderLyricsRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{34}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{32}
 }
 
-func (x *GetProviderLyricsRequest) GetProvider() MusicProvider {
+func (x *GetProviderLyricsRequest) GetProviderId() string {
 	if x != nil {
-		return x.Provider
+		return x.ProviderId
 	}
-	return MusicProvider_MUSIC_PROVIDER_UNSPECIFIED
+	return ""
 }
 
 func (x *GetProviderLyricsRequest) GetTrackId() string {
@@ -1627,7 +1531,7 @@ type GetProviderLyricsResponse struct {
 
 func (x *GetProviderLyricsResponse) Reset() {
 	*x = GetProviderLyricsResponse{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[35]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1639,7 +1543,7 @@ func (x *GetProviderLyricsResponse) String() string {
 func (*GetProviderLyricsResponse) ProtoMessage() {}
 
 func (x *GetProviderLyricsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[35]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1652,7 +1556,7 @@ func (x *GetProviderLyricsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProviderLyricsResponse.ProtoReflect.Descriptor instead.
 func (*GetProviderLyricsResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{35}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *GetProviderLyricsResponse) GetLyric() *Lyric {
@@ -1662,27 +1566,28 @@ func (x *GetProviderLyricsResponse) GetLyric() *Lyric {
 	return nil
 }
 
-type GetSpotifyPlaybackTokenRequest struct {
+type GetProviderPlaybackTokenRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProviderId    string                 `protobuf:"bytes,1,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetSpotifyPlaybackTokenRequest) Reset() {
-	*x = GetSpotifyPlaybackTokenRequest{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[36]
+func (x *GetProviderPlaybackTokenRequest) Reset() {
+	*x = GetProviderPlaybackTokenRequest{}
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetSpotifyPlaybackTokenRequest) String() string {
+func (x *GetProviderPlaybackTokenRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetSpotifyPlaybackTokenRequest) ProtoMessage() {}
+func (*GetProviderPlaybackTokenRequest) ProtoMessage() {}
 
-func (x *GetSpotifyPlaybackTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[36]
+func (x *GetProviderPlaybackTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1693,12 +1598,19 @@ func (x *GetSpotifyPlaybackTokenRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetSpotifyPlaybackTokenRequest.ProtoReflect.Descriptor instead.
-func (*GetSpotifyPlaybackTokenRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{36}
+// Deprecated: Use GetProviderPlaybackTokenRequest.ProtoReflect.Descriptor instead.
+func (*GetProviderPlaybackTokenRequest) Descriptor() ([]byte, []int) {
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{34}
 }
 
-type GetSpotifyPlaybackTokenResponse struct {
+func (x *GetProviderPlaybackTokenRequest) GetProviderId() string {
+	if x != nil {
+		return x.ProviderId
+	}
+	return ""
+}
+
+type GetProviderPlaybackTokenResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AccessToken   string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
 	ExpireTime    *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=expire_time,json=expireTime,proto3" json:"expire_time,omitempty"`
@@ -1706,21 +1618,21 @@ type GetSpotifyPlaybackTokenResponse struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetSpotifyPlaybackTokenResponse) Reset() {
-	*x = GetSpotifyPlaybackTokenResponse{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[37]
+func (x *GetProviderPlaybackTokenResponse) Reset() {
+	*x = GetProviderPlaybackTokenResponse{}
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetSpotifyPlaybackTokenResponse) String() string {
+func (x *GetProviderPlaybackTokenResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetSpotifyPlaybackTokenResponse) ProtoMessage() {}
+func (*GetProviderPlaybackTokenResponse) ProtoMessage() {}
 
-func (x *GetSpotifyPlaybackTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[37]
+func (x *GetProviderPlaybackTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1731,19 +1643,19 @@ func (x *GetSpotifyPlaybackTokenResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetSpotifyPlaybackTokenResponse.ProtoReflect.Descriptor instead.
-func (*GetSpotifyPlaybackTokenResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{37}
+// Deprecated: Use GetProviderPlaybackTokenResponse.ProtoReflect.Descriptor instead.
+func (*GetProviderPlaybackTokenResponse) Descriptor() ([]byte, []int) {
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{35}
 }
 
-func (x *GetSpotifyPlaybackTokenResponse) GetAccessToken() string {
+func (x *GetProviderPlaybackTokenResponse) GetAccessToken() string {
 	if x != nil {
 		return x.AccessToken
 	}
 	return ""
 }
 
-func (x *GetSpotifyPlaybackTokenResponse) GetExpireTime() *timestamppb.Timestamp {
+func (x *GetProviderPlaybackTokenResponse) GetExpireTime() *timestamppb.Timestamp {
 	if x != nil {
 		return x.ExpireTime
 	}
@@ -1759,7 +1671,7 @@ type RecordPlaybackRequest struct {
 
 func (x *RecordPlaybackRequest) Reset() {
 	*x = RecordPlaybackRequest{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[38]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1771,7 +1683,7 @@ func (x *RecordPlaybackRequest) String() string {
 func (*RecordPlaybackRequest) ProtoMessage() {}
 
 func (x *RecordPlaybackRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[38]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1784,7 +1696,7 @@ func (x *RecordPlaybackRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecordPlaybackRequest.ProtoReflect.Descriptor instead.
 func (*RecordPlaybackRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{38}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *RecordPlaybackRequest) GetTrack() *PlayableTrack {
@@ -1803,7 +1715,7 @@ type RecordPlaybackResponse struct {
 
 func (x *RecordPlaybackResponse) Reset() {
 	*x = RecordPlaybackResponse{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[39]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1815,7 +1727,7 @@ func (x *RecordPlaybackResponse) String() string {
 func (*RecordPlaybackResponse) ProtoMessage() {}
 
 func (x *RecordPlaybackResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[39]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1828,7 +1740,7 @@ func (x *RecordPlaybackResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecordPlaybackResponse.ProtoReflect.Descriptor instead.
 func (*RecordPlaybackResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{39}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *RecordPlaybackResponse) GetPlaybackEntry() *PlaybackEntry {
@@ -1848,7 +1760,7 @@ type ListPlaybackHistoryRequest struct {
 
 func (x *ListPlaybackHistoryRequest) Reset() {
 	*x = ListPlaybackHistoryRequest{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[40]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1860,7 +1772,7 @@ func (x *ListPlaybackHistoryRequest) String() string {
 func (*ListPlaybackHistoryRequest) ProtoMessage() {}
 
 func (x *ListPlaybackHistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[40]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1873,7 +1785,7 @@ func (x *ListPlaybackHistoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPlaybackHistoryRequest.ProtoReflect.Descriptor instead.
 func (*ListPlaybackHistoryRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{40}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *ListPlaybackHistoryRequest) GetPageSize() int32 {
@@ -1900,7 +1812,7 @@ type ListPlaybackHistoryResponse struct {
 
 func (x *ListPlaybackHistoryResponse) Reset() {
 	*x = ListPlaybackHistoryResponse{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[41]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1912,7 +1824,7 @@ func (x *ListPlaybackHistoryResponse) String() string {
 func (*ListPlaybackHistoryResponse) ProtoMessage() {}
 
 func (x *ListPlaybackHistoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[41]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1925,7 +1837,7 @@ func (x *ListPlaybackHistoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPlaybackHistoryResponse.ProtoReflect.Descriptor instead.
 func (*ListPlaybackHistoryResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{41}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *ListPlaybackHistoryResponse) GetPlaybackEntries() []*PlaybackEntry {
@@ -1944,7 +1856,7 @@ func (x *ListPlaybackHistoryResponse) GetNextPageToken() string {
 
 type ImportPlaylistRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      MusicProvider          `protobuf:"varint,1,opt,name=provider,proto3,enum=cloud.music.v1.MusicProvider" json:"provider,omitempty"`
+	ProviderId    string                 `protobuf:"bytes,1,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
 	Source        string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1952,7 +1864,7 @@ type ImportPlaylistRequest struct {
 
 func (x *ImportPlaylistRequest) Reset() {
 	*x = ImportPlaylistRequest{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[42]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1964,7 +1876,7 @@ func (x *ImportPlaylistRequest) String() string {
 func (*ImportPlaylistRequest) ProtoMessage() {}
 
 func (x *ImportPlaylistRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[42]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1977,14 +1889,14 @@ func (x *ImportPlaylistRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportPlaylistRequest.ProtoReflect.Descriptor instead.
 func (*ImportPlaylistRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{42}
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{40}
 }
 
-func (x *ImportPlaylistRequest) GetProvider() MusicProvider {
+func (x *ImportPlaylistRequest) GetProviderId() string {
 	if x != nil {
-		return x.Provider
+		return x.ProviderId
 	}
-	return MusicProvider_MUSIC_PROVIDER_UNSPECIFIED
+	return ""
 }
 
 func (x *ImportPlaylistRequest) GetSource() string {
@@ -1995,15 +1907,15 @@ func (x *ImportPlaylistRequest) GetSource() string {
 }
 
 type ImportPlaylistResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Playlist      *Playlist              `protobuf:"bytes,1,opt,name=playlist,proto3" json:"playlist,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	PlaylistImport *PlaylistImport        `protobuf:"bytes,1,opt,name=playlist_import,json=playlistImport,proto3" json:"playlist_import,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ImportPlaylistResponse) Reset() {
 	*x = ImportPlaylistResponse{}
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[43]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2015,7 +1927,7 @@ func (x *ImportPlaylistResponse) String() string {
 func (*ImportPlaylistResponse) ProtoMessage() {}
 
 func (x *ImportPlaylistResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_music_service_proto_msgTypes[43]
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2028,12 +1940,100 @@ func (x *ImportPlaylistResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportPlaylistResponse.ProtoReflect.Descriptor instead.
 func (*ImportPlaylistResponse) Descriptor() ([]byte, []int) {
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *ImportPlaylistResponse) GetPlaylistImport() *PlaylistImport {
+	if x != nil {
+		return x.PlaylistImport
+	}
+	return nil
+}
+
+type GetPlaylistImportRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	PlaylistImportUid string                 `protobuf:"bytes,1,opt,name=playlist_import_uid,json=playlistImportUid,proto3" json:"playlist_import_uid,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *GetPlaylistImportRequest) Reset() {
+	*x = GetPlaylistImportRequest{}
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPlaylistImportRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPlaylistImportRequest) ProtoMessage() {}
+
+func (x *GetPlaylistImportRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPlaylistImportRequest.ProtoReflect.Descriptor instead.
+func (*GetPlaylistImportRequest) Descriptor() ([]byte, []int) {
+	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *GetPlaylistImportRequest) GetPlaylistImportUid() string {
+	if x != nil {
+		return x.PlaylistImportUid
+	}
+	return ""
+}
+
+type GetPlaylistImportResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	PlaylistImport *PlaylistImport        `protobuf:"bytes,1,opt,name=playlist_import,json=playlistImport,proto3" json:"playlist_import,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetPlaylistImportResponse) Reset() {
+	*x = GetPlaylistImportResponse{}
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPlaylistImportResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPlaylistImportResponse) ProtoMessage() {}
+
+func (x *GetPlaylistImportResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cloud_music_v1_music_service_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPlaylistImportResponse.ProtoReflect.Descriptor instead.
+func (*GetPlaylistImportResponse) Descriptor() ([]byte, []int) {
 	return file_cloud_music_v1_music_service_proto_rawDescGZIP(), []int{43}
 }
 
-func (x *ImportPlaylistResponse) GetPlaylist() *Playlist {
+func (x *GetPlaylistImportResponse) GetPlaylistImport() *PlaylistImport {
 	if x != nil {
-		return x.Playlist
+		return x.PlaylistImport
 	}
 	return nil
 }
@@ -2557,48 +2557,49 @@ const file_cloud_music_v1_music_service_proto_rawDesc = "" +
 	"\x1bRetryTrackProcessingRequest\x12\x1b\n" +
 	"\ttrack_uid\x18\x01 \x01(\tR\btrackUid\"K\n" +
 	"\x1cRetryTrackProcessingResponse\x12+\n" +
-	"\x05track\x18\x01 \x01(\v2\x15.cloud.music.v1.TrackR\x05track\")\n" +
-	"\x11ListAlbumsRequest\x12\x14\n" +
-	"\x05query\x18\x01 \x01(\tR\x05query\"C\n" +
-	"\x12ListAlbumsResponse\x12-\n" +
-	"\x06albums\x18\x01 \x03(\v2\x15.cloud.music.v1.AlbumR\x06albums\"*\n" +
-	"\x12ListArtistsRequest\x12\x14\n" +
-	"\x05query\x18\x01 \x01(\tR\x05query\"G\n" +
-	"\x13ListArtistsResponse\x120\n" +
-	"\aartists\x18\x01 \x03(\v2\x16.cloud.music.v1.ArtistR\aartists\" \n" +
+	"\x05track\x18\x01 \x01(\v2\x15.cloud.music.v1.TrackR\x05track\"\x16\n" +
+	"\x14ListProvidersRequest\"Y\n" +
+	"\x15ListProvidersResponse\x12@\n" +
+	"\tproviders\x18\x01 \x03(\v2\".cloud.music.v1.ProviderDescriptorR\tproviders\" \n" +
 	"\x1eListProviderConnectionsRequest\"g\n" +
 	"\x1fListProviderConnectionsResponse\x12D\n" +
-	"\vconnections\x18\x01 \x03(\v2\".cloud.music.v1.ProviderConnectionR\vconnections\"[\n" +
-	"\x1eBeginProviderConnectionRequest\x129\n" +
-	"\bprovider\x18\x01 \x01(\x0e2\x1d.cloud.music.v1.MusicProviderR\bprovider\"f\n" +
+	"\vconnections\x18\x01 \x03(\v2\".cloud.music.v1.ProviderConnectionR\vconnections\"A\n" +
+	"\x1eBeginProviderConnectionRequest\x12\x1f\n" +
+	"\vprovider_id\x18\x01 \x01(\tR\n" +
+	"providerId\"f\n" +
 	"\x1fBeginProviderConnectionResponse\x12C\n" +
 	"\aattempt\x18\x01 \x01(\v2).cloud.music.v1.ProviderConnectionAttemptR\aattempt\"F\n" +
 	"#GetProviderConnectionAttemptRequest\x12\x1f\n" +
 	"\vattempt_uid\x18\x01 \x01(\tR\n" +
 	"attemptUid\"k\n" +
 	"$GetProviderConnectionAttemptResponse\x12C\n" +
-	"\aattempt\x18\x01 \x01(\v2).cloud.music.v1.ProviderConnectionAttemptR\aattempt\"V\n" +
-	"\x19DisconnectProviderRequest\x129\n" +
-	"\bprovider\x18\x01 \x01(\x0e2\x1d.cloud.music.v1.MusicProviderR\bprovider\"\x1c\n" +
+	"\aattempt\x18\x01 \x01(\v2).cloud.music.v1.ProviderConnectionAttemptR\aattempt\"<\n" +
+	"\x19DisconnectProviderRequest\x12\x1f\n" +
+	"\vprovider_id\x18\x01 \x01(\tR\n" +
+	"providerId\"\x1c\n" +
 	"\x1aDisconnectProviderResponse\"j\n" +
 	"\x12SearchMusicRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12>\n" +
 	"\acursors\x18\x02 \x03(\v2$.cloud.music.v1.ProviderSearchCursorR\acursors\"R\n" +
 	"\x13SearchMusicResponse\x12;\n" +
-	"\x06groups\x18\x01 \x03(\v2#.cloud.music.v1.ProviderSearchGroupR\x06groups\"\xa9\x01\n" +
-	"\x16ResolvePlaybackRequest\x129\n" +
-	"\bprovider\x18\x01 \x01(\x0e2\x1d.cloud.music.v1.MusicProviderR\bprovider\x12\x19\n" +
+	"\x06groups\x18\x01 \x03(\v2#.cloud.music.v1.ProviderSearchGroupR\x06groups\"\x8f\x01\n" +
+	"\x16ResolvePlaybackRequest\x12\x1f\n" +
+	"\vprovider_id\x18\x01 \x01(\tR\n" +
+	"providerId\x12\x19\n" +
 	"\btrack_id\x18\x02 \x01(\tR\atrackId\x129\n" +
 	"\aquality\x18\x03 \x01(\x0e2\x1f.cloud.music.v1.PlaybackQualityR\aquality\"Y\n" +
 	"\x17ResolvePlaybackResponse\x12>\n" +
-	"\bplayback\x18\x01 \x01(\v2\".cloud.music.v1.PlaybackDescriptorR\bplayback\"p\n" +
-	"\x18GetProviderLyricsRequest\x129\n" +
-	"\bprovider\x18\x01 \x01(\x0e2\x1d.cloud.music.v1.MusicProviderR\bprovider\x12\x19\n" +
+	"\bplayback\x18\x01 \x01(\v2\".cloud.music.v1.PlaybackDescriptorR\bplayback\"V\n" +
+	"\x18GetProviderLyricsRequest\x12\x1f\n" +
+	"\vprovider_id\x18\x01 \x01(\tR\n" +
+	"providerId\x12\x19\n" +
 	"\btrack_id\x18\x02 \x01(\tR\atrackId\"H\n" +
 	"\x19GetProviderLyricsResponse\x12+\n" +
-	"\x05lyric\x18\x01 \x01(\v2\x15.cloud.music.v1.LyricR\x05lyric\" \n" +
-	"\x1eGetSpotifyPlaybackTokenRequest\"\x81\x01\n" +
-	"\x1fGetSpotifyPlaybackTokenResponse\x12!\n" +
+	"\x05lyric\x18\x01 \x01(\v2\x15.cloud.music.v1.LyricR\x05lyric\"B\n" +
+	"\x1fGetProviderPlaybackTokenRequest\x12\x1f\n" +
+	"\vprovider_id\x18\x01 \x01(\tR\n" +
+	"providerId\"\x82\x01\n" +
+	" GetProviderPlaybackTokenResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12;\n" +
 	"\vexpire_time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"expireTime\"L\n" +
@@ -2612,12 +2613,17 @@ const file_cloud_music_v1_music_service_proto_rawDesc = "" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\"\x8f\x01\n" +
 	"\x1bListPlaybackHistoryResponse\x12H\n" +
 	"\x10playback_entries\x18\x01 \x03(\v2\x1d.cloud.music.v1.PlaybackEntryR\x0fplaybackEntries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"j\n" +
-	"\x15ImportPlaylistRequest\x129\n" +
-	"\bprovider\x18\x01 \x01(\x0e2\x1d.cloud.music.v1.MusicProviderR\bprovider\x12\x16\n" +
-	"\x06source\x18\x02 \x01(\tR\x06source\"N\n" +
-	"\x16ImportPlaylistResponse\x124\n" +
-	"\bplaylist\x18\x01 \x01(\v2\x18.cloud.music.v1.PlaylistR\bplaylist\"7\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"P\n" +
+	"\x15ImportPlaylistRequest\x12\x1f\n" +
+	"\vprovider_id\x18\x01 \x01(\tR\n" +
+	"providerId\x12\x16\n" +
+	"\x06source\x18\x02 \x01(\tR\x06source\"a\n" +
+	"\x16ImportPlaylistResponse\x12G\n" +
+	"\x0fplaylist_import\x18\x01 \x01(\v2\x1e.cloud.music.v1.PlaylistImportR\x0eplaylistImport\"J\n" +
+	"\x18GetPlaylistImportRequest\x12.\n" +
+	"\x13playlist_import_uid\x18\x01 \x01(\tR\x11playlistImportUid\"d\n" +
+	"\x19GetPlaylistImportResponse\x12G\n" +
+	"\x0fplaylist_import\x18\x01 \x01(\v2\x1e.cloud.music.v1.PlaylistImportR\x0eplaylistImport\"7\n" +
 	"\x12GetPlaylistRequest\x12!\n" +
 	"\fplaylist_uid\x18\x01 \x01(\tR\vplaylistUid\"K\n" +
 	"\x13GetPlaylistResponse\x124\n" +
@@ -2643,8 +2649,8 @@ const file_cloud_music_v1_music_service_proto_rawDesc = "" +
 	"\bplaylist\x18\x01 \x01(\v2\x18.cloud.music.v1.PlaylistR\bplaylist\":\n" +
 	"\x15DeletePlaylistRequest\x12!\n" +
 	"\fplaylist_uid\x18\x01 \x01(\tR\vplaylistUid\"\x18\n" +
-	"\x16DeletePlaylistResponse2\xad\x15\n" +
-	"\fMusicService\x12M\n" +
+	"\x16DeletePlaylistResponse2\xa8\b\n" +
+	"\x13MusicLibraryService\x12M\n" +
 	"\bGetTrack\x12\x1f.cloud.music.v1.GetTrackRequest\x1a .cloud.music.v1.GetTrackResponse\x12S\n" +
 	"\n" +
 	"ListTracks\x12!.cloud.music.v1.ListTracksRequest\x1a\".cloud.music.v1.ListTracksResponse\x12V\n" +
@@ -2655,21 +2661,22 @@ const file_cloud_music_v1_music_service_proto_rawDesc = "" +
 	"\n" +
 	"PurgeTrack\x12!.cloud.music.v1.PurgeTrackRequest\x1a\".cloud.music.v1.PurgeTrackResponse\x12b\n" +
 	"\x0fEmptyTrackTrash\x12&.cloud.music.v1.EmptyTrackTrashRequest\x1a'.cloud.music.v1.EmptyTrackTrashResponse\x12q\n" +
-	"\x14RetryTrackProcessing\x12+.cloud.music.v1.RetryTrackProcessingRequest\x1a,.cloud.music.v1.RetryTrackProcessingResponse\x12S\n" +
-	"\n" +
-	"ListAlbums\x12!.cloud.music.v1.ListAlbumsRequest\x1a\".cloud.music.v1.ListAlbumsResponse\x12V\n" +
-	"\vListArtists\x12\".cloud.music.v1.ListArtistsRequest\x1a#.cloud.music.v1.ListArtistsResponse\x12z\n" +
+	"\x14RetryTrackProcessing\x12+.cloud.music.v1.RetryTrackProcessingRequest\x1a,.cloud.music.v1.RetryTrackProcessingResponse\x12_\n" +
+	"\x0eRecordPlayback\x12%.cloud.music.v1.RecordPlaybackRequest\x1a&.cloud.music.v1.RecordPlaybackResponse\x12n\n" +
+	"\x13ListPlaybackHistory\x12*.cloud.music.v1.ListPlaybackHistoryRequest\x1a+.cloud.music.v1.ListPlaybackHistoryResponse2\x8a\b\n" +
+	"\x14MusicProviderService\x12\\\n" +
+	"\rListProviders\x12$.cloud.music.v1.ListProvidersRequest\x1a%.cloud.music.v1.ListProvidersResponse\x12z\n" +
 	"\x17ListProviderConnections\x12..cloud.music.v1.ListProviderConnectionsRequest\x1a/.cloud.music.v1.ListProviderConnectionsResponse\x12z\n" +
 	"\x17BeginProviderConnection\x12..cloud.music.v1.BeginProviderConnectionRequest\x1a/.cloud.music.v1.BeginProviderConnectionResponse\x12\x89\x01\n" +
 	"\x1cGetProviderConnectionAttempt\x123.cloud.music.v1.GetProviderConnectionAttemptRequest\x1a4.cloud.music.v1.GetProviderConnectionAttemptResponse\x12k\n" +
 	"\x12DisconnectProvider\x12).cloud.music.v1.DisconnectProviderRequest\x1a*.cloud.music.v1.DisconnectProviderResponse\x12V\n" +
 	"\vSearchMusic\x12\".cloud.music.v1.SearchMusicRequest\x1a#.cloud.music.v1.SearchMusicResponse\x12b\n" +
 	"\x0fResolvePlayback\x12&.cloud.music.v1.ResolvePlaybackRequest\x1a'.cloud.music.v1.ResolvePlaybackResponse\x12h\n" +
-	"\x11GetProviderLyrics\x12(.cloud.music.v1.GetProviderLyricsRequest\x1a).cloud.music.v1.GetProviderLyricsResponse\x12z\n" +
-	"\x17GetSpotifyPlaybackToken\x12..cloud.music.v1.GetSpotifyPlaybackTokenRequest\x1a/.cloud.music.v1.GetSpotifyPlaybackTokenResponse\x12_\n" +
-	"\x0eRecordPlayback\x12%.cloud.music.v1.RecordPlaybackRequest\x1a&.cloud.music.v1.RecordPlaybackResponse\x12n\n" +
-	"\x13ListPlaybackHistory\x12*.cloud.music.v1.ListPlaybackHistoryRequest\x1a+.cloud.music.v1.ListPlaybackHistoryResponse\x12_\n" +
-	"\x0eImportPlaylist\x12%.cloud.music.v1.ImportPlaylistRequest\x1a&.cloud.music.v1.ImportPlaylistResponse\x12V\n" +
+	"\x11GetProviderLyrics\x12(.cloud.music.v1.GetProviderLyricsRequest\x1a).cloud.music.v1.GetProviderLyricsResponse\x12}\n" +
+	"\x18GetProviderPlaybackToken\x12/.cloud.music.v1.GetProviderPlaybackTokenRequest\x1a0.cloud.music.v1.GetProviderPlaybackTokenResponse2\xcc\x05\n" +
+	"\x14MusicPlaylistService\x12_\n" +
+	"\x0eImportPlaylist\x12%.cloud.music.v1.ImportPlaylistRequest\x1a&.cloud.music.v1.ImportPlaylistResponse\x12h\n" +
+	"\x11GetPlaylistImport\x12(.cloud.music.v1.GetPlaylistImportRequest\x1a).cloud.music.v1.GetPlaylistImportResponse\x12V\n" +
 	"\vGetPlaylist\x12\".cloud.music.v1.GetPlaylistRequest\x1a#.cloud.music.v1.GetPlaylistResponse\x12\\\n" +
 	"\rListPlaylists\x12$.cloud.music.v1.ListPlaylistsRequest\x1a%.cloud.music.v1.ListPlaylistsResponse\x12k\n" +
 	"\x12ListPlaylistTracks\x12).cloud.music.v1.ListPlaylistTracksRequest\x1a*.cloud.music.v1.ListPlaylistTracksResponse\x12e\n" +
@@ -2708,32 +2715,32 @@ var file_cloud_music_v1_music_service_proto_goTypes = []any{
 	(*EmptyTrackTrashResponse)(nil),              // 15: cloud.music.v1.EmptyTrackTrashResponse
 	(*RetryTrackProcessingRequest)(nil),          // 16: cloud.music.v1.RetryTrackProcessingRequest
 	(*RetryTrackProcessingResponse)(nil),         // 17: cloud.music.v1.RetryTrackProcessingResponse
-	(*ListAlbumsRequest)(nil),                    // 18: cloud.music.v1.ListAlbumsRequest
-	(*ListAlbumsResponse)(nil),                   // 19: cloud.music.v1.ListAlbumsResponse
-	(*ListArtistsRequest)(nil),                   // 20: cloud.music.v1.ListArtistsRequest
-	(*ListArtistsResponse)(nil),                  // 21: cloud.music.v1.ListArtistsResponse
-	(*ListProviderConnectionsRequest)(nil),       // 22: cloud.music.v1.ListProviderConnectionsRequest
-	(*ListProviderConnectionsResponse)(nil),      // 23: cloud.music.v1.ListProviderConnectionsResponse
-	(*BeginProviderConnectionRequest)(nil),       // 24: cloud.music.v1.BeginProviderConnectionRequest
-	(*BeginProviderConnectionResponse)(nil),      // 25: cloud.music.v1.BeginProviderConnectionResponse
-	(*GetProviderConnectionAttemptRequest)(nil),  // 26: cloud.music.v1.GetProviderConnectionAttemptRequest
-	(*GetProviderConnectionAttemptResponse)(nil), // 27: cloud.music.v1.GetProviderConnectionAttemptResponse
-	(*DisconnectProviderRequest)(nil),            // 28: cloud.music.v1.DisconnectProviderRequest
-	(*DisconnectProviderResponse)(nil),           // 29: cloud.music.v1.DisconnectProviderResponse
-	(*SearchMusicRequest)(nil),                   // 30: cloud.music.v1.SearchMusicRequest
-	(*SearchMusicResponse)(nil),                  // 31: cloud.music.v1.SearchMusicResponse
-	(*ResolvePlaybackRequest)(nil),               // 32: cloud.music.v1.ResolvePlaybackRequest
-	(*ResolvePlaybackResponse)(nil),              // 33: cloud.music.v1.ResolvePlaybackResponse
-	(*GetProviderLyricsRequest)(nil),             // 34: cloud.music.v1.GetProviderLyricsRequest
-	(*GetProviderLyricsResponse)(nil),            // 35: cloud.music.v1.GetProviderLyricsResponse
-	(*GetSpotifyPlaybackTokenRequest)(nil),       // 36: cloud.music.v1.GetSpotifyPlaybackTokenRequest
-	(*GetSpotifyPlaybackTokenResponse)(nil),      // 37: cloud.music.v1.GetSpotifyPlaybackTokenResponse
-	(*RecordPlaybackRequest)(nil),                // 38: cloud.music.v1.RecordPlaybackRequest
-	(*RecordPlaybackResponse)(nil),               // 39: cloud.music.v1.RecordPlaybackResponse
-	(*ListPlaybackHistoryRequest)(nil),           // 40: cloud.music.v1.ListPlaybackHistoryRequest
-	(*ListPlaybackHistoryResponse)(nil),          // 41: cloud.music.v1.ListPlaybackHistoryResponse
-	(*ImportPlaylistRequest)(nil),                // 42: cloud.music.v1.ImportPlaylistRequest
-	(*ImportPlaylistResponse)(nil),               // 43: cloud.music.v1.ImportPlaylistResponse
+	(*ListProvidersRequest)(nil),                 // 18: cloud.music.v1.ListProvidersRequest
+	(*ListProvidersResponse)(nil),                // 19: cloud.music.v1.ListProvidersResponse
+	(*ListProviderConnectionsRequest)(nil),       // 20: cloud.music.v1.ListProviderConnectionsRequest
+	(*ListProviderConnectionsResponse)(nil),      // 21: cloud.music.v1.ListProviderConnectionsResponse
+	(*BeginProviderConnectionRequest)(nil),       // 22: cloud.music.v1.BeginProviderConnectionRequest
+	(*BeginProviderConnectionResponse)(nil),      // 23: cloud.music.v1.BeginProviderConnectionResponse
+	(*GetProviderConnectionAttemptRequest)(nil),  // 24: cloud.music.v1.GetProviderConnectionAttemptRequest
+	(*GetProviderConnectionAttemptResponse)(nil), // 25: cloud.music.v1.GetProviderConnectionAttemptResponse
+	(*DisconnectProviderRequest)(nil),            // 26: cloud.music.v1.DisconnectProviderRequest
+	(*DisconnectProviderResponse)(nil),           // 27: cloud.music.v1.DisconnectProviderResponse
+	(*SearchMusicRequest)(nil),                   // 28: cloud.music.v1.SearchMusicRequest
+	(*SearchMusicResponse)(nil),                  // 29: cloud.music.v1.SearchMusicResponse
+	(*ResolvePlaybackRequest)(nil),               // 30: cloud.music.v1.ResolvePlaybackRequest
+	(*ResolvePlaybackResponse)(nil),              // 31: cloud.music.v1.ResolvePlaybackResponse
+	(*GetProviderLyricsRequest)(nil),             // 32: cloud.music.v1.GetProviderLyricsRequest
+	(*GetProviderLyricsResponse)(nil),            // 33: cloud.music.v1.GetProviderLyricsResponse
+	(*GetProviderPlaybackTokenRequest)(nil),      // 34: cloud.music.v1.GetProviderPlaybackTokenRequest
+	(*GetProviderPlaybackTokenResponse)(nil),     // 35: cloud.music.v1.GetProviderPlaybackTokenResponse
+	(*RecordPlaybackRequest)(nil),                // 36: cloud.music.v1.RecordPlaybackRequest
+	(*RecordPlaybackResponse)(nil),               // 37: cloud.music.v1.RecordPlaybackResponse
+	(*ListPlaybackHistoryRequest)(nil),           // 38: cloud.music.v1.ListPlaybackHistoryRequest
+	(*ListPlaybackHistoryResponse)(nil),          // 39: cloud.music.v1.ListPlaybackHistoryResponse
+	(*ImportPlaylistRequest)(nil),                // 40: cloud.music.v1.ImportPlaylistRequest
+	(*ImportPlaylistResponse)(nil),               // 41: cloud.music.v1.ImportPlaylistResponse
+	(*GetPlaylistImportRequest)(nil),             // 42: cloud.music.v1.GetPlaylistImportRequest
+	(*GetPlaylistImportResponse)(nil),            // 43: cloud.music.v1.GetPlaylistImportResponse
 	(*GetPlaylistRequest)(nil),                   // 44: cloud.music.v1.GetPlaylistRequest
 	(*GetPlaylistResponse)(nil),                  // 45: cloud.music.v1.GetPlaylistResponse
 	(*ListPlaylistsRequest)(nil),                 // 46: cloud.music.v1.ListPlaylistsRequest
@@ -2745,21 +2752,20 @@ var file_cloud_music_v1_music_service_proto_goTypes = []any{
 	(*DeletePlaylistRequest)(nil),                // 52: cloud.music.v1.DeletePlaylistRequest
 	(*DeletePlaylistResponse)(nil),               // 53: cloud.music.v1.DeletePlaylistResponse
 	(*Track)(nil),                                // 54: cloud.music.v1.Track
-	(*Album)(nil),                                // 55: cloud.music.v1.Album
-	(*Artist)(nil),                               // 56: cloud.music.v1.Artist
-	(*ProviderConnection)(nil),                   // 57: cloud.music.v1.ProviderConnection
-	(MusicProvider)(0),                           // 58: cloud.music.v1.MusicProvider
-	(*ProviderConnectionAttempt)(nil),            // 59: cloud.music.v1.ProviderConnectionAttempt
-	(*ProviderSearchCursor)(nil),                 // 60: cloud.music.v1.ProviderSearchCursor
-	(*ProviderSearchGroup)(nil),                  // 61: cloud.music.v1.ProviderSearchGroup
-	(PlaybackQuality)(0),                         // 62: cloud.music.v1.PlaybackQuality
-	(*PlaybackDescriptor)(nil),                   // 63: cloud.music.v1.PlaybackDescriptor
-	(*Lyric)(nil),                                // 64: cloud.music.v1.Lyric
-	(*timestamppb.Timestamp)(nil),                // 65: google.protobuf.Timestamp
-	(*PlayableTrack)(nil),                        // 66: cloud.music.v1.PlayableTrack
-	(*PlaybackEntry)(nil),                        // 67: cloud.music.v1.PlaybackEntry
-	(*Playlist)(nil),                             // 68: cloud.music.v1.Playlist
-	(*PlaylistTrack)(nil),                        // 69: cloud.music.v1.PlaylistTrack
+	(*ProviderDescriptor)(nil),                   // 55: cloud.music.v1.ProviderDescriptor
+	(*ProviderConnection)(nil),                   // 56: cloud.music.v1.ProviderConnection
+	(*ProviderConnectionAttempt)(nil),            // 57: cloud.music.v1.ProviderConnectionAttempt
+	(*ProviderSearchCursor)(nil),                 // 58: cloud.music.v1.ProviderSearchCursor
+	(*ProviderSearchGroup)(nil),                  // 59: cloud.music.v1.ProviderSearchGroup
+	(PlaybackQuality)(0),                         // 60: cloud.music.v1.PlaybackQuality
+	(*PlaybackDescriptor)(nil),                   // 61: cloud.music.v1.PlaybackDescriptor
+	(*Lyric)(nil),                                // 62: cloud.music.v1.Lyric
+	(*timestamppb.Timestamp)(nil),                // 63: google.protobuf.Timestamp
+	(*PlayableTrack)(nil),                        // 64: cloud.music.v1.PlayableTrack
+	(*PlaybackEntry)(nil),                        // 65: cloud.music.v1.PlaybackEntry
+	(*PlaylistImport)(nil),                       // 66: cloud.music.v1.PlaylistImport
+	(*Playlist)(nil),                             // 67: cloud.music.v1.Playlist
+	(*PlaylistTrack)(nil),                        // 68: cloud.music.v1.PlaylistTrack
 }
 var file_cloud_music_v1_music_service_proto_depIdxs = []int32{
 	54, // 0: cloud.music.v1.GetTrackResponse.track:type_name -> cloud.music.v1.Track
@@ -2769,89 +2775,84 @@ var file_cloud_music_v1_music_service_proto_depIdxs = []int32{
 	54, // 4: cloud.music.v1.DeleteTrackResponse.track:type_name -> cloud.music.v1.Track
 	54, // 5: cloud.music.v1.RestoreTrackResponse.track:type_name -> cloud.music.v1.Track
 	54, // 6: cloud.music.v1.RetryTrackProcessingResponse.track:type_name -> cloud.music.v1.Track
-	55, // 7: cloud.music.v1.ListAlbumsResponse.albums:type_name -> cloud.music.v1.Album
-	56, // 8: cloud.music.v1.ListArtistsResponse.artists:type_name -> cloud.music.v1.Artist
-	57, // 9: cloud.music.v1.ListProviderConnectionsResponse.connections:type_name -> cloud.music.v1.ProviderConnection
-	58, // 10: cloud.music.v1.BeginProviderConnectionRequest.provider:type_name -> cloud.music.v1.MusicProvider
-	59, // 11: cloud.music.v1.BeginProviderConnectionResponse.attempt:type_name -> cloud.music.v1.ProviderConnectionAttempt
-	59, // 12: cloud.music.v1.GetProviderConnectionAttemptResponse.attempt:type_name -> cloud.music.v1.ProviderConnectionAttempt
-	58, // 13: cloud.music.v1.DisconnectProviderRequest.provider:type_name -> cloud.music.v1.MusicProvider
-	60, // 14: cloud.music.v1.SearchMusicRequest.cursors:type_name -> cloud.music.v1.ProviderSearchCursor
-	61, // 15: cloud.music.v1.SearchMusicResponse.groups:type_name -> cloud.music.v1.ProviderSearchGroup
-	58, // 16: cloud.music.v1.ResolvePlaybackRequest.provider:type_name -> cloud.music.v1.MusicProvider
-	62, // 17: cloud.music.v1.ResolvePlaybackRequest.quality:type_name -> cloud.music.v1.PlaybackQuality
-	63, // 18: cloud.music.v1.ResolvePlaybackResponse.playback:type_name -> cloud.music.v1.PlaybackDescriptor
-	58, // 19: cloud.music.v1.GetProviderLyricsRequest.provider:type_name -> cloud.music.v1.MusicProvider
-	64, // 20: cloud.music.v1.GetProviderLyricsResponse.lyric:type_name -> cloud.music.v1.Lyric
-	65, // 21: cloud.music.v1.GetSpotifyPlaybackTokenResponse.expire_time:type_name -> google.protobuf.Timestamp
-	66, // 22: cloud.music.v1.RecordPlaybackRequest.track:type_name -> cloud.music.v1.PlayableTrack
-	67, // 23: cloud.music.v1.RecordPlaybackResponse.playback_entry:type_name -> cloud.music.v1.PlaybackEntry
-	67, // 24: cloud.music.v1.ListPlaybackHistoryResponse.playback_entries:type_name -> cloud.music.v1.PlaybackEntry
-	58, // 25: cloud.music.v1.ImportPlaylistRequest.provider:type_name -> cloud.music.v1.MusicProvider
-	68, // 26: cloud.music.v1.ImportPlaylistResponse.playlist:type_name -> cloud.music.v1.Playlist
-	68, // 27: cloud.music.v1.GetPlaylistResponse.playlist:type_name -> cloud.music.v1.Playlist
-	68, // 28: cloud.music.v1.ListPlaylistsResponse.playlists:type_name -> cloud.music.v1.Playlist
-	69, // 29: cloud.music.v1.ListPlaylistTracksResponse.playlist_tracks:type_name -> cloud.music.v1.PlaylistTrack
-	68, // 30: cloud.music.v1.DownloadPlaylistResponse.playlist:type_name -> cloud.music.v1.Playlist
-	0,  // 31: cloud.music.v1.MusicService.GetTrack:input_type -> cloud.music.v1.GetTrackRequest
-	2,  // 32: cloud.music.v1.MusicService.ListTracks:input_type -> cloud.music.v1.ListTracksRequest
-	4,  // 33: cloud.music.v1.MusicService.ImportTrack:input_type -> cloud.music.v1.ImportTrackRequest
-	6,  // 34: cloud.music.v1.MusicService.SetTrackFavorite:input_type -> cloud.music.v1.SetTrackFavoriteRequest
-	8,  // 35: cloud.music.v1.MusicService.DeleteTrack:input_type -> cloud.music.v1.DeleteTrackRequest
-	10, // 36: cloud.music.v1.MusicService.RestoreTrack:input_type -> cloud.music.v1.RestoreTrackRequest
-	12, // 37: cloud.music.v1.MusicService.PurgeTrack:input_type -> cloud.music.v1.PurgeTrackRequest
-	14, // 38: cloud.music.v1.MusicService.EmptyTrackTrash:input_type -> cloud.music.v1.EmptyTrackTrashRequest
-	16, // 39: cloud.music.v1.MusicService.RetryTrackProcessing:input_type -> cloud.music.v1.RetryTrackProcessingRequest
-	18, // 40: cloud.music.v1.MusicService.ListAlbums:input_type -> cloud.music.v1.ListAlbumsRequest
-	20, // 41: cloud.music.v1.MusicService.ListArtists:input_type -> cloud.music.v1.ListArtistsRequest
-	22, // 42: cloud.music.v1.MusicService.ListProviderConnections:input_type -> cloud.music.v1.ListProviderConnectionsRequest
-	24, // 43: cloud.music.v1.MusicService.BeginProviderConnection:input_type -> cloud.music.v1.BeginProviderConnectionRequest
-	26, // 44: cloud.music.v1.MusicService.GetProviderConnectionAttempt:input_type -> cloud.music.v1.GetProviderConnectionAttemptRequest
-	28, // 45: cloud.music.v1.MusicService.DisconnectProvider:input_type -> cloud.music.v1.DisconnectProviderRequest
-	30, // 46: cloud.music.v1.MusicService.SearchMusic:input_type -> cloud.music.v1.SearchMusicRequest
-	32, // 47: cloud.music.v1.MusicService.ResolvePlayback:input_type -> cloud.music.v1.ResolvePlaybackRequest
-	34, // 48: cloud.music.v1.MusicService.GetProviderLyrics:input_type -> cloud.music.v1.GetProviderLyricsRequest
-	36, // 49: cloud.music.v1.MusicService.GetSpotifyPlaybackToken:input_type -> cloud.music.v1.GetSpotifyPlaybackTokenRequest
-	38, // 50: cloud.music.v1.MusicService.RecordPlayback:input_type -> cloud.music.v1.RecordPlaybackRequest
-	40, // 51: cloud.music.v1.MusicService.ListPlaybackHistory:input_type -> cloud.music.v1.ListPlaybackHistoryRequest
-	42, // 52: cloud.music.v1.MusicService.ImportPlaylist:input_type -> cloud.music.v1.ImportPlaylistRequest
-	44, // 53: cloud.music.v1.MusicService.GetPlaylist:input_type -> cloud.music.v1.GetPlaylistRequest
-	46, // 54: cloud.music.v1.MusicService.ListPlaylists:input_type -> cloud.music.v1.ListPlaylistsRequest
-	48, // 55: cloud.music.v1.MusicService.ListPlaylistTracks:input_type -> cloud.music.v1.ListPlaylistTracksRequest
-	50, // 56: cloud.music.v1.MusicService.DownloadPlaylist:input_type -> cloud.music.v1.DownloadPlaylistRequest
-	52, // 57: cloud.music.v1.MusicService.DeletePlaylist:input_type -> cloud.music.v1.DeletePlaylistRequest
-	1,  // 58: cloud.music.v1.MusicService.GetTrack:output_type -> cloud.music.v1.GetTrackResponse
-	3,  // 59: cloud.music.v1.MusicService.ListTracks:output_type -> cloud.music.v1.ListTracksResponse
-	5,  // 60: cloud.music.v1.MusicService.ImportTrack:output_type -> cloud.music.v1.ImportTrackResponse
-	7,  // 61: cloud.music.v1.MusicService.SetTrackFavorite:output_type -> cloud.music.v1.SetTrackFavoriteResponse
-	9,  // 62: cloud.music.v1.MusicService.DeleteTrack:output_type -> cloud.music.v1.DeleteTrackResponse
-	11, // 63: cloud.music.v1.MusicService.RestoreTrack:output_type -> cloud.music.v1.RestoreTrackResponse
-	13, // 64: cloud.music.v1.MusicService.PurgeTrack:output_type -> cloud.music.v1.PurgeTrackResponse
-	15, // 65: cloud.music.v1.MusicService.EmptyTrackTrash:output_type -> cloud.music.v1.EmptyTrackTrashResponse
-	17, // 66: cloud.music.v1.MusicService.RetryTrackProcessing:output_type -> cloud.music.v1.RetryTrackProcessingResponse
-	19, // 67: cloud.music.v1.MusicService.ListAlbums:output_type -> cloud.music.v1.ListAlbumsResponse
-	21, // 68: cloud.music.v1.MusicService.ListArtists:output_type -> cloud.music.v1.ListArtistsResponse
-	23, // 69: cloud.music.v1.MusicService.ListProviderConnections:output_type -> cloud.music.v1.ListProviderConnectionsResponse
-	25, // 70: cloud.music.v1.MusicService.BeginProviderConnection:output_type -> cloud.music.v1.BeginProviderConnectionResponse
-	27, // 71: cloud.music.v1.MusicService.GetProviderConnectionAttempt:output_type -> cloud.music.v1.GetProviderConnectionAttemptResponse
-	29, // 72: cloud.music.v1.MusicService.DisconnectProvider:output_type -> cloud.music.v1.DisconnectProviderResponse
-	31, // 73: cloud.music.v1.MusicService.SearchMusic:output_type -> cloud.music.v1.SearchMusicResponse
-	33, // 74: cloud.music.v1.MusicService.ResolvePlayback:output_type -> cloud.music.v1.ResolvePlaybackResponse
-	35, // 75: cloud.music.v1.MusicService.GetProviderLyrics:output_type -> cloud.music.v1.GetProviderLyricsResponse
-	37, // 76: cloud.music.v1.MusicService.GetSpotifyPlaybackToken:output_type -> cloud.music.v1.GetSpotifyPlaybackTokenResponse
-	39, // 77: cloud.music.v1.MusicService.RecordPlayback:output_type -> cloud.music.v1.RecordPlaybackResponse
-	41, // 78: cloud.music.v1.MusicService.ListPlaybackHistory:output_type -> cloud.music.v1.ListPlaybackHistoryResponse
-	43, // 79: cloud.music.v1.MusicService.ImportPlaylist:output_type -> cloud.music.v1.ImportPlaylistResponse
-	45, // 80: cloud.music.v1.MusicService.GetPlaylist:output_type -> cloud.music.v1.GetPlaylistResponse
-	47, // 81: cloud.music.v1.MusicService.ListPlaylists:output_type -> cloud.music.v1.ListPlaylistsResponse
-	49, // 82: cloud.music.v1.MusicService.ListPlaylistTracks:output_type -> cloud.music.v1.ListPlaylistTracksResponse
-	51, // 83: cloud.music.v1.MusicService.DownloadPlaylist:output_type -> cloud.music.v1.DownloadPlaylistResponse
-	53, // 84: cloud.music.v1.MusicService.DeletePlaylist:output_type -> cloud.music.v1.DeletePlaylistResponse
-	58, // [58:85] is the sub-list for method output_type
-	31, // [31:58] is the sub-list for method input_type
-	31, // [31:31] is the sub-list for extension type_name
-	31, // [31:31] is the sub-list for extension extendee
-	0,  // [0:31] is the sub-list for field type_name
+	55, // 7: cloud.music.v1.ListProvidersResponse.providers:type_name -> cloud.music.v1.ProviderDescriptor
+	56, // 8: cloud.music.v1.ListProviderConnectionsResponse.connections:type_name -> cloud.music.v1.ProviderConnection
+	57, // 9: cloud.music.v1.BeginProviderConnectionResponse.attempt:type_name -> cloud.music.v1.ProviderConnectionAttempt
+	57, // 10: cloud.music.v1.GetProviderConnectionAttemptResponse.attempt:type_name -> cloud.music.v1.ProviderConnectionAttempt
+	58, // 11: cloud.music.v1.SearchMusicRequest.cursors:type_name -> cloud.music.v1.ProviderSearchCursor
+	59, // 12: cloud.music.v1.SearchMusicResponse.groups:type_name -> cloud.music.v1.ProviderSearchGroup
+	60, // 13: cloud.music.v1.ResolvePlaybackRequest.quality:type_name -> cloud.music.v1.PlaybackQuality
+	61, // 14: cloud.music.v1.ResolvePlaybackResponse.playback:type_name -> cloud.music.v1.PlaybackDescriptor
+	62, // 15: cloud.music.v1.GetProviderLyricsResponse.lyric:type_name -> cloud.music.v1.Lyric
+	63, // 16: cloud.music.v1.GetProviderPlaybackTokenResponse.expire_time:type_name -> google.protobuf.Timestamp
+	64, // 17: cloud.music.v1.RecordPlaybackRequest.track:type_name -> cloud.music.v1.PlayableTrack
+	65, // 18: cloud.music.v1.RecordPlaybackResponse.playback_entry:type_name -> cloud.music.v1.PlaybackEntry
+	65, // 19: cloud.music.v1.ListPlaybackHistoryResponse.playback_entries:type_name -> cloud.music.v1.PlaybackEntry
+	66, // 20: cloud.music.v1.ImportPlaylistResponse.playlist_import:type_name -> cloud.music.v1.PlaylistImport
+	66, // 21: cloud.music.v1.GetPlaylistImportResponse.playlist_import:type_name -> cloud.music.v1.PlaylistImport
+	67, // 22: cloud.music.v1.GetPlaylistResponse.playlist:type_name -> cloud.music.v1.Playlist
+	67, // 23: cloud.music.v1.ListPlaylistsResponse.playlists:type_name -> cloud.music.v1.Playlist
+	68, // 24: cloud.music.v1.ListPlaylistTracksResponse.playlist_tracks:type_name -> cloud.music.v1.PlaylistTrack
+	67, // 25: cloud.music.v1.DownloadPlaylistResponse.playlist:type_name -> cloud.music.v1.Playlist
+	0,  // 26: cloud.music.v1.MusicLibraryService.GetTrack:input_type -> cloud.music.v1.GetTrackRequest
+	2,  // 27: cloud.music.v1.MusicLibraryService.ListTracks:input_type -> cloud.music.v1.ListTracksRequest
+	4,  // 28: cloud.music.v1.MusicLibraryService.ImportTrack:input_type -> cloud.music.v1.ImportTrackRequest
+	6,  // 29: cloud.music.v1.MusicLibraryService.SetTrackFavorite:input_type -> cloud.music.v1.SetTrackFavoriteRequest
+	8,  // 30: cloud.music.v1.MusicLibraryService.DeleteTrack:input_type -> cloud.music.v1.DeleteTrackRequest
+	10, // 31: cloud.music.v1.MusicLibraryService.RestoreTrack:input_type -> cloud.music.v1.RestoreTrackRequest
+	12, // 32: cloud.music.v1.MusicLibraryService.PurgeTrack:input_type -> cloud.music.v1.PurgeTrackRequest
+	14, // 33: cloud.music.v1.MusicLibraryService.EmptyTrackTrash:input_type -> cloud.music.v1.EmptyTrackTrashRequest
+	16, // 34: cloud.music.v1.MusicLibraryService.RetryTrackProcessing:input_type -> cloud.music.v1.RetryTrackProcessingRequest
+	36, // 35: cloud.music.v1.MusicLibraryService.RecordPlayback:input_type -> cloud.music.v1.RecordPlaybackRequest
+	38, // 36: cloud.music.v1.MusicLibraryService.ListPlaybackHistory:input_type -> cloud.music.v1.ListPlaybackHistoryRequest
+	18, // 37: cloud.music.v1.MusicProviderService.ListProviders:input_type -> cloud.music.v1.ListProvidersRequest
+	20, // 38: cloud.music.v1.MusicProviderService.ListProviderConnections:input_type -> cloud.music.v1.ListProviderConnectionsRequest
+	22, // 39: cloud.music.v1.MusicProviderService.BeginProviderConnection:input_type -> cloud.music.v1.BeginProviderConnectionRequest
+	24, // 40: cloud.music.v1.MusicProviderService.GetProviderConnectionAttempt:input_type -> cloud.music.v1.GetProviderConnectionAttemptRequest
+	26, // 41: cloud.music.v1.MusicProviderService.DisconnectProvider:input_type -> cloud.music.v1.DisconnectProviderRequest
+	28, // 42: cloud.music.v1.MusicProviderService.SearchMusic:input_type -> cloud.music.v1.SearchMusicRequest
+	30, // 43: cloud.music.v1.MusicProviderService.ResolvePlayback:input_type -> cloud.music.v1.ResolvePlaybackRequest
+	32, // 44: cloud.music.v1.MusicProviderService.GetProviderLyrics:input_type -> cloud.music.v1.GetProviderLyricsRequest
+	34, // 45: cloud.music.v1.MusicProviderService.GetProviderPlaybackToken:input_type -> cloud.music.v1.GetProviderPlaybackTokenRequest
+	40, // 46: cloud.music.v1.MusicPlaylistService.ImportPlaylist:input_type -> cloud.music.v1.ImportPlaylistRequest
+	42, // 47: cloud.music.v1.MusicPlaylistService.GetPlaylistImport:input_type -> cloud.music.v1.GetPlaylistImportRequest
+	44, // 48: cloud.music.v1.MusicPlaylistService.GetPlaylist:input_type -> cloud.music.v1.GetPlaylistRequest
+	46, // 49: cloud.music.v1.MusicPlaylistService.ListPlaylists:input_type -> cloud.music.v1.ListPlaylistsRequest
+	48, // 50: cloud.music.v1.MusicPlaylistService.ListPlaylistTracks:input_type -> cloud.music.v1.ListPlaylistTracksRequest
+	50, // 51: cloud.music.v1.MusicPlaylistService.DownloadPlaylist:input_type -> cloud.music.v1.DownloadPlaylistRequest
+	52, // 52: cloud.music.v1.MusicPlaylistService.DeletePlaylist:input_type -> cloud.music.v1.DeletePlaylistRequest
+	1,  // 53: cloud.music.v1.MusicLibraryService.GetTrack:output_type -> cloud.music.v1.GetTrackResponse
+	3,  // 54: cloud.music.v1.MusicLibraryService.ListTracks:output_type -> cloud.music.v1.ListTracksResponse
+	5,  // 55: cloud.music.v1.MusicLibraryService.ImportTrack:output_type -> cloud.music.v1.ImportTrackResponse
+	7,  // 56: cloud.music.v1.MusicLibraryService.SetTrackFavorite:output_type -> cloud.music.v1.SetTrackFavoriteResponse
+	9,  // 57: cloud.music.v1.MusicLibraryService.DeleteTrack:output_type -> cloud.music.v1.DeleteTrackResponse
+	11, // 58: cloud.music.v1.MusicLibraryService.RestoreTrack:output_type -> cloud.music.v1.RestoreTrackResponse
+	13, // 59: cloud.music.v1.MusicLibraryService.PurgeTrack:output_type -> cloud.music.v1.PurgeTrackResponse
+	15, // 60: cloud.music.v1.MusicLibraryService.EmptyTrackTrash:output_type -> cloud.music.v1.EmptyTrackTrashResponse
+	17, // 61: cloud.music.v1.MusicLibraryService.RetryTrackProcessing:output_type -> cloud.music.v1.RetryTrackProcessingResponse
+	37, // 62: cloud.music.v1.MusicLibraryService.RecordPlayback:output_type -> cloud.music.v1.RecordPlaybackResponse
+	39, // 63: cloud.music.v1.MusicLibraryService.ListPlaybackHistory:output_type -> cloud.music.v1.ListPlaybackHistoryResponse
+	19, // 64: cloud.music.v1.MusicProviderService.ListProviders:output_type -> cloud.music.v1.ListProvidersResponse
+	21, // 65: cloud.music.v1.MusicProviderService.ListProviderConnections:output_type -> cloud.music.v1.ListProviderConnectionsResponse
+	23, // 66: cloud.music.v1.MusicProviderService.BeginProviderConnection:output_type -> cloud.music.v1.BeginProviderConnectionResponse
+	25, // 67: cloud.music.v1.MusicProviderService.GetProviderConnectionAttempt:output_type -> cloud.music.v1.GetProviderConnectionAttemptResponse
+	27, // 68: cloud.music.v1.MusicProviderService.DisconnectProvider:output_type -> cloud.music.v1.DisconnectProviderResponse
+	29, // 69: cloud.music.v1.MusicProviderService.SearchMusic:output_type -> cloud.music.v1.SearchMusicResponse
+	31, // 70: cloud.music.v1.MusicProviderService.ResolvePlayback:output_type -> cloud.music.v1.ResolvePlaybackResponse
+	33, // 71: cloud.music.v1.MusicProviderService.GetProviderLyrics:output_type -> cloud.music.v1.GetProviderLyricsResponse
+	35, // 72: cloud.music.v1.MusicProviderService.GetProviderPlaybackToken:output_type -> cloud.music.v1.GetProviderPlaybackTokenResponse
+	41, // 73: cloud.music.v1.MusicPlaylistService.ImportPlaylist:output_type -> cloud.music.v1.ImportPlaylistResponse
+	43, // 74: cloud.music.v1.MusicPlaylistService.GetPlaylistImport:output_type -> cloud.music.v1.GetPlaylistImportResponse
+	45, // 75: cloud.music.v1.MusicPlaylistService.GetPlaylist:output_type -> cloud.music.v1.GetPlaylistResponse
+	47, // 76: cloud.music.v1.MusicPlaylistService.ListPlaylists:output_type -> cloud.music.v1.ListPlaylistsResponse
+	49, // 77: cloud.music.v1.MusicPlaylistService.ListPlaylistTracks:output_type -> cloud.music.v1.ListPlaylistTracksResponse
+	51, // 78: cloud.music.v1.MusicPlaylistService.DownloadPlaylist:output_type -> cloud.music.v1.DownloadPlaylistResponse
+	53, // 79: cloud.music.v1.MusicPlaylistService.DeletePlaylist:output_type -> cloud.music.v1.DeletePlaylistResponse
+	53, // [53:80] is the sub-list for method output_type
+	26, // [26:53] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_cloud_music_v1_music_service_proto_init() }
@@ -2870,7 +2871,7 @@ func file_cloud_music_v1_music_service_proto_init() {
 			NumEnums:      0,
 			NumMessages:   54,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   3,
 		},
 		GoTypes:           file_cloud_music_v1_music_service_proto_goTypes,
 		DependencyIndexes: file_cloud_music_v1_music_service_proto_depIdxs,

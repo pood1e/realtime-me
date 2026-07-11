@@ -28,12 +28,18 @@ type UploadStatus int32
 const (
 	// UPLOAD_STATUS_UNSPECIFIED is not persisted.
 	UploadStatus_UPLOAD_STATUS_UNSPECIFIED UploadStatus = 0
-	// UPLOAD_STATUS_ACTIVE accepts chunks and may be claimed by an application.
+	// UPLOAD_STATUS_ACTIVE accepts chunks.
 	UploadStatus_UPLOAD_STATUS_ACTIVE UploadStatus = 1
+	// UPLOAD_STATUS_FINALIZING is being hashed and published by the local worker.
+	UploadStatus_UPLOAD_STATUS_FINALIZING UploadStatus = 2
+	// UPLOAD_STATUS_SEALED is ready to be claimed by an application.
+	UploadStatus_UPLOAD_STATUS_SEALED UploadStatus = 3
 	// UPLOAD_STATUS_CLAIMED has created exactly one application resource.
-	UploadStatus_UPLOAD_STATUS_CLAIMED UploadStatus = 2
+	UploadStatus_UPLOAD_STATUS_CLAIMED UploadStatus = 4
+	// UPLOAD_STATUS_FAILED requires a new upload session.
+	UploadStatus_UPLOAD_STATUS_FAILED UploadStatus = 5
 	// UPLOAD_STATUS_EXPIRED no longer accepts chunks.
-	UploadStatus_UPLOAD_STATUS_EXPIRED UploadStatus = 3
+	UploadStatus_UPLOAD_STATUS_EXPIRED UploadStatus = 6
 )
 
 // Enum value maps for UploadStatus.
@@ -41,14 +47,20 @@ var (
 	UploadStatus_name = map[int32]string{
 		0: "UPLOAD_STATUS_UNSPECIFIED",
 		1: "UPLOAD_STATUS_ACTIVE",
-		2: "UPLOAD_STATUS_CLAIMED",
-		3: "UPLOAD_STATUS_EXPIRED",
+		2: "UPLOAD_STATUS_FINALIZING",
+		3: "UPLOAD_STATUS_SEALED",
+		4: "UPLOAD_STATUS_CLAIMED",
+		5: "UPLOAD_STATUS_FAILED",
+		6: "UPLOAD_STATUS_EXPIRED",
 	}
 	UploadStatus_value = map[string]int32{
 		"UPLOAD_STATUS_UNSPECIFIED": 0,
 		"UPLOAD_STATUS_ACTIVE":      1,
-		"UPLOAD_STATUS_CLAIMED":     2,
-		"UPLOAD_STATUS_EXPIRED":     3,
+		"UPLOAD_STATUS_FINALIZING":  2,
+		"UPLOAD_STATUS_SEALED":      3,
+		"UPLOAD_STATUS_CLAIMED":     4,
+		"UPLOAD_STATUS_FAILED":      5,
+		"UPLOAD_STATUS_EXPIRED":     6,
 	}
 )
 
@@ -159,8 +171,10 @@ type Upload struct {
 	ExpireTime *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=expire_time,json=expireTime,proto3" json:"expire_time,omitempty"`
 	// claimed_resource_uid identifies the created application resource.
 	ClaimedResourceUid string `protobuf:"bytes,11,opt,name=claimed_resource_uid,json=claimedResourceUid,proto3" json:"claimed_resource_uid,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// failure_code is a stable machine-readable finalization error category.
+	FailureCode   string `protobuf:"bytes,12,opt,name=failure_code,json=failureCode,proto3" json:"failure_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Upload) Reset() {
@@ -270,6 +284,13 @@ func (x *Upload) GetClaimedResourceUid() string {
 	return ""
 }
 
+func (x *Upload) GetFailureCode() string {
+	if x != nil {
+		return x.FailureCode
+	}
+	return ""
+}
+
 var File_cloud_content_v1_upload_proto protoreflect.FileDescriptor
 
 const file_cloud_content_v1_upload_proto_rawDesc = "" +
@@ -278,7 +299,7 @@ const file_cloud_content_v1_upload_proto_rawDesc = "" +
 	"\vUploadChunk\x12!\n" +
 	"\fstart_offset\x18\x01 \x01(\x03R\vstartOffset\x12\x1d\n" +
 	"\n" +
-	"end_offset\x18\x02 \x01(\x03R\tendOffset\"\xf0\x03\n" +
+	"end_offset\x18\x02 \x01(\x03R\tendOffset\"\x93\x04\n" +
 	"\x06Upload\x12\x10\n" +
 	"\x03uid\x18\x01 \x01(\tR\x03uid\x12\x1b\n" +
 	"\tfile_name\x18\x02 \x01(\tR\bfileName\x12!\n" +
@@ -293,12 +314,16 @@ const file_cloud_content_v1_upload_proto_rawDesc = "" +
 	"\vexpire_time\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"expireTime\x120\n" +
-	"\x14claimed_resource_uid\x18\v \x01(\tR\x12claimedResourceUid*}\n" +
+	"\x14claimed_resource_uid\x18\v \x01(\tR\x12claimedResourceUid\x12!\n" +
+	"\ffailure_code\x18\f \x01(\tR\vfailureCode*\xcf\x01\n" +
 	"\fUploadStatus\x12\x1d\n" +
 	"\x19UPLOAD_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
-	"\x14UPLOAD_STATUS_ACTIVE\x10\x01\x12\x19\n" +
-	"\x15UPLOAD_STATUS_CLAIMED\x10\x02\x12\x19\n" +
-	"\x15UPLOAD_STATUS_EXPIRED\x10\x03B<Z:example.com/cloud-drive/api/gen/cloud/content/v1;contentv1b\x06proto3"
+	"\x14UPLOAD_STATUS_ACTIVE\x10\x01\x12\x1c\n" +
+	"\x18UPLOAD_STATUS_FINALIZING\x10\x02\x12\x18\n" +
+	"\x14UPLOAD_STATUS_SEALED\x10\x03\x12\x19\n" +
+	"\x15UPLOAD_STATUS_CLAIMED\x10\x04\x12\x18\n" +
+	"\x14UPLOAD_STATUS_FAILED\x10\x05\x12\x19\n" +
+	"\x15UPLOAD_STATUS_EXPIRED\x10\x06B<Z:example.com/cloud-drive/api/gen/cloud/content/v1;contentv1b\x06proto3"
 
 var (
 	file_cloud_content_v1_upload_proto_rawDescOnce sync.Once

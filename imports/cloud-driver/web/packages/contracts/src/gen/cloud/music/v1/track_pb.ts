@@ -2,8 +2,10 @@
 // @generated from file cloud/music/v1/track.proto (package cloud.music.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
-import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { ProcessingStatus } from "../../content/v1/processing_pb.js";
+import { file_cloud_content_v1_processing } from "../../content/v1/processing_pb.js";
 import type { PlayableTrack } from "./provider_pb.js";
 import { file_cloud_music_v1_provider } from "./provider_pb.js";
 import type { Duration, Timestamp } from "@bufbuild/protobuf/wkt";
@@ -14,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file cloud/music/v1/track.proto.
  */
 export const file_cloud_music_v1_track: GenFile = /*@__PURE__*/
-  fileDesc("ChpjbG91ZC9tdXNpYy92MS90cmFjay5wcm90bxIOY2xvdWQubXVzaWMudjEilgQKBVRyYWNrEgsKA3VpZBgBIAEoCRINCgV0aXRsZRgCIAEoCRIPCgdhcnRpc3RzGAMgAygJEg0KBWFsYnVtGAQgASgJEhQKDGFsYnVtX2FydGlzdBgFIAEoCRIUCgx0cmFja19udW1iZXIYBiABKAUSEwoLZGlzY19udW1iZXIYByABKAUSDAoEeWVhchgIIAEoBRIrCghkdXJhdGlvbhgJIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhIaChJvcmlnaW5hbF9maWxlX25hbWUYCiABKAkSFAoMY29udGVudF90eXBlGAsgASgJEhIKCnNpemVfYnl0ZXMYDCABKAMSEwoLYXJ0d29ya191cmwYDSABKAkSEwoLY29udGVudF91cmwYDiABKAkSEAoIZmF2b3JpdGUYDyABKAgSQAoRcHJvY2Vzc2luZ19zdGF0dXMYECABKA4yJS5jbG91ZC5tdXNpYy52MS5UcmFja1Byb2Nlc3NpbmdTdGF0dXMSLwoLY3JlYXRlX3RpbWUYESABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KC3VwZGF0ZV90aW1lGBIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtkZWxldGVfdGltZRgTIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAicQoFQWxidW0SCwoDdWlkGAEgASgJEg0KBXRpdGxlGAIgASgJEhQKDGFsYnVtX2FydGlzdBgDIAEoCRIMCgR5ZWFyGAQgASgFEhMKC3RyYWNrX2NvdW50GAUgASgFEhMKC2FydHdvcmtfdXJsGAYgASgJIkAKBkFydGlzdBILCgN1aWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEhMKC3RyYWNrX2NvdW50GAMgASgFInkKDVBsYXliYWNrRW50cnkSCwoDdWlkGAEgASgJEiwKBXRyYWNrGAIgASgLMh0uY2xvdWQubXVzaWMudjEuUGxheWFibGVUcmFjaxItCglwbGF5X3RpbWUYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wKqwBChVUcmFja1Byb2Nlc3NpbmdTdGF0dXMSJwojVFJBQ0tfUFJPQ0VTU0lOR19TVEFUVVNfVU5TUEVDSUZJRUQQABIjCh9UUkFDS19QUk9DRVNTSU5HX1NUQVRVU19QRU5ESU5HEAESIQodVFJBQ0tfUFJPQ0VTU0lOR19TVEFUVVNfUkVBRFkQAhIiCh5UUkFDS19QUk9DRVNTSU5HX1NUQVRVU19GQUlMRUQQA0I4WjZleGFtcGxlLmNvbS9jbG91ZC1kcml2ZS9hcGkvZ2VuL2Nsb3VkL211c2ljL3YxO211c2ljdjFiBnByb3RvMw", [file_cloud_music_v1_provider, file_google_protobuf_duration, file_google_protobuf_timestamp]);
+  fileDesc("ChpjbG91ZC9tdXNpYy92MS90cmFjay5wcm90bxIOY2xvdWQubXVzaWMudjEikwQKBVRyYWNrEgsKA3VpZBgBIAEoCRINCgV0aXRsZRgCIAEoCRIPCgdhcnRpc3RzGAMgAygJEg0KBWFsYnVtGAQgASgJEhQKDGFsYnVtX2FydGlzdBgFIAEoCRIUCgx0cmFja19udW1iZXIYBiABKAUSEwoLZGlzY19udW1iZXIYByABKAUSDAoEeWVhchgIIAEoBRIrCghkdXJhdGlvbhgJIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhIaChJvcmlnaW5hbF9maWxlX25hbWUYCiABKAkSFAoMY29udGVudF90eXBlGAsgASgJEhIKCnNpemVfYnl0ZXMYDCABKAMSEwoLYXJ0d29ya191cmwYDSABKAkSEwoLY29udGVudF91cmwYDiABKAkSEAoIZmF2b3JpdGUYDyABKAgSPQoRcHJvY2Vzc2luZ19zdGF0dXMYECABKA4yIi5jbG91ZC5jb250ZW50LnYxLlByb2Nlc3NpbmdTdGF0dXMSLwoLY3JlYXRlX3RpbWUYESABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KC3VwZGF0ZV90aW1lGBIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtkZWxldGVfdGltZRgTIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAieQoNUGxheWJhY2tFbnRyeRILCgN1aWQYASABKAkSLAoFdHJhY2sYAiABKAsyHS5jbG91ZC5tdXNpYy52MS5QbGF5YWJsZVRyYWNrEi0KCXBsYXlfdGltZRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCOFo2ZXhhbXBsZS5jb20vY2xvdWQtZHJpdmUvYXBpL2dlbi9jbG91ZC9tdXNpYy92MTttdXNpY3YxYgZwcm90bzM", [file_cloud_content_v1_processing, file_cloud_music_v1_provider, file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * Track is one owner-managed audio recording.
@@ -98,9 +100,9 @@ export type Track = Message<"cloud.music.v1.Track"> & {
   favorite: boolean;
 
   /**
-   * @generated from field: cloud.music.v1.TrackProcessingStatus processing_status = 16;
+   * @generated from field: cloud.content.v1.ProcessingStatus processing_status = 16;
    */
-  processingStatus: TrackProcessingStatus;
+  processingStatus: ProcessingStatus;
 
   /**
    * @generated from field: google.protobuf.Timestamp create_time = 17;
@@ -124,79 +126,6 @@ export type Track = Message<"cloud.music.v1.Track"> & {
  */
 export const TrackSchema: GenMessage<Track> = /*@__PURE__*/
   messageDesc(file_cloud_music_v1_track, 0);
-
-/**
- * Album summarizes visible tracks sharing an album label and album artist.
- *
- * @generated from message cloud.music.v1.Album
- */
-export type Album = Message<"cloud.music.v1.Album"> & {
-  /**
-   * @generated from field: string uid = 1;
-   */
-  uid: string;
-
-  /**
-   * @generated from field: string title = 2;
-   */
-  title: string;
-
-  /**
-   * @generated from field: string album_artist = 3;
-   */
-  albumArtist: string;
-
-  /**
-   * @generated from field: int32 year = 4;
-   */
-  year: number;
-
-  /**
-   * @generated from field: int32 track_count = 5;
-   */
-  trackCount: number;
-
-  /**
-   * @generated from field: string artwork_url = 6;
-   */
-  artworkUrl: string;
-};
-
-/**
- * Describes the message cloud.music.v1.Album.
- * Use `create(AlbumSchema)` to create a new message.
- */
-export const AlbumSchema: GenMessage<Album> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_track, 1);
-
-/**
- * Artist summarizes one visible display artist.
- *
- * @generated from message cloud.music.v1.Artist
- */
-export type Artist = Message<"cloud.music.v1.Artist"> & {
-  /**
-   * @generated from field: string uid = 1;
-   */
-  uid: string;
-
-  /**
-   * @generated from field: string display_name = 2;
-   */
-  displayName: string;
-
-  /**
-   * @generated from field: int32 track_count = 3;
-   */
-  trackCount: number;
-};
-
-/**
- * Describes the message cloud.music.v1.Artist.
- * Use `create(ArtistSchema)` to create a new message.
- */
-export const ArtistSchema: GenMessage<Artist> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_track, 2);
 
 /**
  * PlaybackEntry records one meaningful playback event.
@@ -225,38 +154,5 @@ export type PlaybackEntry = Message<"cloud.music.v1.PlaybackEntry"> & {
  * Use `create(PlaybackEntrySchema)` to create a new message.
  */
 export const PlaybackEntrySchema: GenMessage<PlaybackEntry> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_track, 3);
-
-/**
- * ProcessingStatus identifies tag and artwork extraction readiness.
- *
- * @generated from enum cloud.music.v1.TrackProcessingStatus
- */
-export enum TrackProcessingStatus {
-  /**
-   * @generated from enum value: TRACK_PROCESSING_STATUS_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * @generated from enum value: TRACK_PROCESSING_STATUS_PENDING = 1;
-   */
-  PENDING = 1,
-
-  /**
-   * @generated from enum value: TRACK_PROCESSING_STATUS_READY = 2;
-   */
-  READY = 2,
-
-  /**
-   * @generated from enum value: TRACK_PROCESSING_STATUS_FAILED = 3;
-   */
-  FAILED = 3,
-}
-
-/**
- * Describes the enum cloud.music.v1.TrackProcessingStatus.
- */
-export const TrackProcessingStatusSchema: GenEnum<TrackProcessingStatus> = /*@__PURE__*/
-  enumDesc(file_cloud_music_v1_track, 0);
+  messageDesc(file_cloud_music_v1_track, 1);
 

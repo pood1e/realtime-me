@@ -1,12 +1,8 @@
 package transport
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
-
-	drivev1 "example.com/cloud-drive/api/gen/cloud/drive/v1"
-	"example.com/cloud-drive/api/internal/domain"
 )
 
 func (router *httpRouter) servePublicImage(writer http.ResponseWriter, request *http.Request) {
@@ -66,42 +62,6 @@ func (router *httpRouter) servePublicShareRaw(writer http.ResponseWriter, reques
 		return
 	}
 	segments := pathSegments(request.URL.Path, "/v1/shares/")
-	if len(segments) == 1 {
-		share, item, err := router.suite.Drive.ResolveShare(request.Context(), segments[0])
-		if err != nil {
-			writeDomainError(writer, err, true)
-			return
-		}
-		writeProtoJSON(writer, http.StatusOK, &drivev1.ResolveShareResponse{ShareLink: shareProto(share), Target: itemProto(item)})
-		return
-	}
-	if len(segments) == 2 && segments[1] == "items" {
-		pageSize, err := queryPageSize(request.URL.Query().Get("pageSize"))
-		if err != nil {
-			writeDomainError(writer, err, true)
-			return
-		}
-		parentUID := request.URL.Query().Get("parentUid")
-		page, err := router.suite.Drive.ListSharedItems(
-			request.Context(),
-			segments[0],
-			&parentUID,
-			pageSize,
-			request.URL.Query().Get("pageToken"),
-		)
-		if err != nil {
-			writeDomainError(writer, err, true)
-			return
-		}
-		items := make([]*drivev1.DriveItem, 0, len(page.Items))
-		for _, item := range page.Items {
-			items = append(items, itemProto(item))
-		}
-		writeProtoJSON(writer, http.StatusOK, &drivev1.ListSharedItemsResponse{
-			Items: items, NextPageToken: page.NextPageToken,
-		})
-		return
-	}
 	if len(segments) == 4 && segments[1] == "items" && segments[3] == "content" {
 		_, item, err := router.suite.Drive.SharedItem(request.Context(), segments[0], segments[2])
 		if err != nil {
@@ -129,15 +89,4 @@ func publicAssetPreflight(writer http.ResponseWriter, request *http.Request) boo
 	writer.Header().Set("Access-Control-Allow-Headers", "Range")
 	writer.WriteHeader(http.StatusNoContent)
 	return true
-}
-
-func queryPageSize(value string) (int, error) {
-	if value == "" {
-		return 200, nil
-	}
-	pageSize, err := strconv.Atoi(value)
-	if err != nil || pageSize <= 0 {
-		return 0, fmt.Errorf("%w: invalid page size", domain.ErrInvalidArgument)
-	}
-	return pageSize, nil
 }

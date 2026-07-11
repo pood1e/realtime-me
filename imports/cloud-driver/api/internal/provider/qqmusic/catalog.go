@@ -131,7 +131,7 @@ func (client *Client) GetLyrics(ctx context.Context, request LyricsRequest) (Lyr
 	}
 	original := decodeMaybeBase64(stringValue(object, "lyric"))
 	if strings.TrimSpace(original) == "" {
-		return Lyrics{}, providerError(operation, ErrorKindUnavailable, "lyrics are unavailable", 0)
+		return Lyrics{}, providerError(operation, ErrorKindNotFound, "lyrics are unavailable", 0)
 	}
 	return Lyrics{
 		TrackMID:    trackMID,

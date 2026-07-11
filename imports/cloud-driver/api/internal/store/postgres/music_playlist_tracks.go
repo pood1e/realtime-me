@@ -12,7 +12,7 @@ import (
 	"example.com/cloud-drive/api/internal/domain"
 )
 
-const playlistTrackColumns = `item.uid, item.playlist_uid, item.position, item.provider, item.external_track_id,
+const playlistTrackColumns = `item.uid, item.playlist_uid, item.position, item.provider_id, item.external_track_id,
 	item.title, item.artists, item.album, item.duration_ms, item.artwork_url, item.provider_url,
 	item.playable, item.lyrics_available, item.download_status, COALESCE(item.local_track_uid, '')`
 
@@ -83,7 +83,7 @@ func (s *Store) QueuePlaylistDownload(ctx context.Context, playlistUID string) (
 		if _, err := tx.Exec(ctx, "UPDATE music_playlist_tracks SET download_status = 'pending' WHERE uid = $1", uid); err != nil {
 			return domain.Playlist{}, fmt.Errorf("mark playlist download pending: %w", err)
 		}
-		if err := enqueueJob(ctx, tx, "music_download", uid); err != nil {
+		if err := enqueueJob(ctx, tx, domain.ProcessingJobMusicDownload, uid); err != nil {
 			return domain.Playlist{}, err
 		}
 	}

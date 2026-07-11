@@ -14,10 +14,28 @@ import (
 
 const (
 	providerAttemptTTL = 5 * time.Minute
-	spotifyAttemptTTL  = 10 * time.Minute
+	redirectAttemptTTL = 10 * time.Minute
 )
 
-func (s *MusicService) ListProviderConnections(ctx context.Context) ([]domain.ProviderConnection, error) {
+// ListProviders returns every registered plugin plus the local catalog.
+func (s *MusicProviderService) ListProviders() []domain.ProviderDescriptor {
+	descriptors := []domain.ProviderDescriptor{{
+		ID: domain.MusicProviderLocal, DisplayName: "本地音乐", Configured: true,
+		Capabilities: []domain.MusicProviderCapability{
+			domain.MusicProviderCatalogSearch,
+			domain.MusicProviderPlayback,
+		},
+	}}
+	for _, adapter := range s.providers.List() {
+		descriptors = append(descriptors, domain.ProviderDescriptor{
+			ID: adapter.Provider(), DisplayName: adapter.DisplayName(),
+			Capabilities: musicProviderCapabilities(adapter), Configured: adapter.Configured(),
+		})
+	}
+	return descriptors
+}
+
+func (s *MusicProviderService) ListProviderConnections(ctx context.Context) ([]domain.ProviderConnection, error) {
 	stored, err := s.providerStore.ListProviderConnections(ctx)
 	if err != nil {
 		return nil, err
@@ -48,7 +66,7 @@ func (s *MusicService) ListProviderConnections(ctx context.Context) ([]domain.Pr
 }
 
 // BeginProviderConnection creates a QR or OAuth login attempt.
-func (s *MusicService) BeginProviderConnection(ctx context.Context, provider domain.MusicProvider) (domain.ProviderConnectionAttempt, error) {
+func (s *MusicProviderService) BeginProviderConnection(ctx context.Context, provider domain.MusicProvider) (domain.ProviderConnectionAttempt, error) {
 	adapter, err := s.providerAdapter(provider)
 	if err != nil || !adapter.Configured() {
 		return domain.ProviderConnectionAttempt{}, fmt.Errorf("%w: music provider is not configured", domain.ErrConflict)
@@ -65,8 +83,8 @@ func (s *MusicService) BeginProviderConnection(ctx context.Context, provider dom
 	expireTime := challenge.ExpireTime.UTC()
 	if expireTime.IsZero() {
 		expireTime = now.Add(providerAttemptTTL)
-		if provider == domain.MusicProviderSpotify {
-			expireTime = now.Add(spotifyAttemptTTL)
+		if challenge.OAuthState != "" {
+			expireTime = now.Add(redirectAttemptTTL)
 		}
 	}
 	uid := uuid.NewString()
@@ -79,9 +97,9 @@ func (s *MusicService) BeginProviderConnection(ctx context.Context, provider dom
 		QRContentType: challenge.QRContentType, QRPayload: challenge.QRPayload, AuthorizationURL: challenge.AuthorizationURL,
 		EncryptedState: encryptedState, CreateTime: now, UpdateTime: now, ExpireTime: expireTime,
 	}
-	if provider == domain.MusicProviderSpotify {
-		if challenge.OAuthState == "" {
-			return domain.ProviderConnectionAttempt{}, fmt.Errorf("%w: provider returned an incomplete OAuth challenge", domain.ErrUnavailable)
+	if challenge.AuthorizationURL != "" || challenge.OAuthState != "" {
+		if challenge.AuthorizationURL == "" || challenge.OAuthState == "" {
+			return domain.ProviderConnectionAttempt{}, fmt.Errorf("%w: provider returned an incomplete redirect challenge", domain.ErrUnavailable)
 		}
 		stateHash := sha256.Sum256([]byte(challenge.OAuthState))
 		attempt.StateHash = stateHash[:]
@@ -90,7 +108,7 @@ func (s *MusicService) BeginProviderConnection(ctx context.Context, provider dom
 }
 
 // GetProviderConnectionAttempt polls one QR flow and commits successful credentials.
-func (s *MusicService) GetProviderConnectionAttempt(ctx context.Context, uid string) (domain.ProviderConnectionAttempt, error) {
+func (s *MusicProviderService) GetProviderConnectionAttempt(ctx context.Context, uid string) (domain.ProviderConnectionAttempt, error) {
 	attempt, err := s.providerStore.GetProviderConnectionAttempt(ctx, strings.TrimSpace(uid))
 	if err != nil {
 		return domain.ProviderConnectionAttempt{}, err
@@ -136,20 +154,20 @@ func (s *MusicService) GetProviderConnectionAttempt(ctx context.Context, uid str
 	return s.providerStore.UpdateProviderConnectionAttempt(ctx, attempt)
 }
 
-// CompleteSpotifyConnection validates one unauthenticated OAuth callback.
-func (s *MusicService) CompleteSpotifyConnection(ctx context.Context, state, code string) error {
+// CompleteRedirectConnection validates one unauthenticated provider callback.
+func (s *MusicProviderService) CompleteRedirectConnection(ctx context.Context, provider domain.MusicProvider, state, code string) error {
 	state = strings.TrimSpace(state)
 	code = strings.TrimSpace(code)
-	if state == "" || code == "" {
-		return fmt.Errorf("%w: missing Spotify callback parameters", domain.ErrInvalidArgument)
+	if provider == "" || provider == domain.MusicProviderLocal || state == "" || code == "" {
+		return fmt.Errorf("%w: missing provider callback parameters", domain.ErrInvalidArgument)
 	}
 	stateHash := sha256.Sum256([]byte(state))
 	attempt, err := s.providerStore.GetProviderConnectionAttemptByStateHash(ctx, stateHash[:])
 	if err != nil {
 		return err
 	}
-	if attempt.Provider != domain.MusicProviderSpotify {
-		return fmt.Errorf("%w: invalid Spotify login attempt", domain.ErrInvalidArgument)
+	if attempt.Provider != provider {
+		return fmt.Errorf("%w: provider callback does not match its login attempt", domain.ErrInvalidArgument)
 	}
 	adapter, err := s.providerAdapter(attempt.Provider)
 	if err != nil {
@@ -186,7 +204,7 @@ func (s *MusicService) CompleteSpotifyConnection(ctx context.Context, state, cod
 }
 
 // DisconnectProvider removes long-lived credentials for one source.
-func (s *MusicService) DisconnectProvider(ctx context.Context, provider domain.MusicProvider) error {
+func (s *MusicProviderService) DisconnectProvider(ctx context.Context, provider domain.MusicProvider) error {
 	if _, err := s.providerAdapter(provider); err != nil {
 		return fmt.Errorf("%w: invalid external music provider", domain.ErrInvalidArgument)
 	}

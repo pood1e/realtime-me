@@ -5,11 +5,15 @@ import (
 	"time"
 )
 
+// HealthStore verifies persistence availability without exposing feature operations.
+type HealthStore interface {
+	Ping(context.Context) error
+}
+
 // DriveStore persists the generic drive hierarchy and its share links.
 type DriveStore interface {
-	Ping(context.Context) error
 	GetItem(context.Context, string, bool) (Item, error)
-	ListItems(context.Context, *string, bool, int, string) (Page, error)
+	ListItems(context.Context, DriveListQuery) (Page, error)
 	ListTrashedItems(context.Context, int, string) (Page, error)
 	SearchItems(context.Context, string, int, string) (Page, error)
 	CreateDirectory(context.Context, *string, string) (Item, error)
@@ -35,8 +39,10 @@ type UploadStore interface {
 	ReservedUploadBytes(context.Context) (int64, error)
 	GetUpload(context.Context, string) (Upload, error)
 	RecordUploadChunk(context.Context, string, UploadChunk) (Upload, error)
+	BeginUploadFinalization(context.Context, string) (Upload, error)
 	DeleteUpload(context.Context, string) error
-	ListExpiredUploads(context.Context, time.Time) ([]Upload, error)
+	DeleteRetainedUpload(context.Context, string) error
+	ListDiscardableUploads(context.Context, time.Time, time.Time) ([]Upload, error)
 }
 
 // ContentStore persists immutable content metadata and migration state.
@@ -46,13 +52,16 @@ type ContentStore interface {
 	FinalizeContentMigration(context.Context) error
 	GetContent(context.Context, string) (ContentObject, error)
 	ListUnreferencedContent(context.Context, int) ([]ContentObject, error)
-	DeleteContent(context.Context, string) error
+	TombstoneContent(context.Context, string, time.Time) error
+	ListExpiredContentTombstones(context.Context, time.Time, int) ([]ContentTombstone, error)
+	DeleteContentTombstone(context.Context, string) error
+	ReferencedStorageKeys(context.Context, []string) ([]string, error)
 }
 
 // BookStore persists the private book catalog and reading state.
 type BookStore interface {
 	GetBook(context.Context, string, bool) (Book, error)
-	ListBooks(context.Context, string, string, BookFormat, bool, int, string) (BookPage, error)
+	ListBooks(context.Context, BookListQuery) (BookPage, error)
 	ImportBook(context.Context, string, SealedContent) (Book, error)
 	UpdateBook(context.Context, Book) (Book, error)
 	TrashBook(context.Context, string) (Book, error)
@@ -71,11 +80,11 @@ type BookStore interface {
 	AdoptDriveBooks(context.Context) (int64, error)
 }
 
-// MusicStore persists the private audio catalog and playback state.
-type MusicStore interface {
+// MusicLibraryStore persists the private audio catalog and playback state.
+type MusicLibraryStore interface {
 	GetTrack(context.Context, string, bool) (Track, error)
 	GetTrackBySource(context.Context, MusicProvider, string) (Track, error)
-	ListTracks(context.Context, string, string, string, bool, bool, int, string) (TrackPage, error)
+	ListTracks(context.Context, TrackListQuery) (TrackPage, error)
 	ImportTrack(context.Context, string, SealedContent) (Track, error)
 	SetTrackFavorite(context.Context, string, bool) (Track, error)
 	TrashTrack(context.Context, string) (Track, error)
@@ -84,16 +93,25 @@ type MusicStore interface {
 	EmptyTrackTrash(context.Context) error
 	PurgeTrashedTracks(context.Context, time.Time) error
 	QueueTrackProcessing(context.Context, string) (Track, error)
-	ListAlbums(context.Context, string) ([]Album, error)
-	ListArtists(context.Context, string) ([]Artist, error)
 	RecordPlayback(context.Context, PlaybackEntry) (PlaybackEntry, error)
 	ListPlaybackHistory(context.Context, int, string) (PlaybackPage, error)
-	ImportPlaylist(context.Context, Playlist, []PlayableTrack) (Playlist, error)
+}
+
+// MusicPlaylistStore persists imported playlist operations and snapshots.
+type MusicPlaylistStore interface {
+	QueuePlaylistImport(context.Context, PlaylistImport) (PlaylistImport, error)
+	GetPlaylistImport(context.Context, string) (PlaylistImport, error)
 	GetPlaylist(context.Context, string) (Playlist, error)
 	ListPlaylists(context.Context, int, string) (PlaylistPage, error)
 	ListPlaylistTracks(context.Context, string, int, string) (PlaylistTrackPage, error)
 	QueuePlaylistDownload(context.Context, string) (Playlist, error)
 	DeletePlaylist(context.Context, string) error
+}
+
+// MusicStore is the wiring-time aggregate implemented by the PostgreSQL adapter.
+type MusicStore interface {
+	MusicLibraryStore
+	MusicPlaylistStore
 }
 
 // MusicProviderStore persists encrypted external accounts and login attempts.
@@ -110,10 +128,10 @@ type MusicProviderStore interface {
 	PurgeExpiredProviderConnectionAttempts(context.Context, time.Time) error
 }
 
-// ImageStore persists private images, anonymous links, and wallpapers.
+// ImageStore persists private images and anonymous links.
 type ImageStore interface {
 	GetImage(context.Context, string, bool) (Image, error)
-	ListImages(context.Context, string, *string, bool, int, string) (ImagePage, error)
+	ListImages(context.Context, ImageListQuery) (ImagePage, error)
 	ImportImage(context.Context, string, *string, SealedContent) (Image, error)
 	UpdateImage(context.Context, Image) (Image, error)
 	TrashImage(context.Context, string) (Image, error)
@@ -129,8 +147,12 @@ type ImageStore interface {
 	CreateImageLink(context.Context, ImageLink) (ImageLink, error)
 	RevokeImageLink(context.Context, string) (ImageLink, error)
 	GetImageByLink(context.Context, string) (Image, error)
+}
+
+// WallpaperStore persists publication metadata for the public wallpaper catalog.
+type WallpaperStore interface {
 	GetWallpaper(context.Context, string) (Wallpaper, error)
-	ListWallpapers(context.Context, string, string, string, int, string) (WallpaperPage, error)
+	ListWallpapers(context.Context, WallpaperListQuery) (WallpaperPage, error)
 	PublishWallpaper(context.Context, Wallpaper) (Wallpaper, error)
 	UpdateWallpaper(context.Context, Wallpaper) (Wallpaper, error)
 	UnpublishWallpaper(context.Context, string) error
@@ -140,19 +162,24 @@ type ImageStore interface {
 type WorkerStore interface {
 	HeartbeatWorker(context.Context, time.Time) error
 	GetWorkerHealth(context.Context) (WorkerHealth, error)
-	ClaimProcessingJob(context.Context, time.Time, time.Duration) (*ProcessingJob, error)
+	ClaimProcessingJob(context.Context, time.Time, time.Duration, []ProcessingJobKind) (*ProcessingJob, error)
+	ExtendProcessingJobLease(context.Context, ProcessingJob, time.Time) error
 	CompleteProcessingJob(context.Context, ProcessingJob) error
-	FailProcessingJob(context.Context, ProcessingJob, string, time.Time) error
+	FailProcessingJob(context.Context, ProcessingJob, string, bool, time.Time) error
 	GetBookForProcessing(context.Context, string) (Book, ContentObject, error)
-	CompleteBookProcessing(context.Context, string, string, []string, int, *Artifact) error
+	CompleteBookProcessing(context.Context, ProcessingJob, string, []string, int, *Artifact) error
 	GetTrackForProcessing(context.Context, string) (Track, ContentObject, error)
-	CompleteTrackProcessing(context.Context, Track, *Artifact) error
+	CompleteTrackProcessing(context.Context, ProcessingJob, Track, *Artifact) error
 	GetMusicDownload(context.Context, string) (MusicDownload, error)
-	CompleteMusicDownload(context.Context, PlaylistTrack, SealedContent) error
+	CompleteMusicDownload(context.Context, ProcessingJob, SealedContent) error
 	GetImageForProcessing(context.Context, string) (Image, ContentObject, error)
-	CompleteImageProcessing(context.Context, string, int, int, *Artifact) error
+	CompleteImageProcessing(context.Context, ProcessingJob, int, int, *Artifact) error
 	GetWallpaperForProcessing(context.Context, string) (Wallpaper, ContentObject, error)
-	CompleteWallpaperProcessing(context.Context, string, string, []Artifact) error
+	CompleteWallpaperProcessing(context.Context, ProcessingJob, string, []Artifact) error
+	GetUploadForFinalization(context.Context, string) (Upload, error)
+	CompleteUploadFinalization(context.Context, ProcessingJob, SealedContent) error
+	GetPlaylistImportForProcessing(context.Context, string) (PlaylistImport, error)
+	CompletePlaylistImport(context.Context, ProcessingJob, Playlist, []PlayableTrack) error
 }
 
 // Clock supplies wall-clock time to application services.

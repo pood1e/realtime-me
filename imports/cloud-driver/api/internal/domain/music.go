@@ -12,6 +12,23 @@ const (
 	MusicProviderSpotify MusicProvider = "spotify"
 )
 
+// ValidMusicProviderID validates the open, DNS-label-like plugin identifier.
+func ValidMusicProviderID(provider MusicProvider) bool {
+	value := string(provider)
+	if len(value) < 1 || len(value) > 64 || value[0] < 'a' || value[0] > 'z' {
+		return false
+	}
+	for _, character := range value[1:] {
+		if (character >= 'a' && character <= 'z') ||
+			(character >= '0' && character <= '9') ||
+			character == '_' || character == '.' || character == '-' {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
 // ProviderConnectionStatus describes whether a provider account can be used.
 type ProviderConnectionStatus string
 
@@ -67,6 +84,14 @@ const (
 	MusicProviderLocalDownload     MusicProviderCapability = "local_download"
 )
 
+// ProviderDescriptor describes one registered plugin without exposing credentials.
+type ProviderDescriptor struct {
+	ID           MusicProvider
+	DisplayName  string
+	Capabilities []MusicProviderCapability
+	Configured   bool
+}
+
 // PlaylistTrackDownloadStatus describes local persistence progress.
 type PlaylistTrackDownloadStatus string
 
@@ -77,6 +102,28 @@ const (
 	PlaylistTrackDownloadCompleted  PlaylistTrackDownloadStatus = "completed"
 	PlaylistTrackDownloadFailed     PlaylistTrackDownloadStatus = "failed"
 )
+
+// PlaylistImportStatus describes one durable provider import operation.
+type PlaylistImportStatus string
+
+const (
+	PlaylistImportPending   PlaylistImportStatus = "pending"
+	PlaylistImportRunning   PlaylistImportStatus = "running"
+	PlaylistImportCompleted PlaylistImportStatus = "completed"
+	PlaylistImportFailed    PlaylistImportStatus = "failed"
+)
+
+// PlaylistImport is one queued provider playlist resolution.
+type PlaylistImport struct {
+	UID         string
+	Provider    MusicProvider
+	Source      string
+	Status      PlaylistImportStatus
+	PlaylistUID string
+	FailureCode string
+	CreateTime  time.Time
+	UpdateTime  time.Time
+}
 
 // Track is one private audio catalog entry.
 type Track struct {
@@ -107,21 +154,15 @@ type TrackPage struct {
 	NextPageToken string
 }
 
-// Album summarizes tracks sharing an album and album artist.
-type Album struct {
-	UID               string
-	Title             string
-	AlbumArtist       string
-	Year              int
-	TrackCount        int
-	ArtworkStorageKey string
-}
-
-// Artist summarizes one display artist.
-type Artist struct {
-	UID         string
-	DisplayName string
-	TrackCount  int
+// TrackListQuery contains the complete cursor filter for the local music catalog.
+type TrackListQuery struct {
+	Query     string
+	Album     string
+	Artist    string
+	Favorites bool
+	Trashed   bool
+	PageSize  int
+	PageToken string
 }
 
 // PlayableTrack is the normalized read model shared by search and history.
@@ -178,13 +219,14 @@ type ProviderSearchGroup struct {
 	NextPageToken string
 }
 
-// PlaybackDescriptor selects direct audio or the official Spotify SDK.
+// PlaybackDescriptor selects direct audio or a provider browser SDK.
 type PlaybackDescriptor struct {
 	Provider    MusicProvider
 	DirectURL   string
 	ContentType string
 	Quality     PlaybackQuality
-	SpotifyURI  string
+	SDKID       string
+	ResourceURI string
 	ExpireTime  time.Time
 }
 

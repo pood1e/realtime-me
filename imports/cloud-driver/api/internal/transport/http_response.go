@@ -36,6 +36,8 @@ func writeDomainError(writer http.ResponseWriter, err error, hidePrivate bool) {
 		status = http.StatusForbidden
 	case errors.Is(err, domain.ErrResourceExhausted):
 		status = http.StatusInsufficientStorage
+	case errors.Is(err, domain.ErrRateLimited):
+		status = http.StatusTooManyRequests
 	case errors.Is(err, domain.ErrConflict):
 		status = http.StatusPreconditionFailed
 	case errors.Is(err, domain.ErrUnavailable):

@@ -22,6 +22,8 @@ var (
 
 func (NetEaseAdapter) Provider() domain.MusicProvider { return domain.MusicProviderNetEase }
 
+func (NetEaseAdapter) DisplayName() string { return "网易云音乐" }
+
 func (NetEaseAdapter) Configured() bool { return true }
 
 func (NetEaseAdapter) BeginLogin(ctx context.Context) (domain.ProviderLoginChallenge, error) {

@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package cloud.books.v1;
 
+import "cloud/content/v1/processing.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "example.com/cloud-drive/api/gen/cloud/books/v1;booksv1";
@@ -14,18 +15,6 @@ enum BookFormat {
   BOOK_FORMAT_PDF = 1;
   // BOOK_FORMAT_EPUB identifies an EPUB publication.
   BOOK_FORMAT_EPUB = 2;
-}
-
-// ProcessingStatus identifies derived-metadata readiness.
-enum BookProcessingStatus {
-  // BOOK_PROCESSING_STATUS_UNSPECIFIED is not persisted.
-  BOOK_PROCESSING_STATUS_UNSPECIFIED = 0;
-  // BOOK_PROCESSING_STATUS_PENDING is queued or running.
-  BOOK_PROCESSING_STATUS_PENDING = 1;
-  // BOOK_PROCESSING_STATUS_READY has usable derived metadata.
-  BOOK_PROCESSING_STATUS_READY = 2;
-  // BOOK_PROCESSING_STATUS_FAILED requires an explicit retry.
-  BOOK_PROCESSING_STATUS_FAILED = 3;
 }
 
 // Book is one owner-managed publication.
@@ -55,7 +44,7 @@ message Book {
   // content_url is an authenticated Range-capable relative URL.
   string content_url = 12;
   // processing_status reports metadata and cover extraction readiness.
-  BookProcessingStatus processing_status = 13;
+  cloud.content.v1.ProcessingStatus processing_status = 13;
   // create_time is when the book entered the catalog.
   google.protobuf.Timestamp create_time = 14;
   // update_time is the latest metadata change.

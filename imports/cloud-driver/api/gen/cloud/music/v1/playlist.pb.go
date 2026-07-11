@@ -81,11 +81,160 @@ func (PlaylistTrackDownloadStatus) EnumDescriptor() ([]byte, []int) {
 	return file_cloud_music_v1_playlist_proto_rawDescGZIP(), []int{0}
 }
 
+// PlaylistImportStatus describes one durable provider import operation.
+type PlaylistImportStatus int32
+
+const (
+	PlaylistImportStatus_PLAYLIST_IMPORT_STATUS_UNSPECIFIED PlaylistImportStatus = 0
+	PlaylistImportStatus_PLAYLIST_IMPORT_STATUS_PENDING     PlaylistImportStatus = 1
+	PlaylistImportStatus_PLAYLIST_IMPORT_STATUS_RUNNING     PlaylistImportStatus = 2
+	PlaylistImportStatus_PLAYLIST_IMPORT_STATUS_COMPLETED   PlaylistImportStatus = 3
+	PlaylistImportStatus_PLAYLIST_IMPORT_STATUS_FAILED      PlaylistImportStatus = 4
+)
+
+// Enum value maps for PlaylistImportStatus.
+var (
+	PlaylistImportStatus_name = map[int32]string{
+		0: "PLAYLIST_IMPORT_STATUS_UNSPECIFIED",
+		1: "PLAYLIST_IMPORT_STATUS_PENDING",
+		2: "PLAYLIST_IMPORT_STATUS_RUNNING",
+		3: "PLAYLIST_IMPORT_STATUS_COMPLETED",
+		4: "PLAYLIST_IMPORT_STATUS_FAILED",
+	}
+	PlaylistImportStatus_value = map[string]int32{
+		"PLAYLIST_IMPORT_STATUS_UNSPECIFIED": 0,
+		"PLAYLIST_IMPORT_STATUS_PENDING":     1,
+		"PLAYLIST_IMPORT_STATUS_RUNNING":     2,
+		"PLAYLIST_IMPORT_STATUS_COMPLETED":   3,
+		"PLAYLIST_IMPORT_STATUS_FAILED":      4,
+	}
+)
+
+func (x PlaylistImportStatus) Enum() *PlaylistImportStatus {
+	p := new(PlaylistImportStatus)
+	*p = x
+	return p
+}
+
+func (x PlaylistImportStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PlaylistImportStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_cloud_music_v1_playlist_proto_enumTypes[1].Descriptor()
+}
+
+func (PlaylistImportStatus) Type() protoreflect.EnumType {
+	return &file_cloud_music_v1_playlist_proto_enumTypes[1]
+}
+
+func (x PlaylistImportStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PlaylistImportStatus.Descriptor instead.
+func (PlaylistImportStatus) EnumDescriptor() ([]byte, []int) {
+	return file_cloud_music_v1_playlist_proto_rawDescGZIP(), []int{1}
+}
+
+// PlaylistImport is a bounded, resumable provider operation.
+type PlaylistImport struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Uid           string                 `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
+	ProviderId    string                 `protobuf:"bytes,2,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
+	Status        PlaylistImportStatus   `protobuf:"varint,3,opt,name=status,proto3,enum=cloud.music.v1.PlaylistImportStatus" json:"status,omitempty"`
+	PlaylistUid   string                 `protobuf:"bytes,4,opt,name=playlist_uid,json=playlistUid,proto3" json:"playlist_uid,omitempty"`
+	FailureCode   string                 `protobuf:"bytes,5,opt,name=failure_code,json=failureCode,proto3" json:"failure_code,omitempty"`
+	CreateTime    *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
+	UpdateTime    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlaylistImport) Reset() {
+	*x = PlaylistImport{}
+	mi := &file_cloud_music_v1_playlist_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlaylistImport) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlaylistImport) ProtoMessage() {}
+
+func (x *PlaylistImport) ProtoReflect() protoreflect.Message {
+	mi := &file_cloud_music_v1_playlist_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlaylistImport.ProtoReflect.Descriptor instead.
+func (*PlaylistImport) Descriptor() ([]byte, []int) {
+	return file_cloud_music_v1_playlist_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *PlaylistImport) GetUid() string {
+	if x != nil {
+		return x.Uid
+	}
+	return ""
+}
+
+func (x *PlaylistImport) GetProviderId() string {
+	if x != nil {
+		return x.ProviderId
+	}
+	return ""
+}
+
+func (x *PlaylistImport) GetStatus() PlaylistImportStatus {
+	if x != nil {
+		return x.Status
+	}
+	return PlaylistImportStatus_PLAYLIST_IMPORT_STATUS_UNSPECIFIED
+}
+
+func (x *PlaylistImport) GetPlaylistUid() string {
+	if x != nil {
+		return x.PlaylistUid
+	}
+	return ""
+}
+
+func (x *PlaylistImport) GetFailureCode() string {
+	if x != nil {
+		return x.FailureCode
+	}
+	return ""
+}
+
+func (x *PlaylistImport) GetCreateTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreateTime
+	}
+	return nil
+}
+
+func (x *PlaylistImport) GetUpdateTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdateTime
+	}
+	return nil
+}
+
 // Playlist is an imported snapshot of one provider playlist.
 type Playlist struct {
 	state                  protoimpl.MessageState `protogen:"open.v1"`
 	Uid                    string                 `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
-	Provider               MusicProvider          `protobuf:"varint,2,opt,name=provider,proto3,enum=cloud.music.v1.MusicProvider" json:"provider,omitempty"`
+	ProviderId             string                 `protobuf:"bytes,2,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
 	ExternalId             string                 `protobuf:"bytes,3,opt,name=external_id,json=externalId,proto3" json:"external_id,omitempty"`
 	DisplayName            string                 `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	ArtworkUrl             string                 `protobuf:"bytes,5,opt,name=artwork_url,json=artworkUrl,proto3" json:"artwork_url,omitempty"`
@@ -104,7 +253,7 @@ type Playlist struct {
 
 func (x *Playlist) Reset() {
 	*x = Playlist{}
-	mi := &file_cloud_music_v1_playlist_proto_msgTypes[0]
+	mi := &file_cloud_music_v1_playlist_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -116,7 +265,7 @@ func (x *Playlist) String() string {
 func (*Playlist) ProtoMessage() {}
 
 func (x *Playlist) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_playlist_proto_msgTypes[0]
+	mi := &file_cloud_music_v1_playlist_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -129,7 +278,7 @@ func (x *Playlist) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Playlist.ProtoReflect.Descriptor instead.
 func (*Playlist) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_playlist_proto_rawDescGZIP(), []int{0}
+	return file_cloud_music_v1_playlist_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Playlist) GetUid() string {
@@ -139,11 +288,11 @@ func (x *Playlist) GetUid() string {
 	return ""
 }
 
-func (x *Playlist) GetProvider() MusicProvider {
+func (x *Playlist) GetProviderId() string {
 	if x != nil {
-		return x.Provider
+		return x.ProviderId
 	}
-	return MusicProvider_MUSIC_PROVIDER_UNSPECIFIED
+	return ""
 }
 
 func (x *Playlist) GetExternalId() string {
@@ -245,7 +394,7 @@ type PlaylistTrack struct {
 
 func (x *PlaylistTrack) Reset() {
 	*x = PlaylistTrack{}
-	mi := &file_cloud_music_v1_playlist_proto_msgTypes[1]
+	mi := &file_cloud_music_v1_playlist_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -257,7 +406,7 @@ func (x *PlaylistTrack) String() string {
 func (*PlaylistTrack) ProtoMessage() {}
 
 func (x *PlaylistTrack) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_playlist_proto_msgTypes[1]
+	mi := &file_cloud_music_v1_playlist_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -270,7 +419,7 @@ func (x *PlaylistTrack) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlaylistTrack.ProtoReflect.Descriptor instead.
 func (*PlaylistTrack) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_playlist_proto_rawDescGZIP(), []int{1}
+	return file_cloud_music_v1_playlist_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *PlaylistTrack) GetUid() string {
@@ -319,10 +468,22 @@ var File_cloud_music_v1_playlist_proto protoreflect.FileDescriptor
 
 const file_cloud_music_v1_playlist_proto_rawDesc = "" +
 	"\n" +
-	"\x1dcloud/music/v1/playlist.proto\x12\x0ecloud.music.v1\x1a\x1dcloud/music/v1/provider.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf5\x04\n" +
+	"\x1dcloud/music/v1/playlist.proto\x12\x0ecloud.music.v1\x1a\x1dcloud/music/v1/provider.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc1\x02\n" +
+	"\x0ePlaylistImport\x12\x10\n" +
+	"\x03uid\x18\x01 \x01(\tR\x03uid\x12\x1f\n" +
+	"\vprovider_id\x18\x02 \x01(\tR\n" +
+	"providerId\x12<\n" +
+	"\x06status\x18\x03 \x01(\x0e2$.cloud.music.v1.PlaylistImportStatusR\x06status\x12!\n" +
+	"\fplaylist_uid\x18\x04 \x01(\tR\vplaylistUid\x12!\n" +
+	"\ffailure_code\x18\x05 \x01(\tR\vfailureCode\x12;\n" +
+	"\vcreate_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"createTime\x12;\n" +
+	"\vupdate_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"updateTime\"\xdb\x04\n" +
 	"\bPlaylist\x12\x10\n" +
-	"\x03uid\x18\x01 \x01(\tR\x03uid\x129\n" +
-	"\bprovider\x18\x02 \x01(\x0e2\x1d.cloud.music.v1.MusicProviderR\bprovider\x12\x1f\n" +
+	"\x03uid\x18\x01 \x01(\tR\x03uid\x12\x1f\n" +
+	"\vprovider_id\x18\x02 \x01(\tR\n" +
+	"providerId\x12\x1f\n" +
 	"\vexternal_id\x18\x03 \x01(\tR\n" +
 	"externalId\x12!\n" +
 	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x12\x1f\n" +
@@ -354,7 +515,13 @@ const file_cloud_music_v1_playlist_proto_rawDesc = "" +
 	"&PLAYLIST_TRACK_DOWNLOAD_STATUS_PENDING\x10\x02\x12*\n" +
 	"&PLAYLIST_TRACK_DOWNLOAD_STATUS_RUNNING\x10\x03\x12,\n" +
 	"(PLAYLIST_TRACK_DOWNLOAD_STATUS_COMPLETED\x10\x04\x12)\n" +
-	"%PLAYLIST_TRACK_DOWNLOAD_STATUS_FAILED\x10\x05B8Z6example.com/cloud-drive/api/gen/cloud/music/v1;musicv1b\x06proto3"
+	"%PLAYLIST_TRACK_DOWNLOAD_STATUS_FAILED\x10\x05*\xcf\x01\n" +
+	"\x14PlaylistImportStatus\x12&\n" +
+	"\"PLAYLIST_IMPORT_STATUS_UNSPECIFIED\x10\x00\x12\"\n" +
+	"\x1ePLAYLIST_IMPORT_STATUS_PENDING\x10\x01\x12\"\n" +
+	"\x1ePLAYLIST_IMPORT_STATUS_RUNNING\x10\x02\x12$\n" +
+	" PLAYLIST_IMPORT_STATUS_COMPLETED\x10\x03\x12!\n" +
+	"\x1dPLAYLIST_IMPORT_STATUS_FAILED\x10\x04B8Z6example.com/cloud-drive/api/gen/cloud/music/v1;musicv1b\x06proto3"
 
 var (
 	file_cloud_music_v1_playlist_proto_rawDescOnce sync.Once
@@ -368,27 +535,30 @@ func file_cloud_music_v1_playlist_proto_rawDescGZIP() []byte {
 	return file_cloud_music_v1_playlist_proto_rawDescData
 }
 
-var file_cloud_music_v1_playlist_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_cloud_music_v1_playlist_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_cloud_music_v1_playlist_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_cloud_music_v1_playlist_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_cloud_music_v1_playlist_proto_goTypes = []any{
 	(PlaylistTrackDownloadStatus)(0), // 0: cloud.music.v1.PlaylistTrackDownloadStatus
-	(*Playlist)(nil),                 // 1: cloud.music.v1.Playlist
-	(*PlaylistTrack)(nil),            // 2: cloud.music.v1.PlaylistTrack
-	(MusicProvider)(0),               // 3: cloud.music.v1.MusicProvider
-	(*timestamppb.Timestamp)(nil),    // 4: google.protobuf.Timestamp
-	(*PlayableTrack)(nil),            // 5: cloud.music.v1.PlayableTrack
+	(PlaylistImportStatus)(0),        // 1: cloud.music.v1.PlaylistImportStatus
+	(*PlaylistImport)(nil),           // 2: cloud.music.v1.PlaylistImport
+	(*Playlist)(nil),                 // 3: cloud.music.v1.Playlist
+	(*PlaylistTrack)(nil),            // 4: cloud.music.v1.PlaylistTrack
+	(*timestamppb.Timestamp)(nil),    // 5: google.protobuf.Timestamp
+	(*PlayableTrack)(nil),            // 6: cloud.music.v1.PlayableTrack
 }
 var file_cloud_music_v1_playlist_proto_depIdxs = []int32{
-	3, // 0: cloud.music.v1.Playlist.provider:type_name -> cloud.music.v1.MusicProvider
-	4, // 1: cloud.music.v1.Playlist.create_time:type_name -> google.protobuf.Timestamp
-	4, // 2: cloud.music.v1.Playlist.update_time:type_name -> google.protobuf.Timestamp
-	5, // 3: cloud.music.v1.PlaylistTrack.track:type_name -> cloud.music.v1.PlayableTrack
-	0, // 4: cloud.music.v1.PlaylistTrack.download_status:type_name -> cloud.music.v1.PlaylistTrackDownloadStatus
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	1, // 0: cloud.music.v1.PlaylistImport.status:type_name -> cloud.music.v1.PlaylistImportStatus
+	5, // 1: cloud.music.v1.PlaylistImport.create_time:type_name -> google.protobuf.Timestamp
+	5, // 2: cloud.music.v1.PlaylistImport.update_time:type_name -> google.protobuf.Timestamp
+	5, // 3: cloud.music.v1.Playlist.create_time:type_name -> google.protobuf.Timestamp
+	5, // 4: cloud.music.v1.Playlist.update_time:type_name -> google.protobuf.Timestamp
+	6, // 5: cloud.music.v1.PlaylistTrack.track:type_name -> cloud.music.v1.PlayableTrack
+	0, // 6: cloud.music.v1.PlaylistTrack.download_status:type_name -> cloud.music.v1.PlaylistTrackDownloadStatus
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_cloud_music_v1_playlist_proto_init() }
@@ -402,8 +572,8 @@ func file_cloud_music_v1_playlist_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cloud_music_v1_playlist_proto_rawDesc), len(file_cloud_music_v1_playlist_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   2,
+			NumEnums:      2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

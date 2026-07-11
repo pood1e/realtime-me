@@ -3,9 +3,7 @@ package app
 import (
 	"context"
 	"crypto/sha256"
-	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"sync"
 	"time"
@@ -19,15 +17,31 @@ import (
 type ContentFiles interface {
 	PrepareUpload(context.Context, string) error
 	WriteChunk(context.Context, string, int64, []byte) error
-	SealUpload(context.Context, string, string) (domain.SealedContent, error)
-	InspectLegacyObject(context.Context, domain.ContentObject) (domain.SealedContent, error)
 	RemoveUpload(context.Context, string) error
 	Open(context.Context, string) (*os.File, error)
 	Remove(context.Context, string) error
+	WalkStoredFiles(context.Context, func(domain.StoredFile) error) error
+	RemoveStoredFileIfOlder(context.Context, string, time.Time) error
 	FreeBytes() (int64, error)
 }
 
-// ContentService manages neutral uploads, migration, and content garbage collection.
+// ContentMigrationFiles exposes only offline legacy migration operations.
+type ContentMigrationFiles interface {
+	InspectLegacyObject(context.Context, domain.ContentObject) (domain.SealedContent, error)
+	Remove(context.Context, string) error
+}
+
+// ContentReader opens an authorized storage key for application delivery.
+type ContentReader interface {
+	Open(context.Context, string) (*os.File, error)
+}
+
+// CapacityFiles reports capacity without exposing content mutation methods.
+type CapacityFiles interface {
+	FreeBytes() (int64, error)
+}
+
+// ContentService manages neutral uploads and their shared content lifecycle.
 type ContentService struct {
 	uploads           domain.UploadStore
 	contents          domain.ContentStore
@@ -92,6 +106,13 @@ func (s *ContentService) GetUpload(ctx context.Context, uid string) (domain.Uplo
 	return s.uploads.GetUpload(ctx, uid)
 }
 
+// FinalizeUpload queues local hashing after every byte range is acknowledged.
+func (s *ContentService) FinalizeUpload(ctx context.Context, uid string) (domain.Upload, error) {
+	unlock := s.locks.Lock(uid)
+	defer unlock()
+	return s.uploads.BeginUploadFinalization(ctx, uid)
+}
+
 // WriteUploadChunk writes and acknowledges one bounded range.
 func (s *ContentService) WriteUploadChunk(ctx context.Context, uploadUID string, startOffset, totalSizeBytes int64, data []byte) (domain.Upload, error) {
 	unlock := s.locks.Lock(uploadUID)
@@ -139,10 +160,18 @@ func (s *ContentService) AbandonUpload(ctx context.Context, uploadUID string) er
 	if upload.Status == domain.UploadStatusClaimed {
 		return fmt.Errorf("%w: upload is already claimed", domain.ErrConflict)
 	}
+	if upload.Status == domain.UploadStatusFinalizing {
+		return fmt.Errorf("%w: upload finalization is running", domain.ErrConflict)
+	}
+	// Remove bytes first so a transient database failure leaves durable metadata
+	// that the retention pass can retry instead of an unowned temporary file.
+	if err := s.files.RemoveUpload(ctx, uploadUID); err != nil {
+		return err
+	}
 	if err := s.uploads.DeleteUpload(ctx, uploadUID); err != nil {
 		return err
 	}
-	return s.files.RemoveUpload(ctx, uploadUID)
+	return nil
 }
 
 // SealForClaim validates and publishes one upload without claiming it.
@@ -156,106 +185,16 @@ func (s *ContentService) SealForClaim(ctx context.Context, uploadUID string) (do
 	if upload.Status == domain.UploadStatusClaimed {
 		return upload, domain.SealedContent{}, unlock, nil
 	}
-	if upload.Status != domain.UploadStatusActive || !chunksComplete(upload) {
+	if upload.Status != domain.UploadStatusSealed || upload.Sealed == nil {
 		unlock()
-		return domain.Upload{}, domain.SealedContent{}, nil, fmt.Errorf("%w: upload is incomplete", domain.ErrConflict)
+		return domain.Upload{}, domain.SealedContent{}, nil, fmt.Errorf("%w: upload is not sealed", domain.ErrConflict)
 	}
-	sealed, err := s.files.SealUpload(ctx, upload.UID, upload.FileName)
-	if err != nil {
-		unlock()
-		return domain.Upload{}, domain.SealedContent{}, nil, err
-	}
-	if sealed.SizeBytes != upload.TotalSizeBytes {
-		unlock()
-		return domain.Upload{}, domain.SealedContent{}, nil, fmt.Errorf("%w: uploaded size changed", domain.ErrConflict)
-	}
-	return upload, sealed, unlock, nil
+	return upload, *upload.Sealed, unlock, nil
 }
 
 // FinishClaim removes the temporary hard link after metadata commit.
-func (s *ContentService) FinishClaim(ctx context.Context, uploadUID string) {
-	_ = s.files.RemoveUpload(ctx, uploadUID)
-}
-
-// MigrateLegacyContent converts all pre-suite blobs to content-addressed storage.
-func (s *ContentService) MigrateLegacyContent(ctx context.Context) error {
-	for {
-		objects, err := s.contents.ListUnhashedContent(ctx, 100)
-		if err != nil {
-			return err
-		}
-		if len(objects) == 0 {
-			break
-		}
-		for _, object := range objects {
-			sealed, err := s.files.InspectLegacyObject(ctx, object)
-			if err != nil {
-				return fmt.Errorf("migrate content %s: %w", object.UID, err)
-			}
-			if _, err := s.contents.CommitContentMigration(ctx, object.UID, sealed); err != nil {
-				return err
-			}
-			if object.StorageKey != sealed.StorageKey {
-				if err := s.files.Remove(ctx, object.StorageKey); err != nil && !errors.Is(err, fs.ErrNotExist) {
-					return err
-				}
-			}
-		}
-	}
-	return s.contents.FinalizeContentMigration(ctx)
-}
-
-// PurgeExpiredUploads removes temporary sessions past their expiry.
-func (s *ContentService) PurgeExpiredUploads(ctx context.Context) error {
-	uploads, err := s.uploads.ListExpiredUploads(ctx, s.clock.Now().UTC())
-	if err != nil {
-		return err
-	}
-	for _, upload := range uploads {
-		_ = s.files.RemoveUpload(ctx, upload.UID)
-		if err := s.uploads.DeleteUpload(ctx, upload.UID); err != nil && !errors.Is(err, domain.ErrNotFound) {
-			return err
-		}
-	}
-	return nil
-}
-
-// CollectGarbage deletes unreferenced content metadata and source bytes.
-func (s *ContentService) CollectGarbage(ctx context.Context) error {
-	for {
-		objects, err := s.contents.ListUnreferencedContent(ctx, 100)
-		if err != nil {
-			return err
-		}
-		if len(objects) == 0 {
-			return nil
-		}
-		for _, object := range objects {
-			if err := s.contents.DeleteContent(ctx, object.UID); err != nil {
-				if errors.Is(err, domain.ErrConflict) {
-					continue
-				}
-				return err
-			}
-			if err := s.files.Remove(ctx, object.StorageKey); err != nil && !errors.Is(err, fs.ErrNotExist) {
-				return err
-			}
-		}
-	}
-}
-
-func chunksComplete(upload domain.Upload) bool {
-	if upload.TotalSizeBytes == 0 {
-		return len(upload.Chunks) == 0
-	}
-	var expected int64
-	for _, chunk := range upload.Chunks {
-		if chunk.StartOffset != expected {
-			return false
-		}
-		expected = chunk.EndOffset
-	}
-	return expected == upload.TotalSizeBytes
+func (s *ContentService) FinishClaim(ctx context.Context, uploadUID string) error {
+	return s.files.RemoveUpload(ctx, uploadUID)
 }
 
 func bytesEqual(left, right []byte) bool {

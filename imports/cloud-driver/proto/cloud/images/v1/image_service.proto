@@ -25,8 +25,12 @@ service ImageService {
   rpc RevokeImageLink(RevokeImageLinkRequest) returns (RevokeImageLinkResponse);
 }
 
-message GetImageRequest { string image_uid = 1; }
-message GetImageResponse { Image image = 1; }
+message GetImageRequest {
+  string image_uid = 1;
+}
+message GetImageResponse {
+  Image image = 1;
+}
 message ListImagesRequest {
   string query = 1;
   string album_uid = 2;
@@ -42,32 +46,70 @@ message ImportImageRequest {
   string upload_uid = 1;
   string album_uid = 2;
 }
-message ImportImageResponse { Image image = 1; }
+message ImportImageResponse {
+  Image image = 1;
+}
 message UpdateImageRequest {
   string image_uid = 1;
   string display_name = 2;
   string album_uid = 3;
 }
-message UpdateImageResponse { Image image = 1; }
-message DeleteImageRequest { string image_uid = 1; }
-message DeleteImageResponse { Image image = 1; }
-message RestoreImageRequest { string image_uid = 1; }
-message RestoreImageResponse { Image image = 1; }
-message PurgeImageRequest { string image_uid = 1; }
+message UpdateImageResponse {
+  Image image = 1;
+}
+message DeleteImageRequest {
+  string image_uid = 1;
+}
+message DeleteImageResponse {
+  Image image = 1;
+}
+message RestoreImageRequest {
+  string image_uid = 1;
+}
+message RestoreImageResponse {
+  Image image = 1;
+}
+message PurgeImageRequest {
+  string image_uid = 1;
+}
 message PurgeImageResponse {}
 message EmptyImageTrashRequest {}
 message EmptyImageTrashResponse {}
-message RetryImageProcessingRequest { string image_uid = 1; }
-message RetryImageProcessingResponse { Image image = 1; }
+message RetryImageProcessingRequest {
+  string image_uid = 1;
+}
+message RetryImageProcessingResponse {
+  Image image = 1;
+}
 message ListImageAlbumsRequest {}
-message ListImageAlbumsResponse { repeated ImageAlbum albums = 1; }
-message CreateImageAlbumRequest { string display_name = 1; }
-message CreateImageAlbumResponse { ImageAlbum album = 1; }
-message DeleteImageAlbumRequest { string album_uid = 1; }
+message ListImageAlbumsResponse {
+  repeated ImageAlbum albums = 1;
+}
+message CreateImageAlbumRequest {
+  string display_name = 1;
+}
+message CreateImageAlbumResponse {
+  ImageAlbum album = 1;
+}
+message DeleteImageAlbumRequest {
+  string album_uid = 1;
+}
 message DeleteImageAlbumResponse {}
-message ListImageLinksRequest { string image_uid = 1; }
-message ListImageLinksResponse { repeated ImageLink image_links = 1; }
-message CreateImageLinkRequest { string image_uid = 1; }
-message CreateImageLinkResponse { ImageLink image_link = 1; }
-message RevokeImageLinkRequest { string image_link_uid = 1; }
-message RevokeImageLinkResponse { ImageLink image_link = 1; }
+message ListImageLinksRequest {
+  string image_uid = 1;
+}
+message ListImageLinksResponse {
+  repeated ImageLink image_links = 1;
+}
+message CreateImageLinkRequest {
+  string image_uid = 1;
+}
+message CreateImageLinkResponse {
+  ImageLink image_link = 1;
+}
+message RevokeImageLinkRequest {
+  string image_link_uid = 1;
+}
+message RevokeImageLinkResponse {
+  ImageLink image_link = 1;
+}

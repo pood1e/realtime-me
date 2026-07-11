@@ -17,14 +17,10 @@ type qqTrackReference struct {
 	MediaMID string `json:"media_mid,omitempty"`
 }
 
-func searchQQ(ctx context.Context, rawCredentials []byte, query string, pageSize int, pageToken string) ([]domain.PlayableTrack, string, []byte, error) {
+func searchQQ(ctx context.Context, client *qqmusic.Client, rawCredentials []byte, query string, pageSize int, pageToken string) ([]domain.PlayableTrack, string, []byte, error) {
 	credentials, err := decodeQQCredentials(rawCredentials)
 	if err != nil {
 		return nil, "", nil, err
-	}
-	client, err := qqmusic.NewClient()
-	if err != nil {
-		return nil, "", nil, mapProviderError(err)
 	}
 	credentials, err = refreshQQCredentials(ctx, client, credentials)
 	if err != nil {

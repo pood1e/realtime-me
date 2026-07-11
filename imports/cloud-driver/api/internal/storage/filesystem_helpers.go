@@ -3,6 +3,7 @@ package storage
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -14,18 +15,19 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"example.com/cloud-drive/api/internal/domain"
 )
 
-func (f *Filesystem) inspectFile(path, fileName string) (domain.SealedContent, error) {
+func (f *Filesystem) inspectFile(ctx context.Context, path, fileName string) (domain.SealedContent, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return domain.SealedContent{}, fmt.Errorf("open source file: %w", err)
 	}
 	defer file.Close()
 	hash := sha256.New()
-	size, err := io.Copy(hash, file)
+	size, err := io.Copy(hash, contextReader{ctx: ctx, source: file})
 	if err != nil {
 		return domain.SealedContent{}, fmt.Errorf("hash source file: %w", err)
 	}
@@ -43,6 +45,18 @@ func (f *Filesystem) inspectFile(path, fileName string) (domain.SealedContent, e
 	}, nil
 }
 
+type contextReader struct {
+	ctx    context.Context
+	source io.Reader
+}
+
+func (r contextReader) Read(buffer []byte) (int, error) {
+	if err := r.ctx.Err(); err != nil {
+		return 0, err
+	}
+	return r.source.Read(buffer)
+}
+
 func (f *Filesystem) publishFile(sourcePath, storageKey string, removeSource bool) error {
 	targetPath, err := f.storagePath(storageKey)
 	if err != nil {
@@ -51,16 +65,22 @@ func (f *Filesystem) publishFile(sourcePath, storageKey string, removeSource boo
 	if err := os.MkdirAll(filepath.Dir(targetPath), 0o700); err != nil {
 		return fmt.Errorf("create storage directory: %w", err)
 	}
-	if _, err := os.Stat(targetPath); err == nil {
-		if removeSource {
-			return removeFile(sourcePath, "published source")
+	for {
+		reused, err := refreshStoredFile(targetPath)
+		if err != nil {
+			return err
 		}
-		return nil
-	} else if !errors.Is(err, fs.ErrNotExist) {
-		return fmt.Errorf("stat storage target: %w", err)
-	}
-	if err := os.Link(sourcePath, targetPath); err != nil && !errors.Is(err, fs.ErrExist) {
-		return fmt.Errorf("publish stored file: %w", err)
+		if reused {
+			if removeSource {
+				return removeFile(sourcePath, "published source")
+			}
+			return nil
+		}
+		if err := os.Link(sourcePath, targetPath); err == nil {
+			break
+		} else if !errors.Is(err, fs.ErrExist) {
+			return fmt.Errorf("publish stored file: %w", err)
+		}
 	}
 	if err := syncDirectory(filepath.Dir(targetPath)); err != nil {
 		return err
@@ -69,6 +89,86 @@ func (f *Filesystem) publishFile(sourcePath, storageKey string, removeSource boo
 		return removeFile(sourcePath, "published source")
 	}
 	return nil
+}
+
+func refreshStoredFile(path string) (bool, error) {
+	file, err := os.Open(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("open storage target: %w", err)
+	}
+	defer file.Close()
+	if err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX); err != nil {
+		return false, fmt.Errorf("lock storage target: %w", err)
+	}
+	defer syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+	opened, err := file.Stat()
+	if err != nil {
+		return false, fmt.Errorf("stat opened storage target: %w", err)
+	}
+	current, err := os.Stat(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("stat storage target: %w", err)
+	}
+	if !os.SameFile(opened, current) {
+		return false, nil
+	}
+	// Bump ctime without changing mtime. Two private-mode transitions guarantee
+	// a metadata change while rsync --link-dest can still reuse the object.
+	if err := file.Chmod(0o700); err != nil {
+		return false, fmt.Errorf("begin storage target refresh: %w", err)
+	}
+	if err := file.Chmod(0o600); err != nil {
+		return false, fmt.Errorf("refresh storage target: %w", err)
+	}
+	return true, nil
+}
+
+func (f *Filesystem) replaceFile(sourcePath, storageKey string) error {
+	targetPath, err := f.storagePath(storageKey)
+	if err != nil {
+		return err
+	}
+	directory := filepath.Dir(targetPath)
+	if err := os.MkdirAll(directory, 0o700); err != nil {
+		return fmt.Errorf("create artifact directory: %w", err)
+	}
+	source, err := os.Open(sourcePath)
+	if err != nil {
+		return fmt.Errorf("open artifact source: %w", err)
+	}
+	defer source.Close()
+	temporary, err := os.CreateTemp(directory, ".artifact-*")
+	if err != nil {
+		return fmt.Errorf("create artifact replacement: %w", err)
+	}
+	temporaryPath := temporary.Name()
+	defer os.Remove(temporaryPath)
+	if err := temporary.Chmod(0o600); err != nil {
+		temporary.Close()
+		return fmt.Errorf("secure artifact replacement: %w", err)
+	}
+	_, copyErr := io.Copy(temporary, source)
+	syncErr := temporary.Sync()
+	closeErr := temporary.Close()
+	if copyErr != nil {
+		return fmt.Errorf("copy artifact replacement: %w", copyErr)
+	}
+	if syncErr != nil {
+		return fmt.Errorf("sync artifact replacement: %w", syncErr)
+	}
+	if closeErr != nil {
+		return fmt.Errorf("close artifact replacement: %w", closeErr)
+	}
+	if err := os.Rename(temporaryPath, targetPath); err != nil {
+		return fmt.Errorf("install artifact replacement: %w", err)
+	}
+	return syncDirectory(directory)
 }
 
 func (f *Filesystem) uploadPath(uploadUID string) (string, error) {

@@ -11,13 +11,17 @@ import (
 	"example.com/cloud-drive/api/internal/domain"
 )
 
+const (
+	wallpaperColumns = `wallpaper.uid, wallpaper.image_uid, wallpaper.title, wallpaper.tags,
+		wallpaper.dominant_color, image.width, image.height, content.content_type,
+		content.storage_key, wallpaper.publish_time, wallpaper.update_time`
+	wallpaperFrom = `wallpapers wallpaper JOIN images image ON image.uid = wallpaper.image_uid
+		JOIN content_objects content ON content.uid = image.content_uid`
+)
+
 func (s *Store) GetWallpaper(ctx context.Context, uid string) (domain.Wallpaper, error) {
-	wallpaper, err := scanWallpaper(s.pool.QueryRow(ctx, `SELECT wallpaper.uid, wallpaper.image_uid,
-		wallpaper.title, wallpaper.tags, wallpaper.dominant_color, image.width, image.height,
-		content.content_type, content.storage_key, wallpaper.publish_time, wallpaper.update_time
-		FROM wallpapers wallpaper JOIN images image ON image.uid = wallpaper.image_uid
-		JOIN content_objects content ON content.uid = image.content_uid
-		WHERE wallpaper.uid = $1 AND image.delete_time IS NULL`, uid))
+	wallpaper, err := scanWallpaper(s.pool.QueryRow(ctx, "SELECT "+wallpaperColumns+" FROM "+wallpaperFrom+
+		" WHERE wallpaper.uid = $1 AND image.delete_time IS NULL", uid))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Wallpaper{}, fmt.Errorf("%w: wallpaper", domain.ErrNotFound)
 	}
@@ -33,32 +37,31 @@ func (s *Store) GetWallpaper(ctx context.Context, uid string) (domain.Wallpaper,
 }
 
 // ListWallpapers lists the published catalog.
-func (s *Store) ListWallpapers(ctx context.Context, queryText, tag, orientation string, pageSize int, pageToken string) (domain.WallpaperPage, error) {
-	pageSize = normalizePageSize(pageSize)
-	query := `SELECT wallpaper.uid FROM wallpapers wallpaper JOIN images image ON image.uid = wallpaper.image_uid
-		WHERE image.delete_time IS NULL`
+func (s *Store) ListWallpapers(ctx context.Context, filter domain.WallpaperListQuery) (domain.WallpaperPage, error) {
+	pageSize := normalizePageSize(filter.PageSize)
+	query := "SELECT " + wallpaperColumns + " FROM " + wallpaperFrom + " WHERE image.delete_time IS NULL"
 	arguments := []any{}
-	if queryText != "" {
-		arguments = append(arguments, queryText)
+	if filter.Query != "" {
+		arguments = append(arguments, filter.Query)
 		query += fmt.Sprintf(" AND wallpaper.title ILIKE '%%' || $%d || '%%'", len(arguments))
 	}
-	if tag != "" {
-		arguments = append(arguments, tag)
+	if filter.Tag != "" {
+		arguments = append(arguments, filter.Tag)
 		query += fmt.Sprintf(" AND $%d = ANY(wallpaper.tags)", len(arguments))
 	}
-	if orientation != "" {
+	if filter.Orientation != "" {
 		condition := map[string]string{
 			"landscape": "image.width > image.height",
 			"portrait":  "image.height > image.width",
 			"square":    "image.height = image.width",
-		}[orientation]
+		}[filter.Orientation]
 		if condition == "" {
 			return domain.WallpaperPage{}, fmt.Errorf("%w: invalid orientation", domain.ErrInvalidArgument)
 		}
 		query += " AND " + condition
 	}
-	if pageToken != "" {
-		cursor, err := decodeCursor(pageToken)
+	if filter.PageToken != "" {
+		cursor, err := decodeCursor(filter.PageToken)
 		if err != nil {
 			return domain.WallpaperPage{}, err
 		}
@@ -75,29 +78,37 @@ func (s *Store) ListWallpapers(ctx context.Context, queryText, tag, orientation 
 	if err != nil {
 		return domain.WallpaperPage{}, fmt.Errorf("list wallpapers: %w", err)
 	}
-	defer rows.Close()
-	var uids []string
-	for rows.Next() {
-		var uid string
-		if err := rows.Scan(&uid); err != nil {
-			return domain.WallpaperPage{}, fmt.Errorf("scan wallpaper id: %w", err)
-		}
-		uids = append(uids, uid)
-	}
 	page := domain.WallpaperPage{}
-	for _, uid := range uids {
-		wallpaper, err := s.GetWallpaper(ctx, uid)
+	for rows.Next() {
+		wallpaper, err := scanWallpaper(rows)
 		if err != nil {
-			return domain.WallpaperPage{}, err
+			rows.Close()
+			return domain.WallpaperPage{}, fmt.Errorf("scan wallpaper: %w", err)
 		}
 		page.Wallpapers = append(page.Wallpapers, wallpaper)
 	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return domain.WallpaperPage{}, fmt.Errorf("iterate wallpapers: %w", err)
+	}
+	rows.Close()
 	if len(page.Wallpapers) > pageSize {
 		last := page.Wallpapers[pageSize-1]
 		page.Wallpapers = page.Wallpapers[:pageSize]
 		page.NextPageToken = encodeCursor(last.PublishTime.Format(time.RFC3339Nano), last.UID)
 	}
-	return page, rows.Err()
+	imageUIDs := make([]string, len(page.Wallpapers))
+	for index, wallpaper := range page.Wallpapers {
+		imageUIDs[index] = wallpaper.ImageUID
+	}
+	variants, err := s.listWallpaperArtifactsByImage(ctx, imageUIDs)
+	if err != nil {
+		return domain.WallpaperPage{}, err
+	}
+	for index := range page.Wallpapers {
+		page.Wallpapers[index].Variants = variants[page.Wallpapers[index].ImageUID]
+	}
+	return page, nil
 }
 
 // PublishWallpaper manually publishes a ready image.
@@ -122,7 +133,7 @@ func (s *Store) PublishWallpaper(ctx context.Context, wallpaper domain.Wallpaper
 		VALUES ($1, $2, $3, $4)`, wallpaper.UID, wallpaper.ImageUID, wallpaper.Title, wallpaper.Tags); err != nil {
 		return domain.Wallpaper{}, fmt.Errorf("publish wallpaper: %w", err)
 	}
-	if err := enqueueJob(ctx, tx, "wallpaper", wallpaper.UID); err != nil {
+	if err := enqueueJob(ctx, tx, domain.ProcessingJobWallpaper, wallpaper.UID); err != nil {
 		return domain.Wallpaper{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {

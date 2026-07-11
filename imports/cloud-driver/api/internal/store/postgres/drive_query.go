@@ -33,15 +33,15 @@ func (s *Store) GetItem(ctx context.Context, uid string, includeTrashed bool) (d
 }
 
 // ListItems lists direct children with a stable cursor.
-func (s *Store) ListItems(ctx context.Context, parentUID *string, includeTrashed bool, pageSize int, pageToken string) (domain.Page, error) {
-	cursor, err := decodeCursor(pageToken)
+func (s *Store) ListItems(ctx context.Context, filter domain.DriveListQuery) (domain.Page, error) {
+	cursor, err := decodeCursor(filter.PageToken)
 	if err != nil {
 		return domain.Page{}, err
 	}
-	pageSize = normalizePageSize(pageSize)
+	pageSize := normalizePageSize(filter.PageSize)
 	query := "SELECT " + itemColumns + " FROM " + itemFrom + " WHERE item.parent_uid IS NOT DISTINCT FROM $1"
-	arguments := []any{nullableString(parentUID)}
-	if !includeTrashed {
+	arguments := []any{nullableString(filter.ParentUID)}
+	if !filter.IncludeTrashed {
 		query += " AND item.delete_time IS NULL"
 	}
 	if cursor != nil {

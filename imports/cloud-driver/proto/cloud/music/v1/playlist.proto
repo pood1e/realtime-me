@@ -17,10 +17,30 @@ enum PlaylistTrackDownloadStatus {
   PLAYLIST_TRACK_DOWNLOAD_STATUS_FAILED = 5;
 }
 
+// PlaylistImportStatus describes one durable provider import operation.
+enum PlaylistImportStatus {
+  PLAYLIST_IMPORT_STATUS_UNSPECIFIED = 0;
+  PLAYLIST_IMPORT_STATUS_PENDING = 1;
+  PLAYLIST_IMPORT_STATUS_RUNNING = 2;
+  PLAYLIST_IMPORT_STATUS_COMPLETED = 3;
+  PLAYLIST_IMPORT_STATUS_FAILED = 4;
+}
+
+// PlaylistImport is a bounded, resumable provider operation.
+message PlaylistImport {
+  string uid = 1;
+  string provider_id = 2;
+  PlaylistImportStatus status = 3;
+  string playlist_uid = 4;
+  string failure_code = 5;
+  google.protobuf.Timestamp create_time = 6;
+  google.protobuf.Timestamp update_time = 7;
+}
+
 // Playlist is an imported snapshot of one provider playlist.
 message Playlist {
   string uid = 1;
-  MusicProvider provider = 2;
+  string provider_id = 2;
   string external_id = 3;
   string display_name = 4;
   string artwork_url = 5;

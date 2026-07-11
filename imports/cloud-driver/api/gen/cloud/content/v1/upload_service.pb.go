@@ -232,35 +232,28 @@ func (x *GetUploadResponse) GetUpload() *Upload {
 	return nil
 }
 
-// WriteUploadChunkRequest carries a byte range for Connect clients.
-type WriteUploadChunkRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// upload_uid identifies the upload.
-	UploadUid string `protobuf:"bytes,1,opt,name=upload_uid,json=uploadUid,proto3" json:"upload_uid,omitempty"`
-	// start_offset is the first included byte offset.
-	StartOffset int64 `protobuf:"varint,2,opt,name=start_offset,json=startOffset,proto3" json:"start_offset,omitempty"`
-	// total_size_bytes repeats the complete length.
-	TotalSizeBytes int64 `protobuf:"varint,3,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
-	// data contains the raw chunk bytes.
-	Data          []byte `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
+// FinalizeUploadRequest identifies one complete active upload.
+type FinalizeUploadRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UploadUid     string                 `protobuf:"bytes,1,opt,name=upload_uid,json=uploadUid,proto3" json:"upload_uid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *WriteUploadChunkRequest) Reset() {
-	*x = WriteUploadChunkRequest{}
+func (x *FinalizeUploadRequest) Reset() {
+	*x = FinalizeUploadRequest{}
 	mi := &file_cloud_content_v1_upload_service_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *WriteUploadChunkRequest) String() string {
+func (x *FinalizeUploadRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*WriteUploadChunkRequest) ProtoMessage() {}
+func (*FinalizeUploadRequest) ProtoMessage() {}
 
-func (x *WriteUploadChunkRequest) ProtoReflect() protoreflect.Message {
+func (x *FinalizeUploadRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_cloud_content_v1_upload_service_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -272,40 +265,64 @@ func (x *WriteUploadChunkRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use WriteUploadChunkRequest.ProtoReflect.Descriptor instead.
-func (*WriteUploadChunkRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use FinalizeUploadRequest.ProtoReflect.Descriptor instead.
+func (*FinalizeUploadRequest) Descriptor() ([]byte, []int) {
 	return file_cloud_content_v1_upload_service_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *WriteUploadChunkRequest) GetUploadUid() string {
+func (x *FinalizeUploadRequest) GetUploadUid() string {
 	if x != nil {
 		return x.UploadUid
 	}
 	return ""
 }
 
-func (x *WriteUploadChunkRequest) GetStartOffset() int64 {
-	if x != nil {
-		return x.StartOffset
-	}
-	return 0
+// FinalizeUploadResponse returns the queued finalization state.
+type FinalizeUploadResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Upload        *Upload                `protobuf:"bytes,1,opt,name=upload,proto3" json:"upload,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *WriteUploadChunkRequest) GetTotalSizeBytes() int64 {
-	if x != nil {
-		return x.TotalSizeBytes
-	}
-	return 0
+func (x *FinalizeUploadResponse) Reset() {
+	*x = FinalizeUploadResponse{}
+	mi := &file_cloud_content_v1_upload_service_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
-func (x *WriteUploadChunkRequest) GetData() []byte {
+func (x *FinalizeUploadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinalizeUploadResponse) ProtoMessage() {}
+
+func (x *FinalizeUploadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cloud_content_v1_upload_service_proto_msgTypes[5]
 	if x != nil {
-		return x.Data
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinalizeUploadResponse.ProtoReflect.Descriptor instead.
+func (*FinalizeUploadResponse) Descriptor() ([]byte, []int) {
+	return file_cloud_content_v1_upload_service_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *FinalizeUploadResponse) GetUpload() *Upload {
+	if x != nil {
+		return x.Upload
 	}
 	return nil
 }
 
-// WriteUploadChunkResponse returns the updated upload.
+// WriteUploadChunkResponse is the raw chunk endpoint's JSON response.
 type WriteUploadChunkResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// upload is the session after acknowledgement.
@@ -316,7 +333,7 @@ type WriteUploadChunkResponse struct {
 
 func (x *WriteUploadChunkResponse) Reset() {
 	*x = WriteUploadChunkResponse{}
-	mi := &file_cloud_content_v1_upload_service_proto_msgTypes[5]
+	mi := &file_cloud_content_v1_upload_service_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -328,7 +345,7 @@ func (x *WriteUploadChunkResponse) String() string {
 func (*WriteUploadChunkResponse) ProtoMessage() {}
 
 func (x *WriteUploadChunkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_content_v1_upload_service_proto_msgTypes[5]
+	mi := &file_cloud_content_v1_upload_service_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -341,7 +358,7 @@ func (x *WriteUploadChunkResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteUploadChunkResponse.ProtoReflect.Descriptor instead.
 func (*WriteUploadChunkResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_content_v1_upload_service_proto_rawDescGZIP(), []int{5}
+	return file_cloud_content_v1_upload_service_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *WriteUploadChunkResponse) GetUpload() *Upload {
@@ -362,7 +379,7 @@ type AbandonUploadRequest struct {
 
 func (x *AbandonUploadRequest) Reset() {
 	*x = AbandonUploadRequest{}
-	mi := &file_cloud_content_v1_upload_service_proto_msgTypes[6]
+	mi := &file_cloud_content_v1_upload_service_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -374,7 +391,7 @@ func (x *AbandonUploadRequest) String() string {
 func (*AbandonUploadRequest) ProtoMessage() {}
 
 func (x *AbandonUploadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_content_v1_upload_service_proto_msgTypes[6]
+	mi := &file_cloud_content_v1_upload_service_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -387,7 +404,7 @@ func (x *AbandonUploadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AbandonUploadRequest.ProtoReflect.Descriptor instead.
 func (*AbandonUploadRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_content_v1_upload_service_proto_rawDescGZIP(), []int{6}
+	return file_cloud_content_v1_upload_service_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *AbandonUploadRequest) GetUploadUid() string {
@@ -406,7 +423,7 @@ type AbandonUploadResponse struct {
 
 func (x *AbandonUploadResponse) Reset() {
 	*x = AbandonUploadResponse{}
-	mi := &file_cloud_content_v1_upload_service_proto_msgTypes[7]
+	mi := &file_cloud_content_v1_upload_service_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -418,7 +435,7 @@ func (x *AbandonUploadResponse) String() string {
 func (*AbandonUploadResponse) ProtoMessage() {}
 
 func (x *AbandonUploadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_content_v1_upload_service_proto_msgTypes[7]
+	mi := &file_cloud_content_v1_upload_service_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -431,7 +448,7 @@ func (x *AbandonUploadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AbandonUploadResponse.ProtoReflect.Descriptor instead.
 func (*AbandonUploadResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_content_v1_upload_service_proto_rawDescGZIP(), []int{7}
+	return file_cloud_content_v1_upload_service_proto_rawDescGZIP(), []int{8}
 }
 
 var File_cloud_content_v1_upload_service_proto protoreflect.FileDescriptor
@@ -450,23 +467,22 @@ const file_cloud_content_v1_upload_service_proto_rawDesc = "" +
 	"\n" +
 	"upload_uid\x18\x01 \x01(\tR\tuploadUid\"E\n" +
 	"\x11GetUploadResponse\x120\n" +
-	"\x06upload\x18\x01 \x01(\v2\x18.cloud.content.v1.UploadR\x06upload\"\x99\x01\n" +
-	"\x17WriteUploadChunkRequest\x12\x1d\n" +
+	"\x06upload\x18\x01 \x01(\v2\x18.cloud.content.v1.UploadR\x06upload\"6\n" +
+	"\x15FinalizeUploadRequest\x12\x1d\n" +
 	"\n" +
-	"upload_uid\x18\x01 \x01(\tR\tuploadUid\x12!\n" +
-	"\fstart_offset\x18\x02 \x01(\x03R\vstartOffset\x12(\n" +
-	"\x10total_size_bytes\x18\x03 \x01(\x03R\x0etotalSizeBytes\x12\x12\n" +
-	"\x04data\x18\x04 \x01(\fR\x04data\"L\n" +
+	"upload_uid\x18\x01 \x01(\tR\tuploadUid\"J\n" +
+	"\x16FinalizeUploadResponse\x120\n" +
+	"\x06upload\x18\x01 \x01(\v2\x18.cloud.content.v1.UploadR\x06upload\"L\n" +
 	"\x18WriteUploadChunkResponse\x120\n" +
 	"\x06upload\x18\x01 \x01(\v2\x18.cloud.content.v1.UploadR\x06upload\"5\n" +
 	"\x14AbandonUploadRequest\x12\x1d\n" +
 	"\n" +
 	"upload_uid\x18\x01 \x01(\tR\tuploadUid\"\x17\n" +
-	"\x15AbandonUploadResponse2\x95\x03\n" +
+	"\x15AbandonUploadResponse2\x8f\x03\n" +
 	"\x14ContentUploadService\x12Z\n" +
 	"\vStartUpload\x12$.cloud.content.v1.StartUploadRequest\x1a%.cloud.content.v1.StartUploadResponse\x12T\n" +
-	"\tGetUpload\x12\".cloud.content.v1.GetUploadRequest\x1a#.cloud.content.v1.GetUploadResponse\x12i\n" +
-	"\x10WriteUploadChunk\x12).cloud.content.v1.WriteUploadChunkRequest\x1a*.cloud.content.v1.WriteUploadChunkResponse\x12`\n" +
+	"\tGetUpload\x12\".cloud.content.v1.GetUploadRequest\x1a#.cloud.content.v1.GetUploadResponse\x12c\n" +
+	"\x0eFinalizeUpload\x12'.cloud.content.v1.FinalizeUploadRequest\x1a(.cloud.content.v1.FinalizeUploadResponse\x12`\n" +
 	"\rAbandonUpload\x12&.cloud.content.v1.AbandonUploadRequest\x1a'.cloud.content.v1.AbandonUploadResponseB<Z:example.com/cloud-drive/api/gen/cloud/content/v1;contentv1b\x06proto3"
 
 var (
@@ -481,35 +497,37 @@ func file_cloud_content_v1_upload_service_proto_rawDescGZIP() []byte {
 	return file_cloud_content_v1_upload_service_proto_rawDescData
 }
 
-var file_cloud_content_v1_upload_service_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_cloud_content_v1_upload_service_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_cloud_content_v1_upload_service_proto_goTypes = []any{
 	(*StartUploadRequest)(nil),       // 0: cloud.content.v1.StartUploadRequest
 	(*StartUploadResponse)(nil),      // 1: cloud.content.v1.StartUploadResponse
 	(*GetUploadRequest)(nil),         // 2: cloud.content.v1.GetUploadRequest
 	(*GetUploadResponse)(nil),        // 3: cloud.content.v1.GetUploadResponse
-	(*WriteUploadChunkRequest)(nil),  // 4: cloud.content.v1.WriteUploadChunkRequest
-	(*WriteUploadChunkResponse)(nil), // 5: cloud.content.v1.WriteUploadChunkResponse
-	(*AbandonUploadRequest)(nil),     // 6: cloud.content.v1.AbandonUploadRequest
-	(*AbandonUploadResponse)(nil),    // 7: cloud.content.v1.AbandonUploadResponse
-	(*Upload)(nil),                   // 8: cloud.content.v1.Upload
+	(*FinalizeUploadRequest)(nil),    // 4: cloud.content.v1.FinalizeUploadRequest
+	(*FinalizeUploadResponse)(nil),   // 5: cloud.content.v1.FinalizeUploadResponse
+	(*WriteUploadChunkResponse)(nil), // 6: cloud.content.v1.WriteUploadChunkResponse
+	(*AbandonUploadRequest)(nil),     // 7: cloud.content.v1.AbandonUploadRequest
+	(*AbandonUploadResponse)(nil),    // 8: cloud.content.v1.AbandonUploadResponse
+	(*Upload)(nil),                   // 9: cloud.content.v1.Upload
 }
 var file_cloud_content_v1_upload_service_proto_depIdxs = []int32{
-	8, // 0: cloud.content.v1.StartUploadResponse.upload:type_name -> cloud.content.v1.Upload
-	8, // 1: cloud.content.v1.GetUploadResponse.upload:type_name -> cloud.content.v1.Upload
-	8, // 2: cloud.content.v1.WriteUploadChunkResponse.upload:type_name -> cloud.content.v1.Upload
-	0, // 3: cloud.content.v1.ContentUploadService.StartUpload:input_type -> cloud.content.v1.StartUploadRequest
-	2, // 4: cloud.content.v1.ContentUploadService.GetUpload:input_type -> cloud.content.v1.GetUploadRequest
-	4, // 5: cloud.content.v1.ContentUploadService.WriteUploadChunk:input_type -> cloud.content.v1.WriteUploadChunkRequest
-	6, // 6: cloud.content.v1.ContentUploadService.AbandonUpload:input_type -> cloud.content.v1.AbandonUploadRequest
-	1, // 7: cloud.content.v1.ContentUploadService.StartUpload:output_type -> cloud.content.v1.StartUploadResponse
-	3, // 8: cloud.content.v1.ContentUploadService.GetUpload:output_type -> cloud.content.v1.GetUploadResponse
-	5, // 9: cloud.content.v1.ContentUploadService.WriteUploadChunk:output_type -> cloud.content.v1.WriteUploadChunkResponse
-	7, // 10: cloud.content.v1.ContentUploadService.AbandonUpload:output_type -> cloud.content.v1.AbandonUploadResponse
-	7, // [7:11] is the sub-list for method output_type
-	3, // [3:7] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	9, // 0: cloud.content.v1.StartUploadResponse.upload:type_name -> cloud.content.v1.Upload
+	9, // 1: cloud.content.v1.GetUploadResponse.upload:type_name -> cloud.content.v1.Upload
+	9, // 2: cloud.content.v1.FinalizeUploadResponse.upload:type_name -> cloud.content.v1.Upload
+	9, // 3: cloud.content.v1.WriteUploadChunkResponse.upload:type_name -> cloud.content.v1.Upload
+	0, // 4: cloud.content.v1.ContentUploadService.StartUpload:input_type -> cloud.content.v1.StartUploadRequest
+	2, // 5: cloud.content.v1.ContentUploadService.GetUpload:input_type -> cloud.content.v1.GetUploadRequest
+	4, // 6: cloud.content.v1.ContentUploadService.FinalizeUpload:input_type -> cloud.content.v1.FinalizeUploadRequest
+	7, // 7: cloud.content.v1.ContentUploadService.AbandonUpload:input_type -> cloud.content.v1.AbandonUploadRequest
+	1, // 8: cloud.content.v1.ContentUploadService.StartUpload:output_type -> cloud.content.v1.StartUploadResponse
+	3, // 9: cloud.content.v1.ContentUploadService.GetUpload:output_type -> cloud.content.v1.GetUploadResponse
+	5, // 10: cloud.content.v1.ContentUploadService.FinalizeUpload:output_type -> cloud.content.v1.FinalizeUploadResponse
+	8, // 11: cloud.content.v1.ContentUploadService.AbandonUpload:output_type -> cloud.content.v1.AbandonUploadResponse
+	8, // [8:12] is the sub-list for method output_type
+	4, // [4:8] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_cloud_content_v1_upload_service_proto_init() }
@@ -524,7 +542,7 @@ func file_cloud_content_v1_upload_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cloud_content_v1_upload_service_proto_rawDesc), len(file_cloud_content_v1_upload_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

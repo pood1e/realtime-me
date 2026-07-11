@@ -13,6 +13,9 @@ type Store struct {
 	pool *pgxpool.Pool
 }
 
+// Migrate applies append-only schema changes from the standalone migration command.
+func (s *Store) Migrate(ctx context.Context) error { return Migrate(ctx, s.pool) }
+
 func Open(ctx context.Context, databaseURL string) (*Store, error) {
 	poolConfig, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
@@ -26,10 +29,6 @@ func Open(ctx context.Context, databaseURL string) (*Store, error) {
 	}
 	store := &Store{pool: pool}
 	if err := store.Ping(ctx); err != nil {
-		pool.Close()
-		return nil, err
-	}
-	if err := Migrate(ctx, pool); err != nil {
 		pool.Close()
 		return nil, err
 	}

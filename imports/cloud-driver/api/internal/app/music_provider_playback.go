@@ -9,7 +9,7 @@ import (
 	"example.com/cloud-drive/api/internal/domain"
 )
 
-func (s *MusicService) ResolvePlayback(ctx context.Context, provider domain.MusicProvider, trackID string, quality domain.PlaybackQuality) (domain.PlaybackDescriptor, error) {
+func (s *MusicProviderService) ResolvePlayback(ctx context.Context, provider domain.MusicProvider, trackID string, quality domain.PlaybackQuality) (domain.PlaybackDescriptor, error) {
 	trackID = strings.TrimSpace(trackID)
 	if trackID == "" {
 		return domain.PlaybackDescriptor{}, fmt.Errorf("%w: track ID is required", domain.ErrInvalidArgument)
@@ -62,7 +62,7 @@ func localPlaybackDescriptor(track domain.Track, quality domain.PlaybackQuality)
 }
 
 // GetProviderLyrics returns lyrics from the selected source only.
-func (s *MusicService) GetProviderLyrics(ctx context.Context, provider domain.MusicProvider, trackID string) (domain.Lyric, error) {
+func (s *MusicProviderService) GetProviderLyrics(ctx context.Context, provider domain.MusicProvider, trackID string) (domain.Lyric, error) {
 	if provider == domain.MusicProviderLocal || strings.TrimSpace(trackID) == "" {
 		return domain.Lyric{}, fmt.Errorf("%w: lyrics are unavailable for this source", domain.ErrNotFound)
 	}
@@ -89,13 +89,16 @@ func (s *MusicService) GetProviderLyrics(ctx context.Context, provider domain.Mu
 	return lyric, nil
 }
 
-// GetSpotifyPlaybackToken returns a short-lived official SDK credential.
-func (s *MusicService) GetSpotifyPlaybackToken(ctx context.Context) (domain.ProviderPlaybackToken, error) {
-	connection, credentials, err := s.providerCredentials(ctx, domain.MusicProviderSpotify)
+// GetProviderPlaybackToken returns a short-lived credential for one browser SDK.
+func (s *MusicProviderService) GetProviderPlaybackToken(ctx context.Context, provider domain.MusicProvider) (domain.ProviderPlaybackToken, error) {
+	if provider == "" || provider == domain.MusicProviderLocal {
+		return domain.ProviderPlaybackToken{}, fmt.Errorf("%w: invalid SDK music provider", domain.ErrInvalidArgument)
+	}
+	connection, credentials, err := s.providerCredentials(ctx, provider)
 	if err != nil {
 		return domain.ProviderPlaybackToken{}, err
 	}
-	adapter, err := s.providerAdapter(domain.MusicProviderSpotify)
+	adapter, err := s.providerAdapter(provider)
 	if err != nil {
 		return domain.ProviderPlaybackToken{}, err
 	}

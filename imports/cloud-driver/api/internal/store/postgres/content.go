@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
@@ -105,6 +106,7 @@ func (s *Store) ListUnreferencedContent(ctx context.Context, limit int) ([]domai
 		AND NOT EXISTS (SELECT 1 FROM books WHERE content_uid = content.uid)
 		AND NOT EXISTS (SELECT 1 FROM tracks WHERE content_uid = content.uid)
 		AND NOT EXISTS (SELECT 1 FROM images WHERE content_uid = content.uid)
+		AND NOT EXISTS (SELECT 1 FROM uploads WHERE sealed_content_uid = content.uid)
 		ORDER BY content.create_time LIMIT $1`, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list unreferenced content: %w", err)
@@ -121,20 +123,98 @@ func (s *Store) ListUnreferencedContent(ctx context.Context, limit int) ([]domai
 	return objects, rows.Err()
 }
 
-// DeleteContent deletes metadata only when it remains unreferenced.
-func (s *Store) DeleteContent(ctx context.Context, uid string) error {
-	command, err := s.pool.Exec(ctx, `DELETE FROM content_objects content WHERE uid = $1
+// TombstoneContent removes unreferenced metadata while retaining every physical path for delayed deletion.
+func (s *Store) TombstoneContent(ctx context.Context, uid string, deleteAfter time.Time) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin content tombstone: %w", err)
+	}
+	defer tx.Rollback(ctx)
+	var storageKeys []string
+	err = tx.QueryRow(ctx, `SELECT ARRAY(
+		SELECT storage_key FROM content_objects WHERE uid = $1
+		UNION
+		SELECT storage_key FROM content_artifacts WHERE content_uid = $1
+		ORDER BY storage_key
+	) FROM content_objects WHERE uid = $1 FOR UPDATE`, uid).Scan(&storageKeys)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return fmt.Errorf("%w: content", domain.ErrNotFound)
+	}
+	if err != nil {
+		return fmt.Errorf("collect content storage keys: %w", err)
+	}
+	command, err := tx.Exec(ctx, `DELETE FROM content_objects content WHERE uid = $1
 		AND NOT EXISTS (SELECT 1 FROM drive_items WHERE content_uid = content.uid)
 		AND NOT EXISTS (SELECT 1 FROM books WHERE content_uid = content.uid)
 		AND NOT EXISTS (SELECT 1 FROM tracks WHERE content_uid = content.uid)
-		AND NOT EXISTS (SELECT 1 FROM images WHERE content_uid = content.uid)`, uid)
+		AND NOT EXISTS (SELECT 1 FROM images WHERE content_uid = content.uid)
+		AND NOT EXISTS (SELECT 1 FROM uploads WHERE sealed_content_uid = content.uid)`, uid)
 	if err != nil {
 		return fmt.Errorf("delete content metadata: %w", err)
 	}
 	if command.RowsAffected() == 0 {
 		return fmt.Errorf("%w: content is referenced", domain.ErrConflict)
 	}
-	return nil
+	if _, err := tx.Exec(ctx, `INSERT INTO content_tombstones (content_uid, storage_keys, delete_after)
+		VALUES ($1, $2, $3)`, uid, storageKeys, deleteAfter); err != nil {
+		return fmt.Errorf("create content tombstone: %w", err)
+	}
+	return tx.Commit(ctx)
+}
+
+// ListExpiredContentTombstones returns backup-safe physical deletions.
+func (s *Store) ListExpiredContentTombstones(ctx context.Context, cutoff time.Time, limit int) ([]domain.ContentTombstone, error) {
+	rows, err := s.pool.Query(ctx, `SELECT content_uid, storage_keys, delete_after
+		FROM content_tombstones WHERE delete_after <= $1 ORDER BY delete_after, content_uid LIMIT $2`, cutoff, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list content tombstones: %w", err)
+	}
+	defer rows.Close()
+	var tombstones []domain.ContentTombstone
+	for rows.Next() {
+		var tombstone domain.ContentTombstone
+		if err := rows.Scan(&tombstone.ContentUID, &tombstone.StorageKeys, &tombstone.DeleteAfter); err != nil {
+			return nil, fmt.Errorf("scan content tombstone: %w", err)
+		}
+		tombstones = append(tombstones, tombstone)
+	}
+	return tombstones, rows.Err()
+}
+
+// DeleteContentTombstone acknowledges successful physical deletion.
+func (s *Store) DeleteContentTombstone(ctx context.Context, contentUID string) error {
+	_, err := s.pool.Exec(ctx, "DELETE FROM content_tombstones WHERE content_uid = $1", contentUID)
+	return wrapDatabaseError("delete content tombstone", err)
+}
+
+// ReferencedStorageKeys returns the subset still owned by durable metadata.
+func (s *Store) ReferencedStorageKeys(ctx context.Context, storageKeys []string) ([]string, error) {
+	if len(storageKeys) == 0 {
+		return nil, nil
+	}
+	rows, err := s.pool.Query(ctx, `WITH candidates(storage_key) AS (
+		SELECT unnest($1::text[])
+	), referenced(storage_key) AS (
+		SELECT storage_key FROM content_objects
+		UNION SELECT storage_key FROM content_artifacts
+		UNION SELECT sealed_storage_key FROM uploads WHERE sealed_storage_key IS NOT NULL
+		UNION SELECT unnest(storage_keys) FROM content_tombstones
+	)
+	SELECT DISTINCT candidates.storage_key FROM candidates
+	JOIN referenced USING (storage_key)`, storageKeys)
+	if err != nil {
+		return nil, fmt.Errorf("find referenced storage keys: %w", err)
+	}
+	defer rows.Close()
+	referenced := make([]string, 0, len(storageKeys))
+	for rows.Next() {
+		var storageKey string
+		if err := rows.Scan(&storageKey); err != nil {
+			return nil, fmt.Errorf("scan referenced storage key: %w", err)
+		}
+		referenced = append(referenced, storageKey)
+	}
+	return referenced, rows.Err()
 }
 
 // CreateShare persists a hashed-token drive share.

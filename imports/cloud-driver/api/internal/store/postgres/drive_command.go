@@ -147,7 +147,7 @@ func (s *Store) ImportDriveFile(ctx context.Context, uploadUID string, parentUID
 	if err := s.validateParentTx(ctx, tx, parentUID); err != nil {
 		return domain.Item{}, err
 	}
-	content, err := upsertContent(ctx, tx, sealed)
+	content, err := contentForUpload(ctx, tx, upload, sealed)
 	if err != nil {
 		return domain.Item{}, err
 	}

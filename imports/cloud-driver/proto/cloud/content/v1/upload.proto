@@ -10,12 +10,18 @@ option go_package = "example.com/cloud-drive/api/gen/cloud/content/v1;contentv1"
 enum UploadStatus {
   // UPLOAD_STATUS_UNSPECIFIED is not persisted.
   UPLOAD_STATUS_UNSPECIFIED = 0;
-  // UPLOAD_STATUS_ACTIVE accepts chunks and may be claimed by an application.
+  // UPLOAD_STATUS_ACTIVE accepts chunks.
   UPLOAD_STATUS_ACTIVE = 1;
+  // UPLOAD_STATUS_FINALIZING is being hashed and published by the local worker.
+  UPLOAD_STATUS_FINALIZING = 2;
+  // UPLOAD_STATUS_SEALED is ready to be claimed by an application.
+  UPLOAD_STATUS_SEALED = 3;
   // UPLOAD_STATUS_CLAIMED has created exactly one application resource.
-  UPLOAD_STATUS_CLAIMED = 2;
+  UPLOAD_STATUS_CLAIMED = 4;
+  // UPLOAD_STATUS_FAILED requires a new upload session.
+  UPLOAD_STATUS_FAILED = 5;
   // UPLOAD_STATUS_EXPIRED no longer accepts chunks.
-  UPLOAD_STATUS_EXPIRED = 3;
+  UPLOAD_STATUS_EXPIRED = 6;
 }
 
 // UploadChunk describes an acknowledged byte range using an exclusive end offset.
@@ -50,4 +56,6 @@ message Upload {
   google.protobuf.Timestamp expire_time = 10;
   // claimed_resource_uid identifies the created application resource.
   string claimed_resource_uid = 11;
+  // failure_code is a stable machine-readable finalization error category.
+  string failure_code = 12;
 }

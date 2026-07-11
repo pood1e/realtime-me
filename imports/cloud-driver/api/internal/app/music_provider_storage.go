@@ -10,7 +10,7 @@ import (
 	"example.com/cloud-drive/api/internal/domain"
 )
 
-func (s *MusicService) providerCredentials(ctx context.Context, provider domain.MusicProvider) (domain.ProviderConnection, []byte, error) {
+func (s *musicProviderSession) providerCredentials(ctx context.Context, provider domain.MusicProvider) (domain.ProviderConnection, []byte, error) {
 	adapter, err := s.providerAdapter(provider)
 	if err != nil || !adapter.Configured() {
 		return domain.ProviderConnection{}, nil, fmt.Errorf("%w: music provider is not configured", domain.ErrConflict)
@@ -26,7 +26,7 @@ func (s *MusicService) providerCredentials(ctx context.Context, provider domain.
 	return connection, credentials, err
 }
 
-func (s *MusicService) persistProviderAccount(ctx context.Context, provider domain.MusicProvider, account domain.ProviderAccount) (domain.ProviderConnection, error) {
+func (s *musicProviderSession) persistProviderAccount(ctx context.Context, provider domain.MusicProvider, account domain.ProviderAccount) (domain.ProviderConnection, error) {
 	if strings.TrimSpace(account.AccountID) == "" || len(account.Credentials) == 0 {
 		return domain.ProviderConnection{}, fmt.Errorf("%w: provider returned an incomplete account", domain.ErrUnavailable)
 	}
@@ -43,7 +43,7 @@ func (s *MusicService) persistProviderAccount(ctx context.Context, provider doma
 	})
 }
 
-func (s *MusicService) persistCredentialUpdate(ctx context.Context, connection domain.ProviderConnection, previous, updated []byte) error {
+func (s *musicProviderSession) persistCredentialUpdate(ctx context.Context, connection domain.ProviderConnection, previous, updated []byte) error {
 	if len(updated) == 0 || bytes.Equal(previous, updated) {
 		return nil
 	}
@@ -58,7 +58,7 @@ func (s *MusicService) persistCredentialUpdate(ctx context.Context, connection d
 	return err
 }
 
-func (s *MusicService) markProviderFailure(ctx context.Context, connection domain.ProviderConnection, providerErr error) {
+func (s *musicProviderSession) markProviderFailure(ctx context.Context, connection domain.ProviderConnection, providerErr error) {
 	if !errors.Is(providerErr, domain.ErrProviderReconnectRequired) {
 		return
 	}
@@ -67,7 +67,7 @@ func (s *MusicService) markProviderFailure(ctx context.Context, connection domai
 	_, _ = s.providerStore.UpsertProviderConnection(ctx, connection)
 }
 
-func (s *MusicService) providerAdapter(provider domain.MusicProvider) (domain.MusicProviderAdapter, error) {
+func (s *musicProviderSession) providerAdapter(provider domain.MusicProvider) (domain.MusicProviderAdapter, error) {
 	adapter, found := s.providers.Get(provider)
 	if !found {
 		return nil, fmt.Errorf("%w: unknown music provider", domain.ErrInvalidArgument)

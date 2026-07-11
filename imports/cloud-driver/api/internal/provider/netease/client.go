@@ -182,7 +182,13 @@ func (c *Client) postWEAPI(ctx context.Context, operation, path string, payload 
 	}
 	defer httpResponse.Body.Close()
 	if httpResponse.StatusCode < http.StatusOK || httpResponse.StatusCode >= http.StatusMultipleChoices {
-		return &ProviderError{Operation: operation, Kind: ErrorKindHTTP, HTTPStatus: httpResponse.StatusCode}
+		kind := ErrorKindHTTP
+		if httpResponse.StatusCode == http.StatusNotFound {
+			kind = ErrorKindNotFound
+		} else if httpResponse.StatusCode == http.StatusTooManyRequests {
+			kind = ErrorKindRateLimited
+		}
+		return &ProviderError{Operation: operation, Kind: kind, HTTPStatus: httpResponse.StatusCode}
 	}
 
 	body, err := io.ReadAll(io.LimitReader(httpResponse.Body, maxResponseBodySize+1))

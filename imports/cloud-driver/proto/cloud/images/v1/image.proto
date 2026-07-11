@@ -2,17 +2,10 @@ syntax = "proto3";
 
 package cloud.images.v1;
 
+import "cloud/content/v1/processing.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "example.com/cloud-drive/api/gen/cloud/images/v1;imagesv1";
-
-// ProcessingStatus identifies image validation and preview readiness.
-enum ImageProcessingStatus {
-  IMAGE_PROCESSING_STATUS_UNSPECIFIED = 0;
-  IMAGE_PROCESSING_STATUS_PENDING = 1;
-  IMAGE_PROCESSING_STATUS_READY = 2;
-  IMAGE_PROCESSING_STATUS_FAILED = 3;
-}
 
 // Image is one private image asset.
 message Image {
@@ -26,7 +19,7 @@ message Image {
   int32 height = 8;
   string preview_url = 9;
   string original_url = 10;
-  ImageProcessingStatus processing_status = 11;
+  cloud.content.v1.ProcessingStatus processing_status = 11;
   google.protobuf.Timestamp create_time = 12;
   google.protobuf.Timestamp update_time = 13;
   google.protobuf.Timestamp delete_time = 14;

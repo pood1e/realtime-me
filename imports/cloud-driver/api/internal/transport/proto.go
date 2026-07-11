@@ -46,7 +46,7 @@ func uploadProto(upload domain.Upload) *contentv1.Upload {
 	result := &contentv1.Upload{Uid: upload.UID, FileName: upload.FileName, ContentType: upload.ContentType,
 		TotalSizeBytes: upload.TotalSizeBytes, ReceivedBytes: upload.ReceivedBytes, ChunkSizeBytes: upload.ChunkSizeBytes,
 		Status: uploadStatusProto(upload.Status), CreateTime: timestamppb.New(upload.CreateTime), ExpireTime: timestamppb.New(upload.ExpireTime),
-		ClaimedResourceUid: upload.ClaimedUID}
+		ClaimedResourceUid: upload.ClaimedUID, FailureCode: upload.FailureCode}
 	for _, chunk := range upload.Chunks {
 		result.Chunks = append(result.Chunks, &contentv1.UploadChunk{StartOffset: chunk.StartOffset, EndOffset: chunk.EndOffset})
 	}
@@ -57,8 +57,14 @@ func uploadStatusProto(status domain.UploadStatus) contentv1.UploadStatus {
 	switch status {
 	case domain.UploadStatusActive:
 		return contentv1.UploadStatus_UPLOAD_STATUS_ACTIVE
+	case domain.UploadStatusFinalizing:
+		return contentv1.UploadStatus_UPLOAD_STATUS_FINALIZING
+	case domain.UploadStatusSealed:
+		return contentv1.UploadStatus_UPLOAD_STATUS_SEALED
 	case domain.UploadStatusClaimed:
 		return contentv1.UploadStatus_UPLOAD_STATUS_CLAIMED
+	case domain.UploadStatusFailed:
+		return contentv1.UploadStatus_UPLOAD_STATUS_FAILED
 	case domain.UploadStatusExpired:
 		return contentv1.UploadStatus_UPLOAD_STATUS_EXPIRED
 	default:
@@ -79,7 +85,7 @@ func bookProto(book domain.Book) *booksv1.Book {
 	result := &booksv1.Book{Uid: book.UID, Title: book.Title, Authors: book.Authors, Series: book.Series,
 		SeriesNumber: book.SeriesNumber, Description: book.Description, Format: bookFormatProto(book.Format),
 		OriginalFileName: book.OriginalFileName, SizeBytes: book.SizeBytes, PageCount: int32(book.PageCount),
-		ContentUrl: "/v1/books/" + book.UID + "/content", ProcessingStatus: bookProcessingStatusProto(book.ProcessingStatus),
+		ContentUrl: "/v1/books/" + book.UID + "/content", ProcessingStatus: processingStatusProto(book.ProcessingStatus),
 		CreateTime: timestamppb.New(book.CreateTime), UpdateTime: timestamppb.New(book.UpdateTime)}
 	if book.CoverStorageKey != "" {
 		result.CoverUrl = "/v1/books/" + book.UID + "/cover"
@@ -111,16 +117,16 @@ func bookFormatDomain(format booksv1.BookFormat) domain.BookFormat {
 	}
 }
 
-func bookProcessingStatusProto(status domain.ProcessingStatus) booksv1.BookProcessingStatus {
+func processingStatusProto(status domain.ProcessingStatus) contentv1.ProcessingStatus {
 	switch status {
 	case domain.ProcessingStatusPending:
-		return booksv1.BookProcessingStatus_BOOK_PROCESSING_STATUS_PENDING
+		return contentv1.ProcessingStatus_PROCESSING_STATUS_PENDING
 	case domain.ProcessingStatusReady:
-		return booksv1.BookProcessingStatus_BOOK_PROCESSING_STATUS_READY
+		return contentv1.ProcessingStatus_PROCESSING_STATUS_READY
 	case domain.ProcessingStatusFailed:
-		return booksv1.BookProcessingStatus_BOOK_PROCESSING_STATUS_FAILED
+		return contentv1.ProcessingStatus_PROCESSING_STATUS_FAILED
 	default:
-		return booksv1.BookProcessingStatus_BOOK_PROCESSING_STATUS_UNSPECIFIED
+		return contentv1.ProcessingStatus_PROCESSING_STATUS_UNSPECIFIED
 	}
 }
 
@@ -157,7 +163,7 @@ func trackProto(track domain.Track) *musicv1.Track {
 		AlbumArtist: track.AlbumArtist, TrackNumber: int32(track.TrackNumber), DiscNumber: int32(track.DiscNumber),
 		Year: int32(track.Year), Duration: durationpb.New(track.Duration), OriginalFileName: track.OriginalFileName,
 		ContentType: track.ContentType, SizeBytes: track.SizeBytes, ContentUrl: "/v1/tracks/" + track.UID + "/content",
-		Favorite: track.Favorite, ProcessingStatus: musicProcessingStatusProto(track.ProcessingStatus),
+		Favorite: track.Favorite, ProcessingStatus: processingStatusProto(track.ProcessingStatus),
 		CreateTime: timestamppb.New(track.CreateTime), UpdateTime: timestamppb.New(track.UpdateTime)}
 	if track.ArtworkStorageKey != "" {
 		result.ArtworkUrl = "/v1/tracks/" + track.UID + "/artwork"
@@ -168,33 +174,6 @@ func trackProto(track domain.Track) *musicv1.Track {
 	return result
 }
 
-func musicProcessingStatusProto(status domain.ProcessingStatus) musicv1.TrackProcessingStatus {
-	switch status {
-	case domain.ProcessingStatusPending:
-		return musicv1.TrackProcessingStatus_TRACK_PROCESSING_STATUS_PENDING
-	case domain.ProcessingStatusReady:
-		return musicv1.TrackProcessingStatus_TRACK_PROCESSING_STATUS_READY
-	case domain.ProcessingStatusFailed:
-		return musicv1.TrackProcessingStatus_TRACK_PROCESSING_STATUS_FAILED
-	default:
-		return musicv1.TrackProcessingStatus_TRACK_PROCESSING_STATUS_UNSPECIFIED
-	}
-}
-
-func albumProto(album domain.Album) *musicv1.Album {
-	return &musicv1.Album{
-		Uid:         album.UID,
-		Title:       album.Title,
-		AlbumArtist: album.AlbumArtist,
-		Year:        int32(album.Year),
-		TrackCount:  int32(album.TrackCount),
-	}
-}
-
-func artistProto(artist domain.Artist) *musicv1.Artist {
-	return &musicv1.Artist{Uid: artist.UID, DisplayName: artist.DisplayName, TrackCount: int32(artist.TrackCount)}
-}
-
 func playbackProto(entry domain.PlaybackEntry) *musicv1.PlaybackEntry {
 	return &musicv1.PlaybackEntry{Uid: entry.UID, Track: playableTrackProto(entry.Track), PlayTime: timestamppb.New(entry.PlayTime)}
 }
@@ -202,7 +181,7 @@ func playbackProto(entry domain.PlaybackEntry) *musicv1.PlaybackEntry {
 func imageProto(image domain.Image) *imagesv1.Image {
 	result := &imagesv1.Image{Uid: image.UID, DisplayName: image.DisplayName, OriginalFileName: image.OriginalFileName,
 		ContentType: image.ContentType, SizeBytes: image.SizeBytes, Width: int32(image.Width), Height: int32(image.Height),
-		OriginalUrl: "/v1/images/" + image.UID + "/original", ProcessingStatus: imageProcessingStatusProto(image.ProcessingStatus),
+		OriginalUrl: "/v1/images/" + image.UID + "/original", ProcessingStatus: processingStatusProto(image.ProcessingStatus),
 		CreateTime: timestamppb.New(image.CreateTime), UpdateTime: timestamppb.New(image.UpdateTime)}
 	if image.AlbumUID != nil {
 		result.AlbumUid = *image.AlbumUID
@@ -214,19 +193,6 @@ func imageProto(image domain.Image) *imagesv1.Image {
 		result.DeleteTime = timestamppb.New(*image.DeleteTime)
 	}
 	return result
-}
-
-func imageProcessingStatusProto(status domain.ProcessingStatus) imagesv1.ImageProcessingStatus {
-	switch status {
-	case domain.ProcessingStatusPending:
-		return imagesv1.ImageProcessingStatus_IMAGE_PROCESSING_STATUS_PENDING
-	case domain.ProcessingStatusReady:
-		return imagesv1.ImageProcessingStatus_IMAGE_PROCESSING_STATUS_READY
-	case domain.ProcessingStatusFailed:
-		return imagesv1.ImageProcessingStatus_IMAGE_PROCESSING_STATUS_FAILED
-	default:
-		return imagesv1.ImageProcessingStatus_IMAGE_PROCESSING_STATUS_UNSPECIFIED
-	}
 }
 
 func imageAlbumProto(album domain.ImageAlbum) *imagesv1.ImageAlbum {

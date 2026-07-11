@@ -15,6 +15,8 @@ var (
 	ErrUnavailable = errors.New("unavailable")
 	// ErrResourceExhausted marks insufficient storage capacity.
 	ErrResourceExhausted = errors.New("resource exhausted")
+	// ErrRateLimited marks a temporary upstream request quota.
+	ErrRateLimited = errors.New("rate limited")
 	// ErrProviderReconnectRequired marks an expired or revoked external account credential.
 	ErrProviderReconnectRequired = errors.New("provider reconnect required")
 )

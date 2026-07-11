@@ -25,6 +25,8 @@ func connectError(err error) error {
 		return connect.NewError(connect.CodePermissionDenied, errors.New("access denied"))
 	case errors.Is(err, domain.ErrResourceExhausted):
 		return connect.NewError(connect.CodeResourceExhausted, errors.New("storage capacity is unavailable"))
+	case errors.Is(err, domain.ErrRateLimited):
+		return connect.NewError(connect.CodeResourceExhausted, errors.New("provider request rate limited"))
 	case errors.Is(err, domain.ErrConflict):
 		return connect.NewError(connect.CodeFailedPrecondition, errors.New("request cannot be applied"))
 	case errors.Is(err, domain.ErrProviderReconnectRequired):

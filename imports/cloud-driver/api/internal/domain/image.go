@@ -26,6 +26,15 @@ type ImagePage struct {
 	NextPageToken string
 }
 
+// ImageListQuery contains the complete cursor filter for the private image catalog.
+type ImageListQuery struct {
+	Query     string
+	AlbumUID  *string
+	Trashed   bool
+	PageSize  int
+	PageToken string
+}
+
 // ImageAlbum is one private image collection.
 type ImageAlbum struct {
 	UID         string
@@ -62,4 +71,13 @@ type Wallpaper struct {
 type WallpaperPage struct {
 	Wallpapers    []Wallpaper
 	NextPageToken string
+}
+
+// WallpaperListQuery contains the complete cursor filter for public wallpapers.
+type WallpaperListQuery struct {
+	Query       string
+	Tag         string
+	Orientation string
+	PageSize    int
+	PageToken   string
 }

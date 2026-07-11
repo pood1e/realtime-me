@@ -13,6 +13,21 @@ import (
 	"example.com/cloud-drive/api/internal/domain"
 )
 
+func (w *Worker) processUploadFinalize(ctx context.Context, job domain.ProcessingJob, _ string) error {
+	upload, err := w.store.GetUploadForFinalization(ctx, job.ResourceUID)
+	if err != nil {
+		return err
+	}
+	sealed, err := w.files.SealUpload(ctx, upload.UID, upload.FileName)
+	if err != nil {
+		return err
+	}
+	if sealed.SizeBytes != upload.TotalSizeBytes {
+		return fmt.Errorf("%w: uploaded size changed during finalization", domain.ErrConflict)
+	}
+	return w.store.CompleteUploadFinalization(ctx, job, sealed)
+}
+
 func (w *Worker) processBook(ctx context.Context, job domain.ProcessingJob, workDir string) error {
 	book, content, err := w.store.GetBookForProcessing(ctx, job.ResourceUID)
 	if err != nil {
@@ -45,7 +60,7 @@ func (w *Worker) processBook(ctx context.Context, job domain.ProcessingJob, work
 		}
 		cover = &domain.Artifact{UID: uuid.NewString(), ContentUID: content.UID, Kind: "book_cover", Variant: "default", ContentType: contentTypeForExtension(filepath.Ext(coverPath)), StorageKey: storageKey}
 	}
-	return w.store.CompleteBookProcessing(ctx, book.UID, title, authors, pageCount, cover)
+	return w.store.CompleteBookProcessing(ctx, job, title, authors, pageCount, cover)
 }
 
 func (w *Worker) processTrack(ctx context.Context, job domain.ProcessingJob, workDir string) error {
@@ -79,11 +94,11 @@ func (w *Worker) processTrack(ctx context.Context, job domain.ProcessingJob, wor
 		}
 		artwork = &domain.Artifact{UID: uuid.NewString(), ContentUID: content.UID, Kind: "track_artwork", Variant: "default", ContentType: "image/jpeg", StorageKey: storageKey}
 	}
-	return w.store.CompleteTrackProcessing(ctx, track, artwork)
+	return w.store.CompleteTrackProcessing(ctx, job, track, artwork)
 }
 
 func (w *Worker) processImage(ctx context.Context, job domain.ProcessingJob, workDir string) error {
-	image, content, err := w.store.GetImageForProcessing(ctx, job.ResourceUID)
+	_, content, err := w.store.GetImageForProcessing(ctx, job.ResourceUID)
 	if err != nil {
 		return err
 	}
@@ -108,7 +123,7 @@ func (w *Worker) processImage(ctx context.Context, job domain.ProcessingJob, wor
 		return err
 	}
 	preview := &domain.Artifact{UID: uuid.NewString(), ContentUID: content.UID, Kind: "image_preview", Variant: "default", ContentType: "image/webp", StorageKey: storageKey, Width: width, Height: height}
-	return w.store.CompleteImageProcessing(ctx, image.UID, width, height, preview)
+	return w.store.CompleteImageProcessing(ctx, job, width, height, preview)
 }
 
 func (w *Worker) processWallpaper(ctx context.Context, job domain.ProcessingJob, workDir string) error {
@@ -144,5 +159,5 @@ func (w *Worker) processWallpaper(ctx context.Context, job domain.ProcessingJob,
 	if err != nil {
 		w.logger.Warn("dominant color extraction failed", "wallpaper_id", wallpaper.UID, "error", err)
 	}
-	return w.store.CompleteWallpaperProcessing(ctx, wallpaper.UID, color, variants)
+	return w.store.CompleteWallpaperProcessing(ctx, job, color, variants)
 }

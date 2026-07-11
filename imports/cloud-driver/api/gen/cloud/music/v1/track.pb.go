@@ -7,6 +7,7 @@
 package musicv1
 
 import (
+	v1 "example.com/cloud-drive/api/gen/cloud/content/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
@@ -22,59 +23,6 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
-
-// ProcessingStatus identifies tag and artwork extraction readiness.
-type TrackProcessingStatus int32
-
-const (
-	TrackProcessingStatus_TRACK_PROCESSING_STATUS_UNSPECIFIED TrackProcessingStatus = 0
-	TrackProcessingStatus_TRACK_PROCESSING_STATUS_PENDING     TrackProcessingStatus = 1
-	TrackProcessingStatus_TRACK_PROCESSING_STATUS_READY       TrackProcessingStatus = 2
-	TrackProcessingStatus_TRACK_PROCESSING_STATUS_FAILED      TrackProcessingStatus = 3
-)
-
-// Enum value maps for TrackProcessingStatus.
-var (
-	TrackProcessingStatus_name = map[int32]string{
-		0: "TRACK_PROCESSING_STATUS_UNSPECIFIED",
-		1: "TRACK_PROCESSING_STATUS_PENDING",
-		2: "TRACK_PROCESSING_STATUS_READY",
-		3: "TRACK_PROCESSING_STATUS_FAILED",
-	}
-	TrackProcessingStatus_value = map[string]int32{
-		"TRACK_PROCESSING_STATUS_UNSPECIFIED": 0,
-		"TRACK_PROCESSING_STATUS_PENDING":     1,
-		"TRACK_PROCESSING_STATUS_READY":       2,
-		"TRACK_PROCESSING_STATUS_FAILED":      3,
-	}
-)
-
-func (x TrackProcessingStatus) Enum() *TrackProcessingStatus {
-	p := new(TrackProcessingStatus)
-	*p = x
-	return p
-}
-
-func (x TrackProcessingStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (TrackProcessingStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_cloud_music_v1_track_proto_enumTypes[0].Descriptor()
-}
-
-func (TrackProcessingStatus) Type() protoreflect.EnumType {
-	return &file_cloud_music_v1_track_proto_enumTypes[0]
-}
-
-func (x TrackProcessingStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use TrackProcessingStatus.Descriptor instead.
-func (TrackProcessingStatus) EnumDescriptor() ([]byte, []int) {
-	return file_cloud_music_v1_track_proto_rawDescGZIP(), []int{0}
-}
 
 // Track is one owner-managed audio recording.
 type Track struct {
@@ -94,7 +42,7 @@ type Track struct {
 	ArtworkUrl       string                 `protobuf:"bytes,13,opt,name=artwork_url,json=artworkUrl,proto3" json:"artwork_url,omitempty"`
 	ContentUrl       string                 `protobuf:"bytes,14,opt,name=content_url,json=contentUrl,proto3" json:"content_url,omitempty"`
 	Favorite         bool                   `protobuf:"varint,15,opt,name=favorite,proto3" json:"favorite,omitempty"`
-	ProcessingStatus TrackProcessingStatus  `protobuf:"varint,16,opt,name=processing_status,json=processingStatus,proto3,enum=cloud.music.v1.TrackProcessingStatus" json:"processing_status,omitempty"`
+	ProcessingStatus v1.ProcessingStatus    `protobuf:"varint,16,opt,name=processing_status,json=processingStatus,proto3,enum=cloud.content.v1.ProcessingStatus" json:"processing_status,omitempty"`
 	CreateTime       *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	UpdateTime       *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	DeleteTime       *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=delete_time,json=deleteTime,proto3" json:"delete_time,omitempty"`
@@ -237,11 +185,11 @@ func (x *Track) GetFavorite() bool {
 	return false
 }
 
-func (x *Track) GetProcessingStatus() TrackProcessingStatus {
+func (x *Track) GetProcessingStatus() v1.ProcessingStatus {
 	if x != nil {
 		return x.ProcessingStatus
 	}
-	return TrackProcessingStatus_TRACK_PROCESSING_STATUS_UNSPECIFIED
+	return v1.ProcessingStatus(0)
 }
 
 func (x *Track) GetCreateTime() *timestamppb.Timestamp {
@@ -265,152 +213,6 @@ func (x *Track) GetDeleteTime() *timestamppb.Timestamp {
 	return nil
 }
 
-// Album summarizes visible tracks sharing an album label and album artist.
-type Album struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Uid           string                 `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
-	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	AlbumArtist   string                 `protobuf:"bytes,3,opt,name=album_artist,json=albumArtist,proto3" json:"album_artist,omitempty"`
-	Year          int32                  `protobuf:"varint,4,opt,name=year,proto3" json:"year,omitempty"`
-	TrackCount    int32                  `protobuf:"varint,5,opt,name=track_count,json=trackCount,proto3" json:"track_count,omitempty"`
-	ArtworkUrl    string                 `protobuf:"bytes,6,opt,name=artwork_url,json=artworkUrl,proto3" json:"artwork_url,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Album) Reset() {
-	*x = Album{}
-	mi := &file_cloud_music_v1_track_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Album) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Album) ProtoMessage() {}
-
-func (x *Album) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_track_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Album.ProtoReflect.Descriptor instead.
-func (*Album) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_track_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *Album) GetUid() string {
-	if x != nil {
-		return x.Uid
-	}
-	return ""
-}
-
-func (x *Album) GetTitle() string {
-	if x != nil {
-		return x.Title
-	}
-	return ""
-}
-
-func (x *Album) GetAlbumArtist() string {
-	if x != nil {
-		return x.AlbumArtist
-	}
-	return ""
-}
-
-func (x *Album) GetYear() int32 {
-	if x != nil {
-		return x.Year
-	}
-	return 0
-}
-
-func (x *Album) GetTrackCount() int32 {
-	if x != nil {
-		return x.TrackCount
-	}
-	return 0
-}
-
-func (x *Album) GetArtworkUrl() string {
-	if x != nil {
-		return x.ArtworkUrl
-	}
-	return ""
-}
-
-// Artist summarizes one visible display artist.
-type Artist struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Uid           string                 `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
-	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	TrackCount    int32                  `protobuf:"varint,3,opt,name=track_count,json=trackCount,proto3" json:"track_count,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Artist) Reset() {
-	*x = Artist{}
-	mi := &file_cloud_music_v1_track_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Artist) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Artist) ProtoMessage() {}
-
-func (x *Artist) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_track_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Artist.ProtoReflect.Descriptor instead.
-func (*Artist) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_track_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *Artist) GetUid() string {
-	if x != nil {
-		return x.Uid
-	}
-	return ""
-}
-
-func (x *Artist) GetDisplayName() string {
-	if x != nil {
-		return x.DisplayName
-	}
-	return ""
-}
-
-func (x *Artist) GetTrackCount() int32 {
-	if x != nil {
-		return x.TrackCount
-	}
-	return 0
-}
-
 // PlaybackEntry records one meaningful playback event.
 type PlaybackEntry struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -423,7 +225,7 @@ type PlaybackEntry struct {
 
 func (x *PlaybackEntry) Reset() {
 	*x = PlaybackEntry{}
-	mi := &file_cloud_music_v1_track_proto_msgTypes[3]
+	mi := &file_cloud_music_v1_track_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -435,7 +237,7 @@ func (x *PlaybackEntry) String() string {
 func (*PlaybackEntry) ProtoMessage() {}
 
 func (x *PlaybackEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_music_v1_track_proto_msgTypes[3]
+	mi := &file_cloud_music_v1_track_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -448,7 +250,7 @@ func (x *PlaybackEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlaybackEntry.ProtoReflect.Descriptor instead.
 func (*PlaybackEntry) Descriptor() ([]byte, []int) {
-	return file_cloud_music_v1_track_proto_rawDescGZIP(), []int{3}
+	return file_cloud_music_v1_track_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *PlaybackEntry) GetUid() string {
@@ -476,7 +278,7 @@ var File_cloud_music_v1_track_proto protoreflect.FileDescriptor
 
 const file_cloud_music_v1_track_proto_rawDesc = "" +
 	"\n" +
-	"\x1acloud/music/v1/track.proto\x12\x0ecloud.music.v1\x1a\x1dcloud/music/v1/provider.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xea\x05\n" +
+	"\x1acloud/music/v1/track.proto\x12\x0ecloud.music.v1\x1a!cloud/content/v1/processing.proto\x1a\x1dcloud/music/v1/provider.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe7\x05\n" +
 	"\x05Track\x12\x10\n" +
 	"\x03uid\x18\x01 \x01(\tR\x03uid\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
@@ -497,37 +299,18 @@ const file_cloud_music_v1_track_proto_rawDesc = "" +
 	"artworkUrl\x12\x1f\n" +
 	"\vcontent_url\x18\x0e \x01(\tR\n" +
 	"contentUrl\x12\x1a\n" +
-	"\bfavorite\x18\x0f \x01(\bR\bfavorite\x12R\n" +
-	"\x11processing_status\x18\x10 \x01(\x0e2%.cloud.music.v1.TrackProcessingStatusR\x10processingStatus\x12;\n" +
+	"\bfavorite\x18\x0f \x01(\bR\bfavorite\x12O\n" +
+	"\x11processing_status\x18\x10 \x01(\x0e2\".cloud.content.v1.ProcessingStatusR\x10processingStatus\x12;\n" +
 	"\vcreate_time\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"createTime\x12;\n" +
 	"\vupdate_time\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"updateTime\x12;\n" +
 	"\vdelete_time\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"deleteTime\"\xa8\x01\n" +
-	"\x05Album\x12\x10\n" +
-	"\x03uid\x18\x01 \x01(\tR\x03uid\x12\x14\n" +
-	"\x05title\x18\x02 \x01(\tR\x05title\x12!\n" +
-	"\falbum_artist\x18\x03 \x01(\tR\valbumArtist\x12\x12\n" +
-	"\x04year\x18\x04 \x01(\x05R\x04year\x12\x1f\n" +
-	"\vtrack_count\x18\x05 \x01(\x05R\n" +
-	"trackCount\x12\x1f\n" +
-	"\vartwork_url\x18\x06 \x01(\tR\n" +
-	"artworkUrl\"^\n" +
-	"\x06Artist\x12\x10\n" +
-	"\x03uid\x18\x01 \x01(\tR\x03uid\x12!\n" +
-	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x1f\n" +
-	"\vtrack_count\x18\x03 \x01(\x05R\n" +
-	"trackCount\"\x8f\x01\n" +
+	"deleteTime\"\x8f\x01\n" +
 	"\rPlaybackEntry\x12\x10\n" +
 	"\x03uid\x18\x01 \x01(\tR\x03uid\x123\n" +
 	"\x05track\x18\x02 \x01(\v2\x1d.cloud.music.v1.PlayableTrackR\x05track\x127\n" +
-	"\tplay_time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bplayTime*\xac\x01\n" +
-	"\x15TrackProcessingStatus\x12'\n" +
-	"#TRACK_PROCESSING_STATUS_UNSPECIFIED\x10\x00\x12#\n" +
-	"\x1fTRACK_PROCESSING_STATUS_PENDING\x10\x01\x12!\n" +
-	"\x1dTRACK_PROCESSING_STATUS_READY\x10\x02\x12\"\n" +
-	"\x1eTRACK_PROCESSING_STATUS_FAILED\x10\x03B8Z6example.com/cloud-drive/api/gen/cloud/music/v1;musicv1b\x06proto3"
+	"\tplay_time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bplayTimeB8Z6example.com/cloud-drive/api/gen/cloud/music/v1;musicv1b\x06proto3"
 
 var (
 	file_cloud_music_v1_track_proto_rawDescOnce sync.Once
@@ -541,26 +324,23 @@ func file_cloud_music_v1_track_proto_rawDescGZIP() []byte {
 	return file_cloud_music_v1_track_proto_rawDescData
 }
 
-var file_cloud_music_v1_track_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_cloud_music_v1_track_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_cloud_music_v1_track_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_cloud_music_v1_track_proto_goTypes = []any{
-	(TrackProcessingStatus)(0),    // 0: cloud.music.v1.TrackProcessingStatus
-	(*Track)(nil),                 // 1: cloud.music.v1.Track
-	(*Album)(nil),                 // 2: cloud.music.v1.Album
-	(*Artist)(nil),                // 3: cloud.music.v1.Artist
-	(*PlaybackEntry)(nil),         // 4: cloud.music.v1.PlaybackEntry
-	(*durationpb.Duration)(nil),   // 5: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil), // 6: google.protobuf.Timestamp
-	(*PlayableTrack)(nil),         // 7: cloud.music.v1.PlayableTrack
+	(*Track)(nil),                 // 0: cloud.music.v1.Track
+	(*PlaybackEntry)(nil),         // 1: cloud.music.v1.PlaybackEntry
+	(*durationpb.Duration)(nil),   // 2: google.protobuf.Duration
+	(v1.ProcessingStatus)(0),      // 3: cloud.content.v1.ProcessingStatus
+	(*timestamppb.Timestamp)(nil), // 4: google.protobuf.Timestamp
+	(*PlayableTrack)(nil),         // 5: cloud.music.v1.PlayableTrack
 }
 var file_cloud_music_v1_track_proto_depIdxs = []int32{
-	5, // 0: cloud.music.v1.Track.duration:type_name -> google.protobuf.Duration
-	0, // 1: cloud.music.v1.Track.processing_status:type_name -> cloud.music.v1.TrackProcessingStatus
-	6, // 2: cloud.music.v1.Track.create_time:type_name -> google.protobuf.Timestamp
-	6, // 3: cloud.music.v1.Track.update_time:type_name -> google.protobuf.Timestamp
-	6, // 4: cloud.music.v1.Track.delete_time:type_name -> google.protobuf.Timestamp
-	7, // 5: cloud.music.v1.PlaybackEntry.track:type_name -> cloud.music.v1.PlayableTrack
-	6, // 6: cloud.music.v1.PlaybackEntry.play_time:type_name -> google.protobuf.Timestamp
+	2, // 0: cloud.music.v1.Track.duration:type_name -> google.protobuf.Duration
+	3, // 1: cloud.music.v1.Track.processing_status:type_name -> cloud.content.v1.ProcessingStatus
+	4, // 2: cloud.music.v1.Track.create_time:type_name -> google.protobuf.Timestamp
+	4, // 3: cloud.music.v1.Track.update_time:type_name -> google.protobuf.Timestamp
+	4, // 4: cloud.music.v1.Track.delete_time:type_name -> google.protobuf.Timestamp
+	5, // 5: cloud.music.v1.PlaybackEntry.track:type_name -> cloud.music.v1.PlayableTrack
+	4, // 6: cloud.music.v1.PlaybackEntry.play_time:type_name -> google.protobuf.Timestamp
 	7, // [7:7] is the sub-list for method output_type
 	7, // [7:7] is the sub-list for method input_type
 	7, // [7:7] is the sub-list for extension type_name
@@ -579,14 +359,13 @@ func file_cloud_music_v1_track_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cloud_music_v1_track_proto_rawDesc), len(file_cloud_music_v1_track_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   4,
+			NumEnums:      0,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_cloud_music_v1_track_proto_goTypes,
 		DependencyIndexes: file_cloud_music_v1_track_proto_depIdxs,
-		EnumInfos:         file_cloud_music_v1_track_proto_enumTypes,
 		MessageInfos:      file_cloud_music_v1_track_proto_msgTypes,
 	}.Build()
 	File_cloud_music_v1_track_proto = out.File

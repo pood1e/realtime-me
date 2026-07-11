@@ -140,10 +140,10 @@ func (router *httpRouter) serveTrackFile(writer http.ResponseWriter, request *ht
 	var err error
 	contentType, name := "", "artwork"
 	if segments[1] == "content" {
-		file, track, err = router.suite.Music.OpenContent(request.Context(), segments[0])
+		file, track, err = router.suite.Music.Library.OpenContent(request.Context(), segments[0])
 		contentType, name = track.ContentType, track.OriginalFileName
 	} else if segments[1] == "artwork" {
-		file, track, err = router.suite.Music.OpenArtwork(request.Context(), segments[0])
+		file, track, err = router.suite.Music.Library.OpenArtwork(request.Context(), segments[0])
 	} else {
 		http.NotFound(writer, request)
 		return

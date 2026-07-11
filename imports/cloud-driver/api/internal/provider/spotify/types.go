@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"strings"
 	"time"
+
+	"example.com/cloud-drive/api/internal/provider/failure"
 )
 
 const (
@@ -184,6 +186,25 @@ func (e *APIError) Error() string {
 
 func (e *APIError) Temporary() bool {
 	return e != nil && (e.StatusCode == 429 || e.StatusCode >= 500)
+}
+
+// FailureKind exposes only the provider-neutral category to adapter code.
+func (e *APIError) FailureKind() failure.Kind {
+	if e == nil {
+		return failure.Unavailable
+	}
+	switch {
+	case e.StatusCode == 401 || e.Code == "invalid_grant":
+		return failure.Unauthorized
+	case e.StatusCode == 403:
+		return failure.Forbidden
+	case e.StatusCode == 404:
+		return failure.NotFound
+	case e.StatusCode == 429:
+		return failure.RateLimited
+	default:
+		return failure.Unavailable
+	}
 }
 
 func httpStatusLabel(statusCode int) string {

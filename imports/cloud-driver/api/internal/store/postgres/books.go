@@ -39,25 +39,25 @@ func (s *Store) GetBook(ctx context.Context, uid string, includeTrashed bool) (d
 }
 
 // ListBooks lists catalog entries with optional search and collection filters.
-func (s *Store) ListBooks(ctx context.Context, queryText, shelfUID string, format domain.BookFormat, trashed bool, pageSize int, pageToken string) (domain.BookPage, error) {
-	cursor, err := decodeCursor(pageToken)
+func (s *Store) ListBooks(ctx context.Context, filter domain.BookListQuery) (domain.BookPage, error) {
+	cursor, err := decodeCursor(filter.PageToken)
 	if err != nil {
 		return domain.BookPage{}, err
 	}
-	pageSize = normalizePageSize(pageSize)
+	pageSize := normalizePageSize(filter.PageSize)
 	query := "SELECT " + bookColumns + " FROM " + bookFrom
 	arguments := []any{}
-	conditions := []string{"book.delete_time IS " + map[bool]string{true: "NOT NULL", false: "NULL"}[trashed]}
-	if queryText != "" {
-		arguments = append(arguments, queryText)
+	conditions := []string{"book.delete_time IS " + map[bool]string{true: "NOT NULL", false: "NULL"}[filter.Trashed]}
+	if filter.Query != "" {
+		arguments = append(arguments, filter.Query)
 		conditions = append(conditions, fmt.Sprintf("(book.title ILIKE '%%' || $%d || '%%' OR array_to_string(book.authors, ' ') ILIKE '%%' || $%d || '%%')", len(arguments), len(arguments)))
 	}
-	if shelfUID != "" {
-		arguments = append(arguments, shelfUID)
+	if filter.ShelfUID != "" {
+		arguments = append(arguments, filter.ShelfUID)
 		conditions = append(conditions, fmt.Sprintf("EXISTS (SELECT 1 FROM shelf_books membership WHERE membership.book_uid = book.uid AND membership.shelf_uid = $%d)", len(arguments)))
 	}
-	if format != "" {
-		arguments = append(arguments, string(format))
+	if filter.Format != "" {
+		arguments = append(arguments, string(filter.Format))
 		conditions = append(conditions, fmt.Sprintf("book.format = $%d", len(arguments)))
 	}
 	if cursor != nil {
@@ -109,7 +109,7 @@ func (s *Store) ImportBook(ctx context.Context, uploadUID string, sealed domain.
 		}
 		return s.GetBook(ctx, upload.ClaimedUID, false)
 	}
-	content, err := upsertContent(ctx, tx, sealed)
+	content, err := contentForUpload(ctx, tx, upload, sealed)
 	if err != nil {
 		return domain.Book{}, err
 	}
@@ -134,7 +134,7 @@ func (s *Store) ImportBook(ctx context.Context, uploadUID string, sealed domain.
 		VALUES ($1, $2, $3, $4, $5, 'pending')`, bookUID, content.UID, title, format, upload.FileName); err != nil {
 		return domain.Book{}, fmt.Errorf("create book: %w", err)
 	}
-	if err := enqueueJob(ctx, tx, "book", bookUID); err != nil {
+	if err := enqueueJob(ctx, tx, domain.ProcessingJobBook, bookUID); err != nil {
 		return domain.Book{}, err
 	}
 	if err := markUploadClaimed(ctx, tx, uploadUID, bookUID); err != nil {
@@ -212,7 +212,7 @@ func (s *Store) PurgeTrashedBooks(ctx context.Context, cutoff time.Time) error {
 
 // QueueBookProcessing explicitly retries metadata extraction.
 func (s *Store) QueueBookProcessing(ctx context.Context, uid string) (domain.Book, error) {
-	return s.queueProcessing(ctx, "books", "book", uid, func() (domain.Book, error) { return s.GetBook(ctx, uid, false) })
+	return s.queueProcessing(ctx, "books", domain.ProcessingJobBook, uid, func() (domain.Book, error) { return s.GetBook(ctx, uid, false) })
 }
 
 // GetReadingProgress returns the latest stored reader position.

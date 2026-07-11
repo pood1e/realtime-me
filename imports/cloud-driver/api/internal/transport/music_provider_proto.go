@@ -9,43 +9,13 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func musicProviderProto(provider domain.MusicProvider) musicv1.MusicProvider {
-	switch provider {
-	case domain.MusicProviderLocal:
-		return musicv1.MusicProvider_MUSIC_PROVIDER_LOCAL
-	case domain.MusicProviderQQ:
-		return musicv1.MusicProvider_MUSIC_PROVIDER_QQ_MUSIC
-	case domain.MusicProviderNetEase:
-		return musicv1.MusicProvider_MUSIC_PROVIDER_NETEASE_CLOUD_MUSIC
-	case domain.MusicProviderSpotify:
-		return musicv1.MusicProvider_MUSIC_PROVIDER_SPOTIFY
-	default:
-		return musicv1.MusicProvider_MUSIC_PROVIDER_UNSPECIFIED
-	}
-}
-
-func musicProviderDomain(provider musicv1.MusicProvider) domain.MusicProvider {
-	switch provider {
-	case musicv1.MusicProvider_MUSIC_PROVIDER_LOCAL:
-		return domain.MusicProviderLocal
-	case musicv1.MusicProvider_MUSIC_PROVIDER_QQ_MUSIC:
-		return domain.MusicProviderQQ
-	case musicv1.MusicProvider_MUSIC_PROVIDER_NETEASE_CLOUD_MUSIC:
-		return domain.MusicProviderNetEase
-	case musicv1.MusicProvider_MUSIC_PROVIDER_SPOTIFY:
-		return domain.MusicProviderSpotify
-	default:
-		return ""
-	}
-}
-
 func providerConnectionProto(connection domain.ProviderConnection) *musicv1.ProviderConnection {
 	capabilities := make([]musicv1.MusicProviderCapability, 0, len(connection.Capabilities))
 	for _, capability := range connection.Capabilities {
 		capabilities = append(capabilities, musicProviderCapabilityProto(capability))
 	}
 	result := &musicv1.ProviderConnection{
-		Provider: musicProviderProto(connection.Provider), Status: providerConnectionStatusProto(connection.Status),
+		ProviderId: string(connection.Provider), Status: providerConnectionStatusProto(connection.Status),
 		AccountId: connection.AccountID, DisplayName: connection.DisplayName, AvatarUrl: connection.AvatarURL,
 		Membership: connection.Membership, Capabilities: capabilities,
 	}
@@ -56,6 +26,17 @@ func providerConnectionProto(connection domain.ProviderConnection) *musicv1.Prov
 		result.UpdateTime = timestamppb.New(connection.UpdateTime)
 	}
 	return result
+}
+
+func providerDescriptorProto(descriptor domain.ProviderDescriptor) *musicv1.ProviderDescriptor {
+	capabilities := make([]musicv1.MusicProviderCapability, 0, len(descriptor.Capabilities))
+	for _, capability := range descriptor.Capabilities {
+		capabilities = append(capabilities, musicProviderCapabilityProto(capability))
+	}
+	return &musicv1.ProviderDescriptor{
+		Id: string(descriptor.ID), DisplayName: descriptor.DisplayName,
+		Capabilities: capabilities, Configured: descriptor.Configured,
+	}
 }
 
 func musicProviderCapabilityProto(capability domain.MusicProviderCapability) musicv1.MusicProviderCapability {
@@ -98,7 +79,7 @@ func providerConnectionStatusProto(status domain.ProviderConnectionStatus) music
 
 func providerAttemptProto(attempt domain.ProviderConnectionAttempt) *musicv1.ProviderConnectionAttempt {
 	result := &musicv1.ProviderConnectionAttempt{
-		Uid: attempt.UID, Provider: musicProviderProto(attempt.Provider), Status: providerAttemptStatusProto(attempt.Status),
+		Uid: attempt.UID, ProviderId: string(attempt.Provider), Status: providerAttemptStatusProto(attempt.Status),
 		ExpireTime: timestamppb.New(attempt.ExpireTime),
 	}
 	if len(attempt.QRImage) > 0 || attempt.QRPayload != "" {
@@ -138,7 +119,7 @@ func providerSearchGroupProto(group domain.ProviderSearchGroup) *musicv1.Provide
 		tracks = append(tracks, playableTrackProto(track))
 	}
 	return &musicv1.ProviderSearchGroup{
-		Provider: musicProviderProto(group.Provider), Status: providerSearchStatusProto(group.Status),
+		ProviderId: string(group.Provider), Status: providerSearchStatusProto(group.Status),
 		Tracks: tracks, NextPageToken: group.NextPageToken,
 	}
 }
@@ -160,7 +141,7 @@ func providerSearchStatusProto(status domain.ProviderSearchStatus) musicv1.Provi
 
 func playableTrackProto(track domain.PlayableTrack) *musicv1.PlayableTrack {
 	return &musicv1.PlayableTrack{
-		Provider: musicProviderProto(track.Provider), TrackId: track.TrackID, Title: track.Title, Artists: track.Artists,
+		ProviderId: string(track.Provider), TrackId: track.TrackID, Title: track.Title, Artists: track.Artists,
 		Album: track.Album, Duration: durationpb.New(track.Duration), ArtworkUrl: track.ArtworkURL,
 		ProviderUrl: track.ProviderURL, Playable: track.Playable, LyricsAvailable: track.LyricsAvailable,
 	}
@@ -175,7 +156,7 @@ func playableTrackDomain(track *musicv1.PlayableTrack) domain.PlayableTrack {
 		duration = track.Duration.AsDuration()
 	}
 	return domain.PlayableTrack{
-		Provider: musicProviderDomain(track.GetProvider()), TrackID: track.GetTrackId(), Title: track.GetTitle(),
+		Provider: domain.MusicProvider(track.GetProviderId()), TrackID: track.GetTrackId(), Title: track.GetTitle(),
 		Artists: track.GetArtists(), Album: track.GetAlbum(), Duration: duration, ArtworkURL: track.GetArtworkUrl(),
 		ProviderURL: track.GetProviderUrl(), Playable: track.GetPlayable(),
 		LyricsAvailable: track.GetLyricsAvailable(),
@@ -205,12 +186,14 @@ func playbackQualityProto(quality domain.PlaybackQuality) musicv1.PlaybackQualit
 }
 
 func playbackDescriptorProto(playback domain.PlaybackDescriptor) *musicv1.PlaybackDescriptor {
-	result := &musicv1.PlaybackDescriptor{Provider: musicProviderProto(playback.Provider)}
+	result := &musicv1.PlaybackDescriptor{ProviderId: string(playback.Provider)}
 	if !playback.ExpireTime.IsZero() {
 		result.ExpireTime = timestamppb.New(playback.ExpireTime)
 	}
-	if playback.SpotifyURI != "" {
-		result.Playback = &musicv1.PlaybackDescriptor_Spotify{Spotify: &musicv1.SpotifyPlayback{Uri: playback.SpotifyURI}}
+	if playback.ResourceURI != "" {
+		result.Playback = &musicv1.PlaybackDescriptor_ProviderSdk{ProviderSdk: &musicv1.ProviderSdkPlayback{
+			SdkId: playback.SDKID, ResourceUri: playback.ResourceURI,
+		}}
 	} else {
 		result.Playback = &musicv1.PlaybackDescriptor_DirectAudio{DirectAudio: &musicv1.DirectAudioPlayback{
 			Url: playback.DirectURL, ContentType: playback.ContentType, Quality: playbackQualityProto(playback.Quality),

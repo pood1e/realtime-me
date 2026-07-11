@@ -76,12 +76,12 @@ func (s *contentServer) GetUpload(ctx context.Context, request *connect.Request[
 	return connect.NewResponse(&contentv1.GetUploadResponse{Upload: uploadProto(upload)}), nil
 }
 
-func (s *contentServer) WriteUploadChunk(ctx context.Context, request *connect.Request[contentv1.WriteUploadChunkRequest]) (*connect.Response[contentv1.WriteUploadChunkResponse], error) {
-	upload, err := s.service.WriteUploadChunk(ctx, request.Msg.GetUploadUid(), request.Msg.GetStartOffset(), request.Msg.GetTotalSizeBytes(), request.Msg.GetData())
+func (s *contentServer) FinalizeUpload(ctx context.Context, request *connect.Request[contentv1.FinalizeUploadRequest]) (*connect.Response[contentv1.FinalizeUploadResponse], error) {
+	upload, err := s.service.FinalizeUpload(ctx, request.Msg.GetUploadUid())
 	if err != nil {
 		return nil, connectError(err)
 	}
-	return connect.NewResponse(&contentv1.WriteUploadChunkResponse{Upload: uploadProto(upload)}), nil
+	return connect.NewResponse(&contentv1.FinalizeUploadResponse{Upload: uploadProto(upload)}), nil
 }
 
 func (s *contentServer) AbandonUpload(ctx context.Context, request *connect.Request[contentv1.AbandonUploadRequest]) (*connect.Response[contentv1.AbandonUploadResponse], error) {

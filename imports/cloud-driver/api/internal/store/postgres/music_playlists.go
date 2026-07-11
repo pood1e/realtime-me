@@ -13,7 +13,7 @@ import (
 	"example.com/cloud-drive/api/internal/domain"
 )
 
-const playlistSummaryColumns = `playlist.uid, playlist.provider, playlist.external_id, playlist.display_name,
+const playlistSummaryColumns = `playlist.uid, playlist.provider_id, playlist.external_id, playlist.display_name,
 	playlist.artwork_url, playlist.provider_url, COUNT(item.uid),
 	COUNT(item.uid) FILTER (WHERE item.playable),
 	COUNT(item.uid) FILTER (WHERE item.download_status IN ('pending', 'running')),
@@ -26,42 +26,45 @@ const playlistSummaryFrom = `music_playlists playlist
 
 const playlistSummaryGroup = ` GROUP BY playlist.uid`
 
-// ImportPlaylist replaces one provider playlist snapshot while retaining downloaded local tracks.
-func (s *Store) ImportPlaylist(ctx context.Context, playlist domain.Playlist, tracks []domain.PlayableTrack) (domain.Playlist, error) {
+// CompletePlaylistImport atomically replaces one snapshot under a fenced import lease.
+func (s *Store) CompletePlaylistImport(ctx context.Context, job domain.ProcessingJob, playlist domain.Playlist, tracks []domain.PlayableTrack) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return domain.Playlist{}, fmt.Errorf("begin playlist import: %w", err)
+		return fmt.Errorf("begin playlist import: %w", err)
 	}
 	defer tx.Rollback(ctx)
-	query := `INSERT INTO music_playlists (uid, provider, external_id, display_name, artwork_url,
+	if err := lockProcessingJobLease(ctx, tx, job); err != nil {
+		return err
+	}
+	query := `INSERT INTO music_playlists (uid, provider_id, external_id, display_name, artwork_url,
 		provider_url, download_supported, create_time, update_time)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		ON CONFLICT (provider, external_id) DO UPDATE SET display_name = EXCLUDED.display_name,
+		ON CONFLICT (provider_id, external_id) DO UPDATE SET display_name = EXCLUDED.display_name,
 		artwork_url = EXCLUDED.artwork_url, provider_url = EXCLUDED.provider_url,
 		download_supported = EXCLUDED.download_supported, update_time = EXCLUDED.update_time
 		RETURNING uid`
 	if err := tx.QueryRow(ctx, query, playlist.UID, playlist.Provider, playlist.ExternalID, playlist.DisplayName,
 		playlist.ArtworkURL, playlist.ProviderURL, playlist.DownloadSupported, playlist.CreateTime, playlist.UpdateTime).Scan(&playlist.UID); err != nil {
-		return domain.Playlist{}, fmt.Errorf("save playlist: %w", err)
+		return fmt.Errorf("save playlist: %w", err)
 	}
 	if running, err := playlistDownloadRunning(ctx, tx, playlist.UID); err != nil {
-		return domain.Playlist{}, err
+		return err
 	} else if running {
-		return domain.Playlist{}, fmt.Errorf("%w: playlist download is running", domain.ErrConflict)
+		return fmt.Errorf("%w: playlist download is running", domain.ErrConflict)
 	}
 	if _, err := tx.Exec(ctx, `DELETE FROM processing_jobs WHERE kind = 'music_download'
 		AND resource_uid IN (SELECT uid FROM music_playlist_tracks WHERE playlist_uid = $1)`, playlist.UID); err != nil {
-		return domain.Playlist{}, fmt.Errorf("clear playlist download jobs: %w", err)
+		return fmt.Errorf("clear playlist download jobs: %w", err)
 	}
 	if _, err := tx.Exec(ctx, "DELETE FROM music_playlist_tracks WHERE playlist_uid = $1", playlist.UID); err != nil {
-		return domain.Playlist{}, fmt.Errorf("replace playlist tracks: %w", err)
+		return fmt.Errorf("replace playlist tracks: %w", err)
 	}
 	for index, track := range tracks {
 		localTrackUID, status, err := existingDownloadedTrack(ctx, tx, track.Provider, track.TrackID)
 		if err != nil {
-			return domain.Playlist{}, err
+			return err
 		}
-		_, err = tx.Exec(ctx, `INSERT INTO music_playlist_tracks (uid, playlist_uid, position, provider,
+		_, err = tx.Exec(ctx, `INSERT INTO music_playlist_tracks (uid, playlist_uid, position, provider_id,
 			external_track_id, title, artists, album, duration_ms, artwork_url, provider_url, playable,
 			lyrics_available, download_status, local_track_uid)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
@@ -69,13 +72,22 @@ func (s *Store) ImportPlaylist(ctx context.Context, playlist domain.Playlist, tr
 			track.Album, track.Duration.Milliseconds(), track.ArtworkURL, track.ProviderURL, track.Playable,
 			track.LyricsAvailable, status, nullableText(localTrackUID))
 		if err != nil {
-			return domain.Playlist{}, fmt.Errorf("save playlist track: %w", err)
+			return fmt.Errorf("save playlist track: %w", err)
 		}
 	}
-	if err := tx.Commit(ctx); err != nil {
-		return domain.Playlist{}, fmt.Errorf("commit playlist import: %w", err)
+	command, err := tx.Exec(ctx, `UPDATE music_playlist_imports SET status = 'completed',
+		playlist_uid = $2, failure_code = '', update_time = now()
+		WHERE uid = $1 AND status = 'running'`, job.ResourceUID, playlist.UID)
+	if err != nil {
+		return fmt.Errorf("complete playlist import operation: %w", err)
 	}
-	return s.GetPlaylist(ctx, playlist.UID)
+	if command.RowsAffected() != 1 {
+		return fmt.Errorf("%w: running playlist import", domain.ErrConflict)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit playlist import: %w", err)
+	}
+	return nil
 }
 
 // GetPlaylist returns one imported playlist with current download counts.
@@ -172,8 +184,10 @@ func playlistDownloadRunning(ctx context.Context, tx pgx.Tx, playlistUID string)
 
 func existingDownloadedTrack(ctx context.Context, tx pgx.Tx, provider domain.MusicProvider, trackID string) (string, domain.PlaylistTrackDownloadStatus, error) {
 	var uid string
-	err := tx.QueryRow(ctx, `SELECT uid FROM tracks WHERE source_provider = $1 AND source_track_id = $2
-		AND delete_time IS NULL`, provider, trackID).Scan(&uid)
+	err := tx.QueryRow(ctx, `SELECT track.uid FROM music_track_sources source
+		JOIN tracks track ON track.uid = source.track_uid
+		WHERE source.provider_id = $1 AND source.external_track_id = $2 AND track.delete_time IS NULL`,
+		provider, trackID).Scan(&uid)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", domain.PlaylistTrackDownloadNotStarted, nil
 	}

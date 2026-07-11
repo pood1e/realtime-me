@@ -6,11 +6,14 @@ import (
 
 	"connectrpc.com/connect"
 	musicv1 "example.com/cloud-drive/api/gen/cloud/music/v1"
+	"example.com/cloud-drive/api/internal/app"
 	"example.com/cloud-drive/api/internal/domain"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (s *musicServer) ListProviderConnections(ctx context.Context, _ *connect.Request[musicv1.ListProviderConnectionsRequest]) (*connect.Response[musicv1.ListProviderConnectionsResponse], error) {
+type musicProviderServer struct{ service *app.MusicProviderService }
+
+func (s *musicProviderServer) ListProviderConnections(ctx context.Context, _ *connect.Request[musicv1.ListProviderConnectionsRequest]) (*connect.Response[musicv1.ListProviderConnectionsResponse], error) {
 	connections, err := s.service.ListProviderConnections(ctx)
 	if err != nil {
 		return nil, connectError(err)
@@ -22,15 +25,24 @@ func (s *musicServer) ListProviderConnections(ctx context.Context, _ *connect.Re
 	return connect.NewResponse(&musicv1.ListProviderConnectionsResponse{Connections: result}), nil
 }
 
-func (s *musicServer) BeginProviderConnection(ctx context.Context, request *connect.Request[musicv1.BeginProviderConnectionRequest]) (*connect.Response[musicv1.BeginProviderConnectionResponse], error) {
-	attempt, err := s.service.BeginProviderConnection(ctx, musicProviderDomain(request.Msg.GetProvider()))
+func (s *musicProviderServer) ListProviders(_ context.Context, _ *connect.Request[musicv1.ListProvidersRequest]) (*connect.Response[musicv1.ListProvidersResponse], error) {
+	descriptors := s.service.ListProviders()
+	result := make([]*musicv1.ProviderDescriptor, 0, len(descriptors))
+	for _, descriptor := range descriptors {
+		result = append(result, providerDescriptorProto(descriptor))
+	}
+	return connect.NewResponse(&musicv1.ListProvidersResponse{Providers: result}), nil
+}
+
+func (s *musicProviderServer) BeginProviderConnection(ctx context.Context, request *connect.Request[musicv1.BeginProviderConnectionRequest]) (*connect.Response[musicv1.BeginProviderConnectionResponse], error) {
+	attempt, err := s.service.BeginProviderConnection(ctx, domain.MusicProvider(request.Msg.GetProviderId()))
 	if err != nil {
 		return nil, connectError(err)
 	}
 	return connect.NewResponse(&musicv1.BeginProviderConnectionResponse{Attempt: providerAttemptProto(attempt)}), nil
 }
 
-func (s *musicServer) GetProviderConnectionAttempt(ctx context.Context, request *connect.Request[musicv1.GetProviderConnectionAttemptRequest]) (*connect.Response[musicv1.GetProviderConnectionAttemptResponse], error) {
+func (s *musicProviderServer) GetProviderConnectionAttempt(ctx context.Context, request *connect.Request[musicv1.GetProviderConnectionAttemptRequest]) (*connect.Response[musicv1.GetProviderConnectionAttemptResponse], error) {
 	attempt, err := s.service.GetProviderConnectionAttempt(ctx, request.Msg.GetAttemptUid())
 	if err != nil {
 		return nil, connectError(err)
@@ -38,17 +50,17 @@ func (s *musicServer) GetProviderConnectionAttempt(ctx context.Context, request 
 	return connect.NewResponse(&musicv1.GetProviderConnectionAttemptResponse{Attempt: providerAttemptProto(attempt)}), nil
 }
 
-func (s *musicServer) DisconnectProvider(ctx context.Context, request *connect.Request[musicv1.DisconnectProviderRequest]) (*connect.Response[musicv1.DisconnectProviderResponse], error) {
-	if err := s.service.DisconnectProvider(ctx, musicProviderDomain(request.Msg.GetProvider())); err != nil {
+func (s *musicProviderServer) DisconnectProvider(ctx context.Context, request *connect.Request[musicv1.DisconnectProviderRequest]) (*connect.Response[musicv1.DisconnectProviderResponse], error) {
+	if err := s.service.DisconnectProvider(ctx, domain.MusicProvider(request.Msg.GetProviderId())); err != nil {
 		return nil, connectError(err)
 	}
 	return connect.NewResponse(&musicv1.DisconnectProviderResponse{}), nil
 }
 
-func (s *musicServer) SearchMusic(ctx context.Context, request *connect.Request[musicv1.SearchMusicRequest]) (*connect.Response[musicv1.SearchMusicResponse], error) {
+func (s *musicProviderServer) SearchMusic(ctx context.Context, request *connect.Request[musicv1.SearchMusicRequest]) (*connect.Response[musicv1.SearchMusicResponse], error) {
 	cursors := make(map[domain.MusicProvider]string, len(request.Msg.GetCursors()))
 	for _, cursor := range request.Msg.GetCursors() {
-		provider := musicProviderDomain(cursor.GetProvider())
+		provider := domain.MusicProvider(cursor.GetProviderId())
 		if provider == "" {
 			return nil, connectError(fmt.Errorf("%w: invalid music provider", domain.ErrInvalidArgument))
 		}
@@ -68,28 +80,28 @@ func (s *musicServer) SearchMusic(ctx context.Context, request *connect.Request[
 	return connect.NewResponse(&musicv1.SearchMusicResponse{Groups: result}), nil
 }
 
-func (s *musicServer) ResolvePlayback(ctx context.Context, request *connect.Request[musicv1.ResolvePlaybackRequest]) (*connect.Response[musicv1.ResolvePlaybackResponse], error) {
-	playback, err := s.service.ResolvePlayback(ctx, musicProviderDomain(request.Msg.GetProvider()), request.Msg.GetTrackId(), playbackQualityDomain(request.Msg.GetQuality()))
+func (s *musicProviderServer) ResolvePlayback(ctx context.Context, request *connect.Request[musicv1.ResolvePlaybackRequest]) (*connect.Response[musicv1.ResolvePlaybackResponse], error) {
+	playback, err := s.service.ResolvePlayback(ctx, domain.MusicProvider(request.Msg.GetProviderId()), request.Msg.GetTrackId(), playbackQualityDomain(request.Msg.GetQuality()))
 	if err != nil {
 		return nil, connectError(err)
 	}
 	return connect.NewResponse(&musicv1.ResolvePlaybackResponse{Playback: playbackDescriptorProto(playback)}), nil
 }
 
-func (s *musicServer) GetProviderLyrics(ctx context.Context, request *connect.Request[musicv1.GetProviderLyricsRequest]) (*connect.Response[musicv1.GetProviderLyricsResponse], error) {
-	lyric, err := s.service.GetProviderLyrics(ctx, musicProviderDomain(request.Msg.GetProvider()), request.Msg.GetTrackId())
+func (s *musicProviderServer) GetProviderLyrics(ctx context.Context, request *connect.Request[musicv1.GetProviderLyricsRequest]) (*connect.Response[musicv1.GetProviderLyricsResponse], error) {
+	lyric, err := s.service.GetProviderLyrics(ctx, domain.MusicProvider(request.Msg.GetProviderId()), request.Msg.GetTrackId())
 	if err != nil {
 		return nil, connectError(err)
 	}
 	return connect.NewResponse(&musicv1.GetProviderLyricsResponse{Lyric: lyricProto(lyric)}), nil
 }
 
-func (s *musicServer) GetSpotifyPlaybackToken(ctx context.Context, _ *connect.Request[musicv1.GetSpotifyPlaybackTokenRequest]) (*connect.Response[musicv1.GetSpotifyPlaybackTokenResponse], error) {
-	token, err := s.service.GetSpotifyPlaybackToken(ctx)
+func (s *musicProviderServer) GetProviderPlaybackToken(ctx context.Context, request *connect.Request[musicv1.GetProviderPlaybackTokenRequest]) (*connect.Response[musicv1.GetProviderPlaybackTokenResponse], error) {
+	token, err := s.service.GetProviderPlaybackToken(ctx, domain.MusicProvider(request.Msg.GetProviderId()))
 	if err != nil {
 		return nil, connectError(err)
 	}
-	return connect.NewResponse(&musicv1.GetSpotifyPlaybackTokenResponse{
+	return connect.NewResponse(&musicv1.GetProviderPlaybackTokenResponse{
 		AccessToken: token.AccessToken, ExpireTime: timestamppb.New(token.ExpireTime),
 	}), nil
 }

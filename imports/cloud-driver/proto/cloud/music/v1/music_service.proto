@@ -9,8 +9,8 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "example.com/cloud-drive/api/gen/cloud/music/v1;musicv1";
 
-// MusicService manages the private audio catalog and playback state.
-service MusicService {
+// MusicLibraryService manages the owner-controlled local catalog and history.
+service MusicLibraryService {
   rpc GetTrack(GetTrackRequest) returns (GetTrackResponse);
   rpc ListTracks(ListTracksRequest) returns (ListTracksResponse);
   rpc ImportTrack(ImportTrackRequest) returns (ImportTrackResponse);
@@ -20,8 +20,13 @@ service MusicService {
   rpc PurgeTrack(PurgeTrackRequest) returns (PurgeTrackResponse);
   rpc EmptyTrackTrash(EmptyTrackTrashRequest) returns (EmptyTrackTrashResponse);
   rpc RetryTrackProcessing(RetryTrackProcessingRequest) returns (RetryTrackProcessingResponse);
-  rpc ListAlbums(ListAlbumsRequest) returns (ListAlbumsResponse);
-  rpc ListArtists(ListArtistsRequest) returns (ListArtistsResponse);
+  rpc RecordPlayback(RecordPlaybackRequest) returns (RecordPlaybackResponse);
+  rpc ListPlaybackHistory(ListPlaybackHistoryRequest) returns (ListPlaybackHistoryResponse);
+}
+
+// MusicProviderService manages registered external provider plugins.
+service MusicProviderService {
+  rpc ListProviders(ListProvidersRequest) returns (ListProvidersResponse);
   rpc ListProviderConnections(ListProviderConnectionsRequest) returns (ListProviderConnectionsResponse);
   rpc BeginProviderConnection(BeginProviderConnectionRequest) returns (BeginProviderConnectionResponse);
   rpc GetProviderConnectionAttempt(GetProviderConnectionAttemptRequest) returns (GetProviderConnectionAttemptResponse);
@@ -29,10 +34,13 @@ service MusicService {
   rpc SearchMusic(SearchMusicRequest) returns (SearchMusicResponse);
   rpc ResolvePlayback(ResolvePlaybackRequest) returns (ResolvePlaybackResponse);
   rpc GetProviderLyrics(GetProviderLyricsRequest) returns (GetProviderLyricsResponse);
-  rpc GetSpotifyPlaybackToken(GetSpotifyPlaybackTokenRequest) returns (GetSpotifyPlaybackTokenResponse);
-  rpc RecordPlayback(RecordPlaybackRequest) returns (RecordPlaybackResponse);
-  rpc ListPlaybackHistory(ListPlaybackHistoryRequest) returns (ListPlaybackHistoryResponse);
+  rpc GetProviderPlaybackToken(GetProviderPlaybackTokenRequest) returns (GetProviderPlaybackTokenResponse);
+}
+
+// MusicPlaylistService manages provider playlist snapshots and local downloads.
+service MusicPlaylistService {
   rpc ImportPlaylist(ImportPlaylistRequest) returns (ImportPlaylistResponse);
+  rpc GetPlaylistImport(GetPlaylistImportRequest) returns (GetPlaylistImportResponse);
   rpc GetPlaylist(GetPlaylistRequest) returns (GetPlaylistResponse);
   rpc ListPlaylists(ListPlaylistsRequest) returns (ListPlaylistsResponse);
   rpc ListPlaylistTracks(ListPlaylistTracksRequest) returns (ListPlaylistTracksResponse);
@@ -96,24 +104,16 @@ message RetryTrackProcessingRequest {
 message RetryTrackProcessingResponse {
   Track track = 1;
 }
-message ListAlbumsRequest {
-  string query = 1;
-}
-message ListAlbumsResponse {
-  repeated Album albums = 1;
-}
-message ListArtistsRequest {
-  string query = 1;
-}
-message ListArtistsResponse {
-  repeated Artist artists = 1;
+message ListProvidersRequest {}
+message ListProvidersResponse {
+  repeated ProviderDescriptor providers = 1;
 }
 message ListProviderConnectionsRequest {}
 message ListProviderConnectionsResponse {
   repeated ProviderConnection connections = 1;
 }
 message BeginProviderConnectionRequest {
-  MusicProvider provider = 1;
+  string provider_id = 1;
 }
 message BeginProviderConnectionResponse {
   ProviderConnectionAttempt attempt = 1;
@@ -125,7 +125,7 @@ message GetProviderConnectionAttemptResponse {
   ProviderConnectionAttempt attempt = 1;
 }
 message DisconnectProviderRequest {
-  MusicProvider provider = 1;
+  string provider_id = 1;
 }
 message DisconnectProviderResponse {}
 message SearchMusicRequest {
@@ -136,7 +136,7 @@ message SearchMusicResponse {
   repeated ProviderSearchGroup groups = 1;
 }
 message ResolvePlaybackRequest {
-  MusicProvider provider = 1;
+  string provider_id = 1;
   string track_id = 2;
   PlaybackQuality quality = 3;
 }
@@ -144,14 +144,16 @@ message ResolvePlaybackResponse {
   PlaybackDescriptor playback = 1;
 }
 message GetProviderLyricsRequest {
-  MusicProvider provider = 1;
+  string provider_id = 1;
   string track_id = 2;
 }
 message GetProviderLyricsResponse {
   Lyric lyric = 1;
 }
-message GetSpotifyPlaybackTokenRequest {}
-message GetSpotifyPlaybackTokenResponse {
+message GetProviderPlaybackTokenRequest {
+  string provider_id = 1;
+}
+message GetProviderPlaybackTokenResponse {
   string access_token = 1;
   google.protobuf.Timestamp expire_time = 2;
 }
@@ -170,11 +172,17 @@ message ListPlaybackHistoryResponse {
   string next_page_token = 2;
 }
 message ImportPlaylistRequest {
-  MusicProvider provider = 1;
+  string provider_id = 1;
   string source = 2;
 }
 message ImportPlaylistResponse {
-  Playlist playlist = 1;
+  PlaylistImport playlist_import = 1;
+}
+message GetPlaylistImportRequest {
+  string playlist_import_uid = 1;
+}
+message GetPlaylistImportResponse {
+  PlaylistImport playlist_import = 1;
 }
 message GetPlaylistRequest {
   string playlist_uid = 1;

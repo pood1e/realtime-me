@@ -42,7 +42,8 @@ func (s *Store) GetTrack(ctx context.Context, uid string, includeTrashed bool) (
 // GetTrackBySource returns one visible local copy of an external provider track.
 func (s *Store) GetTrackBySource(ctx context.Context, provider domain.MusicProvider, trackID string) (domain.Track, error) {
 	track, err := scanTrack(s.pool.QueryRow(ctx, "SELECT "+trackColumns+" FROM "+trackFrom+
-		" WHERE track.source_provider = $1 AND track.source_track_id = $2 AND track.delete_time IS NULL",
+		` JOIN music_track_sources source ON source.track_uid = track.uid
+		WHERE source.provider_id = $1 AND source.external_track_id = $2 AND track.delete_time IS NULL`,
 		provider, trackID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Track{}, fmt.Errorf("%w: source track", domain.ErrNotFound)
@@ -54,15 +55,15 @@ func (s *Store) GetTrackBySource(ctx context.Context, provider domain.MusicProvi
 }
 
 // ListTracks lists audio entries with catalog filters.
-func (s *Store) ListTracks(ctx context.Context, queryText, album, artist string, favorites, trashed bool, pageSize int, pageToken string) (domain.TrackPage, error) {
-	cursor, err := decodeCursor(pageToken)
+func (s *Store) ListTracks(ctx context.Context, filter domain.TrackListQuery) (domain.TrackPage, error) {
+	cursor, err := decodeCursor(filter.PageToken)
 	if err != nil {
 		return domain.TrackPage{}, err
 	}
-	pageSize = normalizePageSize(pageSize)
+	pageSize := normalizePageSize(filter.PageSize)
 	query := "SELECT " + trackColumns + " FROM " + trackFrom
 	arguments := []any{}
-	conditions := []string{"track.delete_time IS " + map[bool]string{true: "NOT NULL", false: "NULL"}[trashed]}
+	conditions := []string{"track.delete_time IS " + map[bool]string{true: "NOT NULL", false: "NULL"}[filter.Trashed]}
 	addCondition := func(value, expression string) {
 		if value == "" {
 			return
@@ -70,10 +71,10 @@ func (s *Store) ListTracks(ctx context.Context, queryText, album, artist string,
 		arguments = append(arguments, value)
 		conditions = append(conditions, fmt.Sprintf(expression, len(arguments)))
 	}
-	addCondition(queryText, "(track.title ILIKE '%%' || $%[1]d || '%%' OR track.album ILIKE '%%' || $%[1]d || '%%' OR array_to_string(track.artists, ' ') ILIKE '%%' || $%[1]d || '%%')")
-	addCondition(album, "track.album = $%d")
-	addCondition(artist, "$%d = ANY(track.artists)")
-	if favorites {
+	addCondition(filter.Query, "(track.title ILIKE '%%' || $%[1]d || '%%' OR track.album ILIKE '%%' || $%[1]d || '%%' OR array_to_string(track.artists, ' ') ILIKE '%%' || $%[1]d || '%%')")
+	addCondition(filter.Album, "track.album = $%d")
+	addCondition(filter.Artist, "$%d = ANY(track.artists)")
+	if filter.Favorites {
 		conditions = append(conditions, "track.favorite")
 	}
 	if cursor != nil {
@@ -123,7 +124,7 @@ func (s *Store) ImportTrack(ctx context.Context, uploadUID string, sealed domain
 		}
 		return s.GetTrack(ctx, upload.ClaimedUID, false)
 	}
-	content, err := upsertContent(ctx, tx, sealed)
+	content, err := contentForUpload(ctx, tx, upload, sealed)
 	if err != nil {
 		return domain.Track{}, err
 	}
@@ -147,7 +148,7 @@ func (s *Store) ImportTrack(ctx context.Context, uploadUID string, sealed domain
 		VALUES ($1, $2, $3, $4, 'pending')`, trackUID, content.UID, displayName(upload.FileName), upload.FileName); err != nil {
 		return domain.Track{}, fmt.Errorf("create track: %w", err)
 	}
-	if err := enqueueJob(ctx, tx, "track", trackUID); err != nil {
+	if err := enqueueJob(ctx, tx, domain.ProcessingJobTrack, trackUID); err != nil {
 		return domain.Track{}, err
 	}
 	if err := markUploadClaimed(ctx, tx, uploadUID, trackUID); err != nil {
@@ -237,7 +238,7 @@ func (s *Store) QueueTrackProcessing(ctx context.Context, uid string) (domain.Tr
 	if command.RowsAffected() == 0 {
 		return domain.Track{}, fmt.Errorf("%w: track", domain.ErrNotFound)
 	}
-	if err := enqueueJob(ctx, tx, "track", uid); err != nil {
+	if err := enqueueJob(ctx, tx, domain.ProcessingJobTrack, uid); err != nil {
 		return domain.Track{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {

@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file cloud/content/v1/upload_service.proto.
  */
 export const file_cloud_content_v1_upload_service: GenFile = /*@__PURE__*/
-  fileDesc("CiVjbG91ZC9jb250ZW50L3YxL3VwbG9hZF9zZXJ2aWNlLnByb3RvEhBjbG91ZC5jb250ZW50LnYxIlcKElN0YXJ0VXBsb2FkUmVxdWVzdBIRCglmaWxlX25hbWUYASABKAkSFAoMY29udGVudF90eXBlGAIgASgJEhgKEHRvdGFsX3NpemVfYnl0ZXMYAyABKAMiUgoTU3RhcnRVcGxvYWRSZXNwb25zZRIoCgZ1cGxvYWQYASABKAsyGC5jbG91ZC5jb250ZW50LnYxLlVwbG9hZBIRCgljaHVua191cmwYAiABKAkiJgoQR2V0VXBsb2FkUmVxdWVzdBISCgp1cGxvYWRfdWlkGAEgASgJIj0KEUdldFVwbG9hZFJlc3BvbnNlEigKBnVwbG9hZBgBIAEoCzIYLmNsb3VkLmNvbnRlbnQudjEuVXBsb2FkImsKF1dyaXRlVXBsb2FkQ2h1bmtSZXF1ZXN0EhIKCnVwbG9hZF91aWQYASABKAkSFAoMc3RhcnRfb2Zmc2V0GAIgASgDEhgKEHRvdGFsX3NpemVfYnl0ZXMYAyABKAMSDAoEZGF0YRgEIAEoDCJEChhXcml0ZVVwbG9hZENodW5rUmVzcG9uc2USKAoGdXBsb2FkGAEgASgLMhguY2xvdWQuY29udGVudC52MS5VcGxvYWQiKgoUQWJhbmRvblVwbG9hZFJlcXVlc3QSEgoKdXBsb2FkX3VpZBgBIAEoCSIXChVBYmFuZG9uVXBsb2FkUmVzcG9uc2UylQMKFENvbnRlbnRVcGxvYWRTZXJ2aWNlEloKC1N0YXJ0VXBsb2FkEiQuY2xvdWQuY29udGVudC52MS5TdGFydFVwbG9hZFJlcXVlc3QaJS5jbG91ZC5jb250ZW50LnYxLlN0YXJ0VXBsb2FkUmVzcG9uc2USVAoJR2V0VXBsb2FkEiIuY2xvdWQuY29udGVudC52MS5HZXRVcGxvYWRSZXF1ZXN0GiMuY2xvdWQuY29udGVudC52MS5HZXRVcGxvYWRSZXNwb25zZRJpChBXcml0ZVVwbG9hZENodW5rEikuY2xvdWQuY29udGVudC52MS5Xcml0ZVVwbG9hZENodW5rUmVxdWVzdBoqLmNsb3VkLmNvbnRlbnQudjEuV3JpdGVVcGxvYWRDaHVua1Jlc3BvbnNlEmAKDUFiYW5kb25VcGxvYWQSJi5jbG91ZC5jb250ZW50LnYxLkFiYW5kb25VcGxvYWRSZXF1ZXN0GicuY2xvdWQuY29udGVudC52MS5BYmFuZG9uVXBsb2FkUmVzcG9uc2VCPFo6ZXhhbXBsZS5jb20vY2xvdWQtZHJpdmUvYXBpL2dlbi9jbG91ZC9jb250ZW50L3YxO2NvbnRlbnR2MWIGcHJvdG8z", [file_cloud_content_v1_upload]);
+  fileDesc("CiVjbG91ZC9jb250ZW50L3YxL3VwbG9hZF9zZXJ2aWNlLnByb3RvEhBjbG91ZC5jb250ZW50LnYxIlcKElN0YXJ0VXBsb2FkUmVxdWVzdBIRCglmaWxlX25hbWUYASABKAkSFAoMY29udGVudF90eXBlGAIgASgJEhgKEHRvdGFsX3NpemVfYnl0ZXMYAyABKAMiUgoTU3RhcnRVcGxvYWRSZXNwb25zZRIoCgZ1cGxvYWQYASABKAsyGC5jbG91ZC5jb250ZW50LnYxLlVwbG9hZBIRCgljaHVua191cmwYAiABKAkiJgoQR2V0VXBsb2FkUmVxdWVzdBISCgp1cGxvYWRfdWlkGAEgASgJIj0KEUdldFVwbG9hZFJlc3BvbnNlEigKBnVwbG9hZBgBIAEoCzIYLmNsb3VkLmNvbnRlbnQudjEuVXBsb2FkIisKFUZpbmFsaXplVXBsb2FkUmVxdWVzdBISCgp1cGxvYWRfdWlkGAEgASgJIkIKFkZpbmFsaXplVXBsb2FkUmVzcG9uc2USKAoGdXBsb2FkGAEgASgLMhguY2xvdWQuY29udGVudC52MS5VcGxvYWQiRAoYV3JpdGVVcGxvYWRDaHVua1Jlc3BvbnNlEigKBnVwbG9hZBgBIAEoCzIYLmNsb3VkLmNvbnRlbnQudjEuVXBsb2FkIioKFEFiYW5kb25VcGxvYWRSZXF1ZXN0EhIKCnVwbG9hZF91aWQYASABKAkiFwoVQWJhbmRvblVwbG9hZFJlc3BvbnNlMo8DChRDb250ZW50VXBsb2FkU2VydmljZRJaCgtTdGFydFVwbG9hZBIkLmNsb3VkLmNvbnRlbnQudjEuU3RhcnRVcGxvYWRSZXF1ZXN0GiUuY2xvdWQuY29udGVudC52MS5TdGFydFVwbG9hZFJlc3BvbnNlElQKCUdldFVwbG9hZBIiLmNsb3VkLmNvbnRlbnQudjEuR2V0VXBsb2FkUmVxdWVzdBojLmNsb3VkLmNvbnRlbnQudjEuR2V0VXBsb2FkUmVzcG9uc2USYwoORmluYWxpemVVcGxvYWQSJy5jbG91ZC5jb250ZW50LnYxLkZpbmFsaXplVXBsb2FkUmVxdWVzdBooLmNsb3VkLmNvbnRlbnQudjEuRmluYWxpemVVcGxvYWRSZXNwb25zZRJgCg1BYmFuZG9uVXBsb2FkEiYuY2xvdWQuY29udGVudC52MS5BYmFuZG9uVXBsb2FkUmVxdWVzdBonLmNsb3VkLmNvbnRlbnQudjEuQWJhbmRvblVwbG9hZFJlc3BvbnNlQjxaOmV4YW1wbGUuY29tL2Nsb3VkLWRyaXZlL2FwaS9nZW4vY2xvdWQvY29udGVudC92MTtjb250ZW50djFiBnByb3RvMw", [file_cloud_content_v1_upload]);
 
 /**
  * StartUploadRequest describes a browser-selected file.
@@ -120,49 +120,45 @@ export const GetUploadResponseSchema: GenMessage<GetUploadResponse> = /*@__PURE_
   messageDesc(file_cloud_content_v1_upload_service, 3);
 
 /**
- * WriteUploadChunkRequest carries a byte range for Connect clients.
+ * FinalizeUploadRequest identifies one complete active upload.
  *
- * @generated from message cloud.content.v1.WriteUploadChunkRequest
+ * @generated from message cloud.content.v1.FinalizeUploadRequest
  */
-export type WriteUploadChunkRequest = Message<"cloud.content.v1.WriteUploadChunkRequest"> & {
+export type FinalizeUploadRequest = Message<"cloud.content.v1.FinalizeUploadRequest"> & {
   /**
-   * upload_uid identifies the upload.
-   *
    * @generated from field: string upload_uid = 1;
    */
   uploadUid: string;
-
-  /**
-   * start_offset is the first included byte offset.
-   *
-   * @generated from field: int64 start_offset = 2;
-   */
-  startOffset: bigint;
-
-  /**
-   * total_size_bytes repeats the complete length.
-   *
-   * @generated from field: int64 total_size_bytes = 3;
-   */
-  totalSizeBytes: bigint;
-
-  /**
-   * data contains the raw chunk bytes.
-   *
-   * @generated from field: bytes data = 4;
-   */
-  data: Uint8Array;
 };
 
 /**
- * Describes the message cloud.content.v1.WriteUploadChunkRequest.
- * Use `create(WriteUploadChunkRequestSchema)` to create a new message.
+ * Describes the message cloud.content.v1.FinalizeUploadRequest.
+ * Use `create(FinalizeUploadRequestSchema)` to create a new message.
  */
-export const WriteUploadChunkRequestSchema: GenMessage<WriteUploadChunkRequest> = /*@__PURE__*/
+export const FinalizeUploadRequestSchema: GenMessage<FinalizeUploadRequest> = /*@__PURE__*/
   messageDesc(file_cloud_content_v1_upload_service, 4);
 
 /**
- * WriteUploadChunkResponse returns the updated upload.
+ * FinalizeUploadResponse returns the queued finalization state.
+ *
+ * @generated from message cloud.content.v1.FinalizeUploadResponse
+ */
+export type FinalizeUploadResponse = Message<"cloud.content.v1.FinalizeUploadResponse"> & {
+  /**
+   * @generated from field: cloud.content.v1.Upload upload = 1;
+   */
+  upload?: Upload | undefined;
+};
+
+/**
+ * Describes the message cloud.content.v1.FinalizeUploadResponse.
+ * Use `create(FinalizeUploadResponseSchema)` to create a new message.
+ */
+export const FinalizeUploadResponseSchema: GenMessage<FinalizeUploadResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_content_v1_upload_service, 5);
+
+/**
+ * WriteUploadChunkResponse is the raw chunk endpoint's JSON response.
  *
  * @generated from message cloud.content.v1.WriteUploadChunkResponse
  */
@@ -180,7 +176,7 @@ export type WriteUploadChunkResponse = Message<"cloud.content.v1.WriteUploadChun
  * Use `create(WriteUploadChunkResponseSchema)` to create a new message.
  */
 export const WriteUploadChunkResponseSchema: GenMessage<WriteUploadChunkResponse> = /*@__PURE__*/
-  messageDesc(file_cloud_content_v1_upload_service, 5);
+  messageDesc(file_cloud_content_v1_upload_service, 6);
 
 /**
  * AbandonUploadRequest identifies an active upload to remove.
@@ -201,7 +197,7 @@ export type AbandonUploadRequest = Message<"cloud.content.v1.AbandonUploadReques
  * Use `create(AbandonUploadRequestSchema)` to create a new message.
  */
 export const AbandonUploadRequestSchema: GenMessage<AbandonUploadRequest> = /*@__PURE__*/
-  messageDesc(file_cloud_content_v1_upload_service, 6);
+  messageDesc(file_cloud_content_v1_upload_service, 7);
 
 /**
  * AbandonUploadResponse confirms removal.
@@ -216,7 +212,7 @@ export type AbandonUploadResponse = Message<"cloud.content.v1.AbandonUploadRespo
  * Use `create(AbandonUploadResponseSchema)` to create a new message.
  */
 export const AbandonUploadResponseSchema: GenMessage<AbandonUploadResponse> = /*@__PURE__*/
-  messageDesc(file_cloud_content_v1_upload_service, 7);
+  messageDesc(file_cloud_content_v1_upload_service, 8);
 
 /**
  * ContentUploadService manages application-neutral resumable uploads.
@@ -245,14 +241,14 @@ export const ContentUploadService: GenService<{
     output: typeof GetUploadResponseSchema;
   },
   /**
-   * WriteUploadChunk writes one bounded chunk for Connect clients.
+   * FinalizeUpload queues hashing and publication after every byte is present.
    *
-   * @generated from rpc cloud.content.v1.ContentUploadService.WriteUploadChunk
+   * @generated from rpc cloud.content.v1.ContentUploadService.FinalizeUpload
    */
-  writeUploadChunk: {
+  finalizeUpload: {
     methodKind: "unary";
-    input: typeof WriteUploadChunkRequestSchema;
-    output: typeof WriteUploadChunkResponseSchema;
+    input: typeof FinalizeUploadRequestSchema;
+    output: typeof FinalizeUploadResponseSchema;
   },
   /**
    * AbandonUpload removes an unclaimed upload.

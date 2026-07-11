@@ -5,17 +5,29 @@ import (
 
 	"connectrpc.com/connect"
 	musicv1 "example.com/cloud-drive/api/gen/cloud/music/v1"
+	"example.com/cloud-drive/api/internal/app"
+	"example.com/cloud-drive/api/internal/domain"
 )
 
-func (s *musicServer) ImportPlaylist(ctx context.Context, request *connect.Request[musicv1.ImportPlaylistRequest]) (*connect.Response[musicv1.ImportPlaylistResponse], error) {
-	playlist, err := s.service.ImportPlaylist(ctx, musicProviderDomain(request.Msg.GetProvider()), request.Msg.GetSource())
+type musicPlaylistServer struct{ service *app.MusicPlaylistService }
+
+func (s *musicPlaylistServer) ImportPlaylist(ctx context.Context, request *connect.Request[musicv1.ImportPlaylistRequest]) (*connect.Response[musicv1.ImportPlaylistResponse], error) {
+	operation, err := s.service.QueuePlaylistImport(ctx, domain.MusicProvider(request.Msg.GetProviderId()), request.Msg.GetSource())
 	if err != nil {
 		return nil, connectError(err)
 	}
-	return connect.NewResponse(&musicv1.ImportPlaylistResponse{Playlist: playlistProto(playlist)}), nil
+	return connect.NewResponse(&musicv1.ImportPlaylistResponse{PlaylistImport: playlistImportProto(operation)}), nil
 }
 
-func (s *musicServer) GetPlaylist(ctx context.Context, request *connect.Request[musicv1.GetPlaylistRequest]) (*connect.Response[musicv1.GetPlaylistResponse], error) {
+func (s *musicPlaylistServer) GetPlaylistImport(ctx context.Context, request *connect.Request[musicv1.GetPlaylistImportRequest]) (*connect.Response[musicv1.GetPlaylistImportResponse], error) {
+	operation, err := s.service.GetPlaylistImport(ctx, request.Msg.GetPlaylistImportUid())
+	if err != nil {
+		return nil, connectError(err)
+	}
+	return connect.NewResponse(&musicv1.GetPlaylistImportResponse{PlaylistImport: playlistImportProto(operation)}), nil
+}
+
+func (s *musicPlaylistServer) GetPlaylist(ctx context.Context, request *connect.Request[musicv1.GetPlaylistRequest]) (*connect.Response[musicv1.GetPlaylistResponse], error) {
 	playlist, err := s.service.GetPlaylist(ctx, request.Msg.GetPlaylistUid())
 	if err != nil {
 		return nil, connectError(err)
@@ -23,7 +35,7 @@ func (s *musicServer) GetPlaylist(ctx context.Context, request *connect.Request[
 	return connect.NewResponse(&musicv1.GetPlaylistResponse{Playlist: playlistProto(playlist)}), nil
 }
 
-func (s *musicServer) ListPlaylists(ctx context.Context, request *connect.Request[musicv1.ListPlaylistsRequest]) (*connect.Response[musicv1.ListPlaylistsResponse], error) {
+func (s *musicPlaylistServer) ListPlaylists(ctx context.Context, request *connect.Request[musicv1.ListPlaylistsRequest]) (*connect.Response[musicv1.ListPlaylistsResponse], error) {
 	page, err := s.service.ListPlaylists(ctx, int(request.Msg.GetPageSize()), request.Msg.GetPageToken())
 	if err != nil {
 		return nil, connectError(err)
@@ -35,7 +47,7 @@ func (s *musicServer) ListPlaylists(ctx context.Context, request *connect.Reques
 	return connect.NewResponse(&musicv1.ListPlaylistsResponse{Playlists: playlists, NextPageToken: page.NextPageToken}), nil
 }
 
-func (s *musicServer) ListPlaylistTracks(ctx context.Context, request *connect.Request[musicv1.ListPlaylistTracksRequest]) (*connect.Response[musicv1.ListPlaylistTracksResponse], error) {
+func (s *musicPlaylistServer) ListPlaylistTracks(ctx context.Context, request *connect.Request[musicv1.ListPlaylistTracksRequest]) (*connect.Response[musicv1.ListPlaylistTracksResponse], error) {
 	page, err := s.service.ListPlaylistTracks(ctx, request.Msg.GetPlaylistUid(), int(request.Msg.GetPageSize()), request.Msg.GetPageToken())
 	if err != nil {
 		return nil, connectError(err)
@@ -47,7 +59,7 @@ func (s *musicServer) ListPlaylistTracks(ctx context.Context, request *connect.R
 	return connect.NewResponse(&musicv1.ListPlaylistTracksResponse{PlaylistTracks: tracks, NextPageToken: page.NextPageToken}), nil
 }
 
-func (s *musicServer) DownloadPlaylist(ctx context.Context, request *connect.Request[musicv1.DownloadPlaylistRequest]) (*connect.Response[musicv1.DownloadPlaylistResponse], error) {
+func (s *musicPlaylistServer) DownloadPlaylist(ctx context.Context, request *connect.Request[musicv1.DownloadPlaylistRequest]) (*connect.Response[musicv1.DownloadPlaylistResponse], error) {
 	playlist, err := s.service.DownloadPlaylist(ctx, request.Msg.GetPlaylistUid())
 	if err != nil {
 		return nil, connectError(err)
@@ -55,7 +67,7 @@ func (s *musicServer) DownloadPlaylist(ctx context.Context, request *connect.Req
 	return connect.NewResponse(&musicv1.DownloadPlaylistResponse{Playlist: playlistProto(playlist)}), nil
 }
 
-func (s *musicServer) DeletePlaylist(ctx context.Context, request *connect.Request[musicv1.DeletePlaylistRequest]) (*connect.Response[musicv1.DeletePlaylistResponse], error) {
+func (s *musicPlaylistServer) DeletePlaylist(ctx context.Context, request *connect.Request[musicv1.DeletePlaylistRequest]) (*connect.Response[musicv1.DeletePlaylistResponse], error) {
 	if err := s.service.DeletePlaylist(ctx, request.Msg.GetPlaylistUid()); err != nil {
 		return nil, connectError(err)
 	}

@@ -4,7 +4,7 @@
 
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
-import type { MusicProvider, PlayableTrack } from "./provider_pb.js";
+import type { PlayableTrack } from "./provider_pb.js";
 import { file_cloud_music_v1_provider } from "./provider_pb.js";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
@@ -14,7 +14,56 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file cloud/music/v1/playlist.proto.
  */
 export const file_cloud_music_v1_playlist: GenFile = /*@__PURE__*/
-  fileDesc("Ch1jbG91ZC9tdXNpYy92MS9wbGF5bGlzdC5wcm90bxIOY2xvdWQubXVzaWMudjEiqwMKCFBsYXlsaXN0EgsKA3VpZBgBIAEoCRIvCghwcm92aWRlchgCIAEoDjIdLmNsb3VkLm11c2ljLnYxLk11c2ljUHJvdmlkZXISEwoLZXh0ZXJuYWxfaWQYAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJEhMKC2FydHdvcmtfdXJsGAUgASgJEhQKDHByb3ZpZGVyX3VybBgGIAEoCRITCgt0cmFja19jb3VudBgHIAEoBRIbChNwZW5kaW5nX3RyYWNrX2NvdW50GAggASgFEh0KFWNvbXBsZXRlZF90cmFja19jb3VudBgJIAEoBRIaChJmYWlsZWRfdHJhY2tfY291bnQYCiABKAUSGgoSZG93bmxvYWRfc3VwcG9ydGVkGAsgASgIEi8KC2NyZWF0ZV90aW1lGAwgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgt1cGRhdGVfdGltZRgNIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASIAoYZG93bmxvYWRhYmxlX3RyYWNrX2NvdW50GA4gASgFItEBCg1QbGF5bGlzdFRyYWNrEgsKA3VpZBgBIAEoCRIUCgxwbGF5bGlzdF91aWQYAiABKAkSEAoIcG9zaXRpb24YAyABKAUSLAoFdHJhY2sYBCABKAsyHS5jbG91ZC5tdXNpYy52MS5QbGF5YWJsZVRyYWNrEkQKD2Rvd25sb2FkX3N0YXR1cxgFIAEoDjIrLmNsb3VkLm11c2ljLnYxLlBsYXlsaXN0VHJhY2tEb3dubG9hZFN0YXR1cxIXCg9sb2NhbF90cmFja191aWQYBiABKAkqrgIKG1BsYXlsaXN0VHJhY2tEb3dubG9hZFN0YXR1cxIuCipQTEFZTElTVF9UUkFDS19ET1dOTE9BRF9TVEFUVVNfVU5TUEVDSUZJRUQQABIuCipQTEFZTElTVF9UUkFDS19ET1dOTE9BRF9TVEFUVVNfTk9UX1NUQVJURUQQARIqCiZQTEFZTElTVF9UUkFDS19ET1dOTE9BRF9TVEFUVVNfUEVORElORxACEioKJlBMQVlMSVNUX1RSQUNLX0RPV05MT0FEX1NUQVRVU19SVU5OSU5HEAMSLAooUExBWUxJU1RfVFJBQ0tfRE9XTkxPQURfU1RBVFVTX0NPTVBMRVRFRBAEEikKJVBMQVlMSVNUX1RSQUNLX0RPV05MT0FEX1NUQVRVU19GQUlMRUQQBUI4WjZleGFtcGxlLmNvbS9jbG91ZC1kcml2ZS9hcGkvZ2VuL2Nsb3VkL211c2ljL3YxO211c2ljdjFiBnByb3RvMw", [file_cloud_music_v1_provider, file_google_protobuf_timestamp]);
+  fileDesc("Ch1jbG91ZC9tdXNpYy92MS9wbGF5bGlzdC5wcm90bxIOY2xvdWQubXVzaWMudjEi9gEKDlBsYXlsaXN0SW1wb3J0EgsKA3VpZBgBIAEoCRITCgtwcm92aWRlcl9pZBgCIAEoCRI0CgZzdGF0dXMYAyABKA4yJC5jbG91ZC5tdXNpYy52MS5QbGF5bGlzdEltcG9ydFN0YXR1cxIUCgxwbGF5bGlzdF91aWQYBCABKAkSFAoMZmFpbHVyZV9jb2RlGAUgASgJEi8KC2NyZWF0ZV90aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgt1cGRhdGVfdGltZRgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAijwMKCFBsYXlsaXN0EgsKA3VpZBgBIAEoCRITCgtwcm92aWRlcl9pZBgCIAEoCRITCgtleHRlcm5hbF9pZBgDIAEoCRIUCgxkaXNwbGF5X25hbWUYBCABKAkSEwoLYXJ0d29ya191cmwYBSABKAkSFAoMcHJvdmlkZXJfdXJsGAYgASgJEhMKC3RyYWNrX2NvdW50GAcgASgFEhsKE3BlbmRpbmdfdHJhY2tfY291bnQYCCABKAUSHQoVY29tcGxldGVkX3RyYWNrX2NvdW50GAkgASgFEhoKEmZhaWxlZF90cmFja19jb3VudBgKIAEoBRIaChJkb3dubG9hZF9zdXBwb3J0ZWQYCyABKAgSLwoLY3JlYXRlX3RpbWUYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KC3VwZGF0ZV90aW1lGA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIgChhkb3dubG9hZGFibGVfdHJhY2tfY291bnQYDiABKAUi0QEKDVBsYXlsaXN0VHJhY2sSCwoDdWlkGAEgASgJEhQKDHBsYXlsaXN0X3VpZBgCIAEoCRIQCghwb3NpdGlvbhgDIAEoBRIsCgV0cmFjaxgEIAEoCzIdLmNsb3VkLm11c2ljLnYxLlBsYXlhYmxlVHJhY2sSRAoPZG93bmxvYWRfc3RhdHVzGAUgASgOMisuY2xvdWQubXVzaWMudjEuUGxheWxpc3RUcmFja0Rvd25sb2FkU3RhdHVzEhcKD2xvY2FsX3RyYWNrX3VpZBgGIAEoCSquAgobUGxheWxpc3RUcmFja0Rvd25sb2FkU3RhdHVzEi4KKlBMQVlMSVNUX1RSQUNLX0RPV05MT0FEX1NUQVRVU19VTlNQRUNJRklFRBAAEi4KKlBMQVlMSVNUX1RSQUNLX0RPV05MT0FEX1NUQVRVU19OT1RfU1RBUlRFRBABEioKJlBMQVlMSVNUX1RSQUNLX0RPV05MT0FEX1NUQVRVU19QRU5ESU5HEAISKgomUExBWUxJU1RfVFJBQ0tfRE9XTkxPQURfU1RBVFVTX1JVTk5JTkcQAxIsCihQTEFZTElTVF9UUkFDS19ET1dOTE9BRF9TVEFUVVNfQ09NUExFVEVEEAQSKQolUExBWUxJU1RfVFJBQ0tfRE9XTkxPQURfU1RBVFVTX0ZBSUxFRBAFKs8BChRQbGF5bGlzdEltcG9ydFN0YXR1cxImCiJQTEFZTElTVF9JTVBPUlRfU1RBVFVTX1VOU1BFQ0lGSUVEEAASIgoeUExBWUxJU1RfSU1QT1JUX1NUQVRVU19QRU5ESU5HEAESIgoeUExBWUxJU1RfSU1QT1JUX1NUQVRVU19SVU5OSU5HEAISJAogUExBWUxJU1RfSU1QT1JUX1NUQVRVU19DT01QTEVURUQQAxIhCh1QTEFZTElTVF9JTVBPUlRfU1RBVFVTX0ZBSUxFRBAEQjhaNmV4YW1wbGUuY29tL2Nsb3VkLWRyaXZlL2FwaS9nZW4vY2xvdWQvbXVzaWMvdjE7bXVzaWN2MWIGcHJvdG8z", [file_cloud_music_v1_provider, file_google_protobuf_timestamp]);
+
+/**
+ * PlaylistImport is a bounded, resumable provider operation.
+ *
+ * @generated from message cloud.music.v1.PlaylistImport
+ */
+export type PlaylistImport = Message<"cloud.music.v1.PlaylistImport"> & {
+  /**
+   * @generated from field: string uid = 1;
+   */
+  uid: string;
+
+  /**
+   * @generated from field: string provider_id = 2;
+   */
+  providerId: string;
+
+  /**
+   * @generated from field: cloud.music.v1.PlaylistImportStatus status = 3;
+   */
+  status: PlaylistImportStatus;
+
+  /**
+   * @generated from field: string playlist_uid = 4;
+   */
+  playlistUid: string;
+
+  /**
+   * @generated from field: string failure_code = 5;
+   */
+  failureCode: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp create_time = 6;
+   */
+  createTime?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp update_time = 7;
+   */
+  updateTime?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message cloud.music.v1.PlaylistImport.
+ * Use `create(PlaylistImportSchema)` to create a new message.
+ */
+export const PlaylistImportSchema: GenMessage<PlaylistImport> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_playlist, 0);
 
 /**
  * Playlist is an imported snapshot of one provider playlist.
@@ -28,9 +77,9 @@ export type Playlist = Message<"cloud.music.v1.Playlist"> & {
   uid: string;
 
   /**
-   * @generated from field: cloud.music.v1.MusicProvider provider = 2;
+   * @generated from field: string provider_id = 2;
    */
-  provider: MusicProvider;
+  providerId: string;
 
   /**
    * @generated from field: string external_id = 3;
@@ -98,7 +147,7 @@ export type Playlist = Message<"cloud.music.v1.Playlist"> & {
  * Use `create(PlaylistSchema)` to create a new message.
  */
 export const PlaylistSchema: GenMessage<Playlist> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_playlist, 0);
+  messageDesc(file_cloud_music_v1_playlist, 1);
 
 /**
  * PlaylistTrack is one ordered provider track and its local persistence state.
@@ -142,7 +191,7 @@ export type PlaylistTrack = Message<"cloud.music.v1.PlaylistTrack"> & {
  * Use `create(PlaylistTrackSchema)` to create a new message.
  */
 export const PlaylistTrackSchema: GenMessage<PlaylistTrack> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_playlist, 1);
+  messageDesc(file_cloud_music_v1_playlist, 2);
 
 /**
  * PlaylistTrackDownloadStatus describes local persistence progress for one playlist track.
@@ -186,4 +235,42 @@ export enum PlaylistTrackDownloadStatus {
  */
 export const PlaylistTrackDownloadStatusSchema: GenEnum<PlaylistTrackDownloadStatus> = /*@__PURE__*/
   enumDesc(file_cloud_music_v1_playlist, 0);
+
+/**
+ * PlaylistImportStatus describes one durable provider import operation.
+ *
+ * @generated from enum cloud.music.v1.PlaylistImportStatus
+ */
+export enum PlaylistImportStatus {
+  /**
+   * @generated from enum value: PLAYLIST_IMPORT_STATUS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: PLAYLIST_IMPORT_STATUS_PENDING = 1;
+   */
+  PENDING = 1,
+
+  /**
+   * @generated from enum value: PLAYLIST_IMPORT_STATUS_RUNNING = 2;
+   */
+  RUNNING = 2,
+
+  /**
+   * @generated from enum value: PLAYLIST_IMPORT_STATUS_COMPLETED = 3;
+   */
+  COMPLETED = 3,
+
+  /**
+   * @generated from enum value: PLAYLIST_IMPORT_STATUS_FAILED = 4;
+   */
+  FAILED = 4,
+}
+
+/**
+ * Describes the enum cloud.music.v1.PlaylistImportStatus.
+ */
+export const PlaylistImportStatusSchema: GenEnum<PlaylistImportStatus> = /*@__PURE__*/
+  enumDesc(file_cloud_music_v1_playlist, 1);
 

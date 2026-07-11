@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"example.com/cloud-drive/api/internal/domain"
@@ -35,9 +34,7 @@ func (s *Store) ReservedUploadBytes(ctx context.Context) (int64, error) {
 
 // GetUpload returns metadata and acknowledged ranges.
 func (s *Store) GetUpload(ctx context.Context, uid string) (domain.Upload, error) {
-	upload, err := scanUpload(s.pool.QueryRow(ctx, `SELECT uid, file_name, content_type, total_size_bytes,
-		received_bytes, chunk_size_bytes, status, create_time, expire_time, COALESCE(claimed_resource_uid, '')
-		FROM uploads WHERE uid = $1`, uid))
+	upload, err := scanUpload(s.pool.QueryRow(ctx, "SELECT "+uploadColumns+" FROM uploads WHERE uid = $1", uid))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Upload{}, fmt.Errorf("%w: upload", domain.ErrNotFound)
 	}
@@ -67,6 +64,44 @@ func (s *Store) GetUpload(ctx context.Context, uid string) (domain.Upload, error
 		return domain.Upload{}, fmt.Errorf("iterate upload chunks: %w", err)
 	}
 	return upload, nil
+}
+
+// BeginUploadFinalization validates complete ranges and queues local hashing.
+func (s *Store) BeginUploadFinalization(ctx context.Context, uid string) (domain.Upload, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return domain.Upload{}, fmt.Errorf("begin upload finalization: %w", err)
+	}
+	defer tx.Rollback(ctx)
+	upload, err := scanUpload(tx.QueryRow(ctx, "SELECT "+uploadColumns+" FROM uploads WHERE uid = $1 FOR UPDATE", uid))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Upload{}, fmt.Errorf("%w: upload", domain.ErrNotFound)
+	}
+	if err != nil {
+		return domain.Upload{}, fmt.Errorf("lock upload finalization: %w", err)
+	}
+	if upload.Status == domain.UploadStatusFinalizing || upload.Status == domain.UploadStatusSealed || upload.Status == domain.UploadStatusClaimed {
+		if err := tx.Commit(ctx); err != nil {
+			return domain.Upload{}, fmt.Errorf("commit repeated upload finalization: %w", err)
+		}
+		return s.GetUpload(ctx, uid)
+	}
+	if upload.Status != domain.UploadStatusActive || !upload.ExpireTime.After(time.Now().UTC()) || upload.ReceivedBytes != upload.TotalSizeBytes {
+		return domain.Upload{}, fmt.Errorf("%w: upload is incomplete", domain.ErrConflict)
+	}
+	if err := validateUploadRanges(ctx, tx, uid, upload.TotalSizeBytes); err != nil {
+		return domain.Upload{}, err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE uploads SET status = 'finalizing', failure_code = '' WHERE uid = $1`, uid); err != nil {
+		return domain.Upload{}, fmt.Errorf("queue upload finalization: %w", err)
+	}
+	if err := enqueueJob(ctx, tx, domain.ProcessingJobUploadFinalize, uid); err != nil {
+		return domain.Upload{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return domain.Upload{}, fmt.Errorf("commit upload finalization: %w", err)
+	}
+	return s.GetUpload(ctx, uid)
 }
 
 // RecordUploadChunk atomically acknowledges one non-overlapping range.
@@ -128,21 +163,53 @@ func (s *Store) RecordUploadChunk(ctx context.Context, uploadUID string, chunk d
 
 // DeleteUpload deletes unclaimed upload metadata.
 func (s *Store) DeleteUpload(ctx context.Context, uid string) error {
-	command, err := s.pool.Exec(ctx, "DELETE FROM uploads WHERE uid = $1 AND status <> 'claimed'", uid)
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin upload deletion: %w", err)
+	}
+	defer tx.Rollback(ctx)
+	command, err := tx.Exec(ctx, `DELETE FROM uploads WHERE uid = $1
+		AND status IN ('active', 'sealed', 'failed', 'expired')`, uid)
 	if err != nil {
 		return fmt.Errorf("delete upload: %w", err)
 	}
 	if command.RowsAffected() == 0 {
 		return fmt.Errorf("%w: unclaimed upload", domain.ErrNotFound)
 	}
-	return nil
+	if _, err := tx.Exec(ctx, `DELETE FROM processing_jobs
+		WHERE kind = 'upload_finalize' AND resource_uid = $1`, uid); err != nil {
+		return fmt.Errorf("delete upload finalization job: %w", err)
+	}
+	return tx.Commit(ctx)
 }
 
-// ListExpiredUploads returns sessions whose temporary files may be removed.
-func (s *Store) ListExpiredUploads(ctx context.Context, cutoff time.Time) ([]domain.Upload, error) {
-	rows, err := s.pool.Query(ctx, `SELECT uid, file_name, content_type, total_size_bytes, received_bytes,
-		chunk_size_bytes, status, create_time, expire_time, COALESCE(claimed_resource_uid, '')
-		FROM uploads WHERE status <> 'claimed' AND expire_time <= $1 ORDER BY expire_time`, cutoff)
+// DeleteRetainedUpload removes upload metadata after its retention window.
+func (s *Store) DeleteRetainedUpload(ctx context.Context, uid string) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin retained upload deletion: %w", err)
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `DELETE FROM processing_jobs
+		WHERE kind = 'upload_finalize' AND resource_uid = $1`, uid); err != nil {
+		return fmt.Errorf("delete upload finalization job: %w", err)
+	}
+	if _, err := tx.Exec(ctx, "DELETE FROM uploads WHERE uid = $1", uid); err != nil {
+		return fmt.Errorf("delete retained upload: %w", err)
+	}
+	return tx.Commit(ctx)
+}
+
+// ListDiscardableUploads returns expired sessions and aged claimed receipts.
+func (s *Store) ListDiscardableUploads(ctx context.Context, expireCutoff, claimedCutoff time.Time) ([]domain.Upload, error) {
+	rows, err := s.pool.Query(ctx, "SELECT "+uploadColumns+` FROM uploads
+		WHERE ((status <> 'claimed' AND status <> 'finalizing' AND expire_time <= $1)
+		OR (status = 'finalizing' AND expire_time <= $1 AND NOT EXISTS (
+			SELECT 1 FROM processing_jobs job WHERE job.kind = 'upload_finalize'
+			AND job.resource_uid = uploads.uid AND job.status IN ('pending', 'running')
+		)))
+		OR (status = 'claimed' AND claim_time <= $2)
+		ORDER BY COALESCE(claim_time, expire_time), uid`, expireCutoff, claimedCutoff)
 	if err != nil {
 		return nil, fmt.Errorf("list expired uploads: %w", err)
 	}
@@ -158,78 +225,30 @@ func (s *Store) ListExpiredUploads(ctx context.Context, cutoff time.Time) ([]dom
 	return uploads, rows.Err()
 }
 
-// ListUnhashedContent returns legacy source objects awaiting migration.
-func lockCompleteUpload(ctx context.Context, tx pgx.Tx, uploadUID string) (domain.Upload, error) {
-	upload, err := scanUpload(tx.QueryRow(ctx, `SELECT uid, file_name, content_type, total_size_bytes,
-		received_bytes, chunk_size_bytes, status, create_time, expire_time, COALESCE(claimed_resource_uid, '')
-		FROM uploads WHERE uid = $1 FOR UPDATE`, uploadUID))
-	if errors.Is(err, pgx.ErrNoRows) {
-		return domain.Upload{}, fmt.Errorf("%w: upload", domain.ErrNotFound)
-	}
-	if err != nil {
-		return domain.Upload{}, fmt.Errorf("lock upload: %w", err)
-	}
-	if upload.Status == domain.UploadStatusClaimed {
-		return upload, nil
-	}
-	if upload.Status != domain.UploadStatusActive || !upload.ExpireTime.After(time.Now().UTC()) || upload.ReceivedBytes != upload.TotalSizeBytes {
-		return domain.Upload{}, fmt.Errorf("%w: upload is incomplete", domain.ErrConflict)
-	}
+func validateUploadRanges(ctx context.Context, tx pgx.Tx, uploadUID string, totalSize int64) error {
 	var expected int64
 	rows, err := tx.Query(ctx, `SELECT start_offset, end_offset FROM upload_chunks WHERE upload_uid = $1 ORDER BY start_offset`, uploadUID)
 	if err != nil {
-		return domain.Upload{}, fmt.Errorf("read upload ranges: %w", err)
+		return fmt.Errorf("read upload ranges: %w", err)
 	}
 	for rows.Next() {
 		var start, end int64
 		if err := rows.Scan(&start, &end); err != nil {
 			rows.Close()
-			return domain.Upload{}, fmt.Errorf("scan upload range: %w", err)
+			return fmt.Errorf("scan upload range: %w", err)
 		}
 		if start != expected {
 			rows.Close()
-			return domain.Upload{}, fmt.Errorf("%w: upload has missing ranges", domain.ErrConflict)
+			return fmt.Errorf("%w: upload has missing ranges", domain.ErrConflict)
 		}
 		expected = end
 	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate upload ranges: %w", err)
+	}
 	rows.Close()
-	if expected != upload.TotalSizeBytes {
-		return domain.Upload{}, fmt.Errorf("%w: upload has missing ranges", domain.ErrConflict)
-	}
-	return upload, nil
-}
-
-func upsertContent(ctx context.Context, tx pgx.Tx, sealed domain.SealedContent) (domain.ContentObject, error) {
-	uid := uuid.NewString()
-	content, err := scanContent(tx.QueryRow(ctx, `INSERT INTO content_objects
-		(uid, sha256, size_bytes, content_type, storage_key) VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (sha256) DO UPDATE SET sha256 = EXCLUDED.sha256
-		RETURNING uid, sha256, size_bytes, content_type, storage_key, create_time`, uid, sealed.SHA256,
-		sealed.SizeBytes, sealed.ContentType, sealed.StorageKey))
-	if err != nil {
-		return domain.ContentObject{}, fmt.Errorf("create content object: %w", err)
-	}
-	return content, nil
-}
-
-func markUploadClaimed(ctx context.Context, tx pgx.Tx, uploadUID, resourceUID string) error {
-	if _, err := tx.Exec(ctx, `UPDATE uploads SET status = 'claimed', claimed_resource_uid = $2, claim_time = now()
-		WHERE uid = $1`, uploadUID, resourceUID); err != nil {
-		return fmt.Errorf("claim upload: %w", err)
+	if expected != totalSize {
+		return fmt.Errorf("%w: upload has missing ranges", domain.ErrConflict)
 	}
 	return nil
-}
-
-type rowScanner interface{ Scan(...any) error }
-
-func scanUpload(row rowScanner) (domain.Upload, error) {
-	var upload domain.Upload
-	var status string
-	if err := row.Scan(&upload.UID, &upload.FileName, &upload.ContentType, &upload.TotalSizeBytes,
-		&upload.ReceivedBytes, &upload.ChunkSizeBytes, &status, &upload.CreateTime, &upload.ExpireTime,
-		&upload.ClaimedUID); err != nil {
-		return domain.Upload{}, err
-	}
-	upload.Status = domain.UploadStatus(status)
-	return upload, nil
 }

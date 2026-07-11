@@ -110,7 +110,7 @@ func (s *Store) ListSharedItems(ctx context.Context, shareUID string, parentUID 
 		}
 		return domain.Page{}, fmt.Errorf("%w: item is outside share", domain.ErrForbidden)
 	}
-	return s.ListItems(ctx, parentUID, false, pageSize, pageToken)
+	return s.ListItems(ctx, domain.DriveListQuery{ParentUID: parentUID, PageSize: pageSize, PageToken: pageToken})
 }
 
 // CanReadSharedItem verifies share scope.

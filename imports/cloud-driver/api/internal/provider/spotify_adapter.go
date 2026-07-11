@@ -40,6 +40,8 @@ func newSpotifyAdapter(config RegistryConfig) (*SpotifyAdapter, error) {
 
 func (*SpotifyAdapter) Provider() domain.MusicProvider { return domain.MusicProviderSpotify }
 
+func (*SpotifyAdapter) DisplayName() string { return "Spotify" }
+
 func (a *SpotifyAdapter) Configured() bool { return a.client != nil }
 
 func (a *SpotifyAdapter) BeginLogin(_ context.Context) (domain.ProviderLoginChallenge, error) {

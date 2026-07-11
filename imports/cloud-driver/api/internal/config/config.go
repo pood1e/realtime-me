@@ -46,6 +46,15 @@ type WorkerConfig struct {
 	DataRoot              string
 	ProviderCredentialKey []byte
 	ReservedFreeBytes     int64
+	SpotifyClientID       string
+	SpotifyClientSecret   string
+	SpotifyRedirectURI    string
+}
+
+// MigrationConfig contains only settings required by schema and content migrations.
+type MigrationConfig struct {
+	DatabaseURL string
+	DataRoot    string
 }
 
 // Load reads and validates API configuration.
@@ -114,7 +123,8 @@ func Load() (Config, error) {
 func LoadWorker() (WorkerConfig, error) {
 	config := WorkerConfig{
 		DatabaseURL: strings.TrimSpace(os.Getenv("DATABASE_URL")), DataRoot: strings.TrimSpace(os.Getenv("DATA_ROOT")),
-		ReservedFreeBytes: defaultReservedFreeByte,
+		ReservedFreeBytes: defaultReservedFreeByte, SpotifyClientID: strings.TrimSpace(os.Getenv("SPOTIFY_CLIENT_ID")),
+		SpotifyClientSecret: strings.TrimSpace(os.Getenv("SPOTIFY_CLIENT_SECRET")),
 	}
 	if config.DatabaseURL == "" || config.DataRoot == "" {
 		return WorkerConfig{}, errors.New("DATABASE_URL and DATA_ROOT are required")
@@ -124,12 +134,32 @@ func LoadWorker() (WorkerConfig, error) {
 		return WorkerConfig{}, err
 	}
 	config.ProviderCredentialKey = providerCredentialKey
+	spotifyConfigured := config.SpotifyClientID != "" || config.SpotifyClientSecret != ""
+	privateAPIHost := normalizeHost(os.Getenv("PRIVATE_API_HOST"))
+	if spotifyConfigured {
+		if config.SpotifyClientID == "" || config.SpotifyClientSecret == "" || privateAPIHost == "" {
+			return WorkerConfig{}, errors.New("Spotify worker configuration requires client ID, client secret, and private API host")
+		}
+		config.SpotifyRedirectURI = "https://" + privateAPIHost + "/v1/music/providers/spotify/callback"
+	}
 	if raw := strings.TrimSpace(os.Getenv("RESERVED_FREE_BYTES")); raw != "" {
 		value, err := strconv.ParseInt(raw, 10, 64)
 		if err != nil || value < 0 {
 			return WorkerConfig{}, errors.New("RESERVED_FREE_BYTES must be a non-negative integer")
 		}
 		config.ReservedFreeBytes = value
+	}
+	return config, nil
+}
+
+// LoadMigration reads migration-only configuration without requiring application secrets.
+func LoadMigration() (MigrationConfig, error) {
+	config := MigrationConfig{
+		DatabaseURL: strings.TrimSpace(os.Getenv("DATABASE_URL")),
+		DataRoot:    strings.TrimSpace(os.Getenv("DATA_ROOT")),
+	}
+	if config.DatabaseURL == "" || config.DataRoot == "" {
+		return MigrationConfig{}, errors.New("DATABASE_URL and DATA_ROOT are required")
 	}
 	return config, nil
 }

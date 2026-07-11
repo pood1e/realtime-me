@@ -12,7 +12,7 @@ import (
 	"example.com/cloud-drive/api/internal/domain"
 )
 
-const maximumProcessingAttempts = 3
+const maximumProcessingAttempts = 5
 
 // HeartbeatWorker records the worker's liveness.
 func (s *Store) HeartbeatWorker(ctx context.Context, now time.Time) error {
@@ -35,7 +35,14 @@ func (s *Store) GetWorkerHealth(ctx context.Context) (domain.WorkerHealth, error
 }
 
 // ClaimProcessingJob leases one available or abandoned job.
-func (s *Store) ClaimProcessingJob(ctx context.Context, now time.Time, leaseDuration time.Duration) (*domain.ProcessingJob, error) {
+func (s *Store) ClaimProcessingJob(ctx context.Context, now time.Time, leaseDuration time.Duration, kinds []domain.ProcessingJobKind) (*domain.ProcessingJob, error) {
+	if len(kinds) == 0 {
+		return nil, fmt.Errorf("%w: processing job kinds are required", domain.ErrInvalidArgument)
+	}
+	kindValues := make([]string, len(kinds))
+	for index, kind := range kinds {
+		kindValues[index] = string(kind)
+	}
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("begin job claim: %w", err)
@@ -43,9 +50,13 @@ func (s *Store) ClaimProcessingJob(ctx context.Context, now time.Time, leaseDura
 	defer tx.Rollback(ctx)
 	var job domain.ProcessingJob
 	err = tx.QueryRow(ctx, `SELECT uid, kind, resource_uid, attempts FROM processing_jobs
-		WHERE (status = 'pending' AND available_time <= $1)
-		OR (status = 'running' AND lease_until <= $1)
-		ORDER BY available_time, create_time FOR UPDATE SKIP LOCKED LIMIT 1`, now).Scan(
+		WHERE kind = ANY($2) AND ((status = 'pending' AND available_time <= $1)
+		OR (status = 'running' AND lease_until <= $1))
+		ORDER BY CASE kind
+			WHEN 'upload_finalize' THEN 0
+			WHEN 'playlist_import' THEN 1
+			ELSE 2
+		END, available_time, create_time FOR UPDATE SKIP LOCKED LIMIT 1`, now, kindValues).Scan(
 		&job.UID, &job.Kind, &job.ResourceUID, &job.Attempts)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -54,14 +65,22 @@ func (s *Store) ClaimProcessingJob(ctx context.Context, now time.Time, leaseDura
 		return nil, fmt.Errorf("select processing job: %w", err)
 	}
 	job.Attempts++
+	job.LeaseToken = uuid.NewString()
 	if _, err := tx.Exec(ctx, `UPDATE processing_jobs SET status = 'running', attempts = $2,
-		lease_until = $3, update_time = $1 WHERE uid = $4`, now, job.Attempts, now.Add(leaseDuration), job.UID); err != nil {
+		lease_until = $3, lease_token = $4, update_time = $1 WHERE uid = $5`,
+		now, job.Attempts, now.Add(leaseDuration), job.LeaseToken, job.UID); err != nil {
 		return nil, fmt.Errorf("lease processing job: %w", err)
 	}
-	if job.Kind == "music_download" {
+	if job.Kind == domain.ProcessingJobMusicDownload {
 		if _, err := tx.Exec(ctx, `UPDATE music_playlist_tracks SET download_status = 'running'
 			WHERE uid = $1 AND local_track_uid IS NULL`, job.ResourceUID); err != nil {
 			return nil, fmt.Errorf("mark music download running: %w", err)
+		}
+	}
+	if job.Kind == domain.ProcessingJobPlaylistImport {
+		if _, err := tx.Exec(ctx, `UPDATE music_playlist_imports SET status = 'running', update_time = $2
+			WHERE uid = $1 AND status IN ('pending', 'running')`, job.ResourceUID, now); err != nil {
+			return nil, fmt.Errorf("mark playlist import running: %w", err)
 		}
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -70,10 +89,38 @@ func (s *Store) ClaimProcessingJob(ctx context.Context, now time.Time, leaseDura
 	return &job, nil
 }
 
-// CompleteProcessingJob marks a successfully persisted job complete.
+// ExtendProcessingJobLease renews only the caller's fenced lease.
+func (s *Store) ExtendProcessingJobLease(ctx context.Context, job domain.ProcessingJob, leaseUntil time.Time) error {
+	command, err := s.pool.Exec(ctx, `UPDATE processing_jobs SET lease_until = $3, update_time = now()
+		WHERE uid = $1 AND lease_token = $2 AND status = 'running'`, job.UID, job.LeaseToken, leaseUntil)
+	if err != nil {
+		return fmt.Errorf("renew processing job lease: %w", err)
+	}
+	if command.RowsAffected() != 1 {
+		return fmt.Errorf("%w: processing job lease", domain.ErrConflict)
+	}
+	return nil
+}
+
+func lockProcessingJobLease(ctx context.Context, tx pgx.Tx, job domain.ProcessingJob) error {
+	var uid string
+	err := tx.QueryRow(ctx, `SELECT uid FROM processing_jobs
+		WHERE uid = $1 AND kind = $2 AND resource_uid = $3 AND lease_token = $4
+		AND status = 'running' AND lease_until > now() FOR UPDATE`,
+		job.UID, job.Kind, job.ResourceUID, job.LeaseToken).Scan(&uid)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return fmt.Errorf("%w: processing job lease", domain.ErrConflict)
+	}
+	if err != nil {
+		return fmt.Errorf("lock processing job lease: %w", err)
+	}
+	return nil
+}
+
+// CompleteProcessingJob removes a successfully persisted fenced job.
 func (s *Store) CompleteProcessingJob(ctx context.Context, job domain.ProcessingJob) error {
-	command, err := s.pool.Exec(ctx, `UPDATE processing_jobs SET status = 'completed', lease_until = NULL,
-		error_code = '', update_time = now() WHERE uid = $1 AND status = 'running'`, job.UID)
+	command, err := s.pool.Exec(ctx, `DELETE FROM processing_jobs
+		WHERE uid = $1 AND lease_token = $2 AND status = 'running'`, job.UID, job.LeaseToken)
 	if err != nil {
 		return fmt.Errorf("complete processing job: %w", err)
 	}
@@ -84,19 +131,25 @@ func (s *Store) CompleteProcessingJob(ctx context.Context, job domain.Processing
 }
 
 // FailProcessingJob retries a bounded number of times before marking the resource failed.
-func (s *Store) FailProcessingJob(ctx context.Context, job domain.ProcessingJob, errorCode string, retryTime time.Time) error {
+func (s *Store) FailProcessingJob(ctx context.Context, job domain.ProcessingJob, errorCode string, retry bool, retryTime time.Time) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin processing failure: %w", err)
 	}
 	defer tx.Rollback(ctx)
 	status := "pending"
-	if job.Attempts >= maximumProcessingAttempts {
+	if !retry || job.Attempts >= maximumProcessingAttempts {
 		status = "failed"
 	}
-	if _, err := tx.Exec(ctx, `UPDATE processing_jobs SET status = $2, available_time = $3,
-		lease_until = NULL, error_code = $4, update_time = now() WHERE uid = $1`, job.UID, status, retryTime, errorCode); err != nil {
+	command, err := tx.Exec(ctx, `UPDATE processing_jobs SET status = $3, available_time = $4,
+		lease_until = NULL, lease_token = NULL, error_code = $5, update_time = now()
+		WHERE uid = $1 AND lease_token = $2 AND status = 'running'`,
+		job.UID, job.LeaseToken, status, retryTime, errorCode)
+	if err != nil {
 		return fmt.Errorf("fail processing job: %w", err)
+	}
+	if command.RowsAffected() != 1 {
+		return fmt.Errorf("%w: processing job lease", domain.ErrConflict)
 	}
 	if status == "failed" {
 		table, ok := processingTable(job.Kind)
@@ -109,28 +162,42 @@ func (s *Store) FailProcessingJob(ctx context.Context, job domain.ProcessingJob,
 			}
 		}
 	}
-	if job.Kind == "music_download" {
+	if job.Kind == domain.ProcessingJobMusicDownload {
 		if _, err := tx.Exec(ctx, `UPDATE music_playlist_tracks SET download_status = $2
 			WHERE uid = $1`, job.ResourceUID, status); err != nil {
 			return fmt.Errorf("mark music download %s: %w", status, err)
 		}
 	}
+	if job.Kind == domain.ProcessingJobUploadFinalize && status == "failed" {
+		if _, err := tx.Exec(ctx, `UPDATE uploads SET status = 'failed', failure_code = $2
+			WHERE uid = $1 AND status = 'finalizing'`, job.ResourceUID, errorCode); err != nil {
+			return fmt.Errorf("mark upload finalization failed: %w", err)
+		}
+	}
+	if job.Kind == domain.ProcessingJobPlaylistImport {
+		if _, err := tx.Exec(ctx, `UPDATE music_playlist_imports SET status = $2,
+			failure_code = $3, update_time = now() WHERE uid = $1 AND status = 'running'`,
+			job.ResourceUID, status, errorCode); err != nil {
+			return fmt.Errorf("mark playlist import %s: %w", status, err)
+		}
+	}
 	return tx.Commit(ctx)
 }
 
-func enqueueJob(ctx context.Context, tx pgx.Tx, kind, resourceUID string) error {
+func enqueueJob(ctx context.Context, tx pgx.Tx, kind domain.ProcessingJobKind, resourceUID string) error {
 	_, err := tx.Exec(ctx, `INSERT INTO processing_jobs (uid, kind, resource_uid, status)
 		VALUES ($1, $2, $3, 'pending')
 		ON CONFLICT (kind, resource_uid) DO UPDATE SET status = 'pending', attempts = 0,
-		available_time = now(), lease_until = NULL, error_code = '', update_time = now()`,
-		uuid.NewString(), kind, resourceUID)
+		available_time = now(), lease_until = NULL, lease_token = NULL, error_code = '', update_time = now()
+		WHERE processing_jobs.status <> 'running'`,
+		uuid.NewString(), string(kind), resourceUID)
 	if err != nil {
 		return fmt.Errorf("queue %s processing: %w", kind, err)
 	}
 	return nil
 }
 
-func (s *Store) queueProcessing(ctx context.Context, table, kind, uid string, get func() (domain.Book, error)) (domain.Book, error) {
+func (s *Store) queueProcessing(ctx context.Context, table string, kind domain.ProcessingJobKind, uid string, get func() (domain.Book, error)) (domain.Book, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return domain.Book{}, fmt.Errorf("begin processing retry: %w", err)
@@ -166,22 +233,26 @@ func upsertArtifact(ctx context.Context, tx pgx.Tx, artifact domain.Artifact) er
 	return nil
 }
 
-func processingTable(kind string) (string, bool) {
+func processingTable(kind domain.ProcessingJobKind) (string, bool) {
 	switch kind {
-	case "book":
+	case domain.ProcessingJobBook:
 		return "books", true
-	case "track":
+	case domain.ProcessingJobTrack:
 		return "tracks", true
-	case "image":
+	case domain.ProcessingJobImage:
 		return "images", true
 	default:
 		return "", false
 	}
 }
 
-func allowsJobOnlyFailure(kind string) bool {
+func allowsJobOnlyFailure(kind domain.ProcessingJobKind) bool {
 	switch kind {
-	case "wallpaper", "music_download", "music_artwork":
+	case domain.ProcessingJobWallpaper,
+		domain.ProcessingJobMusicDownload,
+		domain.ProcessingJobMusicArtwork,
+		domain.ProcessingJobUploadFinalize,
+		domain.ProcessingJobPlaylistImport:
 		return true
 	default:
 		return false

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -19,11 +20,12 @@ import (
 	"example.com/cloud-drive/api/internal/app"
 	"example.com/cloud-drive/api/internal/auth"
 	"example.com/cloud-drive/api/internal/config"
+	"example.com/cloud-drive/api/internal/domain"
 )
 
 const maxChunkBodyBytes = 16 << 20
 
-const spotifyCallbackPath = "/v1/music/providers/spotify/callback"
+const providerCallbackPrefix = "/v1/music/providers/"
 
 // NewHTTPHandler creates strict host-separated private and public routes.
 func NewHTTPHandler(cfg config.Config, suite *app.Suite, sessions *auth.Manager, logger *slog.Logger) http.Handler {
@@ -48,7 +50,11 @@ func mountPrivateConnect(mux *http.ServeMux, cfg config.Config, suite *app.Suite
 	registerConnect(mux, path, handler)
 	path, handler = booksv1connect.NewBookServiceHandler(&bookServer{service: suite.Books})
 	registerConnect(mux, path, handler)
-	path, handler = musicv1connect.NewMusicServiceHandler(&musicServer{service: suite.Music})
+	path, handler = musicv1connect.NewMusicLibraryServiceHandler(&musicLibraryServer{service: suite.Music.Library})
+	registerConnect(mux, path, handler)
+	path, handler = musicv1connect.NewMusicProviderServiceHandler(&musicProviderServer{service: suite.Music.Providers})
+	registerConnect(mux, path, handler)
+	path, handler = musicv1connect.NewMusicPlaylistServiceHandler(&musicPlaylistServer{service: suite.Music.Playlists})
 	registerConnect(mux, path, handler)
 	path, handler = imagesv1connect.NewImageServiceHandler(&imageServer{service: suite.Images})
 	registerConnect(mux, path, handler)
@@ -120,8 +126,18 @@ func (router *httpRouter) health(writer http.ResponseWriter, request *http.Reque
 
 func (router *httpRouter) servePrivate(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Cache-Control", "no-store")
-	if request.URL.Path == spotifyCallbackPath {
-		router.serveSpotifyCallback(writer, request)
+	if strings.HasPrefix(request.URL.Path, providerCallbackPrefix) {
+		segments := pathSegments(request.URL.Path, providerCallbackPrefix)
+		if len(segments) != 2 || segments[1] != "callback" {
+			http.NotFound(writer, request)
+			return
+		}
+		provider := domain.MusicProvider(segments[0])
+		if !domain.ValidMusicProviderID(provider) || provider == domain.MusicProviderLocal {
+			http.NotFound(writer, request)
+			return
+		}
+		router.serveProviderCallback(writer, request, provider)
 		return
 	}
 	if !applyCORS(writer, request, router.config.PrivateAppOrigins, "GET, POST, PUT, DELETE, OPTIONS", true) {
@@ -148,7 +164,7 @@ func (router *httpRouter) servePrivate(writer http.ResponseWriter, request *http
 	router.privateMux.ServeHTTP(writer, request)
 }
 
-func (router *httpRouter) serveSpotifyCallback(writer http.ResponseWriter, request *http.Request) {
+func (router *httpRouter) serveProviderCallback(writer http.ResponseWriter, request *http.Request, provider domain.MusicProvider) {
 	if request.Method != http.MethodGet {
 		methodNotAllowed(writer, http.MethodGet)
 		return
@@ -159,14 +175,15 @@ func (router *httpRouter) serveSpotifyCallback(writer http.ResponseWriter, reque
 	}
 	status := "failed"
 	if request.URL.Query().Get("error") == "" {
-		err := router.suite.Music.CompleteSpotifyConnection(
-			request.Context(), request.URL.Query().Get("state"), request.URL.Query().Get("code"),
+		err := router.suite.Music.Providers.CompleteRedirectConnection(
+			request.Context(), provider, request.URL.Query().Get("state"), request.URL.Query().Get("code"),
 		)
 		if err == nil {
 			status = "connected"
 		}
 	}
-	target := router.config.MusicAppOrigin + "/?provider=spotify&connection=" + status
+	query := url.Values{"provider": {string(provider)}, "connection": {status}}
+	target := router.config.MusicAppOrigin + "/?" + query.Encode()
 	http.Redirect(writer, request, target, http.StatusSeeOther)
 }
 
@@ -214,5 +231,5 @@ func (router *httpRouter) writeUnauthenticated(writer http.ResponseWriter, reque
 }
 
 func privatePublicProcedure(path string) bool {
-	return path == authv1connect.SessionServiceLoginProcedure || path == systemv1connect.HealthServiceCheckProcedure
+	return path == authv1connect.SessionServiceLoginProcedure
 }

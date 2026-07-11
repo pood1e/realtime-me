@@ -33,25 +33,34 @@ type UploadStatus string
 const (
 	// UploadStatusActive accepts new chunks.
 	UploadStatusActive UploadStatus = "active"
+	// UploadStatusFinalizing is being hashed and published by the worker.
+	UploadStatusFinalizing UploadStatus = "finalizing"
+	// UploadStatusSealed is ready for an application claim.
+	UploadStatusSealed UploadStatus = "sealed"
 	// UploadStatusClaimed has created exactly one application resource.
 	UploadStatusClaimed UploadStatus = "claimed"
+	// UploadStatusFailed requires a fresh upload session.
+	UploadStatusFailed UploadStatus = "failed"
 	// UploadStatusExpired no longer accepts chunks.
 	UploadStatusExpired UploadStatus = "expired"
 )
 
 // Upload describes a resumable file transfer.
 type Upload struct {
-	UID            string
-	FileName       string
-	ContentType    string
-	TotalSizeBytes int64
-	ReceivedBytes  int64
-	ChunkSizeBytes int64
-	Status         UploadStatus
-	CreateTime     time.Time
-	ExpireTime     time.Time
-	ClaimedUID     string
-	Chunks         []UploadChunk
+	UID              string
+	FileName         string
+	ContentType      string
+	TotalSizeBytes   int64
+	ReceivedBytes    int64
+	ChunkSizeBytes   int64
+	Status           UploadStatus
+	CreateTime       time.Time
+	ExpireTime       time.Time
+	ClaimedUID       string
+	SealedContentUID string
+	FailureCode      string
+	Sealed           *SealedContent
+	Chunks           []UploadChunk
 }
 
 // UploadChunk is an acknowledged byte range with an exclusive end.
@@ -74,6 +83,14 @@ type ShareLink struct {
 type Page struct {
 	Items         []Item
 	NextPageToken string
+}
+
+// DriveListQuery contains the complete cursor filter for one directory listing.
+type DriveListQuery struct {
+	ParentUID      *string
+	IncludeTrashed bool
+	PageSize       int
+	PageToken      string
 }
 
 // SharePage is a cursor page of owner-visible share links.

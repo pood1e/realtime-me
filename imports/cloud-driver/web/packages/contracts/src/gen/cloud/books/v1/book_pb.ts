@@ -4,6 +4,8 @@
 
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { ProcessingStatus } from "../../content/v1/processing_pb.js";
+import { file_cloud_content_v1_processing } from "../../content/v1/processing_pb.js";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file cloud/books/v1/book.proto.
  */
 export const file_cloud_books_v1_book: GenFile = /*@__PURE__*/
-  fileDesc("ChljbG91ZC9ib29rcy92MS9ib29rLnByb3RvEg5jbG91ZC5ib29rcy52MSLbAwoEQm9vaxILCgN1aWQYASABKAkSDQoFdGl0bGUYAiABKAkSDwoHYXV0aG9ycxgDIAMoCRIOCgZzZXJpZXMYBCABKAkSFQoNc2VyaWVzX251bWJlchgFIAEoCRITCgtkZXNjcmlwdGlvbhgGIAEoCRIqCgZmb3JtYXQYByABKA4yGi5jbG91ZC5ib29rcy52MS5Cb29rRm9ybWF0EhoKEm9yaWdpbmFsX2ZpbGVfbmFtZRgIIAEoCRISCgpzaXplX2J5dGVzGAkgASgDEhIKCnBhZ2VfY291bnQYCiABKAUSEQoJY292ZXJfdXJsGAsgASgJEhMKC2NvbnRlbnRfdXJsGAwgASgJEj8KEXByb2Nlc3Npbmdfc3RhdHVzGA0gASgOMiQuY2xvdWQuYm9va3MudjEuQm9va1Byb2Nlc3NpbmdTdGF0dXMSLwoLY3JlYXRlX3RpbWUYDiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KC3VwZGF0ZV90aW1lGA8gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtkZWxldGVfdGltZRgQIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAibwoFU2hlbGYSCwoDdWlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRISCgpib29rX2NvdW50GAMgASgFEi8KC2NyZWF0ZV90aW1lGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCI2CgtQZGZMb2NhdGlvbhITCgtwYWdlX251bWJlchgBIAEoBRISCgpwYWdlX2NvdW50GAIgASgFIhsKDEVwdWJMb2NhdGlvbhILCgNjZmkYASABKAki1AEKD1JlYWRpbmdQcm9ncmVzcxIQCghib29rX3VpZBgBIAEoCRIYChBwcm9ncmVzc19wZXJjZW50GAIgASgCEioKA3BkZhgDIAEoCzIbLmNsb3VkLmJvb2tzLnYxLlBkZkxvY2F0aW9uSAASLAoEZXB1YhgEIAEoCzIcLmNsb3VkLmJvb2tzLnYxLkVwdWJMb2NhdGlvbkgAEi8KC3VwZGF0ZV90aW1lGAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIKCghsb2NhdGlvbipUCgpCb29rRm9ybWF0EhsKF0JPT0tfRk9STUFUX1VOU1BFQ0lGSUVEEAASEwoPQk9PS19GT1JNQVRfUERGEAESFAoQQk9PS19GT1JNQVRfRVBVQhACKqcBChRCb29rUHJvY2Vzc2luZ1N0YXR1cxImCiJCT09LX1BST0NFU1NJTkdfU1RBVFVTX1VOU1BFQ0lGSUVEEAASIgoeQk9PS19QUk9DRVNTSU5HX1NUQVRVU19QRU5ESU5HEAESIAocQk9PS19QUk9DRVNTSU5HX1NUQVRVU19SRUFEWRACEiEKHUJPT0tfUFJPQ0VTU0lOR19TVEFUVVNfRkFJTEVEEANCOFo2ZXhhbXBsZS5jb20vY2xvdWQtZHJpdmUvYXBpL2dlbi9jbG91ZC9ib29rcy92MTtib29rc3YxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("ChljbG91ZC9ib29rcy92MS9ib29rLnByb3RvEg5jbG91ZC5ib29rcy52MSLZAwoEQm9vaxILCgN1aWQYASABKAkSDQoFdGl0bGUYAiABKAkSDwoHYXV0aG9ycxgDIAMoCRIOCgZzZXJpZXMYBCABKAkSFQoNc2VyaWVzX251bWJlchgFIAEoCRITCgtkZXNjcmlwdGlvbhgGIAEoCRIqCgZmb3JtYXQYByABKA4yGi5jbG91ZC5ib29rcy52MS5Cb29rRm9ybWF0EhoKEm9yaWdpbmFsX2ZpbGVfbmFtZRgIIAEoCRISCgpzaXplX2J5dGVzGAkgASgDEhIKCnBhZ2VfY291bnQYCiABKAUSEQoJY292ZXJfdXJsGAsgASgJEhMKC2NvbnRlbnRfdXJsGAwgASgJEj0KEXByb2Nlc3Npbmdfc3RhdHVzGA0gASgOMiIuY2xvdWQuY29udGVudC52MS5Qcm9jZXNzaW5nU3RhdHVzEi8KC2NyZWF0ZV90aW1lGA4gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgt1cGRhdGVfdGltZRgPIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZGVsZXRlX3RpbWUYECABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIm8KBVNoZWxmEgsKA3VpZBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSEgoKYm9va19jb3VudBgDIAEoBRIvCgtjcmVhdGVfdGltZRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiNgoLUGRmTG9jYXRpb24SEwoLcGFnZV9udW1iZXIYASABKAUSEgoKcGFnZV9jb3VudBgCIAEoBSIbCgxFcHViTG9jYXRpb24SCwoDY2ZpGAEgASgJItQBCg9SZWFkaW5nUHJvZ3Jlc3MSEAoIYm9va191aWQYASABKAkSGAoQcHJvZ3Jlc3NfcGVyY2VudBgCIAEoAhIqCgNwZGYYAyABKAsyGy5jbG91ZC5ib29rcy52MS5QZGZMb2NhdGlvbkgAEiwKBGVwdWIYBCABKAsyHC5jbG91ZC5ib29rcy52MS5FcHViTG9jYXRpb25IABIvCgt1cGRhdGVfdGltZRgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCCgoIbG9jYXRpb24qVAoKQm9va0Zvcm1hdBIbChdCT09LX0ZPUk1BVF9VTlNQRUNJRklFRBAAEhMKD0JPT0tfRk9STUFUX1BERhABEhQKEEJPT0tfRk9STUFUX0VQVUIQAkI4WjZleGFtcGxlLmNvbS9jbG91ZC1kcml2ZS9hcGkvZ2VuL2Nsb3VkL2Jvb2tzL3YxO2Jvb2tzdjFiBnByb3RvMw", [file_cloud_content_v1_processing, file_google_protobuf_timestamp]);
 
 /**
  * Book is one owner-managed publication.
@@ -107,9 +109,9 @@ export type Book = Message<"cloud.books.v1.Book"> & {
   /**
    * processing_status reports metadata and cover extraction readiness.
    *
-   * @generated from field: cloud.books.v1.BookProcessingStatus processing_status = 13;
+   * @generated from field: cloud.content.v1.ProcessingStatus processing_status = 13;
    */
-  processingStatus: BookProcessingStatus;
+  processingStatus: ProcessingStatus;
 
   /**
    * create_time is when the book entered the catalog.
@@ -322,45 +324,4 @@ export enum BookFormat {
  */
 export const BookFormatSchema: GenEnum<BookFormat> = /*@__PURE__*/
   enumDesc(file_cloud_books_v1_book, 0);
-
-/**
- * ProcessingStatus identifies derived-metadata readiness.
- *
- * @generated from enum cloud.books.v1.BookProcessingStatus
- */
-export enum BookProcessingStatus {
-  /**
-   * BOOK_PROCESSING_STATUS_UNSPECIFIED is not persisted.
-   *
-   * @generated from enum value: BOOK_PROCESSING_STATUS_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * BOOK_PROCESSING_STATUS_PENDING is queued or running.
-   *
-   * @generated from enum value: BOOK_PROCESSING_STATUS_PENDING = 1;
-   */
-  PENDING = 1,
-
-  /**
-   * BOOK_PROCESSING_STATUS_READY has usable derived metadata.
-   *
-   * @generated from enum value: BOOK_PROCESSING_STATUS_READY = 2;
-   */
-  READY = 2,
-
-  /**
-   * BOOK_PROCESSING_STATUS_FAILED requires an explicit retry.
-   *
-   * @generated from enum value: BOOK_PROCESSING_STATUS_FAILED = 3;
-   */
-  FAILED = 3,
-}
-
-/**
- * Describes the enum cloud.books.v1.BookProcessingStatus.
- */
-export const BookProcessingStatusSchema: GenEnum<BookProcessingStatus> = /*@__PURE__*/
-  enumDesc(file_cloud_books_v1_book, 1);
 

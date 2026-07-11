@@ -14,7 +14,7 @@ type Suite struct {
 	Content    *ContentService
 	Drive      *DriveService
 	Books      *BookService
-	Music      *MusicService
+	Music      *MusicSuite
 	Images     *ImageService
 	Wallpapers *WallpaperService
 	System     *SystemService
@@ -23,20 +23,20 @@ type Suite struct {
 
 // SystemService reports request-path and worker health.
 type SystemService struct {
-	drive domain.DriveStore
+	store domain.HealthStore
 	jobs  domain.WorkerStore
-	files ContentFiles
+	files CapacityFiles
 	clock domain.Clock
 }
 
 // NewSystemService constructs health reporting.
-func NewSystemService(drive domain.DriveStore, jobs domain.WorkerStore, files ContentFiles, clock domain.Clock) *SystemService {
-	return &SystemService{drive: drive, jobs: jobs, files: files, clock: clock}
+func NewSystemService(store domain.HealthStore, jobs domain.WorkerStore, files CapacityFiles, clock domain.Clock) *SystemService {
+	return &SystemService{store: store, jobs: jobs, files: files, clock: clock}
 }
 
 // Check returns database, worker, queue, and storage state.
 func (s *SystemService) Check(ctx context.Context) (bool, bool, domain.WorkerHealth, int64, error) {
-	if err := s.drive.Ping(ctx); err != nil {
+	if err := s.store.Ping(ctx); err != nil {
 		return false, false, domain.WorkerHealth{}, 0, err
 	}
 	freeBytes, err := s.files.FreeBytes()
@@ -91,5 +91,8 @@ func (s *RetentionService) PurgeExpired(ctx context.Context) error {
 	if err := s.store.PurgeExpiredProviderConnectionAttempts(ctx, s.clock.Now().UTC()); err != nil {
 		return err
 	}
-	return s.content.CollectGarbage(ctx)
+	if err := s.content.CollectGarbage(ctx); err != nil {
+		return err
+	}
+	return s.content.ReconcileStorage(ctx)
 }

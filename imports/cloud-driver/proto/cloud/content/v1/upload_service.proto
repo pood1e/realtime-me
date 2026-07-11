@@ -12,8 +12,8 @@ service ContentUploadService {
   rpc StartUpload(StartUploadRequest) returns (StartUploadResponse);
   // GetUpload returns upload state and acknowledged ranges.
   rpc GetUpload(GetUploadRequest) returns (GetUploadResponse);
-  // WriteUploadChunk writes one bounded chunk for Connect clients.
-  rpc WriteUploadChunk(WriteUploadChunkRequest) returns (WriteUploadChunkResponse);
+  // FinalizeUpload queues hashing and publication after every byte is present.
+  rpc FinalizeUpload(FinalizeUploadRequest) returns (FinalizeUploadResponse);
   // AbandonUpload removes an unclaimed upload.
   rpc AbandonUpload(AbandonUploadRequest) returns (AbandonUploadResponse);
 }
@@ -48,19 +48,17 @@ message GetUploadResponse {
   Upload upload = 1;
 }
 
-// WriteUploadChunkRequest carries a byte range for Connect clients.
-message WriteUploadChunkRequest {
-  // upload_uid identifies the upload.
+// FinalizeUploadRequest identifies one complete active upload.
+message FinalizeUploadRequest {
   string upload_uid = 1;
-  // start_offset is the first included byte offset.
-  int64 start_offset = 2;
-  // total_size_bytes repeats the complete length.
-  int64 total_size_bytes = 3;
-  // data contains the raw chunk bytes.
-  bytes data = 4;
 }
 
-// WriteUploadChunkResponse returns the updated upload.
+// FinalizeUploadResponse returns the queued finalization state.
+message FinalizeUploadResponse {
+  Upload upload = 1;
+}
+
+// WriteUploadChunkResponse is the raw chunk endpoint's JSON response.
 message WriteUploadChunkResponse {
   // upload is the session after acknowledgement.
   Upload upload = 1;

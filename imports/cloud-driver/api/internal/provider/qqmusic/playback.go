@@ -168,7 +168,7 @@ func decodeVKey(operation string, raw json.RawMessage) (string, int64, error) {
 	}
 	purl := strings.TrimSpace(stringValue(item, "purl"))
 	if purl == "" {
-		return "", 0, providerError(operation, ErrorKindUnavailable, "playback URL is unavailable for this account", 0)
+		return "", 0, providerError(operation, ErrorKindNotFound, "playback URL is unavailable for this account", 0)
 	}
 	return purl, int64Value(object, "expiration", "expire"), nil
 }

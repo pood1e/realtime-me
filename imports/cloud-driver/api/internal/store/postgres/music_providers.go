@@ -12,15 +12,15 @@ import (
 	"example.com/cloud-drive/api/internal/domain"
 )
 
-const providerConnectionColumns = `provider, status, account_id, display_name, avatar_url, membership,
+const providerConnectionColumns = `provider_id, status, account_id, display_name, avatar_url, membership,
 	membership_expire_time, encrypted_credentials, create_time, update_time`
 
-const providerAttemptColumns = `uid, provider, status, qr_image, qr_content_type, qr_payload, authorization_url,
+const providerAttemptColumns = `uid, provider_id, status, qr_image, qr_content_type, qr_payload, authorization_url,
 	state_hash, encrypted_state, create_time, update_time, expire_time, consumed_time`
 
 // ListProviderConnections returns all configured external accounts without decrypting them.
 func (s *Store) ListProviderConnections(ctx context.Context) ([]domain.ProviderConnection, error) {
-	rows, err := s.pool.Query(ctx, "SELECT "+providerConnectionColumns+" FROM music_provider_connections ORDER BY provider")
+	rows, err := s.pool.Query(ctx, "SELECT "+providerConnectionColumns+" FROM music_provider_connections ORDER BY provider_id")
 	if err != nil {
 		return nil, fmt.Errorf("list music provider connections: %w", err)
 	}
@@ -39,7 +39,7 @@ func (s *Store) ListProviderConnections(ctx context.Context) ([]domain.ProviderC
 // GetProviderConnection returns one external account including encrypted credentials.
 func (s *Store) GetProviderConnection(ctx context.Context, provider domain.MusicProvider) (domain.ProviderConnection, error) {
 	connection, err := scanProviderConnection(s.pool.QueryRow(ctx,
-		"SELECT "+providerConnectionColumns+" FROM music_provider_connections WHERE provider = $1", provider))
+		"SELECT "+providerConnectionColumns+" FROM music_provider_connections WHERE provider_id = $1", provider))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.ProviderConnection{}, fmt.Errorf("%w: music provider connection", domain.ErrNotFound)
 	}
@@ -48,10 +48,10 @@ func (s *Store) GetProviderConnection(ctx context.Context, provider domain.Music
 
 // UpsertProviderConnection replaces the single account attached to a provider.
 func (s *Store) UpsertProviderConnection(ctx context.Context, connection domain.ProviderConnection) (domain.ProviderConnection, error) {
-	query := `INSERT INTO music_provider_connections (provider, status, account_id, display_name, avatar_url,
+	query := `INSERT INTO music_provider_connections (provider_id, status, account_id, display_name, avatar_url,
 		membership, membership_expire_time, encrypted_credentials, create_time, update_time)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		ON CONFLICT (provider) DO UPDATE SET status = EXCLUDED.status, account_id = EXCLUDED.account_id,
+		ON CONFLICT (provider_id) DO UPDATE SET status = EXCLUDED.status, account_id = EXCLUDED.account_id,
 		display_name = EXCLUDED.display_name, avatar_url = EXCLUDED.avatar_url, membership = EXCLUDED.membership,
 		membership_expire_time = EXCLUDED.membership_expire_time,
 		encrypted_credentials = EXCLUDED.encrypted_credentials, update_time = EXCLUDED.update_time
@@ -67,7 +67,7 @@ func (s *Store) UpsertProviderConnection(ctx context.Context, connection domain.
 
 // DeleteProviderConnection removes all long-lived credentials for one source.
 func (s *Store) DeleteProviderConnection(ctx context.Context, provider domain.MusicProvider) error {
-	if _, err := s.pool.Exec(ctx, "DELETE FROM music_provider_connections WHERE provider = $1", provider); err != nil {
+	if _, err := s.pool.Exec(ctx, "DELETE FROM music_provider_connections WHERE provider_id = $1", provider); err != nil {
 		return fmt.Errorf("delete music provider connection: %w", err)
 	}
 	return nil
@@ -75,7 +75,7 @@ func (s *Store) DeleteProviderConnection(ctx context.Context, provider domain.Mu
 
 // CreateProviderConnectionAttempt stores one interactive login operation.
 func (s *Store) CreateProviderConnectionAttempt(ctx context.Context, attempt domain.ProviderConnectionAttempt) (domain.ProviderConnectionAttempt, error) {
-	query := `INSERT INTO music_provider_connection_attempts (uid, provider, status, qr_image, qr_content_type,
+	query := `INSERT INTO music_provider_connection_attempts (uid, provider_id, status, qr_image, qr_content_type,
 		qr_payload, authorization_url, state_hash, encrypted_state, create_time, update_time, expire_time, consumed_time)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING ` + providerAttemptColumns
 	stored, err := scanProviderAttempt(s.pool.QueryRow(ctx, query, attempt.UID, attempt.Provider, attempt.Status,

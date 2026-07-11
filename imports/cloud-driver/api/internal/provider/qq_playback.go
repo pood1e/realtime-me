@@ -11,7 +11,7 @@ import (
 	"example.com/cloud-drive/api/internal/provider/qqmusic"
 )
 
-func resolveQQPlayback(ctx context.Context, rawCredentials []byte, trackID string, quality domain.PlaybackQuality) (domain.PlaybackDescriptor, []byte, error) {
+func resolveQQPlayback(ctx context.Context, client *qqmusic.Client, rawCredentials []byte, trackID string, quality domain.PlaybackQuality) (domain.PlaybackDescriptor, []byte, error) {
 	credentials, err := decodeQQCredentials(rawCredentials)
 	if err != nil {
 		return domain.PlaybackDescriptor{}, nil, err
@@ -19,10 +19,6 @@ func resolveQQPlayback(ctx context.Context, rawCredentials []byte, trackID strin
 	reference, err := decodeQQTrackReference(trackID)
 	if err != nil {
 		return domain.PlaybackDescriptor{}, nil, err
-	}
-	client, err := qqmusic.NewClient()
-	if err != nil {
-		return domain.PlaybackDescriptor{}, nil, mapProviderError(err)
 	}
 	credentials, err = refreshQQCredentials(ctx, client, credentials)
 	if err != nil {
@@ -62,7 +58,7 @@ func qqPlaybackCanFallback(err error) bool {
 			providerError.Kind == qqmusic.ErrorKindUnavailable)
 }
 
-func qqLyrics(ctx context.Context, rawCredentials []byte, trackID string) (domain.Lyric, []byte, error) {
+func qqLyrics(ctx context.Context, client *qqmusic.Client, rawCredentials []byte, trackID string) (domain.Lyric, []byte, error) {
 	_, err := decodeQQCredentials(rawCredentials)
 	if err != nil {
 		return domain.Lyric{}, nil, err
@@ -70,10 +66,6 @@ func qqLyrics(ctx context.Context, rawCredentials []byte, trackID string) (domai
 	reference, err := decodeQQTrackReference(trackID)
 	if err != nil {
 		return domain.Lyric{}, nil, err
-	}
-	client, err := qqmusic.NewClient()
-	if err != nil {
-		return domain.Lyric{}, nil, mapProviderError(err)
 	}
 	lyrics, err := client.GetLyrics(ctx, qqmusic.LyricsRequest{TrackMID: reference.MID})
 	if err != nil {

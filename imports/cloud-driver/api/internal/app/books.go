@@ -16,11 +16,11 @@ type BookService struct {
 	store    domain.BookStore
 	contents domain.ContentStore
 	content  *ContentService
-	files    ContentFiles
+	files    ContentReader
 }
 
 // NewBookService constructs the bookshelf application service.
-func NewBookService(store domain.BookStore, contents domain.ContentStore, content *ContentService, files ContentFiles) *BookService {
+func NewBookService(store domain.BookStore, contents domain.ContentStore, content *ContentService, files ContentReader) *BookService {
 	return &BookService{store: store, contents: contents, content: content, files: files}
 }
 
@@ -29,7 +29,10 @@ func (s *BookService) Get(ctx context.Context, uid string) (domain.Book, error) 
 }
 
 func (s *BookService) List(ctx context.Context, query, shelfUID string, format domain.BookFormat, trashed bool, pageSize int, pageToken string) (domain.BookPage, error) {
-	return s.store.ListBooks(ctx, strings.TrimSpace(query), strings.TrimSpace(shelfUID), format, trashed, pageSize, pageToken)
+	return s.store.ListBooks(ctx, domain.BookListQuery{
+		Query: strings.TrimSpace(query), ShelfUID: strings.TrimSpace(shelfUID),
+		Format: format, Trashed: trashed, PageSize: pageSize, PageToken: pageToken,
+	})
 }
 
 func (s *BookService) Import(ctx context.Context, uploadUID string) (domain.Book, error) {
@@ -43,7 +46,7 @@ func (s *BookService) Import(ctx context.Context, uploadUID string) (domain.Book
 		return domain.Book{}, err
 	}
 	if upload.Status != domain.UploadStatusClaimed {
-		s.content.FinishClaim(ctx, uploadUID)
+		_ = s.content.FinishClaim(ctx, uploadUID)
 	}
 	return book, nil
 }

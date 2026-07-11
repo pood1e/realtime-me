@@ -1,13 +1,13 @@
 package provider
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"example.com/cloud-drive/api/internal/domain"
-	"example.com/cloud-drive/api/internal/provider/netease"
-	"example.com/cloud-drive/api/internal/provider/qqmusic"
-	"example.com/cloud-drive/api/internal/provider/spotify"
+	"example.com/cloud-drive/api/internal/provider/failure"
 )
 
 // RegistryConfig contains provider application credentials, never user credentials.
@@ -25,13 +25,17 @@ type Registry struct {
 
 // NewRegistry constructs and validates the complete plugin registry.
 func NewRegistry(config RegistryConfig) (*Registry, error) {
+	qqAdapter, err := newQQAdapter()
+	if err != nil {
+		return nil, err
+	}
 	spotifyAdapter, err := newSpotifyAdapter(config)
 	if err != nil {
 		return nil, err
 	}
 	registry := &Registry{byProvider: make(map[domain.MusicProvider]domain.MusicProviderAdapter)}
 	for _, adapter := range []domain.MusicProviderAdapter{
-		QQAdapter{},
+		qqAdapter,
 		NetEaseAdapter{},
 		spotifyAdapter,
 	} {
@@ -54,7 +58,8 @@ func (r *Registry) List() []domain.MusicProviderAdapter {
 }
 
 func (r *Registry) register(adapter domain.MusicProviderAdapter) error {
-	if adapter == nil || adapter.Provider() == "" || adapter.Provider() == domain.MusicProviderLocal {
+	if adapter == nil || !domain.ValidMusicProviderID(adapter.Provider()) ||
+		adapter.Provider() == domain.MusicProviderLocal || strings.TrimSpace(adapter.DisplayName()) == "" {
 		return errors.New("music provider plugin has an invalid identity")
 	}
 	if _, duplicate := r.byProvider[adapter.Provider()]; duplicate {
@@ -69,43 +74,27 @@ func mapProviderError(err error) error {
 	if err == nil {
 		return nil
 	}
-	var qqError *qqmusic.Error
-	if errors.As(err, &qqError) {
-		switch qqError.Kind {
-		case qqmusic.ErrorKindInvalidInput:
-			return fmt.Errorf("%w: %v", domain.ErrInvalidArgument, err)
-		case qqmusic.ErrorKindUnauthorized:
-			return fmt.Errorf("%w: %v", domain.ErrProviderReconnectRequired, err)
-		case qqmusic.ErrorKindForbidden:
-			return fmt.Errorf("%w: %v", domain.ErrForbidden, err)
-		case qqmusic.ErrorKindUnavailable:
-			return fmt.Errorf("%w: %v", domain.ErrNotFound, err)
-		default:
-			return fmt.Errorf("%w: %v", domain.ErrUnavailable, err)
-		}
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
 	}
-	var netEaseError *netease.ProviderError
-	if errors.As(err, &netEaseError) {
-		switch netEaseError.Kind {
-		case netease.ErrorKindInvalid:
-			return fmt.Errorf("%w: %v", domain.ErrInvalidArgument, err)
-		case netease.ErrorKindUnauthorized:
-			return fmt.Errorf("%w: %v", domain.ErrProviderReconnectRequired, err)
-		case netease.ErrorKindUnavailable:
-			return fmt.Errorf("%w: %v", domain.ErrNotFound, err)
-		default:
-			return fmt.Errorf("%w: %v", domain.ErrUnavailable, err)
-		}
+	kind, classified := failure.Classify(err)
+	if !classified {
+		return fmt.Errorf("%w: provider request failed", domain.ErrUnavailable)
 	}
-	if errors.Is(err, spotify.ErrInvalidCredentials) || errors.Is(err, spotify.ErrInvalidLoginAttempt) {
-		return fmt.Errorf("%w: Spotify credentials are invalid", domain.ErrProviderReconnectRequired)
+	var domainError error
+	switch kind {
+	case failure.Invalid:
+		domainError = domain.ErrInvalidArgument
+	case failure.Unauthorized:
+		domainError = domain.ErrProviderReconnectRequired
+	case failure.Forbidden:
+		domainError = domain.ErrForbidden
+	case failure.NotFound:
+		domainError = domain.ErrNotFound
+	case failure.RateLimited:
+		domainError = domain.ErrRateLimited
+	default:
+		domainError = domain.ErrUnavailable
 	}
-	var spotifyError *spotify.APIError
-	if errors.As(err, &spotifyError) {
-		if spotifyError.StatusCode == 401 || spotifyError.Code == "invalid_grant" {
-			return fmt.Errorf("%w: Spotify authorization expired", domain.ErrProviderReconnectRequired)
-		}
-		return fmt.Errorf("%w: %v", domain.ErrUnavailable, err)
-	}
-	return fmt.Errorf("%w: provider request failed", domain.ErrUnavailable)
+	return fmt.Errorf("%w: %v", domainError, err)
 }

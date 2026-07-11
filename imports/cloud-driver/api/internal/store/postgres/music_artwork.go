@@ -37,12 +37,15 @@ func (s *Store) GetMusicArtwork(ctx context.Context, trackUID string) (domain.Co
 }
 
 // CompleteMusicArtwork links one local JPEG artifact to its audio content.
-func (s *Store) CompleteMusicArtwork(ctx context.Context, artwork domain.Artifact) error {
+func (s *Store) CompleteMusicArtwork(ctx context.Context, job domain.ProcessingJob, artwork domain.Artifact) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin music artwork completion: %w", err)
 	}
 	defer tx.Rollback(ctx)
+	if err := lockProcessingJobLease(ctx, tx, job); err != nil {
+		return err
+	}
 	if err := upsertArtifact(ctx, tx, artwork); err != nil {
 		return err
 	}
@@ -54,4 +57,23 @@ func (s *Store) CompleteMusicArtwork(ctx context.Context, artwork domain.Artifac
 		return fmt.Errorf("%w: music artwork track", domain.ErrNotFound)
 	}
 	return tx.Commit(ctx)
+}
+
+func queueProviderArtworkIfMissing(ctx context.Context, tx pgx.Tx, trackUID string) error {
+	var available bool
+	if err := tx.QueryRow(ctx, `SELECT
+		EXISTS (SELECT 1 FROM music_playlist_tracks
+			WHERE local_track_uid = $1 AND artwork_url <> '')
+		AND NOT EXISTS (
+			SELECT 1 FROM tracks track JOIN content_artifacts artifact
+			ON artifact.content_uid = track.content_uid
+			WHERE track.uid = $1 AND artifact.kind = 'track_artwork'
+			AND artifact.variant = 'default'
+		)`, trackUID).Scan(&available); err != nil {
+		return fmt.Errorf("check provider artwork fallback: %w", err)
+	}
+	if !available {
+		return nil
+	}
+	return enqueueJob(ctx, tx, domain.ProcessingJobMusicArtwork, trackUID)
 }

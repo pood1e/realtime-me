@@ -9,9 +9,14 @@ import (
 	"example.com/cloud-drive/api/internal/domain"
 )
 
-func (s *MusicService) validatePlaybackTrack(ctx context.Context, track domain.PlayableTrack) (domain.PlayableTrack, error) {
+type musicTrackValidator struct {
+	store     domain.MusicLibraryStore
+	providers domain.MusicProviderRegistry
+}
+
+func (v *musicTrackValidator) Validate(ctx context.Context, track domain.PlayableTrack) (domain.PlayableTrack, error) {
 	if track.Provider == domain.MusicProviderLocal {
-		local, err := s.store.GetTrack(ctx, strings.TrimSpace(track.TrackID), false)
+		local, err := v.store.GetTrack(ctx, strings.TrimSpace(track.TrackID), false)
 		if err != nil {
 			return domain.PlayableTrack{}, err
 		}
@@ -19,7 +24,7 @@ func (s *MusicService) validatePlaybackTrack(ctx context.Context, track domain.P
 	}
 	track.TrackID = strings.TrimSpace(track.TrackID)
 	track.Title = strings.TrimSpace(track.Title)
-	if _, err := s.providerAdapter(track.Provider); err != nil || track.TrackID == "" || track.Title == "" || len(track.TrackID) > 512 || len(track.Title) > 512 {
+	if _, registered := v.providers.Get(track.Provider); !registered || track.TrackID == "" || track.Title == "" || len(track.TrackID) > 512 || len(track.Title) > 512 {
 		return domain.PlayableTrack{}, fmt.Errorf("%w: invalid playback track", domain.ErrInvalidArgument)
 	}
 	track.Artists = normalizeTrackArtists(track.Artists)

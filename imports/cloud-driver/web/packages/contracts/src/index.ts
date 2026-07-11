@@ -5,6 +5,7 @@ export * from "./gen/cloud/books/v1/book_pb.js";
 export * from "./gen/cloud/books/v1/book_service_pb.js";
 export * from "./gen/cloud/content/v1/upload_pb.js";
 export * from "./gen/cloud/content/v1/upload_service_pb.js";
+export * from "./gen/cloud/content/v1/processing_pb.js";
 export * from "./gen/cloud/drive/v1/drive_service_pb.js";
 export * from "./gen/cloud/drive/v1/item_pb.js";
 export * from "./gen/cloud/drive/v1/share_service_pb.js";

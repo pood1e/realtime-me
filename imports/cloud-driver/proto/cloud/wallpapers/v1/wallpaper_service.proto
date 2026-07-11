@@ -20,8 +20,12 @@ service WallpaperPublicService {
   rpc ListWallpapers(ListWallpapersRequest) returns (ListWallpapersResponse);
 }
 
-message GetWallpaperRequest { string wallpaper_uid = 1; }
-message GetWallpaperResponse { Wallpaper wallpaper = 1; }
+message GetWallpaperRequest {
+  string wallpaper_uid = 1;
+}
+message GetWallpaperResponse {
+  Wallpaper wallpaper = 1;
+}
 message ListPublishedWallpapersRequest {
   string query = 1;
   string tag = 2;
@@ -49,12 +53,18 @@ message PublishWallpaperRequest {
   string title = 2;
   repeated string tags = 3;
 }
-message PublishWallpaperResponse { Wallpaper wallpaper = 1; }
+message PublishWallpaperResponse {
+  Wallpaper wallpaper = 1;
+}
 message UpdateWallpaperRequest {
   string wallpaper_uid = 1;
   string title = 2;
   repeated string tags = 3;
 }
-message UpdateWallpaperResponse { Wallpaper wallpaper = 1; }
-message UnpublishWallpaperRequest { string wallpaper_uid = 1; }
+message UpdateWallpaperResponse {
+  Wallpaper wallpaper = 1;
+}
+message UnpublishWallpaperRequest {
+  string wallpaper_uid = 1;
+}
 message UnpublishWallpaperResponse {}

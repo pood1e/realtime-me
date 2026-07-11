@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file cloud/content/v1/upload.proto.
  */
 export const file_cloud_content_v1_upload: GenFile = /*@__PURE__*/
-  fileDesc("Ch1jbG91ZC9jb250ZW50L3YxL3VwbG9hZC5wcm90bxIQY2xvdWQuY29udGVudC52MSI3CgtVcGxvYWRDaHVuaxIUCgxzdGFydF9vZmZzZXQYASABKAMSEgoKZW5kX29mZnNldBgCIAEoAyLpAgoGVXBsb2FkEgsKA3VpZBgBIAEoCRIRCglmaWxlX25hbWUYAiABKAkSFAoMY29udGVudF90eXBlGAMgASgJEhgKEHRvdGFsX3NpemVfYnl0ZXMYBCABKAMSFgoOcmVjZWl2ZWRfYnl0ZXMYBSABKAMSGAoQY2h1bmtfc2l6ZV9ieXRlcxgGIAEoAxItCgZjaHVua3MYByADKAsyHS5jbG91ZC5jb250ZW50LnYxLlVwbG9hZENodW5rEi4KBnN0YXR1cxgIIAEoDjIeLmNsb3VkLmNvbnRlbnQudjEuVXBsb2FkU3RhdHVzEi8KC2NyZWF0ZV90aW1lGAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtleHBpcmVfdGltZRgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASHAoUY2xhaW1lZF9yZXNvdXJjZV91aWQYCyABKAkqfQoMVXBsb2FkU3RhdHVzEh0KGVVQTE9BRF9TVEFUVVNfVU5TUEVDSUZJRUQQABIYChRVUExPQURfU1RBVFVTX0FDVElWRRABEhkKFVVQTE9BRF9TVEFUVVNfQ0xBSU1FRBACEhkKFVVQTE9BRF9TVEFUVVNfRVhQSVJFRBADQjxaOmV4YW1wbGUuY29tL2Nsb3VkLWRyaXZlL2FwaS9nZW4vY2xvdWQvY29udGVudC92MTtjb250ZW50djFiBnByb3RvMw", [file_google_protobuf_timestamp]);
+  fileDesc("Ch1jbG91ZC9jb250ZW50L3YxL3VwbG9hZC5wcm90bxIQY2xvdWQuY29udGVudC52MSI3CgtVcGxvYWRDaHVuaxIUCgxzdGFydF9vZmZzZXQYASABKAMSEgoKZW5kX29mZnNldBgCIAEoAyL/AgoGVXBsb2FkEgsKA3VpZBgBIAEoCRIRCglmaWxlX25hbWUYAiABKAkSFAoMY29udGVudF90eXBlGAMgASgJEhgKEHRvdGFsX3NpemVfYnl0ZXMYBCABKAMSFgoOcmVjZWl2ZWRfYnl0ZXMYBSABKAMSGAoQY2h1bmtfc2l6ZV9ieXRlcxgGIAEoAxItCgZjaHVua3MYByADKAsyHS5jbG91ZC5jb250ZW50LnYxLlVwbG9hZENodW5rEi4KBnN0YXR1cxgIIAEoDjIeLmNsb3VkLmNvbnRlbnQudjEuVXBsb2FkU3RhdHVzEi8KC2NyZWF0ZV90aW1lGAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtleHBpcmVfdGltZRgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASHAoUY2xhaW1lZF9yZXNvdXJjZV91aWQYCyABKAkSFAoMZmFpbHVyZV9jb2RlGAwgASgJKs8BCgxVcGxvYWRTdGF0dXMSHQoZVVBMT0FEX1NUQVRVU19VTlNQRUNJRklFRBAAEhgKFFVQTE9BRF9TVEFUVVNfQUNUSVZFEAESHAoYVVBMT0FEX1NUQVRVU19GSU5BTElaSU5HEAISGAoUVVBMT0FEX1NUQVRVU19TRUFMRUQQAxIZChVVUExPQURfU1RBVFVTX0NMQUlNRUQQBBIYChRVUExPQURfU1RBVFVTX0ZBSUxFRBAFEhkKFVVQTE9BRF9TVEFUVVNfRVhQSVJFRBAGQjxaOmV4YW1wbGUuY29tL2Nsb3VkLWRyaXZlL2FwaS9nZW4vY2xvdWQvY29udGVudC92MTtjb250ZW50djFiBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
  * UploadChunk describes an acknowledged byte range using an exclusive end offset.
@@ -124,6 +124,13 @@ export type Upload = Message<"cloud.content.v1.Upload"> & {
    * @generated from field: string claimed_resource_uid = 11;
    */
   claimedResourceUid: string;
+
+  /**
+   * failure_code is a stable machine-readable finalization error category.
+   *
+   * @generated from field: string failure_code = 12;
+   */
+  failureCode: string;
 };
 
 /**
@@ -147,25 +154,46 @@ export enum UploadStatus {
   UNSPECIFIED = 0,
 
   /**
-   * UPLOAD_STATUS_ACTIVE accepts chunks and may be claimed by an application.
+   * UPLOAD_STATUS_ACTIVE accepts chunks.
    *
    * @generated from enum value: UPLOAD_STATUS_ACTIVE = 1;
    */
   ACTIVE = 1,
 
   /**
+   * UPLOAD_STATUS_FINALIZING is being hashed and published by the local worker.
+   *
+   * @generated from enum value: UPLOAD_STATUS_FINALIZING = 2;
+   */
+  FINALIZING = 2,
+
+  /**
+   * UPLOAD_STATUS_SEALED is ready to be claimed by an application.
+   *
+   * @generated from enum value: UPLOAD_STATUS_SEALED = 3;
+   */
+  SEALED = 3,
+
+  /**
    * UPLOAD_STATUS_CLAIMED has created exactly one application resource.
    *
-   * @generated from enum value: UPLOAD_STATUS_CLAIMED = 2;
+   * @generated from enum value: UPLOAD_STATUS_CLAIMED = 4;
    */
-  CLAIMED = 2,
+  CLAIMED = 4,
+
+  /**
+   * UPLOAD_STATUS_FAILED requires a new upload session.
+   *
+   * @generated from enum value: UPLOAD_STATUS_FAILED = 5;
+   */
+  FAILED = 5,
 
   /**
    * UPLOAD_STATUS_EXPIRED no longer accepts chunks.
    *
-   * @generated from enum value: UPLOAD_STATUS_EXPIRED = 3;
+   * @generated from enum value: UPLOAD_STATUS_EXPIRED = 6;
    */
-  EXPIRED = 3,
+  EXPIRED = 6,
 }
 
 /**

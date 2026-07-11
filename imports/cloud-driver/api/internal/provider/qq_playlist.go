@@ -10,14 +10,10 @@ import (
 	"example.com/cloud-drive/api/internal/provider/qqmusic"
 )
 
-func importQQPlaylist(ctx context.Context, rawCredentials []byte, source string) (domain.ProviderPlaylist, []byte, error) {
+func importQQPlaylist(ctx context.Context, client *qqmusic.Client, rawCredentials []byte, source string) (domain.ProviderPlaylist, []byte, error) {
 	credentials, err := decodeQQCredentials(rawCredentials)
 	if err != nil {
 		return domain.ProviderPlaylist{}, nil, err
-	}
-	client, err := qqmusic.NewClient()
-	if err != nil {
-		return domain.ProviderPlaylist{}, nil, mapProviderError(err)
 	}
 	playlistID, err := client.ResolvePlaylistID(ctx, source)
 	if err != nil {
@@ -50,8 +46,8 @@ func importQQPlaylist(ctx context.Context, rawCredentials []byte, source string)
 	}, updated, nil
 }
 
-func resolveQQDownload(ctx context.Context, credentials []byte, trackID string) (domain.ProviderDownload, []byte, error) {
-	playback, updated, err := resolveQQPlayback(ctx, credentials, trackID, domain.PlaybackQualityBest)
+func resolveQQDownload(ctx context.Context, client *qqmusic.Client, credentials []byte, trackID string) (domain.ProviderDownload, []byte, error) {
+	playback, updated, err := resolveQQPlayback(ctx, client, credentials, trackID, domain.PlaybackQualityBest)
 	if err != nil {
 		return domain.ProviderDownload{}, nil, err
 	}

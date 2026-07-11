@@ -36,6 +36,16 @@ type BookPage struct {
 	NextPageToken string
 }
 
+// BookListQuery contains the complete cursor filter for the book catalog.
+type BookListQuery struct {
+	Query     string
+	ShelfUID  string
+	Format    BookFormat
+	Trashed   bool
+	PageSize  int
+	PageToken string
+}
+
 // Shelf is one named collection.
 type Shelf struct {
 	UID         string

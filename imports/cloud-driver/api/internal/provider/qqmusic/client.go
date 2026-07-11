@@ -264,7 +264,7 @@ func mapMusicUError(operation string, code int) error {
 	case 2000:
 		return providerError(operation, ErrorKindUpstream, "request signature is required", code)
 	case 2001, 104604:
-		return providerError(operation, ErrorKindUnavailable, "request was rate limited", code)
+		return providerError(operation, ErrorKindRateLimited, "request was rate limited", code)
 	default:
 		return providerError(operation, ErrorKindUpstream, "operation was rejected", code)
 	}
