@@ -40,7 +40,13 @@ export function TrackRow({
         className="grid size-9 place-items-center overflow-hidden rounded-md bg-muted text-xs text-muted-foreground"
       >
         {artwork ? (
-          <img src={artwork} alt="" className="h-full w-full object-cover" />
+          <img
+            src={artwork}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+          />
         ) : active ? (
           <Music2 className="size-4 text-primary" />
         ) : (

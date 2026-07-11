@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Music2, Search } from "lucide-react";
 import type { PlayableTrack, Track } from "@cloud-drive/contracts";
 import {
@@ -11,10 +11,10 @@ import {
   UploadClient,
   useToast,
 } from "@cloud-drive/shared";
-import { TrackRow } from "./TrackRow";
+import { LocalTrackList } from "./LocalTrackList";
 import { localPlayableTrack } from "./music-model";
-
-export type LocalLibraryMode = "all" | "favorites" | "trash";
+import { useLocalTrackCatalog } from "./useLocalTrackCatalog";
+import type { LocalLibraryMode } from "./useLocalTrackCatalog";
 
 export function LocalLibrary({
   mode,
@@ -31,30 +31,21 @@ export function LocalLibrary({
 }) {
   const uploader = useMemo(() => new UploadClient(apiBase), [apiBase]);
   const { showToast } = useToast();
-  const [tracks, setTracks] = useState<Track[]>([]);
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      setTracks(
-        await client.tracks({
-          query,
-          favorites: mode === "favorites",
-          trashed: mode === "trash",
-        }),
-      );
-    } catch (error) {
-      showToast(message(error), "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [client, mode, query, showToast]);
-  useEffect(() => {
-    const timer = window.setTimeout(() => void load(), 180);
-    return () => window.clearTimeout(timer);
-  }, [load]);
-  const queue = useMemo(() => tracks.map(localPlayableTrack), [tracks]);
+  const onLoadError = useCallback(
+    (error: unknown) => showToast(message(error), "error"),
+    [showToast],
+  );
+  const catalog = useLocalTrackCatalog({
+    client,
+    query,
+    mode,
+    onError: onLoadError,
+  });
+  const queue = useMemo(
+    () => catalog.tracks.map(localPlayableTrack),
+    [catalog.tracks],
+  );
   const upload = async (files: File[]) => {
     for (const file of files) {
       try {
@@ -64,12 +55,14 @@ export function LocalLibrary({
         showToast(`${file.name}: ${message(error)}`, "error");
       }
     }
-    await load();
+    await catalog.refresh();
   };
   const favorite = async (track: Track) => {
     try {
-      await client.favorite(track.uid, !track.favorite);
-      await load();
+      const updated = await client.favorite(track.uid, !track.favorite);
+      if (mode === "favorites" && !updated.favorite)
+        catalog.removeTrack(track.uid);
+      else catalog.updateTrack(updated);
     } catch (error) {
       showToast(message(error), "error");
     }
@@ -79,7 +72,7 @@ export function LocalLibrary({
     try {
       if (mode === "trash") await client.purge(track.uid);
       else await client.trash(track.uid);
-      await load();
+      catalog.removeTrack(track.uid);
     } catch (error) {
       showToast(message(error), "error");
     }
@@ -87,7 +80,7 @@ export function LocalLibrary({
   const restore = async (track: Track) => {
     try {
       await client.restore(track.uid);
-      await load();
+      catalog.removeTrack(track.uid);
     } catch (error) {
       showToast(message(error), "error");
     }
@@ -96,7 +89,7 @@ export function LocalLibrary({
     if (!window.confirm("永久删除音乐回收站中的全部文件？")) return;
     try {
       await client.emptyTrash();
-      await load();
+      await catalog.refresh();
       showToast("回收站已清空");
     } catch (error) {
       showToast(message(error), "error");
@@ -128,25 +121,26 @@ export function LocalLibrary({
           )}
         </div>
       </div>
-      {loading ? (
+      {catalog.initialLoading ? (
         <LoadingIndicator label="正在读取本地音乐" />
-      ) : tracks.length ? (
-        <div className="overflow-hidden rounded-xl border bg-card/35">
-          {tracks.map((track, index) => (
-            <TrackRow
-              key={track.uid}
-              track={track}
-              index={index}
-              client={client}
-              active={current?.trackId === track.uid}
-              trashed={mode === "trash"}
-              onPlay={() => onPlay(localPlayableTrack(track), queue)}
-              onFavorite={() => void favorite(track)}
-              onRemove={() => void remove(track)}
-              onRestore={() => void restore(track)}
-            />
-          ))}
-        </div>
+      ) : catalog.tracks.length ? (
+        <LocalTrackList
+          tracks={catalog.tracks}
+          queue={queue}
+          client={client}
+          current={current}
+          trashed={mode === "trash"}
+          hasMore={catalog.hasMore}
+          loadingMore={catalog.loadingMore}
+          loadMoreFailed={catalog.loadMoreFailed}
+          onLoadMore={catalog.loadMore}
+          onPlay={(track, nextQueue) =>
+            onPlay(localPlayableTrack(track), nextQueue)
+          }
+          onFavorite={(track) => void favorite(track)}
+          onRemove={(track) => void remove(track)}
+          onRestore={(track) => void restore(track)}
+        />
       ) : (
         <EmptyState
           icon={<Music2 className="size-6" />}

@@ -17,11 +17,12 @@ import {
   TabsList,
   TabsTrigger,
 } from "@cloud-drive/shared";
-import { LocalLibrary, type LocalLibraryMode } from "./LocalLibrary";
+import { LocalLibrary } from "./LocalLibrary";
 import { LyricsDialog } from "./LyricsDialog";
 import { OnlineSearch } from "./OnlineSearch";
 import { PlaybackHistory } from "./PlaybackHistory";
 import { PlayerBar } from "./PlayerBar";
+import type { LocalLibraryMode } from "./useLocalTrackCatalog";
 import { API_BASE, APP_LINKS } from "./config";
 
 const ProviderAccounts = lazy(() =>

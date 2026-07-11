@@ -55,6 +55,21 @@ import {
   resolveApiUrl,
 } from "./core";
 
+export type TrackListOptions = Readonly<{
+  query?: string;
+  album?: string;
+  artist?: string;
+  favorites?: boolean;
+  trashed?: boolean;
+  pageSize?: number;
+  pageToken?: string;
+}>;
+
+export type TrackListPage = Readonly<{
+  tracks: Track[];
+  nextPageToken: string;
+}>;
+
 export class MusicClient {
   readonly baseUrl: string;
   private readonly client: Client<typeof MusicService>;
@@ -62,20 +77,18 @@ export class MusicClient {
     this.baseUrl = normalizeBaseUrl(baseUrl);
     this.client = createClient(MusicService, privateTransport(baseUrl));
   }
-  async tracks(
-    options: {
-      query?: string;
-      album?: string;
-      artist?: string;
-      favorites?: boolean;
-      trashed?: boolean;
-    } = {},
-  ): Promise<Track[]> {
-    return (
-      await this.client.listTracks(
-        create(ListTracksRequestSchema, { ...options, pageSize: 200 }),
-      )
-    ).tracks;
+  async trackPage(
+    options: TrackListOptions = {},
+    signal?: AbortSignal,
+  ): Promise<TrackListPage> {
+    const response = await this.client.listTracks(
+      create(ListTracksRequestSchema, options),
+      { signal },
+    );
+    return {
+      tracks: response.tracks,
+      nextPageToken: response.nextPageToken,
+    };
   }
   async get(trackUid: string): Promise<Track> {
     return required(
