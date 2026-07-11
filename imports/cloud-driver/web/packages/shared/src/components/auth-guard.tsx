@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { ShieldAlert } from "lucide-react";
+import { RefreshCw, ShieldAlert } from "lucide-react";
 
 import {
   SessionClient,
@@ -8,8 +8,11 @@ import {
   isUnauthenticatedError,
 } from "../api";
 import { EmptyState, LoadingIndicator } from "./feedback";
+import { Button } from "./ui/button";
 
 type State = "checking" | "ready" | "failed";
+const feedbackDelayMs = 600;
+const validationTimeoutMs = 10_000;
 
 export function AuthGuard({
   apiBase,
@@ -18,15 +21,40 @@ export function AuthGuard({
 }: PropsWithChildren<{ apiBase: string; authOrigin: string }>) {
   const client = useMemo(() => new SessionClient(apiBase), [apiBase]);
   const [state, setState] = useState<State>("checking");
+  const [showProgress, setShowProgress] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
+    let disposed = false;
+    let timedOut = false;
+    setState("checking");
+    setShowProgress(false);
+    setMessage("");
+    const feedbackTimer = window.setTimeout(() => {
+      if (!disposed) setShowProgress(true);
+    }, feedbackDelayMs);
+    const timeoutTimer = window.setTimeout(() => {
+      if (disposed) return;
+      timedOut = true;
+      controller.abort();
+      setMessage("会话验证超时，请重新验证。");
+      setState("failed");
+    }, validationTimeoutMs);
+    const clearTimers = () => {
+      window.clearTimeout(feedbackTimer);
+      window.clearTimeout(timeoutTimer);
+    };
     void client
       .getSession(controller.signal)
-      .then(() => setState("ready"))
+      .then(() => {
+        if (disposed || timedOut) return;
+        clearTimers();
+        setState("ready");
+      })
       .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
+        if (disposed || timedOut) return;
+        clearTimers();
         if (isUnauthenticatedError(error)) {
           window.location.replace(authenticationUrl(authOrigin));
           return;
@@ -36,9 +64,15 @@ export function AuthGuard({
         );
         setState("failed");
       });
-    return () => controller.abort();
+    return () => {
+      disposed = true;
+      clearTimers();
+      controller.abort();
+    };
   }, [authOrigin, client]);
 
+  if (state === "checking" && !showProgress)
+    return <div className="min-h-dvh bg-background" aria-hidden="true" />;
   if (state === "checking")
     return (
       <div className="grid min-h-dvh place-items-center bg-background">
@@ -52,6 +86,12 @@ export function AuthGuard({
           icon={<ShieldAlert className="size-6" />}
           title="无法验证会话"
           detail={message}
+          action={
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              <RefreshCw />
+              重新验证
+            </Button>
+          }
         />
       </div>
     );

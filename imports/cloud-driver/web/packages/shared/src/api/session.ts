@@ -8,7 +8,7 @@ import {
   SessionService,
 } from "@cloud-drive/contracts";
 
-import { isUnauthenticatedError, privateTransport } from "./core";
+import { privateTransport } from "./core";
 
 export class SessionClient {
   private readonly client: Client<typeof SessionService>;
@@ -40,20 +40,4 @@ export function authenticationUrl(
   const url = new URL(authOrigin);
   url.searchParams.set("return_to", returnUrl);
   return url.toString();
-}
-
-export async function requireSession(
-  baseUrl: string,
-  authOrigin: string,
-  signal?: AbortSignal,
-): Promise<void> {
-  try {
-    await new SessionClient(baseUrl).getSession(signal);
-  } catch (error) {
-    if (isUnauthenticatedError(error)) {
-      window.location.replace(authenticationUrl(authOrigin));
-      return new Promise(() => undefined);
-    }
-    throw error;
-  }
 }
