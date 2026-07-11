@@ -33,9 +33,12 @@ from status_common import (
 # with get-raw, whose answer also carries the cover art as tens of kilobytes of
 # base64 -- an image this exporter has no use for and must never publish.
 NOWPLAYING_FIELDS = ("title", "artist", "playbackRate", "clientBundleIdentifier")
-# coreaudiod takes this assertion out while an audio device is running, and names
-# it after the device the sound is going to, whichever one that turns out to be.
+# coreaudiod takes an assertion out for as long as an audio device is running and
+# names both the device the sound goes to and the process it goes out for. Each
+# assertion is headed by the process holding it and detailed by the lines under it.
+DARWIN_ASSERTION_HEADER_PATTERN = re.compile(r"^\s*pid \d+\(")
 DARWIN_AUDIO_ASSERTION_PATTERN = re.compile(r"coreaudiod.*com\.apple\.audio\.", re.IGNORECASE)
+DARWIN_ASSERTION_OWNER_PATTERN = re.compile(r"Created for PID:\s*(\d+)")
 
 
 @dataclass(frozen=True)
@@ -257,14 +260,17 @@ def darwin_media() -> MediaSnapshot | None:
 
 
 def darwin_nowplaying_cli() -> MediaSnapshot | None:
-    """The track MediaRemote holds, if this Mac is in fact playing it.
+    """The track MediaRemote holds, if the application that queued it is playing it.
 
     MediaRemote is told what a player queued, never what it went on to do. An
     application that does not announce its own pause -- and plenty do not -- leaves
     its last track sitting there at a playback rate of 1 for as long as it stays
-    open, so the rate is a claim rather than an observation, and on its own it
-    pins a song to the page that stopped hours ago. What is actually coming out of
-    the speakers is the thing to ask about, and coreaudiod answers it.
+    open, so the rate is a claim rather than an observation, and a song that
+    stopped hours ago stays pinned to the page. Nor is "is this Mac making any
+    noise" the question: a chat notification would answer yes, and resurrect that
+    same stale song for as long as it sounded. The question is whether *this
+    application* is the one making the noise, and coreaudiod is the only party
+    that knows, because the system takes its assertions rather than being told them.
 
     Every field is read in one call, so the snapshot is of a single moment: asked
     a field at a time, a track that changes mid-scrape hands back one song's title
@@ -273,32 +279,58 @@ def darwin_nowplaying_cli() -> MediaSnapshot | None:
     command = command_path("nowplaying-cli")
     if not command:
         return None
-    if not darwin_audio_is_running():
-        return None
     playing = decode_json(run([command, "get", "--json", *NOWPLAYING_FIELDS]))
     if read_float(playing.get("playbackRate")) <= 0:
         return None
-    # MediaRemote keeps that item long after the application that queued it has
-    # quit. Nothing owns a track like that, so the application still holding it is
-    # what separates a live one from a ghost. It names the owner and never reaches
-    # a label: the page is told what is playing, not which program plays it.
     title = sanitize_media_text(str(playing.get("title") or ""))
     owner = sanitize_media_text(str(playing.get("clientBundleIdentifier") or ""))
     if not title or not owner:
         return None
+    # The owner names the application and never reaches a label: the page is told
+    # what is playing, not which program the host plays it with.
+    if owner not in darwin_playing_applications():
+        return None
     return MediaSnapshot(title=title, artist=sanitize_media_text(str(playing.get("artist") or "")))
 
 
-def darwin_audio_is_running() -> bool:
-    """Whether sound is coming out of this Mac at all.
+def darwin_playing_applications() -> set[str]:
+    """The applications sound is coming out of this Mac for, by bundle id."""
+    executables = darwin_audio_out_executables(darwin_audio_out_pids())
+    return {bundle for bundle in map(darwin_bundle_identifier, executables) if bundle}
 
-    coreaudiod holds a power assertion for exactly as long as an audio device is
-    running, and drops it the moment the device goes quiet. It is the one signal
-    here that no application can leave stale, because the system takes it rather
-    than being told it.
+
+def darwin_audio_out_pids() -> set[int]:
+    """The processes coreaudiod is currently running an audio device for."""
+    pids: set[int] = set()
+    audio = False
+    for line in run(["pmset", "-g", "assertions"], timeout_seconds=5).splitlines():
+        if DARWIN_ASSERTION_HEADER_PATTERN.match(line):
+            audio = bool(DARWIN_AUDIO_ASSERTION_PATTERN.search(line))
+            continue
+        owner = DARWIN_ASSERTION_OWNER_PATTERN.search(line) if audio else None
+        if owner:
+            pids.add(int(owner.group(1)))
+    return pids
+
+
+def darwin_audio_out_executables(pids: set[int]) -> list[Path]:
+    if not pids:
+        return []
+    listing = run(["ps", "-p", ",".join(str(pid) for pid in sorted(pids)), "-o", "comm="])
+    return [Path(line.strip()) for line in listing.splitlines() if line.strip()]
+
+
+def darwin_bundle_identifier(executable: Path) -> str:
+    """The application a running program belongs to, named as MediaRemote names it.
+
+    Sound comes out of whichever helper an application spawned to make it, and that
+    helper is a program in its own right -- Discord plays through one, and its own
+    bundle is not Discord's. The application is the outermost bundle enclosing it.
     """
-    assertions = run(["pmset", "-g", "assertions"], timeout_seconds=5)
-    return any(DARWIN_AUDIO_ASSERTION_PATTERN.search(line) for line in assertions.splitlines())
+    for directory in reversed(executable.parents):
+        if directory.suffix == ".app":
+            return run(["plutil", "-extract", "CFBundleIdentifier", "raw", "-o", "-", str(directory / "Contents" / "Info.plist")]).strip()
+    return ""
 
 
 def darwin_music_media() -> MediaSnapshot | None:
