@@ -39,6 +39,20 @@ func (s *Store) GetTrack(ctx context.Context, uid string, includeTrashed bool) (
 	return track, nil
 }
 
+// GetTrackBySource returns one visible local copy of an external provider track.
+func (s *Store) GetTrackBySource(ctx context.Context, provider domain.MusicProvider, trackID string) (domain.Track, error) {
+	track, err := scanTrack(s.pool.QueryRow(ctx, "SELECT "+trackColumns+" FROM "+trackFrom+
+		" WHERE track.source_provider = $1 AND track.source_track_id = $2 AND track.delete_time IS NULL",
+		provider, trackID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Track{}, fmt.Errorf("%w: source track", domain.ErrNotFound)
+	}
+	if err != nil {
+		return domain.Track{}, fmt.Errorf("get source track: %w", err)
+	}
+	return track, nil
+}
+
 // ListTracks lists audio entries with catalog filters.
 func (s *Store) ListTracks(ctx context.Context, queryText, album, artist string, favorites, trashed bool, pageSize int, pageToken string) (domain.TrackPage, error) {
 	cursor, err := decodeCursor(pageToken)

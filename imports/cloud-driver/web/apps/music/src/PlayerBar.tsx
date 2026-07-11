@@ -124,7 +124,7 @@ export function PlayerBar({
     setTime(value);
   };
   const retryLowerQuality = () => {
-    if (track.provider === MusicProvider.LOCAL || fallbackUsed) {
+    if (descriptor?.provider === MusicProvider.LOCAL || fallbackUsed) {
       setError("当前音频无法播放");
       return;
     }
@@ -141,7 +141,7 @@ export function PlayerBar({
         <audio
           ref={audio}
           crossOrigin={
-            track.provider === MusicProvider.LOCAL
+            descriptor?.provider === MusicProvider.LOCAL
               ? "use-credentials"
               : undefined
           }
@@ -177,7 +177,10 @@ export function PlayerBar({
                 variant="outline"
                 className="hidden shrink-0 md:inline-flex"
               >
-                {providerLabel(track.provider)}
+                {descriptor?.provider === MusicProvider.LOCAL &&
+                track.provider !== MusicProvider.LOCAL
+                  ? "本地缓存"
+                  : providerLabel(track.provider)}
               </Badge>
             </div>
             <p className="truncate text-xs text-muted-foreground">

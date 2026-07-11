@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -18,7 +19,14 @@ func (s *MusicService) ResolvePlayback(ctx context.Context, provider domain.Musi
 		if err != nil {
 			return domain.PlaybackDescriptor{}, err
 		}
-		return domain.PlaybackDescriptor{Provider: provider, DirectURL: "/v1/tracks/" + track.UID + "/content", ContentType: track.ContentType, Quality: quality}, nil
+		return localPlaybackDescriptor(track, quality), nil
+	}
+	localTrack, err := s.store.GetTrackBySource(ctx, provider, trackID)
+	if err == nil {
+		return localPlaybackDescriptor(localTrack, quality), nil
+	}
+	if !errors.Is(err, domain.ErrNotFound) {
+		return domain.PlaybackDescriptor{}, err
 	}
 	connection, credentials, err := s.providerCredentials(ctx, provider)
 	if err != nil {
@@ -44,6 +52,13 @@ func (s *MusicService) ResolvePlayback(ctx context.Context, provider domain.Musi
 		return domain.PlaybackDescriptor{}, err
 	}
 	return playback, nil
+}
+
+func localPlaybackDescriptor(track domain.Track, quality domain.PlaybackQuality) domain.PlaybackDescriptor {
+	return domain.PlaybackDescriptor{
+		Provider: domain.MusicProviderLocal, DirectURL: "/v1/tracks/" + track.UID + "/content",
+		ContentType: track.ContentType, Quality: quality,
+	}
 }
 
 // GetProviderLyrics returns lyrics from the selected source only.

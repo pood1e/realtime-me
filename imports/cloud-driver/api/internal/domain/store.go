@@ -74,6 +74,7 @@ type BookStore interface {
 // MusicStore persists the private audio catalog and playback state.
 type MusicStore interface {
 	GetTrack(context.Context, string, bool) (Track, error)
+	GetTrackBySource(context.Context, MusicProvider, string) (Track, error)
 	ListTracks(context.Context, string, string, string, bool, bool, int, string) (TrackPage, error)
 	ImportTrack(context.Context, string, SealedContent) (Track, error)
 	SetTrackFavorite(context.Context, string, bool) (Track, error)
