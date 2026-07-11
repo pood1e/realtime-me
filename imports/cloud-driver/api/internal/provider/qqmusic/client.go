@@ -256,7 +256,7 @@ func mapMusicUError(operation string, code int) error {
 	case 1000, 104400, 104401:
 		return providerError(operation, ErrorKindUnauthorized, "login credentials have expired", code)
 	case 104003:
-		return providerError(operation, ErrorKindUnauthorized, "account does not have playback permission", code)
+		return providerError(operation, ErrorKindForbidden, "account does not have playback permission", code)
 	case 104004:
 		return providerError(operation, ErrorKindUnavailable, "playback authorization failed", code)
 	case 104013:

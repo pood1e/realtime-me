@@ -58,7 +58,8 @@ func resolveQQPlayback(ctx context.Context, rawCredentials []byte, trackID strin
 func qqPlaybackCanFallback(err error) bool {
 	var providerError *qqmusic.Error
 	return errors.As(err, &providerError) &&
-		(providerError.Kind == qqmusic.ErrorKindUpstream || providerError.Kind == qqmusic.ErrorKindUnavailable)
+		(providerError.Kind == qqmusic.ErrorKindForbidden || providerError.Kind == qqmusic.ErrorKindUpstream ||
+			providerError.Kind == qqmusic.ErrorKindUnavailable)
 }
 
 func qqLyrics(ctx context.Context, rawCredentials []byte, trackID string) (domain.Lyric, []byte, error) {

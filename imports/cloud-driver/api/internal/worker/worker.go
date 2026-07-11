@@ -83,7 +83,7 @@ func (w *Worker) processNext(ctx context.Context) error {
 		w.logger.Info("processing job completed", "job_id", job.UID, "kind", job.Kind, "duration", time.Since(started))
 		return nil
 	}
-	if errors.Is(err, domain.ErrNotFound) {
+	if errors.Is(err, domain.ErrNotFound) && job.Kind != "music_download" {
 		// A resource can be purged or unpublished while its worker lease is active.
 		// Completing is best-effort because the purge may also remove the job row.
 		_ = w.store.CompleteProcessingJob(ctx, *job)

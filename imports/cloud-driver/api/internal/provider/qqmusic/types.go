@@ -183,6 +183,7 @@ const (
 	ErrorKindNetwork      ErrorKind = "network"
 	ErrorKindUpstream     ErrorKind = "upstream"
 	ErrorKindUnauthorized ErrorKind = "unauthorized"
+	ErrorKindForbidden    ErrorKind = "forbidden"
 	ErrorKindUnavailable  ErrorKind = "unavailable"
 )
 

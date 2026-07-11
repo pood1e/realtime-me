@@ -76,6 +76,8 @@ func mapProviderError(err error) error {
 			return fmt.Errorf("%w: %v", domain.ErrInvalidArgument, err)
 		case qqmusic.ErrorKindUnauthorized:
 			return fmt.Errorf("%w: %v", domain.ErrProviderReconnectRequired, err)
+		case qqmusic.ErrorKindForbidden:
+			return fmt.Errorf("%w: %v", domain.ErrForbidden, err)
 		case qqmusic.ErrorKindUnavailable:
 			return fmt.Errorf("%w: %v", domain.ErrNotFound, err)
 		default:
