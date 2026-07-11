@@ -33,6 +33,9 @@ from status_common import (
 # with get-raw, whose answer also carries the cover art as tens of kilobytes of
 # base64 -- an image this exporter has no use for and must never publish.
 NOWPLAYING_FIELDS = ("title", "artist", "playbackRate", "clientBundleIdentifier")
+# coreaudiod takes this assertion out while an audio device is running, and names
+# it after the device the sound is going to, whichever one that turns out to be.
+DARWIN_AUDIO_ASSERTION_PATTERN = re.compile(r"coreaudiod.*com\.apple\.audio\.", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -254,7 +257,14 @@ def darwin_media() -> MediaSnapshot | None:
 
 
 def darwin_nowplaying_cli() -> MediaSnapshot | None:
-    """The track MediaRemote is playing, whichever application queued it.
+    """The track MediaRemote holds, if this Mac is in fact playing it.
+
+    MediaRemote is told what a player queued, never what it went on to do. An
+    application that does not announce its own pause -- and plenty do not -- leaves
+    its last track sitting there at a playback rate of 1 for as long as it stays
+    open, so the rate is a claim rather than an observation, and on its own it
+    pins a song to the page that stopped hours ago. What is actually coming out of
+    the speakers is the thing to ask about, and coreaudiod answers it.
 
     Every field is read in one call, so the snapshot is of a single moment: asked
     a field at a time, a track that changes mid-scrape hands back one song's title
@@ -263,21 +273,32 @@ def darwin_nowplaying_cli() -> MediaSnapshot | None:
     command = command_path("nowplaying-cli")
     if not command:
         return None
+    if not darwin_audio_is_running():
+        return None
     playing = decode_json(run([command, "get", "--json", *NOWPLAYING_FIELDS]))
-    # nowplaying-cli answers with the last item even when it is paused, so only a
-    # positive playback rate means a track is actually coming out of the speakers.
     if read_float(playing.get("playbackRate")) <= 0:
         return None
     # MediaRemote keeps that item long after the application that queued it has
-    # quit, and goes on calling it playing. Nothing owns a track like that, so the
-    # application still holding it is what separates a live one from a ghost.
-    # It names the owner and never reaches a label: the page is told what is
-    # playing, not which program the host plays it with.
+    # quit. Nothing owns a track like that, so the application still holding it is
+    # what separates a live one from a ghost. It names the owner and never reaches
+    # a label: the page is told what is playing, not which program plays it.
     title = sanitize_media_text(str(playing.get("title") or ""))
     owner = sanitize_media_text(str(playing.get("clientBundleIdentifier") or ""))
     if not title or not owner:
         return None
     return MediaSnapshot(title=title, artist=sanitize_media_text(str(playing.get("artist") or "")))
+
+
+def darwin_audio_is_running() -> bool:
+    """Whether sound is coming out of this Mac at all.
+
+    coreaudiod holds a power assertion for exactly as long as an audio device is
+    running, and drops it the moment the device goes quiet. It is the one signal
+    here that no application can leave stale, because the system takes it rather
+    than being told it.
+    """
+    assertions = run(["pmset", "-g", "assertions"], timeout_seconds=5)
+    return any(DARWIN_AUDIO_ASSERTION_PATTERN.search(line) for line in assertions.splitlines())
 
 
 def darwin_music_media() -> MediaSnapshot | None:
