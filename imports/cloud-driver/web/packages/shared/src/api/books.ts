@@ -32,6 +32,20 @@ import {
   resolveApiUrl,
 } from "./core";
 
+export type BookListOptions = Readonly<{
+  query?: string;
+  shelfUid?: string;
+  format?: BookFormat;
+  trashed?: boolean;
+  pageSize?: number;
+  pageToken?: string;
+}>;
+
+export type BookListPage = Readonly<{
+  books: Book[];
+  nextPageToken: string;
+}>;
+
 export class BooksClient {
   readonly baseUrl: string;
   private readonly client: Client<typeof BookService>;
@@ -39,19 +53,18 @@ export class BooksClient {
     this.baseUrl = normalizeBaseUrl(baseUrl);
     this.client = createClient(BookService, privateTransport(baseUrl));
   }
-  async list(
-    options: {
-      query?: string;
-      shelfUid?: string;
-      format?: BookFormat;
-      trashed?: boolean;
-    } = {},
-  ): Promise<Book[]> {
-    return (
-      await this.client.listBooks(
-        create(ListBooksRequestSchema, { ...options, pageSize: 200 }),
-      )
-    ).books;
+  async listPage(
+    options: BookListOptions = {},
+    signal?: AbortSignal,
+  ): Promise<BookListPage> {
+    const response = await this.client.listBooks(
+      create(ListBooksRequestSchema, options),
+      { signal },
+    );
+    return {
+      books: response.books,
+      nextPageToken: response.nextPageToken,
+    };
   }
   async get(bookUid: string): Promise<Book> {
     return required(
@@ -116,9 +129,12 @@ export class BooksClient {
       create(UpdateReadingProgressRequestSchema, { readingProgress }),
     );
   }
-  async shelves(): Promise<Shelf[]> {
-    return (await this.client.listShelves(create(ListShelvesRequestSchema)))
-      .shelves;
+  async shelves(signal?: AbortSignal): Promise<Shelf[]> {
+    return (
+      await this.client.listShelves(create(ListShelvesRequestSchema), {
+        signal,
+      })
+    ).shelves;
   }
   async createShelf(displayName: string): Promise<Shelf> {
     return required(

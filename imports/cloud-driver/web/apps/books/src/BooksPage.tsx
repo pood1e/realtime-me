@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Library, Plus, Search } from "lucide-react";
-import { BookFormat } from "@cloud-drive/contracts";
-import type { Book, Shelf } from "@cloud-drive/contracts";
+import type { Book } from "@cloud-drive/contracts";
 import {
   BooksClient,
   Button,
@@ -18,54 +17,31 @@ import {
   UploadClient,
   useToast,
 } from "@cloud-drive/shared";
-import { BookCard } from "./BookCard";
+import { BookGrid } from "./BookGrid";
 import { BookReader } from "./BookReader";
 import { API_BASE, APP_LINKS } from "./config";
-
-type Filter = "all" | "pdf" | "epub" | "trash";
+import { useBookCatalog } from "./useBookCatalog";
+import type { BookFilter } from "./useBookCatalog";
 
 export function BooksPage() {
   const client = useMemo(() => new BooksClient(API_BASE), []);
   const uploader = useMemo(() => new UploadClient(API_BASE), []);
   const { showToast } = useToast();
-  const [books, setBooks] = useState<Book[]>([]);
-  const [shelves, setShelves] = useState<Shelf[]>([]);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<BookFilter>("all");
   const [shelfUid, setShelfUid] = useState("all");
-  const [loading, setLoading] = useState(true);
   const [reader, setReader] = useState<Book>();
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const format =
-        filter === "pdf"
-          ? BookFormat.PDF
-          : filter === "epub"
-            ? BookFormat.EPUB
-            : undefined;
-      const [nextBooks, nextShelves] = await Promise.all([
-        client.list({
-          query,
-          format,
-          shelfUid: shelfUid === "all" ? undefined : shelfUid,
-          trashed: filter === "trash",
-        }),
-        client.shelves(),
-      ]);
-      setBooks(nextBooks);
-      setShelves(nextShelves);
-    } catch (error) {
-      showToast(message(error), "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [client, filter, query, shelfUid, showToast]);
-  useEffect(() => {
-    const timer = window.setTimeout(() => void load(), 180);
-    return () => window.clearTimeout(timer);
-  }, [load]);
+  const onLoadError = useCallback(
+    (error: unknown) => showToast(message(error), "error"),
+    [showToast],
+  );
+  const catalog = useBookCatalog({
+    client,
+    query,
+    filter,
+    shelfUid,
+    onError: onLoadError,
+  });
 
   const upload = async (files: File[]) => {
     for (const file of files)
@@ -76,14 +52,14 @@ export function BooksPage() {
       } catch (error) {
         showToast(`${file.name}: ${message(error)}`, "error");
       }
-    await load();
+    await catalog.refresh();
   };
   const createShelf = async () => {
     const name = window.prompt("书架名称");
     if (!name?.trim()) return;
     try {
       await client.createShelf(name.trim());
-      await load();
+      await catalog.refresh();
     } catch (error) {
       showToast(message(error), "error");
     }
@@ -93,25 +69,29 @@ export function BooksPage() {
       if (!window.confirm("永久删除这本书？")) return;
       await client.purge(book.uid);
     } else await client.trash(book.uid);
-    await load();
+    await catalog.refresh();
   };
   const restore = async (book: Book) => {
     await client.restore(book.uid);
-    await load();
+    await catalog.refresh();
   };
 
   return (
     <PrivateAppShell
       app="books"
       title="书架"
-      subtitle={`${books.length} 本书`}
+      subtitle={catalogSubtitle(
+        catalog.books.length,
+        catalog.hasMore,
+        catalog.initialLoading,
+      )}
       apiBase={API_BASE}
       links={APP_LINKS}
       actions={
         filter === "trash" ? (
           <Button
             variant="destructive"
-            onClick={() => void emptyTrash(client, load, showToast)}
+            onClick={() => void emptyTrash(client, catalog.refresh, showToast)}
           >
             清空
           </Button>
@@ -136,7 +116,7 @@ export function BooksPage() {
         </div>
         <Select
           value={filter}
-          onValueChange={(value) => setFilter(value as Filter)}
+          onValueChange={(value) => setFilter(value as BookFilter)}
         >
           <SelectTrigger className="w-full lg:w-40">
             <SelectValue />
@@ -154,7 +134,7 @@ export function BooksPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">全部书架</SelectItem>
-            {shelves.map((shelf) => (
+            {catalog.shelves.map((shelf) => (
               <SelectItem key={shelf.uid} value={shelf.uid}>
                 {shelf.displayName} · {shelf.bookCount}
               </SelectItem>
@@ -166,22 +146,21 @@ export function BooksPage() {
           新建书架
         </Button>
       </div>
-      {loading ? (
+      {catalog.initialLoading ? (
         <LoadingIndicator label="正在整理书架" />
-      ) : books.length ? (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8">
-          {books.map((book) => (
-            <BookCard
-              key={book.uid}
-              book={book}
-              client={client}
-              trashed={filter === "trash"}
-              onOpen={() => setReader(book)}
-              onRemove={() => void remove(book)}
-              onRestore={() => void restore(book)}
-            />
-          ))}
-        </div>
+      ) : catalog.books.length ? (
+        <BookGrid
+          books={catalog.books}
+          client={client}
+          trashed={filter === "trash"}
+          hasMore={catalog.hasMore}
+          loadingMore={catalog.loadingMore}
+          loadMoreFailed={catalog.loadMoreFailed}
+          onLoadMore={catalog.loadMore}
+          onOpen={setReader}
+          onRemove={(book) => void remove(book)}
+          onRestore={(book) => void restore(book)}
+        />
       ) : (
         <EmptyState
           icon={<Library className="size-6" />}
@@ -202,6 +181,11 @@ export function BooksPage() {
 
 function message(error: unknown) {
   return error instanceof Error ? error.message : "操作未完成";
+}
+
+function catalogSubtitle(count: number, hasMore: boolean, loading: boolean) {
+  if (loading) return "正在加载";
+  return hasMore ? `已加载 ${count} 本` : `${count} 本书`;
 }
 async function emptyTrash(
   client: BooksClient,

@@ -37,7 +37,13 @@ export function BookCard({
         disabled={trashed}
       >
         {cover ? (
-          <img src={cover} alt="" className="h-full w-full object-cover" />
+          <img
+            src={cover}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+          />
         ) : (
           <div className="grid h-full place-items-center bg-gradient-to-br from-primary/15 to-card">
             <BookOpen className="size-10 text-primary/70" />
@@ -49,7 +55,12 @@ export function BookCard({
       </button>
       <div className="mt-3 flex items-start gap-2">
         <BookSummary book={book} />
-        <BookMenu trashed={trashed} onRemove={onRemove} onRestore={onRestore} />
+        <BookMenu
+          bookTitle={book.title}
+          trashed={trashed}
+          onRemove={onRemove}
+          onRestore={onRestore}
+        />
       </div>
     </article>
   );
@@ -75,10 +86,12 @@ function BookSummary({ book }: { book: Book }) {
 }
 
 function BookMenu({
+  bookTitle,
   trashed,
   onRemove,
   onRestore,
 }: {
+  bookTitle: string;
   trashed: boolean;
   onRemove: () => void;
   onRestore: () => void;
@@ -86,7 +99,12 @@ function BookMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon-xs">
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label={`打开《${bookTitle}》操作菜单`}
+          title="打开书籍操作菜单"
+        >
           <MoreHorizontal />
         </Button>
       </DropdownMenuTrigger>
