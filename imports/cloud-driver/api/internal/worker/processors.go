@@ -63,8 +63,8 @@ func (w *Worker) processTrack(ctx context.Context, job domain.ProcessingJob, wor
 	}
 	track.Title = firstNonEmpty(metadata.Tags.Title, track.Title)
 	track.Artists = splitArtists(metadata.Tags.Artist)
-	track.Album = metadata.Tags.Album
-	track.AlbumArtist = metadata.Tags.AlbumArtist
+	track.Album = cleanMetadata(metadata.Tags.Album)
+	track.AlbumArtist = cleanMetadata(metadata.Tags.AlbumArtist)
 	track.TrackNumber = leadingInteger(metadata.Tags.Track)
 	track.DiscNumber = leadingInteger(metadata.Tags.Disc)
 	track.Year = leadingInteger(metadata.Tags.Date)

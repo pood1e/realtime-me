@@ -46,11 +46,17 @@ func splitArtists(value string) []string {
 func normalized(values []string) []string {
 	result := make([]string, 0, len(values))
 	for _, value := range values {
-		if value = strings.TrimSpace(value); value != "" {
+		if value = cleanMetadata(value); value != "" {
 			result = append(result, value)
 		}
 	}
 	return result
+}
+
+func cleanMetadata(value string) string {
+	value = strings.ToValidUTF8(value, "")
+	value = strings.ReplaceAll(value, "\x00", "")
+	return strings.TrimSpace(value)
 }
 
 func leadingInteger(value string) int {
@@ -61,8 +67,8 @@ func leadingInteger(value string) int {
 
 func firstNonEmpty(values ...string) string {
 	for _, value := range values {
-		if strings.TrimSpace(value) != "" {
-			return strings.TrimSpace(value)
+		if value = cleanMetadata(value); value != "" {
+			return value
 		}
 	}
 	return ""

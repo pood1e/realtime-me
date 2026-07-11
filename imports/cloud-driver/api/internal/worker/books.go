@@ -103,5 +103,5 @@ func extractEPUB(ctx context.Context, source, workDir string) (string, []string,
 			}
 		}
 	}
-	return strings.TrimSpace(publication.Title), normalized(publication.Creators), coverPath, nil
+	return cleanMetadata(publication.Title), normalized(publication.Creators), coverPath, nil
 }

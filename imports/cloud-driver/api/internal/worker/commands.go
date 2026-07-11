@@ -36,7 +36,7 @@ func parseKeyValueLines(value string) map[string]string {
 	for scanner.Scan() {
 		key, item, found := strings.Cut(scanner.Text(), ":")
 		if found {
-			result[strings.TrimSpace(key)] = strings.TrimSpace(item)
+			result[cleanMetadata(key)] = cleanMetadata(item)
 		}
 	}
 	return result
