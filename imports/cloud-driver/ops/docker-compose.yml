@@ -92,6 +92,7 @@ services:
           create_host_path: false
     networks:
       - backend
+      - provider-egress
 
   cloudflared:
     image: "${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.6.0}"
@@ -125,6 +126,7 @@ networks:
   backend:
     internal: true
   edge:
+  provider-egress:
 
 secrets:
   cloudflare_tunnel_token:

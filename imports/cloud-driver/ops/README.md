@@ -7,7 +7,8 @@ Cloudflare Pages 项目的手动发布。所有真实域名、主机地址、项
 ## 容器边界
 
 - `postgres` 只加入内部 `backend` 网络，不发布端口。
-- `worker` 只加入 `backend` 网络，与 API 共用本地数据目录。
+- `worker` 加入内部 `backend` 与独立 `provider-egress` 网络；前者访问 PostgreSQL，
+  后者只用于歌单音频出站下载。Worker 不监听 HTTP 端口。
 - `api` 加入 `backend` 与 `edge`，只由 `cloudflared` 访问。
 - `cloudflared` 通过 Docker secret 读取 Tunnel token，不接收明文命令行参数。
 - 所有 bind mount 都使用 `create_host_path: false`；数据卷未挂载时部署直接失败。

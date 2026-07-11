@@ -82,7 +82,8 @@ flowchart LR
 
 API、Worker 与 PostgreSQL 不向宿主机发布端口。`cloudflared` 只能通过 Compose 的
 `edge` 网络访问 API，PostgreSQL 仅位于内部 `backend` 网络。所有容器都配置
-`restart: unless-stopped`，数据卷通过 `/etc/fstab` 挂载，因此主机重启后可自行恢复。
+Worker 通过独立 `provider-egress` 网络访问音乐来源，不监听 HTTP 端口。所有容器都
+配置 `restart: unless-stopped`，数据卷通过 `/etc/fstab` 挂载，因此主机重启后可自行恢复。
 
 ### 音乐来源
 
