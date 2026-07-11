@@ -20,6 +20,7 @@ var (
 	_ domain.MusicCatalogSearcher        = (*SpotifyAdapter)(nil)
 	_ domain.MusicPlaybackResolver       = (*SpotifyAdapter)(nil)
 	_ domain.MusicPlaybackTokenProvider  = (*SpotifyAdapter)(nil)
+	_ domain.MusicPlaylistImporter       = (*SpotifyAdapter)(nil)
 )
 
 func newSpotifyAdapter(config RegistryConfig) (*SpotifyAdapter, error) {
@@ -62,4 +63,8 @@ func (a *SpotifyAdapter) ResolvePlayback(_ context.Context, credentials []byte, 
 
 func (a *SpotifyAdapter) PlaybackToken(ctx context.Context, credentials []byte) (domain.ProviderPlaybackToken, []byte, error) {
 	return a.spotifyPlaybackToken(ctx, credentials)
+}
+
+func (a *SpotifyAdapter) ImportPlaylist(ctx context.Context, credentials []byte, source string) (domain.ProviderPlaylist, []byte, error) {
+	return a.importSpotifyPlaylist(ctx, credentials, source)
 }

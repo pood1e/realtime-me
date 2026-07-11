@@ -36,26 +36,34 @@ func searchQQ(ctx context.Context, rawCredentials []byte, query string, pageSize
 	}
 	tracks := make([]domain.PlayableTrack, 0, len(page.Tracks))
 	for _, track := range page.Tracks {
-		artists := make([]string, 0, len(track.Artists))
-		for _, artist := range track.Artists {
-			artists = append(artists, artist.Name)
-		}
-		reference, err := encodeQQTrackReference(qqTrackReference{MID: track.MID, MediaMID: track.MediaMID})
+		playable, err := qqPlayableTrack(track)
 		if err != nil {
 			return nil, "", nil, err
 		}
-		tracks = append(tracks, domain.PlayableTrack{
-			Provider: domain.MusicProviderQQ, TrackID: reference, Title: track.Title, Artists: artists,
-			Album: track.Album.Title, Duration: time.Duration(track.Duration) * time.Second,
-			ArtworkURL: track.Album.CoverURL, ProviderURL: "https://y.qq.com/n/ryqq/songDetail/" + track.MID,
-			Playable: track.Available, LyricsAvailable: true,
-		})
+		tracks = append(tracks, playable)
 	}
 	updated, err := json.Marshal(credentials)
 	if err != nil {
 		return nil, "", nil, fmt.Errorf("%w: encode QQ Music credentials", domain.ErrUnavailable)
 	}
 	return tracks, page.NextPageToken, updated, nil
+}
+
+func qqPlayableTrack(track qqmusic.Track) (domain.PlayableTrack, error) {
+	artists := make([]string, 0, len(track.Artists))
+	for _, artist := range track.Artists {
+		artists = append(artists, artist.Name)
+	}
+	reference, err := encodeQQTrackReference(qqTrackReference{MID: track.MID, MediaMID: track.MediaMID})
+	if err != nil {
+		return domain.PlayableTrack{}, err
+	}
+	return domain.PlayableTrack{
+		Provider: domain.MusicProviderQQ, TrackID: reference, Title: track.Title, Artists: artists,
+		Album: track.Album.Title, Duration: time.Duration(track.Duration) * time.Second,
+		ArtworkURL: track.Album.CoverURL, ProviderURL: "https://y.qq.com/n/ryqq/songDetail/" + track.MID,
+		Playable: track.Available, LyricsAvailable: true,
+	}, nil
 }
 
 func encodeQQTrackReference(reference qqTrackReference) (string, error) {

@@ -26,19 +26,22 @@ type Files interface {
 	NewWorkDir(string) (string, error)
 	RemoveWorkDir(string) error
 	PublishArtifact(string, []byte, string, string, string) (string, error)
+	PublishSource(string, string) (domain.SealedContent, error)
+	FreeBytes() (int64, error)
 }
 
 // Worker performs bounded local metadata and derivative processing.
 type Worker struct {
-	store  domain.WorkerStore
-	files  Files
-	clock  domain.Clock
-	logger *slog.Logger
+	store     domain.WorkerStore
+	files     Files
+	clock     domain.Clock
+	logger    *slog.Logger
+	downloads *MusicDownloader
 }
 
 // New constructs a single-concurrency content worker.
-func New(store domain.WorkerStore, files Files, clock domain.Clock, logger *slog.Logger) *Worker {
-	return &Worker{store: store, files: files, clock: clock, logger: logger}
+func New(store domain.WorkerStore, files Files, clock domain.Clock, logger *slog.Logger, downloads *MusicDownloader) *Worker {
+	return &Worker{store: store, files: files, clock: clock, logger: logger, downloads: downloads}
 }
 
 // Run heartbeats, leases, and processes jobs until cancellation.
@@ -107,6 +110,11 @@ func (w *Worker) process(ctx context.Context, job domain.ProcessingJob) error {
 		return w.processImage(ctx, job, workDir)
 	case "wallpaper":
 		return w.processWallpaper(ctx, job, workDir)
+	case "music_download":
+		if w.downloads == nil {
+			return errors.New("music downloader is unavailable")
+		}
+		return w.downloads.Process(ctx, job.ResourceUID, workDir)
 	default:
 		return fmt.Errorf("unsupported job kind %q", job.Kind)
 	}

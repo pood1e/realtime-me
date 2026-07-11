@@ -62,6 +62,8 @@ enum MusicProviderCapability {
   MUSIC_PROVIDER_CAPABILITY_PLAYBACK = 3;
   MUSIC_PROVIDER_CAPABILITY_LYRICS = 4;
   MUSIC_PROVIDER_CAPABILITY_BROWSER_TOKEN = 5;
+  MUSIC_PROVIDER_CAPABILITY_PLAYLIST_IMPORT = 6;
+  MUSIC_PROVIDER_CAPABILITY_LOCAL_DOWNLOAD = 7;
 }
 
 // PlayableTrack is the normalized read model shared by search and history.
@@ -99,7 +101,9 @@ message ProviderQrChallenge {
 }
 
 // ProviderRedirectChallenge contains one trusted provider authorization URL.
-message ProviderRedirectChallenge { string authorization_url = 1; }
+message ProviderRedirectChallenge {
+  string authorization_url = 1;
+}
 
 // ProviderConnectionAttempt is one bounded interactive login operation.
 message ProviderConnectionAttempt {
@@ -135,7 +139,9 @@ message DirectAudioPlayback {
 }
 
 // SpotifyPlayback identifies content played only through the official SDK.
-message SpotifyPlayback { string uri = 1; }
+message SpotifyPlayback {
+  string uri = 1;
+}
 
 // PlaybackDescriptor selects the source-specific playback implementation.
 message PlaybackDescriptor {

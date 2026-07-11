@@ -92,6 +92,24 @@ const (
 	// MusicServiceListPlaybackHistoryProcedure is the fully-qualified name of the MusicService's
 	// ListPlaybackHistory RPC.
 	MusicServiceListPlaybackHistoryProcedure = "/cloud.music.v1.MusicService/ListPlaybackHistory"
+	// MusicServiceImportPlaylistProcedure is the fully-qualified name of the MusicService's
+	// ImportPlaylist RPC.
+	MusicServiceImportPlaylistProcedure = "/cloud.music.v1.MusicService/ImportPlaylist"
+	// MusicServiceGetPlaylistProcedure is the fully-qualified name of the MusicService's GetPlaylist
+	// RPC.
+	MusicServiceGetPlaylistProcedure = "/cloud.music.v1.MusicService/GetPlaylist"
+	// MusicServiceListPlaylistsProcedure is the fully-qualified name of the MusicService's
+	// ListPlaylists RPC.
+	MusicServiceListPlaylistsProcedure = "/cloud.music.v1.MusicService/ListPlaylists"
+	// MusicServiceListPlaylistTracksProcedure is the fully-qualified name of the MusicService's
+	// ListPlaylistTracks RPC.
+	MusicServiceListPlaylistTracksProcedure = "/cloud.music.v1.MusicService/ListPlaylistTracks"
+	// MusicServiceDownloadPlaylistProcedure is the fully-qualified name of the MusicService's
+	// DownloadPlaylist RPC.
+	MusicServiceDownloadPlaylistProcedure = "/cloud.music.v1.MusicService/DownloadPlaylist"
+	// MusicServiceDeletePlaylistProcedure is the fully-qualified name of the MusicService's
+	// DeletePlaylist RPC.
+	MusicServiceDeletePlaylistProcedure = "/cloud.music.v1.MusicService/DeletePlaylist"
 )
 
 // MusicServiceClient is a client for the cloud.music.v1.MusicService service.
@@ -117,6 +135,12 @@ type MusicServiceClient interface {
 	GetSpotifyPlaybackToken(context.Context, *connect.Request[v1.GetSpotifyPlaybackTokenRequest]) (*connect.Response[v1.GetSpotifyPlaybackTokenResponse], error)
 	RecordPlayback(context.Context, *connect.Request[v1.RecordPlaybackRequest]) (*connect.Response[v1.RecordPlaybackResponse], error)
 	ListPlaybackHistory(context.Context, *connect.Request[v1.ListPlaybackHistoryRequest]) (*connect.Response[v1.ListPlaybackHistoryResponse], error)
+	ImportPlaylist(context.Context, *connect.Request[v1.ImportPlaylistRequest]) (*connect.Response[v1.ImportPlaylistResponse], error)
+	GetPlaylist(context.Context, *connect.Request[v1.GetPlaylistRequest]) (*connect.Response[v1.GetPlaylistResponse], error)
+	ListPlaylists(context.Context, *connect.Request[v1.ListPlaylistsRequest]) (*connect.Response[v1.ListPlaylistsResponse], error)
+	ListPlaylistTracks(context.Context, *connect.Request[v1.ListPlaylistTracksRequest]) (*connect.Response[v1.ListPlaylistTracksResponse], error)
+	DownloadPlaylist(context.Context, *connect.Request[v1.DownloadPlaylistRequest]) (*connect.Response[v1.DownloadPlaylistResponse], error)
+	DeletePlaylist(context.Context, *connect.Request[v1.DeletePlaylistRequest]) (*connect.Response[v1.DeletePlaylistResponse], error)
 }
 
 // NewMusicServiceClient constructs a client for the cloud.music.v1.MusicService service. By
@@ -256,6 +280,42 @@ func NewMusicServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(musicServiceMethods.ByName("ListPlaybackHistory")),
 			connect.WithClientOptions(opts...),
 		),
+		importPlaylist: connect.NewClient[v1.ImportPlaylistRequest, v1.ImportPlaylistResponse](
+			httpClient,
+			baseURL+MusicServiceImportPlaylistProcedure,
+			connect.WithSchema(musicServiceMethods.ByName("ImportPlaylist")),
+			connect.WithClientOptions(opts...),
+		),
+		getPlaylist: connect.NewClient[v1.GetPlaylistRequest, v1.GetPlaylistResponse](
+			httpClient,
+			baseURL+MusicServiceGetPlaylistProcedure,
+			connect.WithSchema(musicServiceMethods.ByName("GetPlaylist")),
+			connect.WithClientOptions(opts...),
+		),
+		listPlaylists: connect.NewClient[v1.ListPlaylistsRequest, v1.ListPlaylistsResponse](
+			httpClient,
+			baseURL+MusicServiceListPlaylistsProcedure,
+			connect.WithSchema(musicServiceMethods.ByName("ListPlaylists")),
+			connect.WithClientOptions(opts...),
+		),
+		listPlaylistTracks: connect.NewClient[v1.ListPlaylistTracksRequest, v1.ListPlaylistTracksResponse](
+			httpClient,
+			baseURL+MusicServiceListPlaylistTracksProcedure,
+			connect.WithSchema(musicServiceMethods.ByName("ListPlaylistTracks")),
+			connect.WithClientOptions(opts...),
+		),
+		downloadPlaylist: connect.NewClient[v1.DownloadPlaylistRequest, v1.DownloadPlaylistResponse](
+			httpClient,
+			baseURL+MusicServiceDownloadPlaylistProcedure,
+			connect.WithSchema(musicServiceMethods.ByName("DownloadPlaylist")),
+			connect.WithClientOptions(opts...),
+		),
+		deletePlaylist: connect.NewClient[v1.DeletePlaylistRequest, v1.DeletePlaylistResponse](
+			httpClient,
+			baseURL+MusicServiceDeletePlaylistProcedure,
+			connect.WithSchema(musicServiceMethods.ByName("DeletePlaylist")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -282,6 +342,12 @@ type musicServiceClient struct {
 	getSpotifyPlaybackToken      *connect.Client[v1.GetSpotifyPlaybackTokenRequest, v1.GetSpotifyPlaybackTokenResponse]
 	recordPlayback               *connect.Client[v1.RecordPlaybackRequest, v1.RecordPlaybackResponse]
 	listPlaybackHistory          *connect.Client[v1.ListPlaybackHistoryRequest, v1.ListPlaybackHistoryResponse]
+	importPlaylist               *connect.Client[v1.ImportPlaylistRequest, v1.ImportPlaylistResponse]
+	getPlaylist                  *connect.Client[v1.GetPlaylistRequest, v1.GetPlaylistResponse]
+	listPlaylists                *connect.Client[v1.ListPlaylistsRequest, v1.ListPlaylistsResponse]
+	listPlaylistTracks           *connect.Client[v1.ListPlaylistTracksRequest, v1.ListPlaylistTracksResponse]
+	downloadPlaylist             *connect.Client[v1.DownloadPlaylistRequest, v1.DownloadPlaylistResponse]
+	deletePlaylist               *connect.Client[v1.DeletePlaylistRequest, v1.DeletePlaylistResponse]
 }
 
 // GetTrack calls cloud.music.v1.MusicService.GetTrack.
@@ -389,6 +455,36 @@ func (c *musicServiceClient) ListPlaybackHistory(ctx context.Context, req *conne
 	return c.listPlaybackHistory.CallUnary(ctx, req)
 }
 
+// ImportPlaylist calls cloud.music.v1.MusicService.ImportPlaylist.
+func (c *musicServiceClient) ImportPlaylist(ctx context.Context, req *connect.Request[v1.ImportPlaylistRequest]) (*connect.Response[v1.ImportPlaylistResponse], error) {
+	return c.importPlaylist.CallUnary(ctx, req)
+}
+
+// GetPlaylist calls cloud.music.v1.MusicService.GetPlaylist.
+func (c *musicServiceClient) GetPlaylist(ctx context.Context, req *connect.Request[v1.GetPlaylistRequest]) (*connect.Response[v1.GetPlaylistResponse], error) {
+	return c.getPlaylist.CallUnary(ctx, req)
+}
+
+// ListPlaylists calls cloud.music.v1.MusicService.ListPlaylists.
+func (c *musicServiceClient) ListPlaylists(ctx context.Context, req *connect.Request[v1.ListPlaylistsRequest]) (*connect.Response[v1.ListPlaylistsResponse], error) {
+	return c.listPlaylists.CallUnary(ctx, req)
+}
+
+// ListPlaylistTracks calls cloud.music.v1.MusicService.ListPlaylistTracks.
+func (c *musicServiceClient) ListPlaylistTracks(ctx context.Context, req *connect.Request[v1.ListPlaylistTracksRequest]) (*connect.Response[v1.ListPlaylistTracksResponse], error) {
+	return c.listPlaylistTracks.CallUnary(ctx, req)
+}
+
+// DownloadPlaylist calls cloud.music.v1.MusicService.DownloadPlaylist.
+func (c *musicServiceClient) DownloadPlaylist(ctx context.Context, req *connect.Request[v1.DownloadPlaylistRequest]) (*connect.Response[v1.DownloadPlaylistResponse], error) {
+	return c.downloadPlaylist.CallUnary(ctx, req)
+}
+
+// DeletePlaylist calls cloud.music.v1.MusicService.DeletePlaylist.
+func (c *musicServiceClient) DeletePlaylist(ctx context.Context, req *connect.Request[v1.DeletePlaylistRequest]) (*connect.Response[v1.DeletePlaylistResponse], error) {
+	return c.deletePlaylist.CallUnary(ctx, req)
+}
+
 // MusicServiceHandler is an implementation of the cloud.music.v1.MusicService service.
 type MusicServiceHandler interface {
 	GetTrack(context.Context, *connect.Request[v1.GetTrackRequest]) (*connect.Response[v1.GetTrackResponse], error)
@@ -412,6 +508,12 @@ type MusicServiceHandler interface {
 	GetSpotifyPlaybackToken(context.Context, *connect.Request[v1.GetSpotifyPlaybackTokenRequest]) (*connect.Response[v1.GetSpotifyPlaybackTokenResponse], error)
 	RecordPlayback(context.Context, *connect.Request[v1.RecordPlaybackRequest]) (*connect.Response[v1.RecordPlaybackResponse], error)
 	ListPlaybackHistory(context.Context, *connect.Request[v1.ListPlaybackHistoryRequest]) (*connect.Response[v1.ListPlaybackHistoryResponse], error)
+	ImportPlaylist(context.Context, *connect.Request[v1.ImportPlaylistRequest]) (*connect.Response[v1.ImportPlaylistResponse], error)
+	GetPlaylist(context.Context, *connect.Request[v1.GetPlaylistRequest]) (*connect.Response[v1.GetPlaylistResponse], error)
+	ListPlaylists(context.Context, *connect.Request[v1.ListPlaylistsRequest]) (*connect.Response[v1.ListPlaylistsResponse], error)
+	ListPlaylistTracks(context.Context, *connect.Request[v1.ListPlaylistTracksRequest]) (*connect.Response[v1.ListPlaylistTracksResponse], error)
+	DownloadPlaylist(context.Context, *connect.Request[v1.DownloadPlaylistRequest]) (*connect.Response[v1.DownloadPlaylistResponse], error)
+	DeletePlaylist(context.Context, *connect.Request[v1.DeletePlaylistRequest]) (*connect.Response[v1.DeletePlaylistResponse], error)
 }
 
 // NewMusicServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -547,6 +649,42 @@ func NewMusicServiceHandler(svc MusicServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(musicServiceMethods.ByName("ListPlaybackHistory")),
 		connect.WithHandlerOptions(opts...),
 	)
+	musicServiceImportPlaylistHandler := connect.NewUnaryHandler(
+		MusicServiceImportPlaylistProcedure,
+		svc.ImportPlaylist,
+		connect.WithSchema(musicServiceMethods.ByName("ImportPlaylist")),
+		connect.WithHandlerOptions(opts...),
+	)
+	musicServiceGetPlaylistHandler := connect.NewUnaryHandler(
+		MusicServiceGetPlaylistProcedure,
+		svc.GetPlaylist,
+		connect.WithSchema(musicServiceMethods.ByName("GetPlaylist")),
+		connect.WithHandlerOptions(opts...),
+	)
+	musicServiceListPlaylistsHandler := connect.NewUnaryHandler(
+		MusicServiceListPlaylistsProcedure,
+		svc.ListPlaylists,
+		connect.WithSchema(musicServiceMethods.ByName("ListPlaylists")),
+		connect.WithHandlerOptions(opts...),
+	)
+	musicServiceListPlaylistTracksHandler := connect.NewUnaryHandler(
+		MusicServiceListPlaylistTracksProcedure,
+		svc.ListPlaylistTracks,
+		connect.WithSchema(musicServiceMethods.ByName("ListPlaylistTracks")),
+		connect.WithHandlerOptions(opts...),
+	)
+	musicServiceDownloadPlaylistHandler := connect.NewUnaryHandler(
+		MusicServiceDownloadPlaylistProcedure,
+		svc.DownloadPlaylist,
+		connect.WithSchema(musicServiceMethods.ByName("DownloadPlaylist")),
+		connect.WithHandlerOptions(opts...),
+	)
+	musicServiceDeletePlaylistHandler := connect.NewUnaryHandler(
+		MusicServiceDeletePlaylistProcedure,
+		svc.DeletePlaylist,
+		connect.WithSchema(musicServiceMethods.ByName("DeletePlaylist")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/cloud.music.v1.MusicService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case MusicServiceGetTrackProcedure:
@@ -591,6 +729,18 @@ func NewMusicServiceHandler(svc MusicServiceHandler, opts ...connect.HandlerOpti
 			musicServiceRecordPlaybackHandler.ServeHTTP(w, r)
 		case MusicServiceListPlaybackHistoryProcedure:
 			musicServiceListPlaybackHistoryHandler.ServeHTTP(w, r)
+		case MusicServiceImportPlaylistProcedure:
+			musicServiceImportPlaylistHandler.ServeHTTP(w, r)
+		case MusicServiceGetPlaylistProcedure:
+			musicServiceGetPlaylistHandler.ServeHTTP(w, r)
+		case MusicServiceListPlaylistsProcedure:
+			musicServiceListPlaylistsHandler.ServeHTTP(w, r)
+		case MusicServiceListPlaylistTracksProcedure:
+			musicServiceListPlaylistTracksHandler.ServeHTTP(w, r)
+		case MusicServiceDownloadPlaylistProcedure:
+			musicServiceDownloadPlaylistHandler.ServeHTTP(w, r)
+		case MusicServiceDeletePlaylistProcedure:
+			musicServiceDeletePlaylistHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -682,4 +832,28 @@ func (UnimplementedMusicServiceHandler) RecordPlayback(context.Context, *connect
 
 func (UnimplementedMusicServiceHandler) ListPlaybackHistory(context.Context, *connect.Request[v1.ListPlaybackHistoryRequest]) (*connect.Response[v1.ListPlaybackHistoryResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.music.v1.MusicService.ListPlaybackHistory is not implemented"))
+}
+
+func (UnimplementedMusicServiceHandler) ImportPlaylist(context.Context, *connect.Request[v1.ImportPlaylistRequest]) (*connect.Response[v1.ImportPlaylistResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.music.v1.MusicService.ImportPlaylist is not implemented"))
+}
+
+func (UnimplementedMusicServiceHandler) GetPlaylist(context.Context, *connect.Request[v1.GetPlaylistRequest]) (*connect.Response[v1.GetPlaylistResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.music.v1.MusicService.GetPlaylist is not implemented"))
+}
+
+func (UnimplementedMusicServiceHandler) ListPlaylists(context.Context, *connect.Request[v1.ListPlaylistsRequest]) (*connect.Response[v1.ListPlaylistsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.music.v1.MusicService.ListPlaylists is not implemented"))
+}
+
+func (UnimplementedMusicServiceHandler) ListPlaylistTracks(context.Context, *connect.Request[v1.ListPlaylistTracksRequest]) (*connect.Response[v1.ListPlaylistTracksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.music.v1.MusicService.ListPlaylistTracks is not implemented"))
+}
+
+func (UnimplementedMusicServiceHandler) DownloadPlaylist(context.Context, *connect.Request[v1.DownloadPlaylistRequest]) (*connect.Response[v1.DownloadPlaylistResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.music.v1.MusicService.DownloadPlaylist is not implemented"))
+}
+
+func (UnimplementedMusicServiceHandler) DeletePlaylist(context.Context, *connect.Request[v1.DeletePlaylistRequest]) (*connect.Response[v1.DeletePlaylistResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.music.v1.MusicService.DeletePlaylist is not implemented"))
 }

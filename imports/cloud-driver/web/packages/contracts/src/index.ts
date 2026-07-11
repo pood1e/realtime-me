@@ -11,6 +11,7 @@ export * from "./gen/cloud/drive/v1/share_service_pb.js";
 export * from "./gen/cloud/images/v1/image_pb.js";
 export * from "./gen/cloud/images/v1/image_service_pb.js";
 export * from "./gen/cloud/music/v1/music_service_pb.js";
+export * from "./gen/cloud/music/v1/playlist_pb.js";
 export * from "./gen/cloud/music/v1/provider_pb.js";
 export * from "./gen/cloud/music/v1/track_pb.js";
 export * from "./gen/cloud/system/v1/health_service_pb.js";

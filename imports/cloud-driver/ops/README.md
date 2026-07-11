@@ -76,6 +76,7 @@ sudoedit /etc/cloud-drive/runtime.env
 | `PASSWORD_HASH_BASE64` | bcrypt cost 12 以上的密码哈希再做 padded Base64 |
 | `SESSION_SECRET` | 64 个十六进制字符 |
 | `MUSIC_PROVIDER_CREDENTIAL_KEY` | 32 字节 padded Base64，仅加密第三方账号凭据 |
+| `RESERVED_FREE_BYTES` | 上传和歌单下载必须共同保留的本地空闲字节数，默认 20 GiB |
 | `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | 可选，但必须同时配置 |
 
 生成运行时秘密：

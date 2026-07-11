@@ -4,6 +4,8 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Playlist, PlaylistTrack } from "./playlist_pb.js";
+import { file_cloud_music_v1_playlist } from "./playlist_pb.js";
 import type { Lyric, MusicProvider, PlayableTrack, PlaybackDescriptor, PlaybackQuality, ProviderConnection, ProviderConnectionAttempt, ProviderSearchCursor, ProviderSearchGroup } from "./provider_pb.js";
 import { file_cloud_music_v1_provider } from "./provider_pb.js";
 import type { Album, Artist, PlaybackEntry, Track } from "./track_pb.js";
@@ -16,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file cloud/music/v1/music_service.proto.
  */
 export const file_cloud_music_v1_music_service: GenFile = /*@__PURE__*/
-  fileDesc("CiJjbG91ZC9tdXNpYy92MS9tdXNpY19zZXJ2aWNlLnByb3RvEg5jbG91ZC5tdXNpYy52MSIkCg9HZXRUcmFja1JlcXVlc3QSEQoJdHJhY2tfdWlkGAEgASgJIjgKEEdldFRyYWNrUmVzcG9uc2USJAoFdHJhY2sYASABKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjayKMAQoRTGlzdFRyYWNrc1JlcXVlc3QSDQoFcXVlcnkYASABKAkSDQoFYWxidW0YAiABKAkSDgoGYXJ0aXN0GAMgASgJEhEKCWZhdm9yaXRlcxgEIAEoCBIPCgd0cmFzaGVkGAUgASgIEhEKCXBhZ2Vfc2l6ZRgGIAEoBRISCgpwYWdlX3Rva2VuGAcgASgJIlQKEkxpc3RUcmFja3NSZXNwb25zZRIlCgZ0cmFja3MYASADKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjaxIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiKAoSSW1wb3J0VHJhY2tSZXF1ZXN0EhIKCnVwbG9hZF91aWQYASABKAkiOwoTSW1wb3J0VHJhY2tSZXNwb25zZRIkCgV0cmFjaxgBIAEoCzIVLmNsb3VkLm11c2ljLnYxLlRyYWNrIj4KF1NldFRyYWNrRmF2b3JpdGVSZXF1ZXN0EhEKCXRyYWNrX3VpZBgBIAEoCRIQCghmYXZvcml0ZRgCIAEoCCJAChhTZXRUcmFja0Zhdm9yaXRlUmVzcG9uc2USJAoFdHJhY2sYASABKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjayInChJEZWxldGVUcmFja1JlcXVlc3QSEQoJdHJhY2tfdWlkGAEgASgJIjsKE0RlbGV0ZVRyYWNrUmVzcG9uc2USJAoFdHJhY2sYASABKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjayIoChNSZXN0b3JlVHJhY2tSZXF1ZXN0EhEKCXRyYWNrX3VpZBgBIAEoCSI8ChRSZXN0b3JlVHJhY2tSZXNwb25zZRIkCgV0cmFjaxgBIAEoCzIVLmNsb3VkLm11c2ljLnYxLlRyYWNrIiYKEVB1cmdlVHJhY2tSZXF1ZXN0EhEKCXRyYWNrX3VpZBgBIAEoCSIUChJQdXJnZVRyYWNrUmVzcG9uc2UiGAoWRW1wdHlUcmFja1RyYXNoUmVxdWVzdCIZChdFbXB0eVRyYWNrVHJhc2hSZXNwb25zZSIwChtSZXRyeVRyYWNrUHJvY2Vzc2luZ1JlcXVlc3QSEQoJdHJhY2tfdWlkGAEgASgJIkQKHFJldHJ5VHJhY2tQcm9jZXNzaW5nUmVzcG9uc2USJAoFdHJhY2sYASABKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjayIiChFMaXN0QWxidW1zUmVxdWVzdBINCgVxdWVyeRgBIAEoCSI7ChJMaXN0QWxidW1zUmVzcG9uc2USJQoGYWxidW1zGAEgAygLMhUuY2xvdWQubXVzaWMudjEuQWxidW0iIwoSTGlzdEFydGlzdHNSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJIj4KE0xpc3RBcnRpc3RzUmVzcG9uc2USJwoHYXJ0aXN0cxgBIAMoCzIWLmNsb3VkLm11c2ljLnYxLkFydGlzdCIgCh5MaXN0UHJvdmlkZXJDb25uZWN0aW9uc1JlcXVlc3QiWgofTGlzdFByb3ZpZGVyQ29ubmVjdGlvbnNSZXNwb25zZRI3Cgtjb25uZWN0aW9ucxgBIAMoCzIiLmNsb3VkLm11c2ljLnYxLlByb3ZpZGVyQ29ubmVjdGlvbiJRCh5CZWdpblByb3ZpZGVyQ29ubmVjdGlvblJlcXVlc3QSLwoIcHJvdmlkZXIYASABKA4yHS5jbG91ZC5tdXNpYy52MS5NdXNpY1Byb3ZpZGVyIl0KH0JlZ2luUHJvdmlkZXJDb25uZWN0aW9uUmVzcG9uc2USOgoHYXR0ZW1wdBgBIAEoCzIpLmNsb3VkLm11c2ljLnYxLlByb3ZpZGVyQ29ubmVjdGlvbkF0dGVtcHQiOgojR2V0UHJvdmlkZXJDb25uZWN0aW9uQXR0ZW1wdFJlcXVlc3QSEwoLYXR0ZW1wdF91aWQYASABKAkiYgokR2V0UHJvdmlkZXJDb25uZWN0aW9uQXR0ZW1wdFJlc3BvbnNlEjoKB2F0dGVtcHQYASABKAsyKS5jbG91ZC5tdXNpYy52MS5Qcm92aWRlckNvbm5lY3Rpb25BdHRlbXB0IkwKGURpc2Nvbm5lY3RQcm92aWRlclJlcXVlc3QSLwoIcHJvdmlkZXIYASABKA4yHS5jbG91ZC5tdXNpYy52MS5NdXNpY1Byb3ZpZGVyIhwKGkRpc2Nvbm5lY3RQcm92aWRlclJlc3BvbnNlIloKElNlYXJjaE11c2ljUmVxdWVzdBINCgVxdWVyeRgBIAEoCRI1CgdjdXJzb3JzGAIgAygLMiQuY2xvdWQubXVzaWMudjEuUHJvdmlkZXJTZWFyY2hDdXJzb3IiSgoTU2VhcmNoTXVzaWNSZXNwb25zZRIzCgZncm91cHMYASADKAsyIy5jbG91ZC5tdXNpYy52MS5Qcm92aWRlclNlYXJjaEdyb3VwIo0BChZSZXNvbHZlUGxheWJhY2tSZXF1ZXN0Ei8KCHByb3ZpZGVyGAEgASgOMh0uY2xvdWQubXVzaWMudjEuTXVzaWNQcm92aWRlchIQCgh0cmFja19pZBgCIAEoCRIwCgdxdWFsaXR5GAMgASgOMh8uY2xvdWQubXVzaWMudjEuUGxheWJhY2tRdWFsaXR5Ik8KF1Jlc29sdmVQbGF5YmFja1Jlc3BvbnNlEjQKCHBsYXliYWNrGAEgASgLMiIuY2xvdWQubXVzaWMudjEuUGxheWJhY2tEZXNjcmlwdG9yIl0KGEdldFByb3ZpZGVyTHlyaWNzUmVxdWVzdBIvCghwcm92aWRlchgBIAEoDjIdLmNsb3VkLm11c2ljLnYxLk11c2ljUHJvdmlkZXISEAoIdHJhY2tfaWQYAiABKAkiQQoZR2V0UHJvdmlkZXJMeXJpY3NSZXNwb25zZRIkCgVseXJpYxgBIAEoCzIVLmNsb3VkLm11c2ljLnYxLkx5cmljIiAKHkdldFNwb3RpZnlQbGF5YmFja1Rva2VuUmVxdWVzdCJoCh9HZXRTcG90aWZ5UGxheWJhY2tUb2tlblJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRIvCgtleHBpcmVfdGltZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiRQoVUmVjb3JkUGxheWJhY2tSZXF1ZXN0EiwKBXRyYWNrGAEgASgLMh0uY2xvdWQubXVzaWMudjEuUGxheWFibGVUcmFjayJPChZSZWNvcmRQbGF5YmFja1Jlc3BvbnNlEjUKDnBsYXliYWNrX2VudHJ5GAEgASgLMh0uY2xvdWQubXVzaWMudjEuUGxheWJhY2tFbnRyeSJDChpMaXN0UGxheWJhY2tIaXN0b3J5UmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCSJvChtMaXN0UGxheWJhY2tIaXN0b3J5UmVzcG9uc2USNwoQcGxheWJhY2tfZW50cmllcxgBIAMoCzIdLmNsb3VkLm11c2ljLnYxLlBsYXliYWNrRW50cnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJMuEQCgxNdXNpY1NlcnZpY2USTQoIR2V0VHJhY2sSHy5jbG91ZC5tdXNpYy52MS5HZXRUcmFja1JlcXVlc3QaIC5jbG91ZC5tdXNpYy52MS5HZXRUcmFja1Jlc3BvbnNlElMKCkxpc3RUcmFja3MSIS5jbG91ZC5tdXNpYy52MS5MaXN0VHJhY2tzUmVxdWVzdBoiLmNsb3VkLm11c2ljLnYxLkxpc3RUcmFja3NSZXNwb25zZRJWCgtJbXBvcnRUcmFjaxIiLmNsb3VkLm11c2ljLnYxLkltcG9ydFRyYWNrUmVxdWVzdBojLmNsb3VkLm11c2ljLnYxLkltcG9ydFRyYWNrUmVzcG9uc2USZQoQU2V0VHJhY2tGYXZvcml0ZRInLmNsb3VkLm11c2ljLnYxLlNldFRyYWNrRmF2b3JpdGVSZXF1ZXN0GiguY2xvdWQubXVzaWMudjEuU2V0VHJhY2tGYXZvcml0ZVJlc3BvbnNlElYKC0RlbGV0ZVRyYWNrEiIuY2xvdWQubXVzaWMudjEuRGVsZXRlVHJhY2tSZXF1ZXN0GiMuY2xvdWQubXVzaWMudjEuRGVsZXRlVHJhY2tSZXNwb25zZRJZCgxSZXN0b3JlVHJhY2sSIy5jbG91ZC5tdXNpYy52MS5SZXN0b3JlVHJhY2tSZXF1ZXN0GiQuY2xvdWQubXVzaWMudjEuUmVzdG9yZVRyYWNrUmVzcG9uc2USUwoKUHVyZ2VUcmFjaxIhLmNsb3VkLm11c2ljLnYxLlB1cmdlVHJhY2tSZXF1ZXN0GiIuY2xvdWQubXVzaWMudjEuUHVyZ2VUcmFja1Jlc3BvbnNlEmIKD0VtcHR5VHJhY2tUcmFzaBImLmNsb3VkLm11c2ljLnYxLkVtcHR5VHJhY2tUcmFzaFJlcXVlc3QaJy5jbG91ZC5tdXNpYy52MS5FbXB0eVRyYWNrVHJhc2hSZXNwb25zZRJxChRSZXRyeVRyYWNrUHJvY2Vzc2luZxIrLmNsb3VkLm11c2ljLnYxLlJldHJ5VHJhY2tQcm9jZXNzaW5nUmVxdWVzdBosLmNsb3VkLm11c2ljLnYxLlJldHJ5VHJhY2tQcm9jZXNzaW5nUmVzcG9uc2USUwoKTGlzdEFsYnVtcxIhLmNsb3VkLm11c2ljLnYxLkxpc3RBbGJ1bXNSZXF1ZXN0GiIuY2xvdWQubXVzaWMudjEuTGlzdEFsYnVtc1Jlc3BvbnNlElYKC0xpc3RBcnRpc3RzEiIuY2xvdWQubXVzaWMudjEuTGlzdEFydGlzdHNSZXF1ZXN0GiMuY2xvdWQubXVzaWMudjEuTGlzdEFydGlzdHNSZXNwb25zZRJ6ChdMaXN0UHJvdmlkZXJDb25uZWN0aW9ucxIuLmNsb3VkLm11c2ljLnYxLkxpc3RQcm92aWRlckNvbm5lY3Rpb25zUmVxdWVzdBovLmNsb3VkLm11c2ljLnYxLkxpc3RQcm92aWRlckNvbm5lY3Rpb25zUmVzcG9uc2USegoXQmVnaW5Qcm92aWRlckNvbm5lY3Rpb24SLi5jbG91ZC5tdXNpYy52MS5CZWdpblByb3ZpZGVyQ29ubmVjdGlvblJlcXVlc3QaLy5jbG91ZC5tdXNpYy52MS5CZWdpblByb3ZpZGVyQ29ubmVjdGlvblJlc3BvbnNlEokBChxHZXRQcm92aWRlckNvbm5lY3Rpb25BdHRlbXB0EjMuY2xvdWQubXVzaWMudjEuR2V0UHJvdmlkZXJDb25uZWN0aW9uQXR0ZW1wdFJlcXVlc3QaNC5jbG91ZC5tdXNpYy52MS5HZXRQcm92aWRlckNvbm5lY3Rpb25BdHRlbXB0UmVzcG9uc2USawoSRGlzY29ubmVjdFByb3ZpZGVyEikuY2xvdWQubXVzaWMudjEuRGlzY29ubmVjdFByb3ZpZGVyUmVxdWVzdBoqLmNsb3VkLm11c2ljLnYxLkRpc2Nvbm5lY3RQcm92aWRlclJlc3BvbnNlElYKC1NlYXJjaE11c2ljEiIuY2xvdWQubXVzaWMudjEuU2VhcmNoTXVzaWNSZXF1ZXN0GiMuY2xvdWQubXVzaWMudjEuU2VhcmNoTXVzaWNSZXNwb25zZRJiCg9SZXNvbHZlUGxheWJhY2sSJi5jbG91ZC5tdXNpYy52MS5SZXNvbHZlUGxheWJhY2tSZXF1ZXN0GicuY2xvdWQubXVzaWMudjEuUmVzb2x2ZVBsYXliYWNrUmVzcG9uc2USaAoRR2V0UHJvdmlkZXJMeXJpY3MSKC5jbG91ZC5tdXNpYy52MS5HZXRQcm92aWRlckx5cmljc1JlcXVlc3QaKS5jbG91ZC5tdXNpYy52MS5HZXRQcm92aWRlckx5cmljc1Jlc3BvbnNlEnoKF0dldFNwb3RpZnlQbGF5YmFja1Rva2VuEi4uY2xvdWQubXVzaWMudjEuR2V0U3BvdGlmeVBsYXliYWNrVG9rZW5SZXF1ZXN0Gi8uY2xvdWQubXVzaWMudjEuR2V0U3BvdGlmeVBsYXliYWNrVG9rZW5SZXNwb25zZRJfCg5SZWNvcmRQbGF5YmFjaxIlLmNsb3VkLm11c2ljLnYxLlJlY29yZFBsYXliYWNrUmVxdWVzdBomLmNsb3VkLm11c2ljLnYxLlJlY29yZFBsYXliYWNrUmVzcG9uc2USbgoTTGlzdFBsYXliYWNrSGlzdG9yeRIqLmNsb3VkLm11c2ljLnYxLkxpc3RQbGF5YmFja0hpc3RvcnlSZXF1ZXN0GisuY2xvdWQubXVzaWMudjEuTGlzdFBsYXliYWNrSGlzdG9yeVJlc3BvbnNlQjhaNmV4YW1wbGUuY29tL2Nsb3VkLWRyaXZlL2FwaS9nZW4vY2xvdWQvbXVzaWMvdjE7bXVzaWN2MWIGcHJvdG8z", [file_cloud_music_v1_provider, file_cloud_music_v1_track, file_google_protobuf_timestamp]);
+  fileDesc("CiJjbG91ZC9tdXNpYy92MS9tdXNpY19zZXJ2aWNlLnByb3RvEg5jbG91ZC5tdXNpYy52MSIkCg9HZXRUcmFja1JlcXVlc3QSEQoJdHJhY2tfdWlkGAEgASgJIjgKEEdldFRyYWNrUmVzcG9uc2USJAoFdHJhY2sYASABKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjayKMAQoRTGlzdFRyYWNrc1JlcXVlc3QSDQoFcXVlcnkYASABKAkSDQoFYWxidW0YAiABKAkSDgoGYXJ0aXN0GAMgASgJEhEKCWZhdm9yaXRlcxgEIAEoCBIPCgd0cmFzaGVkGAUgASgIEhEKCXBhZ2Vfc2l6ZRgGIAEoBRISCgpwYWdlX3Rva2VuGAcgASgJIlQKEkxpc3RUcmFja3NSZXNwb25zZRIlCgZ0cmFja3MYASADKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjaxIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiKAoSSW1wb3J0VHJhY2tSZXF1ZXN0EhIKCnVwbG9hZF91aWQYASABKAkiOwoTSW1wb3J0VHJhY2tSZXNwb25zZRIkCgV0cmFjaxgBIAEoCzIVLmNsb3VkLm11c2ljLnYxLlRyYWNrIj4KF1NldFRyYWNrRmF2b3JpdGVSZXF1ZXN0EhEKCXRyYWNrX3VpZBgBIAEoCRIQCghmYXZvcml0ZRgCIAEoCCJAChhTZXRUcmFja0Zhdm9yaXRlUmVzcG9uc2USJAoFdHJhY2sYASABKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjayInChJEZWxldGVUcmFja1JlcXVlc3QSEQoJdHJhY2tfdWlkGAEgASgJIjsKE0RlbGV0ZVRyYWNrUmVzcG9uc2USJAoFdHJhY2sYASABKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjayIoChNSZXN0b3JlVHJhY2tSZXF1ZXN0EhEKCXRyYWNrX3VpZBgBIAEoCSI8ChRSZXN0b3JlVHJhY2tSZXNwb25zZRIkCgV0cmFjaxgBIAEoCzIVLmNsb3VkLm11c2ljLnYxLlRyYWNrIiYKEVB1cmdlVHJhY2tSZXF1ZXN0EhEKCXRyYWNrX3VpZBgBIAEoCSIUChJQdXJnZVRyYWNrUmVzcG9uc2UiGAoWRW1wdHlUcmFja1RyYXNoUmVxdWVzdCIZChdFbXB0eVRyYWNrVHJhc2hSZXNwb25zZSIwChtSZXRyeVRyYWNrUHJvY2Vzc2luZ1JlcXVlc3QSEQoJdHJhY2tfdWlkGAEgASgJIkQKHFJldHJ5VHJhY2tQcm9jZXNzaW5nUmVzcG9uc2USJAoFdHJhY2sYASABKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjayIiChFMaXN0QWxidW1zUmVxdWVzdBINCgVxdWVyeRgBIAEoCSI7ChJMaXN0QWxidW1zUmVzcG9uc2USJQoGYWxidW1zGAEgAygLMhUuY2xvdWQubXVzaWMudjEuQWxidW0iIwoSTGlzdEFydGlzdHNSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJIj4KE0xpc3RBcnRpc3RzUmVzcG9uc2USJwoHYXJ0aXN0cxgBIAMoCzIWLmNsb3VkLm11c2ljLnYxLkFydGlzdCIgCh5MaXN0UHJvdmlkZXJDb25uZWN0aW9uc1JlcXVlc3QiWgofTGlzdFByb3ZpZGVyQ29ubmVjdGlvbnNSZXNwb25zZRI3Cgtjb25uZWN0aW9ucxgBIAMoCzIiLmNsb3VkLm11c2ljLnYxLlByb3ZpZGVyQ29ubmVjdGlvbiJRCh5CZWdpblByb3ZpZGVyQ29ubmVjdGlvblJlcXVlc3QSLwoIcHJvdmlkZXIYASABKA4yHS5jbG91ZC5tdXNpYy52MS5NdXNpY1Byb3ZpZGVyIl0KH0JlZ2luUHJvdmlkZXJDb25uZWN0aW9uUmVzcG9uc2USOgoHYXR0ZW1wdBgBIAEoCzIpLmNsb3VkLm11c2ljLnYxLlByb3ZpZGVyQ29ubmVjdGlvbkF0dGVtcHQiOgojR2V0UHJvdmlkZXJDb25uZWN0aW9uQXR0ZW1wdFJlcXVlc3QSEwoLYXR0ZW1wdF91aWQYASABKAkiYgokR2V0UHJvdmlkZXJDb25uZWN0aW9uQXR0ZW1wdFJlc3BvbnNlEjoKB2F0dGVtcHQYASABKAsyKS5jbG91ZC5tdXNpYy52MS5Qcm92aWRlckNvbm5lY3Rpb25BdHRlbXB0IkwKGURpc2Nvbm5lY3RQcm92aWRlclJlcXVlc3QSLwoIcHJvdmlkZXIYASABKA4yHS5jbG91ZC5tdXNpYy52MS5NdXNpY1Byb3ZpZGVyIhwKGkRpc2Nvbm5lY3RQcm92aWRlclJlc3BvbnNlIloKElNlYXJjaE11c2ljUmVxdWVzdBINCgVxdWVyeRgBIAEoCRI1CgdjdXJzb3JzGAIgAygLMiQuY2xvdWQubXVzaWMudjEuUHJvdmlkZXJTZWFyY2hDdXJzb3IiSgoTU2VhcmNoTXVzaWNSZXNwb25zZRIzCgZncm91cHMYASADKAsyIy5jbG91ZC5tdXNpYy52MS5Qcm92aWRlclNlYXJjaEdyb3VwIo0BChZSZXNvbHZlUGxheWJhY2tSZXF1ZXN0Ei8KCHByb3ZpZGVyGAEgASgOMh0uY2xvdWQubXVzaWMudjEuTXVzaWNQcm92aWRlchIQCgh0cmFja19pZBgCIAEoCRIwCgdxdWFsaXR5GAMgASgOMh8uY2xvdWQubXVzaWMudjEuUGxheWJhY2tRdWFsaXR5Ik8KF1Jlc29sdmVQbGF5YmFja1Jlc3BvbnNlEjQKCHBsYXliYWNrGAEgASgLMiIuY2xvdWQubXVzaWMudjEuUGxheWJhY2tEZXNjcmlwdG9yIl0KGEdldFByb3ZpZGVyTHlyaWNzUmVxdWVzdBIvCghwcm92aWRlchgBIAEoDjIdLmNsb3VkLm11c2ljLnYxLk11c2ljUHJvdmlkZXISEAoIdHJhY2tfaWQYAiABKAkiQQoZR2V0UHJvdmlkZXJMeXJpY3NSZXNwb25zZRIkCgVseXJpYxgBIAEoCzIVLmNsb3VkLm11c2ljLnYxLkx5cmljIiAKHkdldFNwb3RpZnlQbGF5YmFja1Rva2VuUmVxdWVzdCJoCh9HZXRTcG90aWZ5UGxheWJhY2tUb2tlblJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRIvCgtleHBpcmVfdGltZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiRQoVUmVjb3JkUGxheWJhY2tSZXF1ZXN0EiwKBXRyYWNrGAEgASgLMh0uY2xvdWQubXVzaWMudjEuUGxheWFibGVUcmFjayJPChZSZWNvcmRQbGF5YmFja1Jlc3BvbnNlEjUKDnBsYXliYWNrX2VudHJ5GAEgASgLMh0uY2xvdWQubXVzaWMudjEuUGxheWJhY2tFbnRyeSJDChpMaXN0UGxheWJhY2tIaXN0b3J5UmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCSJvChtMaXN0UGxheWJhY2tIaXN0b3J5UmVzcG9uc2USNwoQcGxheWJhY2tfZW50cmllcxgBIAMoCzIdLmNsb3VkLm11c2ljLnYxLlBsYXliYWNrRW50cnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIlgKFUltcG9ydFBsYXlsaXN0UmVxdWVzdBIvCghwcm92aWRlchgBIAEoDjIdLmNsb3VkLm11c2ljLnYxLk11c2ljUHJvdmlkZXISDgoGc291cmNlGAIgASgJIkQKFkltcG9ydFBsYXlsaXN0UmVzcG9uc2USKgoIcGxheWxpc3QYASABKAsyGC5jbG91ZC5tdXNpYy52MS5QbGF5bGlzdCIqChJHZXRQbGF5bGlzdFJlcXVlc3QSFAoMcGxheWxpc3RfdWlkGAEgASgJIkEKE0dldFBsYXlsaXN0UmVzcG9uc2USKgoIcGxheWxpc3QYASABKAsyGC5jbG91ZC5tdXNpYy52MS5QbGF5bGlzdCI9ChRMaXN0UGxheWxpc3RzUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCSJdChVMaXN0UGxheWxpc3RzUmVzcG9uc2USKwoJcGxheWxpc3RzGAEgAygLMhguY2xvdWQubXVzaWMudjEuUGxheWxpc3QSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIlgKGUxpc3RQbGF5bGlzdFRyYWNrc1JlcXVlc3QSFAoMcGxheWxpc3RfdWlkGAEgASgJEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIm0KGkxpc3RQbGF5bGlzdFRyYWNrc1Jlc3BvbnNlEjYKD3BsYXlsaXN0X3RyYWNrcxgBIAMoCzIdLmNsb3VkLm11c2ljLnYxLlBsYXlsaXN0VHJhY2sSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIi8KF0Rvd25sb2FkUGxheWxpc3RSZXF1ZXN0EhQKDHBsYXlsaXN0X3VpZBgBIAEoCSJGChhEb3dubG9hZFBsYXlsaXN0UmVzcG9uc2USKgoIcGxheWxpc3QYASABKAsyGC5jbG91ZC5tdXNpYy52MS5QbGF5bGlzdCItChVEZWxldGVQbGF5bGlzdFJlcXVlc3QSFAoMcGxheWxpc3RfdWlkGAEgASgJIhgKFkRlbGV0ZVBsYXlsaXN0UmVzcG9uc2UyrRUKDE11c2ljU2VydmljZRJNCghHZXRUcmFjaxIfLmNsb3VkLm11c2ljLnYxLkdldFRyYWNrUmVxdWVzdBogLmNsb3VkLm11c2ljLnYxLkdldFRyYWNrUmVzcG9uc2USUwoKTGlzdFRyYWNrcxIhLmNsb3VkLm11c2ljLnYxLkxpc3RUcmFja3NSZXF1ZXN0GiIuY2xvdWQubXVzaWMudjEuTGlzdFRyYWNrc1Jlc3BvbnNlElYKC0ltcG9ydFRyYWNrEiIuY2xvdWQubXVzaWMudjEuSW1wb3J0VHJhY2tSZXF1ZXN0GiMuY2xvdWQubXVzaWMudjEuSW1wb3J0VHJhY2tSZXNwb25zZRJlChBTZXRUcmFja0Zhdm9yaXRlEicuY2xvdWQubXVzaWMudjEuU2V0VHJhY2tGYXZvcml0ZVJlcXVlc3QaKC5jbG91ZC5tdXNpYy52MS5TZXRUcmFja0Zhdm9yaXRlUmVzcG9uc2USVgoLRGVsZXRlVHJhY2sSIi5jbG91ZC5tdXNpYy52MS5EZWxldGVUcmFja1JlcXVlc3QaIy5jbG91ZC5tdXNpYy52MS5EZWxldGVUcmFja1Jlc3BvbnNlElkKDFJlc3RvcmVUcmFjaxIjLmNsb3VkLm11c2ljLnYxLlJlc3RvcmVUcmFja1JlcXVlc3QaJC5jbG91ZC5tdXNpYy52MS5SZXN0b3JlVHJhY2tSZXNwb25zZRJTCgpQdXJnZVRyYWNrEiEuY2xvdWQubXVzaWMudjEuUHVyZ2VUcmFja1JlcXVlc3QaIi5jbG91ZC5tdXNpYy52MS5QdXJnZVRyYWNrUmVzcG9uc2USYgoPRW1wdHlUcmFja1RyYXNoEiYuY2xvdWQubXVzaWMudjEuRW1wdHlUcmFja1RyYXNoUmVxdWVzdBonLmNsb3VkLm11c2ljLnYxLkVtcHR5VHJhY2tUcmFzaFJlc3BvbnNlEnEKFFJldHJ5VHJhY2tQcm9jZXNzaW5nEisuY2xvdWQubXVzaWMudjEuUmV0cnlUcmFja1Byb2Nlc3NpbmdSZXF1ZXN0GiwuY2xvdWQubXVzaWMudjEuUmV0cnlUcmFja1Byb2Nlc3NpbmdSZXNwb25zZRJTCgpMaXN0QWxidW1zEiEuY2xvdWQubXVzaWMudjEuTGlzdEFsYnVtc1JlcXVlc3QaIi5jbG91ZC5tdXNpYy52MS5MaXN0QWxidW1zUmVzcG9uc2USVgoLTGlzdEFydGlzdHMSIi5jbG91ZC5tdXNpYy52MS5MaXN0QXJ0aXN0c1JlcXVlc3QaIy5jbG91ZC5tdXNpYy52MS5MaXN0QXJ0aXN0c1Jlc3BvbnNlEnoKF0xpc3RQcm92aWRlckNvbm5lY3Rpb25zEi4uY2xvdWQubXVzaWMudjEuTGlzdFByb3ZpZGVyQ29ubmVjdGlvbnNSZXF1ZXN0Gi8uY2xvdWQubXVzaWMudjEuTGlzdFByb3ZpZGVyQ29ubmVjdGlvbnNSZXNwb25zZRJ6ChdCZWdpblByb3ZpZGVyQ29ubmVjdGlvbhIuLmNsb3VkLm11c2ljLnYxLkJlZ2luUHJvdmlkZXJDb25uZWN0aW9uUmVxdWVzdBovLmNsb3VkLm11c2ljLnYxLkJlZ2luUHJvdmlkZXJDb25uZWN0aW9uUmVzcG9uc2USiQEKHEdldFByb3ZpZGVyQ29ubmVjdGlvbkF0dGVtcHQSMy5jbG91ZC5tdXNpYy52MS5HZXRQcm92aWRlckNvbm5lY3Rpb25BdHRlbXB0UmVxdWVzdBo0LmNsb3VkLm11c2ljLnYxLkdldFByb3ZpZGVyQ29ubmVjdGlvbkF0dGVtcHRSZXNwb25zZRJrChJEaXNjb25uZWN0UHJvdmlkZXISKS5jbG91ZC5tdXNpYy52MS5EaXNjb25uZWN0UHJvdmlkZXJSZXF1ZXN0GiouY2xvdWQubXVzaWMudjEuRGlzY29ubmVjdFByb3ZpZGVyUmVzcG9uc2USVgoLU2VhcmNoTXVzaWMSIi5jbG91ZC5tdXNpYy52MS5TZWFyY2hNdXNpY1JlcXVlc3QaIy5jbG91ZC5tdXNpYy52MS5TZWFyY2hNdXNpY1Jlc3BvbnNlEmIKD1Jlc29sdmVQbGF5YmFjaxImLmNsb3VkLm11c2ljLnYxLlJlc29sdmVQbGF5YmFja1JlcXVlc3QaJy5jbG91ZC5tdXNpYy52MS5SZXNvbHZlUGxheWJhY2tSZXNwb25zZRJoChFHZXRQcm92aWRlckx5cmljcxIoLmNsb3VkLm11c2ljLnYxLkdldFByb3ZpZGVyTHlyaWNzUmVxdWVzdBopLmNsb3VkLm11c2ljLnYxLkdldFByb3ZpZGVyTHlyaWNzUmVzcG9uc2USegoXR2V0U3BvdGlmeVBsYXliYWNrVG9rZW4SLi5jbG91ZC5tdXNpYy52MS5HZXRTcG90aWZ5UGxheWJhY2tUb2tlblJlcXVlc3QaLy5jbG91ZC5tdXNpYy52MS5HZXRTcG90aWZ5UGxheWJhY2tUb2tlblJlc3BvbnNlEl8KDlJlY29yZFBsYXliYWNrEiUuY2xvdWQubXVzaWMudjEuUmVjb3JkUGxheWJhY2tSZXF1ZXN0GiYuY2xvdWQubXVzaWMudjEuUmVjb3JkUGxheWJhY2tSZXNwb25zZRJuChNMaXN0UGxheWJhY2tIaXN0b3J5EiouY2xvdWQubXVzaWMudjEuTGlzdFBsYXliYWNrSGlzdG9yeVJlcXVlc3QaKy5jbG91ZC5tdXNpYy52MS5MaXN0UGxheWJhY2tIaXN0b3J5UmVzcG9uc2USXwoOSW1wb3J0UGxheWxpc3QSJS5jbG91ZC5tdXNpYy52MS5JbXBvcnRQbGF5bGlzdFJlcXVlc3QaJi5jbG91ZC5tdXNpYy52MS5JbXBvcnRQbGF5bGlzdFJlc3BvbnNlElYKC0dldFBsYXlsaXN0EiIuY2xvdWQubXVzaWMudjEuR2V0UGxheWxpc3RSZXF1ZXN0GiMuY2xvdWQubXVzaWMudjEuR2V0UGxheWxpc3RSZXNwb25zZRJcCg1MaXN0UGxheWxpc3RzEiQuY2xvdWQubXVzaWMudjEuTGlzdFBsYXlsaXN0c1JlcXVlc3QaJS5jbG91ZC5tdXNpYy52MS5MaXN0UGxheWxpc3RzUmVzcG9uc2USawoSTGlzdFBsYXlsaXN0VHJhY2tzEikuY2xvdWQubXVzaWMudjEuTGlzdFBsYXlsaXN0VHJhY2tzUmVxdWVzdBoqLmNsb3VkLm11c2ljLnYxLkxpc3RQbGF5bGlzdFRyYWNrc1Jlc3BvbnNlEmUKEERvd25sb2FkUGxheWxpc3QSJy5jbG91ZC5tdXNpYy52MS5Eb3dubG9hZFBsYXlsaXN0UmVxdWVzdBooLmNsb3VkLm11c2ljLnYxLkRvd25sb2FkUGxheWxpc3RSZXNwb25zZRJfCg5EZWxldGVQbGF5bGlzdBIlLmNsb3VkLm11c2ljLnYxLkRlbGV0ZVBsYXlsaXN0UmVxdWVzdBomLmNsb3VkLm11c2ljLnYxLkRlbGV0ZVBsYXlsaXN0UmVzcG9uc2VCOFo2ZXhhbXBsZS5jb20vY2xvdWQtZHJpdmUvYXBpL2dlbi9jbG91ZC9tdXNpYy92MTttdXNpY3YxYgZwcm90bzM", [file_cloud_music_v1_playlist, file_cloud_music_v1_provider, file_cloud_music_v1_track, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message cloud.music.v1.GetTrackRequest
@@ -784,6 +786,236 @@ export const ListPlaybackHistoryResponseSchema: GenMessage<ListPlaybackHistoryRe
   messageDesc(file_cloud_music_v1_music_service, 41);
 
 /**
+ * @generated from message cloud.music.v1.ImportPlaylistRequest
+ */
+export type ImportPlaylistRequest = Message<"cloud.music.v1.ImportPlaylistRequest"> & {
+  /**
+   * @generated from field: cloud.music.v1.MusicProvider provider = 1;
+   */
+  provider: MusicProvider;
+
+  /**
+   * @generated from field: string source = 2;
+   */
+  source: string;
+};
+
+/**
+ * Describes the message cloud.music.v1.ImportPlaylistRequest.
+ * Use `create(ImportPlaylistRequestSchema)` to create a new message.
+ */
+export const ImportPlaylistRequestSchema: GenMessage<ImportPlaylistRequest> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 42);
+
+/**
+ * @generated from message cloud.music.v1.ImportPlaylistResponse
+ */
+export type ImportPlaylistResponse = Message<"cloud.music.v1.ImportPlaylistResponse"> & {
+  /**
+   * @generated from field: cloud.music.v1.Playlist playlist = 1;
+   */
+  playlist?: Playlist | undefined;
+};
+
+/**
+ * Describes the message cloud.music.v1.ImportPlaylistResponse.
+ * Use `create(ImportPlaylistResponseSchema)` to create a new message.
+ */
+export const ImportPlaylistResponseSchema: GenMessage<ImportPlaylistResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 43);
+
+/**
+ * @generated from message cloud.music.v1.GetPlaylistRequest
+ */
+export type GetPlaylistRequest = Message<"cloud.music.v1.GetPlaylistRequest"> & {
+  /**
+   * @generated from field: string playlist_uid = 1;
+   */
+  playlistUid: string;
+};
+
+/**
+ * Describes the message cloud.music.v1.GetPlaylistRequest.
+ * Use `create(GetPlaylistRequestSchema)` to create a new message.
+ */
+export const GetPlaylistRequestSchema: GenMessage<GetPlaylistRequest> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 44);
+
+/**
+ * @generated from message cloud.music.v1.GetPlaylistResponse
+ */
+export type GetPlaylistResponse = Message<"cloud.music.v1.GetPlaylistResponse"> & {
+  /**
+   * @generated from field: cloud.music.v1.Playlist playlist = 1;
+   */
+  playlist?: Playlist | undefined;
+};
+
+/**
+ * Describes the message cloud.music.v1.GetPlaylistResponse.
+ * Use `create(GetPlaylistResponseSchema)` to create a new message.
+ */
+export const GetPlaylistResponseSchema: GenMessage<GetPlaylistResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 45);
+
+/**
+ * @generated from message cloud.music.v1.ListPlaylistsRequest
+ */
+export type ListPlaylistsRequest = Message<"cloud.music.v1.ListPlaylistsRequest"> & {
+  /**
+   * @generated from field: int32 page_size = 1;
+   */
+  pageSize: number;
+
+  /**
+   * @generated from field: string page_token = 2;
+   */
+  pageToken: string;
+};
+
+/**
+ * Describes the message cloud.music.v1.ListPlaylistsRequest.
+ * Use `create(ListPlaylistsRequestSchema)` to create a new message.
+ */
+export const ListPlaylistsRequestSchema: GenMessage<ListPlaylistsRequest> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 46);
+
+/**
+ * @generated from message cloud.music.v1.ListPlaylistsResponse
+ */
+export type ListPlaylistsResponse = Message<"cloud.music.v1.ListPlaylistsResponse"> & {
+  /**
+   * @generated from field: repeated cloud.music.v1.Playlist playlists = 1;
+   */
+  playlists: Playlist[];
+
+  /**
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+};
+
+/**
+ * Describes the message cloud.music.v1.ListPlaylistsResponse.
+ * Use `create(ListPlaylistsResponseSchema)` to create a new message.
+ */
+export const ListPlaylistsResponseSchema: GenMessage<ListPlaylistsResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 47);
+
+/**
+ * @generated from message cloud.music.v1.ListPlaylistTracksRequest
+ */
+export type ListPlaylistTracksRequest = Message<"cloud.music.v1.ListPlaylistTracksRequest"> & {
+  /**
+   * @generated from field: string playlist_uid = 1;
+   */
+  playlistUid: string;
+
+  /**
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
+};
+
+/**
+ * Describes the message cloud.music.v1.ListPlaylistTracksRequest.
+ * Use `create(ListPlaylistTracksRequestSchema)` to create a new message.
+ */
+export const ListPlaylistTracksRequestSchema: GenMessage<ListPlaylistTracksRequest> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 48);
+
+/**
+ * @generated from message cloud.music.v1.ListPlaylistTracksResponse
+ */
+export type ListPlaylistTracksResponse = Message<"cloud.music.v1.ListPlaylistTracksResponse"> & {
+  /**
+   * @generated from field: repeated cloud.music.v1.PlaylistTrack playlist_tracks = 1;
+   */
+  playlistTracks: PlaylistTrack[];
+
+  /**
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+};
+
+/**
+ * Describes the message cloud.music.v1.ListPlaylistTracksResponse.
+ * Use `create(ListPlaylistTracksResponseSchema)` to create a new message.
+ */
+export const ListPlaylistTracksResponseSchema: GenMessage<ListPlaylistTracksResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 49);
+
+/**
+ * @generated from message cloud.music.v1.DownloadPlaylistRequest
+ */
+export type DownloadPlaylistRequest = Message<"cloud.music.v1.DownloadPlaylistRequest"> & {
+  /**
+   * @generated from field: string playlist_uid = 1;
+   */
+  playlistUid: string;
+};
+
+/**
+ * Describes the message cloud.music.v1.DownloadPlaylistRequest.
+ * Use `create(DownloadPlaylistRequestSchema)` to create a new message.
+ */
+export const DownloadPlaylistRequestSchema: GenMessage<DownloadPlaylistRequest> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 50);
+
+/**
+ * @generated from message cloud.music.v1.DownloadPlaylistResponse
+ */
+export type DownloadPlaylistResponse = Message<"cloud.music.v1.DownloadPlaylistResponse"> & {
+  /**
+   * @generated from field: cloud.music.v1.Playlist playlist = 1;
+   */
+  playlist?: Playlist | undefined;
+};
+
+/**
+ * Describes the message cloud.music.v1.DownloadPlaylistResponse.
+ * Use `create(DownloadPlaylistResponseSchema)` to create a new message.
+ */
+export const DownloadPlaylistResponseSchema: GenMessage<DownloadPlaylistResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 51);
+
+/**
+ * @generated from message cloud.music.v1.DeletePlaylistRequest
+ */
+export type DeletePlaylistRequest = Message<"cloud.music.v1.DeletePlaylistRequest"> & {
+  /**
+   * @generated from field: string playlist_uid = 1;
+   */
+  playlistUid: string;
+};
+
+/**
+ * Describes the message cloud.music.v1.DeletePlaylistRequest.
+ * Use `create(DeletePlaylistRequestSchema)` to create a new message.
+ */
+export const DeletePlaylistRequestSchema: GenMessage<DeletePlaylistRequest> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 52);
+
+/**
+ * @generated from message cloud.music.v1.DeletePlaylistResponse
+ */
+export type DeletePlaylistResponse = Message<"cloud.music.v1.DeletePlaylistResponse"> & {
+};
+
+/**
+ * Describes the message cloud.music.v1.DeletePlaylistResponse.
+ * Use `create(DeletePlaylistResponseSchema)` to create a new message.
+ */
+export const DeletePlaylistResponseSchema: GenMessage<DeletePlaylistResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 53);
+
+/**
  * MusicService manages the private audio catalog and playback state.
  *
  * @generated from service cloud.music.v1.MusicService
@@ -956,6 +1188,54 @@ export const MusicService: GenService<{
     methodKind: "unary";
     input: typeof ListPlaybackHistoryRequestSchema;
     output: typeof ListPlaybackHistoryResponseSchema;
+  },
+  /**
+   * @generated from rpc cloud.music.v1.MusicService.ImportPlaylist
+   */
+  importPlaylist: {
+    methodKind: "unary";
+    input: typeof ImportPlaylistRequestSchema;
+    output: typeof ImportPlaylistResponseSchema;
+  },
+  /**
+   * @generated from rpc cloud.music.v1.MusicService.GetPlaylist
+   */
+  getPlaylist: {
+    methodKind: "unary";
+    input: typeof GetPlaylistRequestSchema;
+    output: typeof GetPlaylistResponseSchema;
+  },
+  /**
+   * @generated from rpc cloud.music.v1.MusicService.ListPlaylists
+   */
+  listPlaylists: {
+    methodKind: "unary";
+    input: typeof ListPlaylistsRequestSchema;
+    output: typeof ListPlaylistsResponseSchema;
+  },
+  /**
+   * @generated from rpc cloud.music.v1.MusicService.ListPlaylistTracks
+   */
+  listPlaylistTracks: {
+    methodKind: "unary";
+    input: typeof ListPlaylistTracksRequestSchema;
+    output: typeof ListPlaylistTracksResponseSchema;
+  },
+  /**
+   * @generated from rpc cloud.music.v1.MusicService.DownloadPlaylist
+   */
+  downloadPlaylist: {
+    methodKind: "unary";
+    input: typeof DownloadPlaylistRequestSchema;
+    output: typeof DownloadPlaylistResponseSchema;
+  },
+  /**
+   * @generated from rpc cloud.music.v1.MusicService.DeletePlaylist
+   */
+  deletePlaylist: {
+    methodKind: "unary";
+    input: typeof DeletePlaylistRequestSchema;
+    output: typeof DeletePlaylistResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_cloud_music_v1_music_service, 0);

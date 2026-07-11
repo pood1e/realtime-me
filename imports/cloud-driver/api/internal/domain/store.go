@@ -87,6 +87,12 @@ type MusicStore interface {
 	ListArtists(context.Context, string) ([]Artist, error)
 	RecordPlayback(context.Context, PlaybackEntry) (PlaybackEntry, error)
 	ListPlaybackHistory(context.Context, int, string) (PlaybackPage, error)
+	ImportPlaylist(context.Context, Playlist, []PlayableTrack) (Playlist, error)
+	GetPlaylist(context.Context, string) (Playlist, error)
+	ListPlaylists(context.Context, int, string) (PlaylistPage, error)
+	ListPlaylistTracks(context.Context, string, int, string) (PlaylistTrackPage, error)
+	QueuePlaylistDownload(context.Context, string) (Playlist, error)
+	DeletePlaylist(context.Context, string) error
 }
 
 // MusicProviderStore persists encrypted external accounts and login attempts.
@@ -140,6 +146,8 @@ type WorkerStore interface {
 	CompleteBookProcessing(context.Context, string, string, []string, int, *Artifact) error
 	GetTrackForProcessing(context.Context, string) (Track, ContentObject, error)
 	CompleteTrackProcessing(context.Context, Track, *Artifact) error
+	GetMusicDownload(context.Context, string) (MusicDownload, error)
+	CompleteMusicDownload(context.Context, PlaylistTrack, SealedContent) error
 	GetImageForProcessing(context.Context, string) (Image, ContentObject, error)
 	CompleteImageProcessing(context.Context, string, int, int, *Artifact) error
 	GetWallpaperForProcessing(context.Context, string) (Wallpaper, ContentObject, error)

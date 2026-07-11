@@ -63,6 +63,19 @@ const (
 	MusicProviderPlayback          MusicProviderCapability = "playback"
 	MusicProviderLyrics            MusicProviderCapability = "lyrics"
 	MusicProviderBrowserToken      MusicProviderCapability = "browser_token"
+	MusicProviderPlaylistImport    MusicProviderCapability = "playlist_import"
+	MusicProviderLocalDownload     MusicProviderCapability = "local_download"
+)
+
+// PlaylistTrackDownloadStatus describes local persistence progress.
+type PlaylistTrackDownloadStatus string
+
+const (
+	PlaylistTrackDownloadNotStarted PlaylistTrackDownloadStatus = "not_started"
+	PlaylistTrackDownloadPending    PlaylistTrackDownloadStatus = "pending"
+	PlaylistTrackDownloadRunning    PlaylistTrackDownloadStatus = "running"
+	PlaylistTrackDownloadCompleted  PlaylistTrackDownloadStatus = "completed"
+	PlaylistTrackDownloadFailed     PlaylistTrackDownloadStatus = "failed"
 )
 
 // Track is one private audio catalog entry.
@@ -199,4 +212,70 @@ type PlaybackEntry struct {
 type PlaybackPage struct {
 	Entries       []PlaybackEntry
 	NextPageToken string
+}
+
+// ProviderPlaylist is the normalized snapshot returned by a provider plugin.
+type ProviderPlaylist struct {
+	ExternalID  string
+	DisplayName string
+	ArtworkURL  string
+	ProviderURL string
+	Tracks      []PlayableTrack
+}
+
+// Playlist is one locally imported provider playlist.
+type Playlist struct {
+	UID                    string
+	Provider               MusicProvider
+	ExternalID             string
+	DisplayName            string
+	ArtworkURL             string
+	ProviderURL            string
+	TrackCount             int
+	DownloadableTrackCount int
+	PendingTrackCount      int
+	CompletedTrackCount    int
+	FailedTrackCount       int
+	DownloadSupported      bool
+	CreateTime             time.Time
+	UpdateTime             time.Time
+}
+
+// PlaylistPage is one cursor page of imported playlists.
+type PlaylistPage struct {
+	Playlists     []Playlist
+	NextPageToken string
+}
+
+// PlaylistTrack is one ordered provider track and its local persistence state.
+type PlaylistTrack struct {
+	UID            string
+	PlaylistUID    string
+	Position       int
+	Track          PlayableTrack
+	DownloadStatus PlaylistTrackDownloadStatus
+	LocalTrackUID  string
+}
+
+// PlaylistTrackPage is one cursor page of playlist tracks.
+type PlaylistTrackPage struct {
+	Tracks        []PlaylistTrack
+	NextPageToken string
+}
+
+// ProviderDownload is a short-lived direct audio resource.
+type ProviderDownload struct {
+	URL         string
+	ContentType string
+}
+
+// MusicDownload contains everything required by the background downloader.
+type MusicDownload struct {
+	PlaylistTrack PlaylistTrack
+	Connection    ProviderConnection
+}
+
+// MusicProviderCredentialPurpose separates provider credentials from other encrypted values.
+func MusicProviderCredentialPurpose(provider MusicProvider) string {
+	return "music-provider-connection:" + string(provider)
 }

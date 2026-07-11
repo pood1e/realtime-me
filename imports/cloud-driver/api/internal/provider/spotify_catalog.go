@@ -26,15 +26,7 @@ func (a *SpotifyAdapter) searchSpotify(ctx context.Context, rawCredentials []byt
 	}
 	tracks := make([]domain.PlayableTrack, 0, len(page.Items))
 	for _, track := range page.Items {
-		artists := make([]string, 0, len(track.Artists))
-		for _, artist := range track.Artists {
-			artists = append(artists, artist.Name)
-		}
-		tracks = append(tracks, domain.PlayableTrack{
-			Provider: domain.MusicProviderSpotify, TrackID: track.ID, Title: track.Name, Artists: artists,
-			Album: track.AlbumName, Duration: time.Duration(track.DurationMilliseconds) * time.Millisecond,
-			ArtworkURL: track.ArtworkURL, ProviderURL: track.SpotifyURL, Playable: true,
-		})
+		tracks = append(tracks, spotifyPlayableTrack(track))
 	}
 	nextPageToken := ""
 	if page.NextOffset != nil {
@@ -45,4 +37,16 @@ func (a *SpotifyAdapter) searchSpotify(ctx context.Context, rawCredentials []byt
 		return nil, "", nil, fmt.Errorf("%w: encode Spotify credentials", domain.ErrUnavailable)
 	}
 	return tracks, nextPageToken, updated, nil
+}
+
+func spotifyPlayableTrack(track spotify.Track) domain.PlayableTrack {
+	artists := make([]string, 0, len(track.Artists))
+	for _, artist := range track.Artists {
+		artists = append(artists, artist.Name)
+	}
+	return domain.PlayableTrack{
+		Provider: domain.MusicProviderSpotify, TrackID: track.ID, Title: track.Name, Artists: artists,
+		Album: track.AlbumName, Duration: time.Duration(track.DurationMilliseconds) * time.Millisecond,
+		ArtworkURL: track.ArtworkURL, ProviderURL: track.SpotifyURL, Playable: true,
+	}
 }

@@ -26,7 +26,7 @@ type tokenResponse struct {
 // DefaultScopes returns the least set used by this package's browser playback
 // flow. Catalog search and account_id do not require additional scopes.
 func DefaultScopes() []string {
-	return []string{ScopeStreaming, ScopeUserModifyPlaybackState}
+	return []string{ScopeStreaming, ScopeUserReadPrivate, ScopeUserModifyPlaybackState, ScopePlaylistReadPrivate}
 }
 
 // AuthorizationURL creates a one-time Authorization Code with PKCE request.

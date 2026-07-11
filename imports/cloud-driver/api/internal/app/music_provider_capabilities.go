@@ -3,7 +3,7 @@ package app
 import "example.com/cloud-drive/api/internal/domain"
 
 func musicProviderCapabilities(adapter domain.MusicProviderAdapter) []domain.MusicProviderCapability {
-	capabilities := make([]domain.MusicProviderCapability, 0, 5)
+	capabilities := make([]domain.MusicProviderCapability, 0, 7)
 	if _, supported := adapter.(domain.MusicLoginStarter); supported {
 		capabilities = append(capabilities, domain.MusicProviderAccountConnection)
 	}
@@ -18,6 +18,12 @@ func musicProviderCapabilities(adapter domain.MusicProviderAdapter) []domain.Mus
 	}
 	if _, supported := adapter.(domain.MusicPlaybackTokenProvider); supported {
 		capabilities = append(capabilities, domain.MusicProviderBrowserToken)
+	}
+	if _, supported := adapter.(domain.MusicPlaylistImporter); supported {
+		capabilities = append(capabilities, domain.MusicProviderPlaylistImport)
+	}
+	if _, supported := adapter.(domain.MusicTrackDownloader); supported {
+		capabilities = append(capabilities, domain.MusicProviderLocalDownload)
 	}
 	return capabilities
 }

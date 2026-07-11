@@ -319,6 +319,8 @@ const (
 	MusicProviderCapability_MUSIC_PROVIDER_CAPABILITY_PLAYBACK           MusicProviderCapability = 3
 	MusicProviderCapability_MUSIC_PROVIDER_CAPABILITY_LYRICS             MusicProviderCapability = 4
 	MusicProviderCapability_MUSIC_PROVIDER_CAPABILITY_BROWSER_TOKEN      MusicProviderCapability = 5
+	MusicProviderCapability_MUSIC_PROVIDER_CAPABILITY_PLAYLIST_IMPORT    MusicProviderCapability = 6
+	MusicProviderCapability_MUSIC_PROVIDER_CAPABILITY_LOCAL_DOWNLOAD     MusicProviderCapability = 7
 )
 
 // Enum value maps for MusicProviderCapability.
@@ -330,6 +332,8 @@ var (
 		3: "MUSIC_PROVIDER_CAPABILITY_PLAYBACK",
 		4: "MUSIC_PROVIDER_CAPABILITY_LYRICS",
 		5: "MUSIC_PROVIDER_CAPABILITY_BROWSER_TOKEN",
+		6: "MUSIC_PROVIDER_CAPABILITY_PLAYLIST_IMPORT",
+		7: "MUSIC_PROVIDER_CAPABILITY_LOCAL_DOWNLOAD",
 	}
 	MusicProviderCapability_value = map[string]int32{
 		"MUSIC_PROVIDER_CAPABILITY_UNSPECIFIED":        0,
@@ -338,6 +342,8 @@ var (
 		"MUSIC_PROVIDER_CAPABILITY_PLAYBACK":           3,
 		"MUSIC_PROVIDER_CAPABILITY_LYRICS":             4,
 		"MUSIC_PROVIDER_CAPABILITY_BROWSER_TOKEN":      5,
+		"MUSIC_PROVIDER_CAPABILITY_PLAYLIST_IMPORT":    6,
+		"MUSIC_PROVIDER_CAPABILITY_LOCAL_DOWNLOAD":     7,
 	}
 )
 
@@ -1311,14 +1317,16 @@ const file_cloud_music_v1_provider_proto_rawDesc = "" +
 	"\x1cPLAYBACK_QUALITY_UNSPECIFIED\x10\x00\x12$\n" +
 	" PLAYBACK_QUALITY_BEST_COMPATIBLE\x10\x01\x12\x19\n" +
 	"\x15PLAYBACK_QUALITY_HIGH\x10\x02\x12\x1d\n" +
-	"\x19PLAYBACK_QUALITY_STANDARD\x10\x03*\x9f\x02\n" +
+	"\x19PLAYBACK_QUALITY_STANDARD\x10\x03*\xfc\x02\n" +
 	"\x17MusicProviderCapability\x12)\n" +
 	"%MUSIC_PROVIDER_CAPABILITY_UNSPECIFIED\x10\x00\x120\n" +
 	",MUSIC_PROVIDER_CAPABILITY_ACCOUNT_CONNECTION\x10\x01\x12,\n" +
 	"(MUSIC_PROVIDER_CAPABILITY_CATALOG_SEARCH\x10\x02\x12&\n" +
 	"\"MUSIC_PROVIDER_CAPABILITY_PLAYBACK\x10\x03\x12$\n" +
 	" MUSIC_PROVIDER_CAPABILITY_LYRICS\x10\x04\x12+\n" +
-	"'MUSIC_PROVIDER_CAPABILITY_BROWSER_TOKEN\x10\x05B8Z6example.com/cloud-drive/api/gen/cloud/music/v1;musicv1b\x06proto3"
+	"'MUSIC_PROVIDER_CAPABILITY_BROWSER_TOKEN\x10\x05\x12-\n" +
+	")MUSIC_PROVIDER_CAPABILITY_PLAYLIST_IMPORT\x10\x06\x12,\n" +
+	"(MUSIC_PROVIDER_CAPABILITY_LOCAL_DOWNLOAD\x10\aB8Z6example.com/cloud-drive/api/gen/cloud/music/v1;musicv1b\x06proto3"
 
 var (
 	file_cloud_music_v1_provider_proto_rawDescOnce sync.Once

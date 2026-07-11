@@ -13,6 +13,7 @@ const (
 	ScopeUserReadPrivate         = "user-read-private"
 	ScopeUserReadPlaybackState   = "user-read-playback-state"
 	ScopeUserModifyPlaybackState = "user-modify-playback-state"
+	ScopePlaylistReadPrivate     = "playlist-read-private"
 )
 
 // Config contains the Spotify application credentials registered for this

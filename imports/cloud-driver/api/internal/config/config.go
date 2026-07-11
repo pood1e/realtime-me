@@ -42,8 +42,10 @@ type Config struct {
 
 // WorkerConfig contains only settings required by the local processing worker.
 type WorkerConfig struct {
-	DatabaseURL string
-	DataRoot    string
+	DatabaseURL           string
+	DataRoot              string
+	ProviderCredentialKey []byte
+	ReservedFreeBytes     int64
 }
 
 // Load reads and validates API configuration.
@@ -110,9 +112,24 @@ func Load() (Config, error) {
 
 // LoadWorker reads worker-only configuration.
 func LoadWorker() (WorkerConfig, error) {
-	config := WorkerConfig{DatabaseURL: strings.TrimSpace(os.Getenv("DATABASE_URL")), DataRoot: strings.TrimSpace(os.Getenv("DATA_ROOT"))}
+	config := WorkerConfig{
+		DatabaseURL: strings.TrimSpace(os.Getenv("DATABASE_URL")), DataRoot: strings.TrimSpace(os.Getenv("DATA_ROOT")),
+		ReservedFreeBytes: defaultReservedFreeByte,
+	}
 	if config.DatabaseURL == "" || config.DataRoot == "" {
 		return WorkerConfig{}, errors.New("DATABASE_URL and DATA_ROOT are required")
+	}
+	providerCredentialKey, err := decodeProviderCredentialKey(os.Getenv("MUSIC_PROVIDER_CREDENTIAL_KEY"))
+	if err != nil {
+		return WorkerConfig{}, err
+	}
+	config.ProviderCredentialKey = providerCredentialKey
+	if raw := strings.TrimSpace(os.Getenv("RESERVED_FREE_BYTES")); raw != "" {
+		value, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil || value < 0 {
+			return WorkerConfig{}, errors.New("RESERVED_FREE_BYTES must be a non-negative integer")
+		}
+		config.ReservedFreeBytes = value
 	}
 	return config, nil
 }

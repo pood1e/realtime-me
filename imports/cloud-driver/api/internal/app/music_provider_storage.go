@@ -22,7 +22,7 @@ func (s *MusicService) providerCredentials(ctx context.Context, provider domain.
 	if connection.Status == domain.ProviderReconnectRequired {
 		return domain.ProviderConnection{}, nil, domain.ErrProviderReconnectRequired
 	}
-	credentials, err := s.credentials.Open(connectionCredentialPurpose(provider), connection.EncryptedCredentials)
+	credentials, err := s.credentials.Open(domain.MusicProviderCredentialPurpose(provider), connection.EncryptedCredentials)
 	return connection, credentials, err
 }
 
@@ -30,7 +30,7 @@ func (s *MusicService) persistProviderAccount(ctx context.Context, provider doma
 	if strings.TrimSpace(account.AccountID) == "" || len(account.Credentials) == 0 {
 		return domain.ProviderConnection{}, fmt.Errorf("%w: provider returned an incomplete account", domain.ErrUnavailable)
 	}
-	encrypted, err := s.credentials.Seal(connectionCredentialPurpose(provider), account.Credentials)
+	encrypted, err := s.credentials.Seal(domain.MusicProviderCredentialPurpose(provider), account.Credentials)
 	if err != nil {
 		return domain.ProviderConnection{}, err
 	}
@@ -47,7 +47,7 @@ func (s *MusicService) persistCredentialUpdate(ctx context.Context, connection d
 	if len(updated) == 0 || bytes.Equal(previous, updated) {
 		return nil
 	}
-	encrypted, err := s.credentials.Seal(connectionCredentialPurpose(connection.Provider), updated)
+	encrypted, err := s.credentials.Seal(domain.MusicProviderCredentialPurpose(connection.Provider), updated)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,3 @@ func providerAttemptTerminal(status domain.ProviderAttemptStatus) bool {
 }
 
 func attemptCredentialPurpose(uid string) string { return "music-provider-attempt:" + uid }
-
-func connectionCredentialPurpose(provider domain.MusicProvider) string {
-	return "music-provider-connection:" + string(provider)
-}

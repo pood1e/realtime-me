@@ -16,6 +16,8 @@ var (
 	_ domain.MusicCatalogSearcher  = QQAdapter{}
 	_ domain.MusicPlaybackResolver = QQAdapter{}
 	_ domain.MusicLyricsProvider   = QQAdapter{}
+	_ domain.MusicPlaylistImporter = QQAdapter{}
+	_ domain.MusicTrackDownloader  = QQAdapter{}
 )
 
 func (QQAdapter) Provider() domain.MusicProvider { return domain.MusicProviderQQ }
@@ -40,4 +42,12 @@ func (QQAdapter) ResolvePlayback(ctx context.Context, credentials []byte, trackI
 
 func (QQAdapter) Lyrics(ctx context.Context, credentials []byte, trackID string) (domain.Lyric, []byte, error) {
 	return qqLyrics(ctx, credentials, trackID)
+}
+
+func (QQAdapter) ImportPlaylist(ctx context.Context, credentials []byte, source string) (domain.ProviderPlaylist, []byte, error) {
+	return importQQPlaylist(ctx, credentials, source)
+}
+
+func (QQAdapter) ResolveDownload(ctx context.Context, credentials []byte, trackID string) (domain.ProviderDownload, []byte, error) {
+	return resolveQQDownload(ctx, credentials, trackID)
 }

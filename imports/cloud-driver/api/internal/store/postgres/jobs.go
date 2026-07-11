@@ -58,6 +58,12 @@ func (s *Store) ClaimProcessingJob(ctx context.Context, now time.Time, leaseDura
 		lease_until = $3, update_time = $1 WHERE uid = $4`, now, job.Attempts, now.Add(leaseDuration), job.UID); err != nil {
 		return nil, fmt.Errorf("lease processing job: %w", err)
 	}
+	if job.Kind == "music_download" {
+		if _, err := tx.Exec(ctx, `UPDATE music_playlist_tracks SET download_status = 'running'
+			WHERE uid = $1 AND local_track_uid IS NULL`, job.ResourceUID); err != nil {
+			return nil, fmt.Errorf("mark music download running: %w", err)
+		}
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("commit job claim: %w", err)
 	}
@@ -94,13 +100,19 @@ func (s *Store) FailProcessingJob(ctx context.Context, job domain.ProcessingJob,
 	}
 	if status == "failed" {
 		table, ok := processingTable(job.Kind)
-		if !ok && job.Kind != "wallpaper" {
+		if !ok && job.Kind != "wallpaper" && job.Kind != "music_download" {
 			return fmt.Errorf("unknown processing job kind %q", job.Kind)
 		}
 		if ok {
 			if _, err := tx.Exec(ctx, "UPDATE "+table+" SET processing_status = 'failed', update_time = now() WHERE uid = $1", job.ResourceUID); err != nil {
 				return fmt.Errorf("mark resource processing failed: %w", err)
 			}
+		}
+	}
+	if job.Kind == "music_download" {
+		if _, err := tx.Exec(ctx, `UPDATE music_playlist_tracks SET download_status = $2
+			WHERE uid = $1`, job.ResourceUID, status); err != nil {
+			return fmt.Errorf("mark music download %s: %w", status, err)
 		}
 	}
 	return tx.Commit(ctx)

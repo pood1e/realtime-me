@@ -16,6 +16,8 @@ var (
 	_ domain.MusicCatalogSearcher  = NetEaseAdapter{}
 	_ domain.MusicPlaybackResolver = NetEaseAdapter{}
 	_ domain.MusicLyricsProvider   = NetEaseAdapter{}
+	_ domain.MusicPlaylistImporter = NetEaseAdapter{}
+	_ domain.MusicTrackDownloader  = NetEaseAdapter{}
 )
 
 func (NetEaseAdapter) Provider() domain.MusicProvider { return domain.MusicProviderNetEase }
@@ -40,4 +42,12 @@ func (NetEaseAdapter) ResolvePlayback(ctx context.Context, credentials []byte, t
 
 func (NetEaseAdapter) Lyrics(ctx context.Context, credentials []byte, trackID string) (domain.Lyric, []byte, error) {
 	return netEaseLyrics(ctx, credentials, trackID)
+}
+
+func (NetEaseAdapter) ImportPlaylist(ctx context.Context, credentials []byte, source string) (domain.ProviderPlaylist, []byte, error) {
+	return importNetEasePlaylist(ctx, credentials, source)
+}
+
+func (NetEaseAdapter) ResolveDownload(ctx context.Context, credentials []byte, trackID string) (domain.ProviderDownload, []byte, error) {
+	return resolveNetEaseDownload(ctx, credentials, trackID)
 }

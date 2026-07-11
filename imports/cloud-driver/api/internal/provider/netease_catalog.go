@@ -26,17 +26,7 @@ func searchNetEase(ctx context.Context, rawCredentials []byte, query string, pag
 	}
 	tracks := make([]domain.PlayableTrack, 0, len(page.Songs))
 	for _, song := range page.Songs {
-		artists := make([]string, 0, len(song.Artists))
-		for _, artist := range song.Artists {
-			artists = append(artists, artist.Name)
-		}
-		trackID := strconv.FormatInt(song.ID, 10)
-		tracks = append(tracks, domain.PlayableTrack{
-			Provider: domain.MusicProviderNetEase, TrackID: trackID, Title: song.Name, Artists: artists,
-			Album: song.Album.Name, Duration: time.Duration(song.DurationMilliseconds) * time.Millisecond,
-			ArtworkURL: song.Album.CoverURL, ProviderURL: "https://music.163.com/song?id=" + trackID,
-			Playable: true, LyricsAvailable: true,
-		})
+		tracks = append(tracks, netEasePlayableTrack(song))
 	}
 	nextPageToken := ""
 	if page.HasMore {
@@ -47,6 +37,20 @@ func searchNetEase(ctx context.Context, rawCredentials []byte, query string, pag
 		return nil, "", nil, fmt.Errorf("%w: encode NetEase credentials", domain.ErrUnavailable)
 	}
 	return tracks, nextPageToken, updated, nil
+}
+
+func netEasePlayableTrack(song netease.SearchSong) domain.PlayableTrack {
+	artists := make([]string, 0, len(song.Artists))
+	for _, artist := range song.Artists {
+		artists = append(artists, artist.Name)
+	}
+	trackID := strconv.FormatInt(song.ID, 10)
+	return domain.PlayableTrack{
+		Provider: domain.MusicProviderNetEase, TrackID: trackID, Title: song.Name, Artists: artists,
+		Album: song.Album.Name, Duration: time.Duration(song.DurationMilliseconds) * time.Millisecond,
+		ArtworkURL: song.Album.CoverURL, ProviderURL: "https://music.163.com/song?id=" + trackID,
+		Playable: true, LyricsAvailable: true,
+	}
 }
 
 func parseOffsetToken(pageToken string) (int, error) {

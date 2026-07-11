@@ -79,3 +79,13 @@ type MusicLyricsProvider interface {
 type MusicPlaybackTokenProvider interface {
 	PlaybackToken(context.Context, []byte) (ProviderPlaybackToken, []byte, error)
 }
+
+// MusicPlaylistImporter resolves a provider playlist URL or identifier.
+type MusicPlaylistImporter interface {
+	ImportPlaylist(context.Context, []byte, string) (ProviderPlaylist, []byte, error)
+}
+
+// MusicTrackDownloader resolves provider audio that can be persisted locally.
+type MusicTrackDownloader interface {
+	ResolveDownload(context.Context, []byte, string) (ProviderDownload, []byte, error)
+}

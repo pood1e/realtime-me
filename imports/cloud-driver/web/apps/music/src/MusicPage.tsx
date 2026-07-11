@@ -3,6 +3,7 @@ import {
   Heart,
   History,
   Library,
+  ListMusic,
   Radio,
   Trash2,
   UserRoundCog,
@@ -29,7 +30,13 @@ const ProviderAccounts = lazy(() =>
   })),
 );
 
-type View = LocalLibraryMode | "online" | "history" | "accounts";
+const PlaylistLibrary = lazy(() =>
+  import("./PlaylistLibrary").then((module) => ({
+    default: module.PlaylistLibrary,
+  })),
+);
+
+type View = LocalLibraryMode | "online" | "playlists" | "history" | "accounts";
 
 export function MusicPage() {
   const client = useMemo(() => new MusicClient(API_BASE), []);
@@ -76,6 +83,10 @@ export function MusicPage() {
                 <Radio />
                 在线搜索
               </TabsTrigger>
+              <TabsTrigger value="playlists">
+                <ListMusic />
+                歌单
+              </TabsTrigger>
               <TabsTrigger value="favorites">
                 <Heart />
                 收藏
@@ -102,6 +113,15 @@ export function MusicPage() {
             onPlay={play}
             onLyrics={setLyricsTrack}
           />
+        ) : view === "playlists" ? (
+          <Suspense fallback={<LoadingIndicator label="正在载入歌单" />}>
+            <PlaylistLibrary
+              client={client}
+              current={current}
+              onPlay={play}
+              onLyrics={setLyricsTrack}
+            />
+          </Suspense>
         ) : view === "history" ? (
           <PlaybackHistory
             client={client}

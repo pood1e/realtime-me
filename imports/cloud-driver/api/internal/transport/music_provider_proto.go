@@ -70,6 +70,10 @@ func musicProviderCapabilityProto(capability domain.MusicProviderCapability) mus
 		return musicv1.MusicProviderCapability_MUSIC_PROVIDER_CAPABILITY_LYRICS
 	case domain.MusicProviderBrowserToken:
 		return musicv1.MusicProviderCapability_MUSIC_PROVIDER_CAPABILITY_BROWSER_TOKEN
+	case domain.MusicProviderPlaylistImport:
+		return musicv1.MusicProviderCapability_MUSIC_PROVIDER_CAPABILITY_PLAYLIST_IMPORT
+	case domain.MusicProviderLocalDownload:
+		return musicv1.MusicProviderCapability_MUSIC_PROVIDER_CAPABILITY_LOCAL_DOWNLOAD
 	default:
 		return musicv1.MusicProviderCapability_MUSIC_PROVIDER_CAPABILITY_UNSPECIFIED
 	}

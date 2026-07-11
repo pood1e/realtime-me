@@ -72,7 +72,7 @@ func (s *Store) RecordPlayback(ctx context.Context, entry domain.PlaybackEntry) 
 func (s *Store) ListPlaybackHistory(ctx context.Context, pageSize int, pageToken string) (domain.PlaybackPage, error) {
 	pageSize = normalizePageSize(pageSize)
 	query := `SELECT uid, play_time, provider, external_track_id, title, artists, album, duration_ms,
-		artwork_url, provider_url, playable, lyrics_available FROM playback_history`
+		artwork_url, provider_url, playable, lyrics_available FROM playback_history history`
 	arguments := []any{}
 	if pageToken != "" {
 		cursor, err := decodeCursor(pageToken)

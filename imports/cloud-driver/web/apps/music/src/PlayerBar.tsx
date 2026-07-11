@@ -55,7 +55,7 @@ export function PlayerBar({
               setPlaying(!state.paused);
               setTime(state.position);
               setDuration(state.duration);
-              recordMeaningfulPlayback(state.position, state.duration);
+              if (!state.paused) recordPlayback();
               if (
                 !ended.current &&
                 state.duration > 0 &&
@@ -71,7 +71,6 @@ export function PlayerBar({
           void controller
             .play(playback.playback.value.uri)
             .catch((reason: unknown) => setError(message(reason)));
-        } else {
         }
       })
       .catch((reason: unknown) => setError(message(reason)));
@@ -94,17 +93,15 @@ export function PlayerBar({
       .then(() => setPlaying(true))
       .catch(() => setPlaying(false));
   }, [directURL]);
-  const recordMeaningfulPlayback = (
-    currentTime: number,
-    mediaDuration: number,
-  ) => {
-    const threshold = Math.max(1, Math.min(10, mediaDuration / 2));
-    if (currentTime < threshold || recorded.current) return;
+  const recordPlayback = () => {
+    if (recorded.current) return;
     recorded.current = true;
     void client
       .recordPlayback(track)
       .then(onRecorded)
-      .catch(() => undefined);
+      .catch(() => {
+        recorded.current = false;
+      });
   };
   const toggle = () => {
     if (descriptor?.playback.case === "spotify") {
@@ -149,13 +146,12 @@ export function PlayerBar({
               : undefined
           }
           src={directURL}
-          onPlay={() => setPlaying(true)}
-          onPause={() => setPlaying(false)}
-          onTimeUpdate={(event) => {
-            const position = event.currentTarget.currentTime;
-            setTime(position);
-            recordMeaningfulPlayback(position, duration);
+          onPlay={() => {
+            setPlaying(true);
+            recordPlayback();
           }}
+          onPause={() => setPlaying(false)}
+          onTimeUpdate={(event) => setTime(event.currentTarget.currentTime)}
           onLoadedMetadata={(event) =>
             setDuration(event.currentTarget.duration)
           }

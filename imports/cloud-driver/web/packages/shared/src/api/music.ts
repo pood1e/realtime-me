@@ -3,17 +3,23 @@ import { createClient } from "@connectrpc/connect";
 import type { Client } from "@connectrpc/connect";
 import {
   BeginProviderConnectionRequestSchema,
+  DeletePlaylistRequestSchema,
   DeleteTrackRequestSchema,
   DisconnectProviderRequestSchema,
+  DownloadPlaylistRequestSchema,
   EmptyTrackTrashRequestSchema,
   GetProviderConnectionAttemptRequestSchema,
   GetProviderLyricsRequestSchema,
   GetSpotifyPlaybackTokenRequestSchema,
+  GetPlaylistRequestSchema,
   GetTrackRequestSchema,
+  ImportPlaylistRequestSchema,
   ImportTrackRequestSchema,
   ListAlbumsRequestSchema,
   ListArtistsRequestSchema,
   ListPlaybackHistoryRequestSchema,
+  ListPlaylistsRequestSchema,
+  ListPlaylistTracksRequestSchema,
   ListProviderConnectionsRequestSchema,
   ListTracksRequestSchema,
   MusicService,
@@ -34,6 +40,8 @@ import type {
   PlayableTrack,
   PlaybackDescriptor,
   PlaybackEntry,
+  Playlist,
+  PlaylistTrack,
   ProviderConnection,
   ProviderConnectionAttempt,
   ProviderSearchGroup,
@@ -218,6 +226,67 @@ export class MusicClient {
         create(ListPlaybackHistoryRequestSchema, { pageSize: 100 }),
       )
     ).playbackEntries;
+  }
+  async importPlaylist(
+    provider: MusicProvider,
+    source: string,
+  ): Promise<Playlist> {
+    return required(
+      (
+        await this.client.importPlaylist(
+          create(ImportPlaylistRequestSchema, { provider, source }),
+        )
+      ).playlist,
+      "playlist",
+    );
+  }
+  async playlist(playlistUid: string): Promise<Playlist> {
+    return required(
+      (
+        await this.client.getPlaylist(
+          create(GetPlaylistRequestSchema, { playlistUid }),
+        )
+      ).playlist,
+      "playlist",
+    );
+  }
+  async playlists(): Promise<Playlist[]> {
+    return (
+      await this.client.listPlaylists(
+        create(ListPlaylistsRequestSchema, { pageSize: 100 }),
+      )
+    ).playlists;
+  }
+  async playlistTracks(
+    playlistUid: string,
+    pageToken = "",
+  ): Promise<{ tracks: PlaylistTrack[]; nextPageToken: string }> {
+    const response = await this.client.listPlaylistTracks(
+      create(ListPlaylistTracksRequestSchema, {
+        playlistUid,
+        pageSize: 100,
+        pageToken,
+      }),
+    );
+    return {
+      tracks: response.playlistTracks,
+      nextPageToken: response.nextPageToken,
+    };
+  }
+  async downloadPlaylist(playlistUid: string): Promise<Playlist> {
+    return required(
+      (
+        await this.client.downloadPlaylist(
+          create(DownloadPlaylistRequestSchema, { playlistUid }),
+        )
+      ).playlist,
+      "playlist",
+    );
+  }
+  async deletePlaylist(playlistUid: string): Promise<void> {
+    await this.client.deletePlaylist(
+      create(DeletePlaylistRequestSchema, { playlistUid }),
+    );
   }
   contentUrl(track: Track): string {
     return resolveApiUrl(this.baseUrl, track.contentUrl);

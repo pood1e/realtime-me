@@ -194,6 +194,18 @@ func (f *Filesystem) PublishArtifact(sourcePath string, contentSHA256 []byte, ki
 	return storageKey, nil
 }
 
+// PublishSource installs a worker-created source file in content-addressed storage.
+func (f *Filesystem) PublishSource(sourcePath, fileName string) (domain.SealedContent, error) {
+	sealed, err := f.inspectFile(sourcePath, fileName)
+	if err != nil {
+		return domain.SealedContent{}, err
+	}
+	if err := f.publishFile(sourcePath, sealed.StorageKey, false); err != nil {
+		return domain.SealedContent{}, err
+	}
+	return sealed, nil
+}
+
 // FreeBytes returns currently available bytes on the data filesystem.
 func (f *Filesystem) FreeBytes() (int64, error) {
 	var stat syscall.Statfs_t
