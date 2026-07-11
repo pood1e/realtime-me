@@ -4,24 +4,22 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"strconv"
-	"strings"
 
 	"example.com/cloud-drive/api/internal/domain"
 	"example.com/cloud-drive/api/internal/provider/qqmusic"
 )
 
 func importQQPlaylist(ctx context.Context, rawCredentials []byte, source string) (domain.ProviderPlaylist, []byte, error) {
-	playlistID, err := parseQQPlaylistID(source)
-	if err != nil {
-		return domain.ProviderPlaylist{}, nil, err
-	}
 	credentials, err := decodeQQCredentials(rawCredentials)
 	if err != nil {
 		return domain.ProviderPlaylist{}, nil, err
 	}
 	client, err := qqmusic.NewClient()
+	if err != nil {
+		return domain.ProviderPlaylist{}, nil, mapProviderError(err)
+	}
+	playlistID, err := client.ResolvePlaylistID(ctx, source)
 	if err != nil {
 		return domain.ProviderPlaylist{}, nil, mapProviderError(err)
 	}
@@ -58,33 +56,4 @@ func resolveQQDownload(ctx context.Context, credentials []byte, trackID string) 
 		return domain.ProviderDownload{}, nil, err
 	}
 	return domain.ProviderDownload{URL: playback.DirectURL, ContentType: playback.ContentType}, updated, nil
-}
-
-func parseQQPlaylistID(source string) (int64, error) {
-	source = strings.TrimSpace(source)
-	if id, err := strconv.ParseInt(source, 10, 64); err == nil && id > 0 {
-		return id, nil
-	}
-	parsed, err := url.ParseRequestURI(source)
-	if err != nil || parsed.Host == "" || (parsed.Scheme != "https" && parsed.Scheme != "http") {
-		return 0, fmt.Errorf("%w: invalid QQ Music playlist source", domain.ErrInvalidArgument)
-	}
-	host := strings.ToLower(parsed.Hostname())
-	if host != "y.qq.com" && host != "i.y.qq.com" && host != "c.y.qq.com" {
-		return 0, fmt.Errorf("%w: invalid QQ Music playlist host", domain.ErrInvalidArgument)
-	}
-	for _, key := range []string{"id", "disstid"} {
-		if id, err := strconv.ParseInt(parsed.Query().Get(key), 10, 64); err == nil && id > 0 {
-			return id, nil
-		}
-	}
-	segments := strings.Split(strings.Trim(parsed.Path, "/"), "/")
-	for index, segment := range segments {
-		if (segment == "playlist" || segment == "playsquare") && index+1 < len(segments) {
-			if id, err := strconv.ParseInt(segments[index+1], 10, 64); err == nil && id > 0 {
-				return id, nil
-			}
-		}
-	}
-	return 0, fmt.Errorf("%w: QQ Music playlist ID is missing", domain.ErrInvalidArgument)
 }
