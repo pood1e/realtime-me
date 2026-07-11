@@ -115,7 +115,21 @@ open, but Codex holds a spawned thread's rollout open well after that thread's
 last turn ended, so being alive is not being at work: an agent and a sub-agent
 alike count only while the newest bracket in the rollout is an open one. Every
 sub-agent the page draws is one more mascot, so a finished one that still counts
-is visible. Prompts, objectives, task titles, sub-agent
+is visible.
+
+**A Claude session puts its sub-agents out two ways, and files them apart.** The
+ones it drives from its own turn write `subagents/agent-<id>.jsonl`; the ones a
+*workflow* script drives write `subagents/workflows/<run>/agent-<id>.jsonl`, and
+a workflow is where the sub-agents actually get numerous. Neither test that
+retires a task sub-agent retires one of those: the session never announces them,
+and their transcripts end on the tool result that fed the last reply rather than
+on the reply, so they close on a `user` record and never on `end_turn`. The
+`journal.jsonl` beside them is what brackets each — `started` when the script
+spawns it, `result` when it returns — and only a record's type and the `agentId`
+it names are ever read, never the `result` payload, which is the workflow's own
+work. Count both populations, or a nine-agent workflow draws one lone mascot.
+
+Prompts, objectives, task titles, sub-agent
 descriptions and `threads.title` are never read into a metric — a `model` and a
 *count*, of agents and of sub-agents per model, are the only things added to
 `realtime_agent_*`. A host runs as many agents of one kind as it likes: three

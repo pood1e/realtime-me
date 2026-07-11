@@ -64,6 +64,11 @@ CLAUDE_SUBAGENT_RESUME_EPSILON_SECONDS = 5
 # The id is whatever the session names between the tags; never assume a charset.
 CLAUDE_TASK_ID_PATTERN = re.compile(r"<task-id>([^<]+)</task-id>")
 CLAUDE_MODEL_TAIL_BYTES = 96 * 1024
+# A workflow's agents live one directory below the session's other sub-agents, one
+# directory per run, and the journal in there is what brackets each of them.
+CLAUDE_WORKFLOW_RUNS_DIR = "workflows"
+CLAUDE_WORKFLOW_JOURNAL = "journal.jsonl"
+CLAUDE_WORKFLOW_AGENT_RETURNED_EVENT = "result"
 # /proc/<pid>/stat holds the process's start tick in its 22nd field, counting the
 # pid and the bracketed comm the fields before it are read past.
 CLAUDE_PROC_STAT_START_TIME_INDEX = 19
@@ -489,20 +494,87 @@ def claude_transcript(home: Path, cwd: str, session_id: str) -> Path | None:
 def claude_subagent_models(session: ClaudeSession, now: float) -> list[str]:
     """The model each of this session's working sub-agents runs, one per agent.
 
+    A session puts its sub-agents out two ways and files them apart. One it drives
+    from its own turn, and that transcript sits straight in the subagents
+    directory. The others a workflow script drives, and they sit one level down in
+    `workflows/<run>/`, beside the journal that runs them. Both are sub-agents and
+    the page draws a mascot for each, so both are counted -- and each is retired by
+    whichever record brackets it, which is not the same record for the two.
+
     A sub-agent can be given a different model from the session that spawned it,
     so its own transcript is the only place its model is written.
     """
     if not session.subagents_dir.exists():
         return []
-    candidates = [
-        transcript
-        for transcript in session.subagents_dir.glob("agent-*.jsonl")
-        if now - modified_at(transcript) <= CLAUDE_SUBAGENT_STALE_AFTER_SECONDS
-    ]
+    working = claude_working_task_subagents(session, now) + claude_working_workflow_subagents(session, now)
+    return [last_model(transcript) for transcript in sorted(working)]
+
+
+def claude_working_task_subagents(session: ClaudeSession, now: float) -> list[Path]:
+    """The sub-agents this session drove from its own turn and has not yet stopped."""
+    candidates = fresh_subagent_transcripts(session.subagents_dir, now)
     if not candidates:
         return []
     stopped_at = claude_stopped_subagents(session.transcript)
-    return [last_model(t) for t in sorted(candidates) if not claude_subagent_finished(t, stopped_at)]
+    return [transcript for transcript in candidates if not claude_subagent_finished(transcript, stopped_at)]
+
+
+def claude_working_workflow_subagents(session: ClaudeSession, now: float) -> list[Path]:
+    """The agents of this session's workflows that have yet to return.
+
+    A workflow spawns its agents from a script rather than from the session's turn,
+    so the session never announces them, and their transcripts do not close on an
+    assistant's last word -- they end on the tool result that fed it. Neither test
+    that retires a task sub-agent can retire one of these. The journal beside them
+    is what brackets each: `started` when the script spawns it, `result` when it
+    returns.
+    """
+    workflows_dir = session.subagents_dir / CLAUDE_WORKFLOW_RUNS_DIR
+    if not workflows_dir.exists():
+        return []
+    working: list[Path] = []
+    for run in sorted(workflows_dir.iterdir()):
+        if not run.is_dir():
+            continue
+        returned = claude_returned_workflow_agents(run / CLAUDE_WORKFLOW_JOURNAL)
+        working += [t for t in fresh_subagent_transcripts(run, now) if subagent_id(t) not in returned]
+    return working
+
+
+def claude_returned_workflow_agents(journal: Path) -> set[str]:
+    """The agents this journal has a result for: the ones that have returned.
+
+    Only a record's type and the agent it names are read. A result also carries
+    what that agent returned, which is the workflow's own work and stays here.
+    """
+    returned: set[str] = set()
+    try:
+        with journal.open("rb") as file:
+            for raw in file:
+                record = decode_json(raw.decode(errors="ignore"))
+                if record.get("type") == CLAUDE_WORKFLOW_AGENT_RETURNED_EVENT:
+                    returned.add(str(record.get("agentId") or ""))
+    except OSError:
+        return set()
+    return returned
+
+
+def fresh_subagent_transcripts(directory: Path, now: float) -> list[Path]:
+    """The sub-agent transcripts in one directory, minus the ones that went quiet.
+
+    An agent wedged on a tool call stops writing, and the window retires it exactly
+    as it retires a Codex turn that wedged the same way.
+    """
+    return [
+        transcript
+        for transcript in directory.glob("agent-*.jsonl")
+        if now - modified_at(transcript) <= CLAUDE_SUBAGENT_STALE_AFTER_SECONDS
+    ]
+
+
+def subagent_id(transcript: Path) -> str:
+    """The id a sub-agent is known by, which its transcript is named after."""
+    return transcript.name[len("agent-") : -len(".jsonl")]
 
 
 def claude_stopped_subagents(transcript: Path) -> dict[str, float]:
@@ -523,7 +595,7 @@ def claude_stopped_subagents(transcript: Path) -> dict[str, float]:
 
 
 def claude_subagent_finished(transcript: Path, stopped_at: dict[str, float]) -> bool:
-    announced_at = stopped_at.get(transcript.name[len("agent-") : -len(".jsonl")])
+    announced_at = stopped_at.get(subagent_id(transcript))
     if announced_at:
         # A write after the announcement means the sub-agent was resumed.
         return modified_at(transcript) <= announced_at + CLAUDE_SUBAGENT_RESUME_EPSILON_SECONDS
