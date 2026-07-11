@@ -56,7 +56,7 @@ func (s *Store) ListTracks(ctx context.Context, queryText, album, artist string,
 		arguments = append(arguments, value)
 		conditions = append(conditions, fmt.Sprintf(expression, len(arguments)))
 	}
-	addCondition(queryText, "(track.title ILIKE '%%' || $%d || '%%' OR track.album ILIKE '%%' || $%d || '%%' OR array_to_string(track.artists, ' ') ILIKE '%%' || $%d || '%%')")
+	addCondition(queryText, "(track.title ILIKE '%%' || $%[1]d || '%%' OR track.album ILIKE '%%' || $%[1]d || '%%' OR array_to_string(track.artists, ' ') ILIKE '%%' || $%[1]d || '%%')")
 	addCondition(album, "track.album = $%d")
 	addCondition(artist, "$%d = ANY(track.artists)")
 	if favorites {
