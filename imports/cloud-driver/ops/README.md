@@ -165,13 +165,26 @@ sudo /opt/cloud-drive/ops/scripts/install-operator-access.sh \
 
 ```bash
 sudo -n cloud-drive-release-api
+sudo -n cloud-drive-release-compose
 sudo -n cloud-drive-backup-now
 sudo -n cloud-drive-status
 sudo -n cloud-drive-logs api       # api | worker | postgres | cloudflared | backup
 ```
 
-API/Worker 源码发布仍通过 `cloud-drive-release-api` 的 staging、校验、部署和自动回滚
-流程。Dockerfile、Compose 与 `ops/` 属于控制面变更，需要 root 重新审核安装。
+`sudo -n` 只进入 root 安装的固定网关，不会询问密码，也不会授予 Docker socket 或
+通用 sudo 权限。API/Worker 源码发布目录为
+`/var/lib/cloud-drive-release/incoming-api/`；Compose 发布方式为：
+
+```bash
+cp ops/docker-compose.yml \
+  /var/lib/cloud-drive-release/incoming-compose/docker-compose.yml
+sudo -n cloud-drive-release-compose
+```
+
+两个发布网关都会串行部署并在失败时自动回滚。Compose 网关先使用无敏感信息的环境
+渲染，再按固定的服务、镜像、网络、挂载和 secret 策略校验真实配置；当前策略只允许
+PostgreSQL、API、本机下载 Worker 与 cloudflared。Dockerfile、运维脚本或 Compose
+安全策略本身仍属于 root 控制面，需要 root 重新审核安装。
 
 ## 明文增量备份
 

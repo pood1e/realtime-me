@@ -53,6 +53,7 @@ done
 
 require_root
 require_command docker
+require_command env
 require_command mountpoint
 require_command df
 require_command awk
@@ -123,7 +124,7 @@ FREE_BYTES=$(available_bytes "$VOLUME_MOUNT_DIR")
 : "$SPOTIFY_CLIENT_ID" "$SPOTIFY_CLIENT_SECRET"
 
 compose() {
-  TUNNEL_TOKEN="$TUNNEL_TOKEN" docker compose \
+  env -i PATH="$PATH" HOME=/root TUNNEL_TOKEN="$TUNNEL_TOKEN" docker compose \
     --project-directory "$REPO_DIR" \
     --project-name cloud-drive \
     --env-file "$ENV_FILE" \

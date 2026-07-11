@@ -28,3 +28,5 @@ verify-web:
 verify-ops:
 	bash -n ops/scripts/*.sh ops/operator/*.sh
 	shellcheck --severity=warning ops/scripts/*.sh ops/operator/*.sh
+	PYTHONPATH=ops/operator python3 -B -c 'import compose_expected, compose_policy, compose_rendered_policy, compose_source_policy'
+	python3 -B ops/operator/validate-compose.py source ops/docker-compose.yml

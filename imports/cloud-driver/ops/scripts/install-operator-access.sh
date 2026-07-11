@@ -12,7 +12,8 @@ OPERATOR_GROUP=cloud-drive-operators
 LIBEXEC_DIR=/usr/local/libexec/cloud-drive-operator
 SBIN_DIR=/usr/local/sbin
 STATE_DIR=/var/lib/cloud-drive-release
-INCOMING_DIR="$STATE_DIR/incoming-api"
+INCOMING_API_DIR="$STATE_DIR/incoming-api"
+INCOMING_COMPOSE_DIR="$STATE_DIR/incoming-compose"
 SUDOERS_FILE=/etc/sudoers.d/cloud-drive-operators
 
 usage() {
@@ -45,7 +46,7 @@ while (($# > 0)); do
 done
 
 require_root
-for command in getent groupadd id install mktemp usermod visudo; do
+for command in getent groupadd id install mktemp python3 usermod visudo; do
   require_command "$command"
 done
 [[ -n "$OPERATOR_USER" ]] || die '--user is required'
@@ -59,9 +60,23 @@ fi
 usermod --append --groups "$OPERATOR_GROUP" "$OPERATOR_USER"
 
 install -d -o root -g root -m 0755 "$LIBEXEC_DIR" "$STATE_DIR"
-install -d -o root -g "$OPERATOR_GROUP" -m 2770 "$INCOMING_DIR"
+install -d -o root -g "$OPERATOR_GROUP" -m 2770 \
+  "$INCOMING_API_DIR" \
+  "$INCOMING_COMPOSE_DIR"
 install -o root -g root -m 0644 "$REPO_DIR/ops/operator/lib.sh" "$LIBEXEC_DIR/lib.sh"
+install -o root -g root -m 0644 \
+  "$REPO_DIR/ops/operator/compose_expected.py" \
+  "$REPO_DIR/ops/operator/compose_policy.py" \
+  "$REPO_DIR/ops/operator/compose_rendered_policy.py" \
+  "$REPO_DIR/ops/operator/compose_source_policy.py" \
+  "$LIBEXEC_DIR/"
+install -o root -g root -m 0755 \
+  "$REPO_DIR/ops/operator/validate-compose.py" \
+  "$LIBEXEC_DIR/validate-compose.py"
 install -o root -g root -m 0755 "$REPO_DIR/ops/operator/release-api.sh" "$SBIN_DIR/cloud-drive-release-api"
+install -o root -g root -m 0755 \
+  "$REPO_DIR/ops/operator/release-compose.sh" \
+  "$SBIN_DIR/cloud-drive-release-compose"
 install -o root -g root -m 0755 "$REPO_DIR/ops/operator/backup-now.sh" "$SBIN_DIR/cloud-drive-backup-now"
 install -o root -g root -m 0755 "$REPO_DIR/ops/operator/status.sh" "$SBIN_DIR/cloud-drive-status"
 install -o root -g root -m 0755 "$REPO_DIR/ops/operator/logs.sh" "$SBIN_DIR/cloud-drive-logs"
@@ -72,7 +87,7 @@ cleanup() {
 }
 trap cleanup EXIT
 cat >"$SUDOERS_TEMP" <<EOF
-Cmnd_Alias CLOUD_DRIVE_OPERATOR_COMMANDS = $SBIN_DIR/cloud-drive-release-api, $SBIN_DIR/cloud-drive-backup-now, $SBIN_DIR/cloud-drive-status, $SBIN_DIR/cloud-drive-logs
+Cmnd_Alias CLOUD_DRIVE_OPERATOR_COMMANDS = $SBIN_DIR/cloud-drive-release-api, $SBIN_DIR/cloud-drive-release-compose, $SBIN_DIR/cloud-drive-backup-now, $SBIN_DIR/cloud-drive-status, $SBIN_DIR/cloud-drive-logs
 %$OPERATOR_GROUP ALL=(root) NOPASSWD: CLOUD_DRIVE_OPERATOR_COMMANDS
 EOF
 visudo -cf "$SUDOERS_TEMP"

@@ -5,8 +5,9 @@
 
 前端部署在七个独立的 Cloudflare Pages 项目，两个 API Host 通过同一条 Cloudflare
 Tunnel 回到自托管主机。源文件与 PostgreSQL 元数据都只保存在本地，不使用 R2、S3
-或 MinIO。音乐盒可以按需连接外部会员账号；导入的 QQ 音乐和网易云歌单可由 Worker
-按用户操作下载到本地内容库，Spotify 仍只通过官方 Web Playback SDK 在线播放。
+或 MinIO。音乐盒可以按需连接外部会员账号；导入的 QQ 音乐和网易云歌单可由主机上的
+后台 Worker 按用户操作下载到本地内容库，Spotify 仍只通过官方 Web Playback SDK
+在线播放。
 
 ## 架构
 
@@ -81,9 +82,9 @@ flowchart LR
 ```
 
 API、Worker 与 PostgreSQL 不向宿主机发布端口。`cloudflared` 只能通过 Compose 的
-`edge` 网络访问 API，PostgreSQL 仅位于内部 `backend` 网络。所有容器都配置
-Worker 通过独立 `provider-egress` 网络访问音乐来源，不监听 HTTP 端口。所有容器都
-配置 `restart: unless-stopped`，数据卷通过 `/etc/fstab` 挂载，因此主机重启后可自行恢复。
+`edge` 网络访问 API，PostgreSQL 仅位于内部 `backend` 网络。本机 Worker 通过独立
+`provider-egress` 网络访问音乐来源，不监听 HTTP 端口。所有容器都配置
+`restart: unless-stopped`，数据卷通过 `/etc/fstab` 挂载，因此主机重启后可自行恢复。
 
 ### 音乐来源
 

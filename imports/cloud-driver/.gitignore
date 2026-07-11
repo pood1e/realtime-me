@@ -19,6 +19,8 @@ api/bin/
 api/coverage.out
 
 # Generated local state
+__pycache__/
+*.py[cod]
 .wrangler/
 .dev.vars
 .cache/
