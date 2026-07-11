@@ -3,10 +3,11 @@ import { Check, Copy, Download, ExternalLink, Palette } from "lucide-react";
 import type { Image } from "@cloud-drive/contracts";
 import {
   Button,
-  Dialog,
+  AppDialog,
   ImagesClient,
   Input,
   WallpaperAdminClient,
+  useDialog,
   useToast,
 } from "@cloud-drive/shared";
 import { API_BASE } from "./config";
@@ -15,15 +16,14 @@ export function ImageDialog({
   image,
   client,
   onClose,
-  onChanged,
 }: {
   image: Image;
   client: ImagesClient;
   onClose: () => void;
-  onChanged: () => Promise<void>;
 }) {
   const wallpapers = new WallpaperAdminClient(API_BASE);
   const { showToast } = useToast();
+  const { prompt } = useDialog();
   const [link, setLink] = useState("");
   const [publishing, setPublishing] = useState(false);
   const createLink = async () => {
@@ -37,15 +37,27 @@ export function ImageDialog({
     }
   };
   const publish = async () => {
-    const title = window.prompt("壁纸标题", image.displayName);
-    if (!title?.trim()) return;
-    const rawTags = window.prompt("标签（用逗号分隔）", "");
+    const title = await prompt({
+      title: "发布到壁纸站",
+      label: "壁纸标题",
+      defaultValue: image.displayName,
+    });
+    if (!title) return;
+    const rawTags = await prompt({
+      title: "壁纸标签",
+      description: "可用逗号分隔多个标签，也可以留空。",
+      label: "标签",
+      placeholder: "自然，山川，暗色",
+      submitLabel: "发布",
+      required: false,
+    });
+    if (rawTags === undefined) return;
     setPublishing(true);
     try {
       await wallpapers.publish(
         image.uid,
-        title.trim(),
-        (rawTags || "")
+        title,
+        rawTags
           .split(/[,，]/)
           .map((tag) => tag.trim())
           .filter(Boolean),
@@ -62,7 +74,7 @@ export function ImageDialog({
     showToast("私有原图地址已复制");
   };
   return (
-    <Dialog
+    <AppDialog
       open
       title={image.displayName}
       description={`${image.width} × ${image.height}`}
@@ -124,7 +136,7 @@ export function ImageDialog({
           </Button>
         </aside>
       </div>
-    </Dialog>
+    </AppDialog>
   );
 }
 function message(error: unknown) {

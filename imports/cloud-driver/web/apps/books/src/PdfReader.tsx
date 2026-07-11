@@ -2,7 +2,7 @@ import { create } from "@bufbuild/protobuf";
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
-import type { PDFDocumentProxy } from "pdfjs-dist";
+import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { ReadingProgressSchema } from "@cloud-drive/contracts";
 import type { Book } from "@cloud-drive/contracts";
@@ -64,6 +64,7 @@ export function PdfReader({
     const target = canvas.current;
     if (!pdf || !target) return;
     let cancelled = false;
+    let renderTask: RenderTask | undefined;
     void pdf
       .getPage(page)
       .then(async (pdfPage) => {
@@ -75,11 +76,12 @@ export function PdfReader({
         target.height = viewport.height;
         const context = target.getContext("2d");
         if (context) {
-          await pdfPage.render({
+          renderTask = pdfPage.render({
             canvas: target,
             canvasContext: context,
             viewport,
-          }).promise;
+          });
+          await renderTask.promise;
         }
       })
       .catch((renderError: unknown) => {
@@ -88,6 +90,7 @@ export function PdfReader({
     void savePage(client, book.uid, page, pageCount);
     return () => {
       cancelled = true;
+      renderTask?.cancel();
     };
   }, [book.uid, client, page, pageCount]);
 
@@ -123,6 +126,7 @@ function PageControls({
         size="icon"
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
+        aria-label="上一页"
       >
         <ChevronLeft />
       </Button>
@@ -134,6 +138,7 @@ function PageControls({
         size="icon"
         disabled={page >= pageCount}
         onClick={() => onPageChange(page + 1)}
+        aria-label="下一页"
       >
         <ChevronRight />
       </Button>

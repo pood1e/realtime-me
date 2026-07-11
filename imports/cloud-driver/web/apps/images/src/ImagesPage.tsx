@@ -1,21 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ImageIcon,
-  Images,
-  MoreHorizontal,
-  Plus,
-  Search,
-  Trash2,
-} from "lucide-react";
-import type { Image, ImageAlbum } from "@cloud-drive/contracts";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { Images, Plus, Search, Trash2 } from "lucide-react";
+import { ProcessingStatus, type Image } from "@cloud-drive/contracts";
 import {
   Button,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
   EmptyState,
   ImagesClient,
+  InfiniteScrollSentinel,
   Input,
   LoadingIndicator,
   PrivateAppShell,
@@ -26,46 +16,58 @@ import {
   SelectValue,
   UploadButton,
   UploadClient,
-  formatBytes,
+  useCursorQuery,
+  useDialog,
+  useQuery,
   useToast,
 } from "@cloud-drive/shared";
 import { ImageDialog } from "./ImageDialog";
+import { ImageCard } from "./ImageCard";
 import { API_BASE, APP_LINKS } from "./config";
 
 export function ImagesPage() {
   const client = useMemo(() => new ImagesClient(API_BASE), []);
   const uploader = useMemo(() => new UploadClient(API_BASE), []);
   const { showToast } = useToast();
-  const [images, setImages] = useState<Image[]>([]);
-  const [albums, setAlbums] = useState<ImageAlbum[]>([]);
+  const { confirm, prompt } = useDialog();
   const [albumUid, setAlbumUid] = useState("all");
   const [query, setQuery] = useState("");
   const [trash, setTrash] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Image>();
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [nextImages, nextAlbums] = await Promise.all([
-        client.list({
-          query,
-          albumUid: albumUid === "all" ? undefined : albumUid,
+  const deferredQuery = useDeferredValue(query.trim());
+  const catalog = useCursorQuery<Image>({
+    queryKey: ["images", deferredQuery, albumUid, trash],
+    pollInterval: 2_500,
+    shouldPoll: (images) =>
+      images.some(
+        (image) => image.processingStatus === ProcessingStatus.PENDING,
+      ),
+    loadPage: async (pageToken, signal) => {
+      const page = await client.listPage(
+        {
+          query: deferredQuery,
+          ...(albumUid === "all" ? {} : { albumUid }),
           trashed: trash,
-        }),
-        client.albums(),
-      ]);
-      setImages(nextImages);
-      setAlbums(nextAlbums);
-    } catch (error) {
-      showToast(message(error), "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [albumUid, client, query, showToast, trash]);
+          pageToken,
+        },
+        signal,
+      );
+      return { items: page.images, nextPageToken: page.nextPageToken };
+    },
+  });
+  const albumCatalog = useQuery({
+    queryKey: ["image-albums"],
+    queryFn: ({ signal }) => client.albums(signal),
+  });
+  const load = async () => {
+    await Promise.all([catalog.refetch(), albumCatalog.refetch()]);
+  };
   useEffect(() => {
-    const timer = window.setTimeout(() => void load(), 180);
-    return () => window.clearTimeout(timer);
-  }, [load]);
+    if (catalog.error) showToast(message(catalog.error), "error");
+  }, [catalog.error, showToast]);
+  useEffect(() => {
+    if (albumCatalog.error) showToast(message(albumCatalog.error), "error");
+  }, [albumCatalog.error, showToast]);
   const upload = async (files: File[]) => {
     for (const file of files)
       try {
@@ -78,10 +80,10 @@ export function ImagesPage() {
     await load();
   };
   const createAlbum = async () => {
-    const name = window.prompt("相册名称");
-    if (!name?.trim()) return;
+    const name = await prompt({ title: "新建相册", label: "相册名称" });
+    if (!name) return;
     try {
-      const album = await client.createAlbum(name.trim());
+      const album = await client.createAlbum(name);
       setAlbumUid(album.uid);
       await load();
     } catch (error) {
@@ -91,7 +93,15 @@ export function ImagesPage() {
   const remove = async (image: Image) => {
     try {
       if (trash) {
-        if (!window.confirm("永久删除此图片？")) return;
+        if (
+          !(await confirm({
+            title: "永久删除图片",
+            description: `“${image.displayName}”将无法恢复。`,
+            confirmLabel: "永久删除",
+            destructive: true,
+          }))
+        )
+          return;
         await client.purge(image.uid);
       } else await client.trash(image.uid);
       await load();
@@ -103,6 +113,24 @@ export function ImagesPage() {
     await client.restore(image.uid);
     await load();
   };
+  const emptyTrash = async () => {
+    if (
+      !(await confirm({
+        title: "清空图片回收站",
+        description: "回收站中的全部图片将被永久删除，此操作无法撤销。",
+        confirmLabel: "永久删除全部图片",
+        destructive: true,
+      }))
+    )
+      return;
+    try {
+      await client.emptyTrash();
+      await load();
+      showToast("回收站已清空");
+    } catch (error) {
+      showToast(message(error), "error");
+    }
+  };
   return (
     <PrivateAppShell
       app="images"
@@ -112,10 +140,7 @@ export function ImagesPage() {
       links={APP_LINKS}
       actions={
         trash ? (
-          <Button
-            variant="destructive"
-            onClick={() => void emptyTrash(client, load, showToast)}
-          >
+          <Button variant="destructive" onClick={() => void emptyTrash()}>
             清空
           </Button>
         ) : (
@@ -143,7 +168,7 @@ export function ImagesPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">全部图片</SelectItem>
-            {albums.map((album) => (
+            {(albumCatalog.data ?? []).map((album) => (
               <SelectItem key={album.uid} value={album.uid}>
                 {album.displayName} · {album.imageCount}
               </SelectItem>
@@ -162,22 +187,32 @@ export function ImagesPage() {
           {trash ? "返回图库" : "回收站"}
         </Button>
       </div>
-      {loading ? (
+      {catalog.isPending ? (
         <LoadingIndicator label="正在读取图片" />
-      ) : images.length ? (
-        <div className="columns-2 gap-3 sm:columns-3 lg:columns-4 2xl:columns-6">
-          {images.map((image) => (
-            <ImageCard
-              key={image.uid}
-              image={image}
-              client={client}
-              trashed={trash}
-              onOpen={() => setSelected(image)}
-              onRemove={() => void remove(image)}
-              onRestore={() => void restore(image)}
-            />
-          ))}
-        </div>
+      ) : catalog.items.length ? (
+        <>
+          <div className="columns-2 gap-3 sm:columns-3 lg:columns-4 2xl:columns-6">
+            {catalog.items.map((image) => (
+              <ImageCard
+                key={image.uid}
+                image={image}
+                client={client}
+                trashed={trash}
+                onOpen={() => setSelected(image)}
+                onRemove={() => void remove(image)}
+                onRestore={() => void restore(image)}
+              />
+            ))}
+          </div>
+          <InfiniteScrollSentinel
+            hasMore={catalog.hasNextPage}
+            loading={catalog.isFetchingNextPage}
+            failed={catalog.isFetchNextPageError}
+            loadingLabel="继续加载图片"
+            completeLabel="已加载全部图片"
+            onLoadMore={() => void catalog.fetchNextPage()}
+          />
+        </>
       ) : (
         <EmptyState
           icon={<Images className="size-6" />}
@@ -190,91 +225,12 @@ export function ImagesPage() {
           image={selected}
           client={client}
           onClose={() => setSelected(undefined)}
-          onChanged={load}
         />
       ) : null}
     </PrivateAppShell>
   );
 }
 
-function ImageCard({
-  image,
-  client,
-  trashed,
-  onOpen,
-  onRemove,
-  onRestore,
-}: {
-  image: Image;
-  client: ImagesClient;
-  trashed: boolean;
-  onOpen: () => void;
-  onRemove: () => void;
-  onRestore: () => void;
-}) {
-  return (
-    <article className="group relative mb-3 break-inside-avoid overflow-hidden rounded-xl border bg-card">
-      <button
-        type="button"
-        onClick={onOpen}
-        disabled={trashed}
-        className="block w-full bg-muted"
-      >
-        {image.previewUrl ? (
-          <img
-            src={client.previewUrl(image)}
-            alt={image.displayName}
-            loading="lazy"
-            className="h-auto w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-          />
-        ) : (
-          <div className="grid aspect-square place-items-center">
-            <ImageIcon className="size-8 text-muted-foreground" />
-          </div>
-        )}
-      </button>
-      <div className="flex items-center gap-2 p-3">
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{image.displayName}</p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            {image.width} × {image.height} · {formatBytes(image.sizeBytes)}
-          </p>
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-xs">
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {trashed ? (
-              <DropdownMenuItem onSelect={onRestore}>恢复</DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem onSelect={onOpen}>打开与分享</DropdownMenuItem>
-            )}
-            <DropdownMenuItem variant="destructive" onSelect={onRemove}>
-              {trashed ? "永久删除" : "移入回收站"}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </article>
-  );
-}
 function message(error: unknown) {
   return error instanceof Error ? error.message : "操作未完成";
-}
-async function emptyTrash(
-  client: ImagesClient,
-  reload: () => Promise<void>,
-  toast: (message: string, variant?: "default" | "error") => void,
-) {
-  if (!window.confirm("永久删除图片回收站？")) return;
-  try {
-    await client.emptyTrash();
-    await reload();
-    toast("回收站已清空");
-  } catch (error) {
-    toast(message(error), "error");
-  }
 }

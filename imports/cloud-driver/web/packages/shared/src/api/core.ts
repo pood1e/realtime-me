@@ -67,6 +67,11 @@ export function isUnauthenticatedError(error: unknown): boolean {
 
 export function isUnavailableShareError(error: unknown): boolean {
   return (
-    error instanceof ApiError && [401, 403, 404, 410].includes(error.status)
+    (error instanceof ApiError &&
+      [401, 403, 404, 410].includes(error.status)) ||
+    (error instanceof ConnectError &&
+      [Code.Unauthenticated, Code.PermissionDenied, Code.NotFound].includes(
+        error.code,
+      ))
   );
 }

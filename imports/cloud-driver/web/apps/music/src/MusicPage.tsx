@@ -22,6 +22,8 @@ import { LyricsDialog } from "./LyricsDialog";
 import { OnlineSearch } from "./OnlineSearch";
 import { PlaybackHistory } from "./PlaybackHistory";
 import { PlayerBar } from "./PlayerBar";
+import { MusicProviderCatalog } from "./provider-catalog";
+import { registerSpotifyBrowserPlayer } from "./spotify-player";
 import type { LocalLibraryMode } from "./useLocalTrackCatalog";
 import { API_BASE, APP_LINKS } from "./config";
 
@@ -39,6 +41,8 @@ const PlaylistLibrary = lazy(() =>
 
 type View = LocalLibraryMode | "online" | "playlists" | "history" | "accounts";
 
+registerSpotifyBrowserPlayer();
+
 export function MusicPage() {
   const client = useMemo(() => new MusicClient(API_BASE), []);
   const [view, setView] = useState<View>("all");
@@ -46,11 +50,17 @@ export function MusicPage() {
   const [queue, setQueue] = useState<PlayableTrack[]>([]);
   const [lyricsTrack, setLyricsTrack] = useState<PlayableTrack>();
   const [historyVersion, setHistoryVersion] = useState(0);
+  const recordHistory = useCallback(
+    () => setHistoryVersion((value) => value + 1),
+    [],
+  );
   const play = useCallback(
     (track: PlayableTrack, nextQueue: PlayableTrack[]) => {
       setCurrent(track);
       setQueue(
-        nextQueue.filter((candidate) => candidate.provider === track.provider),
+        nextQueue.filter(
+          (candidate) => candidate.providerId === track.providerId,
+        ),
       );
     },
     [],
@@ -59,105 +69,110 @@ export function MusicPage() {
     if (!current) return;
     const index = queue.findIndex(
       (track) =>
-        track.provider === current.provider &&
+        track.providerId === current.providerId &&
         track.trackId === current.trackId,
     );
     setCurrent(index >= 0 ? queue[index + 1] : undefined);
   }, [current, queue]);
   return (
-    <PrivateAppShell
-      app="music"
-      title="音乐盒"
-      subtitle="本地收藏与独立会员音乐来源"
-      apiBase={API_BASE}
-      links={APP_LINKS}
-    >
-      <div className={current ? "pb-28" : ""}>
-        <div className="mb-6 overflow-x-auto pb-1">
-          <Tabs value={view} onValueChange={(value) => setView(value as View)}>
-            <TabsList>
-              <TabsTrigger value="all">
-                <Library />
-                本地音乐
-              </TabsTrigger>
-              <TabsTrigger value="online">
-                <Radio />
-                在线搜索
-              </TabsTrigger>
-              <TabsTrigger value="playlists">
-                <ListMusic />
-                歌单
-              </TabsTrigger>
-              <TabsTrigger value="favorites">
-                <Heart />
-                收藏
-              </TabsTrigger>
-              <TabsTrigger value="history">
-                <History />
-                最近播放
-              </TabsTrigger>
-              <TabsTrigger value="accounts">
-                <UserRoundCog />
-                账号
-              </TabsTrigger>
-              <TabsTrigger value="trash">
-                <Trash2 />
-                回收站
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-        {view === "online" ? (
-          <OnlineSearch
-            client={client}
-            current={current}
-            onPlay={play}
-            onLyrics={setLyricsTrack}
-          />
-        ) : view === "playlists" ? (
-          <Suspense fallback={<LoadingIndicator label="正在载入歌单" />}>
-            <PlaylistLibrary
+    <MusicProviderCatalog client={client}>
+      <PrivateAppShell
+        app="music"
+        title="音乐盒"
+        subtitle="本地收藏与独立会员音乐来源"
+        apiBase={API_BASE}
+        links={APP_LINKS}
+      >
+        <div className={current ? "pb-28" : ""}>
+          <div className="mb-6 overflow-x-auto pb-1">
+            <Tabs
+              value={view}
+              onValueChange={(value) => setView(value as View)}
+            >
+              <TabsList>
+                <TabsTrigger value="all">
+                  <Library />
+                  本地音乐
+                </TabsTrigger>
+                <TabsTrigger value="online">
+                  <Radio />
+                  在线搜索
+                </TabsTrigger>
+                <TabsTrigger value="playlists">
+                  <ListMusic />
+                  歌单
+                </TabsTrigger>
+                <TabsTrigger value="favorites">
+                  <Heart />
+                  收藏
+                </TabsTrigger>
+                <TabsTrigger value="history">
+                  <History />
+                  最近播放
+                </TabsTrigger>
+                <TabsTrigger value="accounts">
+                  <UserRoundCog />
+                  账号
+                </TabsTrigger>
+                <TabsTrigger value="trash">
+                  <Trash2 />
+                  回收站
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          {view === "online" ? (
+            <OnlineSearch
               client={client}
               current={current}
               onPlay={play}
               onLyrics={setLyricsTrack}
             />
-          </Suspense>
-        ) : view === "history" ? (
-          <PlaybackHistory
+          ) : view === "playlists" ? (
+            <Suspense fallback={<LoadingIndicator label="正在载入歌单" />}>
+              <PlaylistLibrary
+                client={client}
+                current={current}
+                onPlay={play}
+                onLyrics={setLyricsTrack}
+              />
+            </Suspense>
+          ) : view === "history" ? (
+            <PlaybackHistory
+              client={client}
+              current={current}
+              refreshKey={historyVersion}
+              onPlay={play}
+              onLyrics={setLyricsTrack}
+            />
+          ) : view === "accounts" ? (
+            <Suspense fallback={<LoadingIndicator label="正在载入账号管理" />}>
+              <ProviderAccounts client={client} />
+            </Suspense>
+          ) : (
+            <LocalLibrary
+              mode={view}
+              apiBase={API_BASE}
+              client={client}
+              current={current}
+              onPlay={play}
+            />
+          )}
+        </div>
+        {current ? (
+          <PlayerBar
+            track={current}
             client={client}
-            current={current}
-            refreshKey={historyVersion}
-            onPlay={play}
-            onLyrics={setLyricsTrack}
+            onEnded={playNext}
+            onRecorded={recordHistory}
           />
-        ) : view === "accounts" ? (
-          <Suspense fallback={<LoadingIndicator label="正在载入账号管理" />}>
-            <ProviderAccounts client={client} />
-          </Suspense>
-        ) : (
-          <LocalLibrary
-            mode={view}
-            apiBase={API_BASE}
-            client={client}
-            current={current}
-            onPlay={play}
-          />
-        )}
-      </div>
-      {current ? (
-        <PlayerBar
-          track={current}
+        ) : null}
+        <LyricsDialog
+          track={lyricsTrack}
           client={client}
-          onEnded={playNext}
-          onRecorded={() => setHistoryVersion((value) => value + 1)}
+          onClose={() => setLyricsTrack(undefined)}
         />
-      ) : null}
-      <LyricsDialog
-        track={lyricsTrack}
-        client={client}
-        onClose={() => setLyricsTrack(undefined)}
-      />
-    </PrivateAppShell>
+      </PrivateAppShell>
+    </MusicProviderCatalog>
   );
 }

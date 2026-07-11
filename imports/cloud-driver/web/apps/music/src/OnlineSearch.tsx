@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Music2, Search } from "lucide-react";
 import {
   ProviderSearchStatus,
@@ -11,10 +11,12 @@ import {
   Input,
   LoadingIndicator,
   MusicClient,
+  useQuery,
+  useQueryClient,
   useToast,
 } from "@cloud-drive/shared";
 import { PlayableTrackRow } from "./PlayableTrackRow";
-import { providerLabel } from "./music-model";
+import { useProviderLabel } from "./provider-catalog";
 
 export function OnlineSearch({
   client,
@@ -23,48 +25,79 @@ export function OnlineSearch({
   onLyrics,
 }: {
   client: MusicClient;
-  current?: PlayableTrack;
+  current: PlayableTrack | undefined;
   onPlay: (track: PlayableTrack, queue: PlayableTrack[]) => void;
   onLyrics: (track: PlayableTrack) => void;
 }) {
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [groups, setGroups] = useState<ProviderSearchGroup[]>([]);
-  const [loading, setLoading] = useState(false);
-  const submit = async (event: FormEvent) => {
+  const [loadingProviders, setLoadingProviders] = useState<Set<string>>(
+    new Set(),
+  );
+  const search = useQuery({
+    queryKey: ["music-search", submittedQuery],
+    enabled: submittedQuery !== "",
+    queryFn: ({ signal }) =>
+      client.providers.search(submittedQuery, [], signal),
+  });
+  useEffect(() => {
+    if (search.data) setGroups(search.data);
+  }, [search.data]);
+  useEffect(() => {
+    if (search.error) showToast(message(search.error), "error");
+  }, [search.error, showToast]);
+  const submit = (event: FormEvent) => {
     event.preventDefault();
     const normalized = query.trim();
     if (!normalized) return;
-    setLoading(true);
-    setSubmittedQuery(normalized);
-    try {
-      setGroups(await client.searchMusic(normalized));
-    } catch (error) {
-      showToast(message(error), "error");
-    } finally {
-      setLoading(false);
-    }
+    if (normalized === submittedQuery) void search.refetch();
+    else setSubmittedQuery(normalized);
   };
   const loadMore = async (group: ProviderSearchGroup) => {
-    if (!group.nextPageToken) return;
+    if (!group.nextPageToken || loadingProviders.has(group.providerId)) return;
+    setLoadingProviders((current) => new Set(current).add(group.providerId));
     try {
-      const [page] = await client.searchMusic(submittedQuery, [
-        { provider: group.provider, pageToken: group.nextPageToken },
-      ]);
+      const [page] = await queryClient.fetchQuery({
+        queryKey: [
+          "music-search-page",
+          submittedQuery,
+          group.providerId,
+          group.nextPageToken,
+        ],
+        queryFn: ({ signal }) =>
+          client.providers.search(
+            submittedQuery,
+            [
+              {
+                providerId: group.providerId,
+                pageToken: group.nextPageToken,
+              },
+            ],
+            signal,
+          ),
+      });
       if (!page) return;
       setGroups((currentGroups) =>
         currentGroups.map((currentGroup) =>
-          currentGroup.provider === page.provider
+          currentGroup.providerId === page.providerId
             ? {
                 ...page,
-                tracks: [...currentGroup.tracks, ...page.tracks],
+                tracks: appendUnique(currentGroup.tracks, page.tracks),
               }
             : currentGroup,
         ),
       );
     } catch (error) {
       showToast(message(error), "error");
+    } finally {
+      setLoadingProviders((current) => {
+        const next = new Set(current);
+        next.delete(group.providerId);
+        return next;
+      });
     }
   };
   return (
@@ -75,25 +108,26 @@ export function OnlineSearch({
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="同时搜索本地、QQ、网易云和 Spotify"
+            placeholder="同时搜索本地与已连接的音乐来源"
             className="pl-9"
           />
         </div>
-        <Button type="submit" disabled={loading || !query.trim()}>
+        <Button type="submit" disabled={search.isFetching || !query.trim()}>
           搜索
         </Button>
       </form>
-      {loading ? (
+      {search.isFetching ? (
         <LoadingIndicator label="正在查询各音乐来源" />
       ) : groups.length ? (
         groups.map((group) => (
           <SearchGroup
-            key={group.provider}
+            key={group.providerId}
             group={group}
             current={current}
             client={client}
             onPlay={onPlay}
             onLyrics={onLyrics}
+            loadingMore={loadingProviders.has(group.providerId)}
             onLoadMore={() => void loadMore(group)}
           />
         ))
@@ -101,7 +135,7 @@ export function OnlineSearch({
         <EmptyState
           icon={<Music2 className="size-6" />}
           title="搜索你的音乐来源"
-          detail="结果按来源分组展示，Spotify 不会与其他平台混合播放。"
+          detail="结果按来源分组展示，不会跨来源混合播放。"
         />
       )}
     </div>
@@ -115,21 +149,24 @@ function SearchGroup({
   onPlay,
   onLyrics,
   onLoadMore,
+  loadingMore,
 }: {
   group: ProviderSearchGroup;
-  current?: PlayableTrack;
+  current: PlayableTrack | undefined;
   client: MusicClient;
   onPlay: (track: PlayableTrack, queue: PlayableTrack[]) => void;
   onLyrics: (track: PlayableTrack) => void;
   onLoadMore: () => void;
+  loadingMore: boolean;
 }) {
+  const providerLabel = useProviderLabel();
   const detail = groupDetail(group);
   return (
     <section>
       <div className="mb-3 flex items-end justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold">
-            {providerLabel(group.provider)}
+            {providerLabel(group.providerId)}
           </h2>
           {detail ? (
             <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
@@ -143,7 +180,7 @@ function SearchGroup({
         <div className="overflow-hidden rounded-xl border bg-card/35">
           {group.tracks.map((track, index) => (
             <PlayableTrackRow
-              key={`${track.provider}-${track.trackId}`}
+              key={`${track.providerId}-${track.trackId}`}
               track={track}
               index={index + 1}
               active={sameTrack(current, track)}
@@ -154,8 +191,13 @@ function SearchGroup({
           ))}
           {group.nextPageToken ? (
             <div className="flex justify-center border-t p-3">
-              <Button variant="ghost" size="sm" onClick={onLoadMore}>
-                加载更多
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onLoadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? "正在加载" : "加载更多"}
               </Button>
             </div>
           ) : null}
@@ -183,7 +225,22 @@ function groupDetail(group: ProviderSearchGroup): string {
 }
 
 function sameTrack(a: PlayableTrack | undefined, b: PlayableTrack): boolean {
-  return a?.provider === b.provider && a.trackId === b.trackId;
+  return a?.providerId === b.providerId && a.trackId === b.trackId;
+}
+
+function appendUnique(
+  current: PlayableTrack[],
+  next: PlayableTrack[],
+): PlayableTrack[] {
+  const known = new Set(
+    current.map((track) => `${track.providerId}\u0000${track.trackId}`),
+  );
+  return [
+    ...current,
+    ...next.filter(
+      (track) => !known.has(`${track.providerId}\u0000${track.trackId}`),
+    ),
+  ];
 }
 
 function message(error: unknown): string {

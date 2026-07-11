@@ -29,6 +29,11 @@ import {
   resolveApiUrl,
 } from "./core";
 
+export type DriveItemPage = Readonly<{
+  items: DriveItem[];
+  nextPageToken: string;
+}>;
+
 export class DriveClient {
   readonly baseUrl: string;
   private readonly drive: Client<typeof DriveService>;
@@ -41,29 +46,48 @@ export class DriveClient {
     this.share = createClient(ShareService, transport);
   }
 
-  async list(parentUid = "", signal?: AbortSignal): Promise<DriveItem[]> {
-    return (
-      await this.drive.listDriveItems(
-        create(ListDriveItemsRequestSchema, { parentUid, pageSize: 200 }),
-        { signal },
-      )
-    ).items;
+  async listPage(
+    parentUid = "",
+    pageToken = "",
+    signal?: AbortSignal,
+  ): Promise<DriveItemPage> {
+    const response = await this.drive.listDriveItems(
+      create(ListDriveItemsRequestSchema, {
+        parentUid,
+        pageSize: 100,
+        pageToken,
+      }),
+      signal ? { signal } : undefined,
+    );
+    return { items: response.items, nextPageToken: response.nextPageToken };
   }
-  async listTrash(signal?: AbortSignal): Promise<DriveItem[]> {
-    return (
-      await this.drive.listTrashedItems(
-        create(ListTrashedItemsRequestSchema, { pageSize: 200 }),
-        { signal },
-      )
-    ).items;
+  async listTrashPage(
+    pageToken = "",
+    signal?: AbortSignal,
+  ): Promise<DriveItemPage> {
+    const response = await this.drive.listTrashedItems(
+      create(ListTrashedItemsRequestSchema, {
+        pageSize: 100,
+        pageToken,
+      }),
+      signal ? { signal } : undefined,
+    );
+    return { items: response.items, nextPageToken: response.nextPageToken };
   }
-  async search(query: string, signal?: AbortSignal): Promise<DriveItem[]> {
-    return (
-      await this.drive.searchDriveItems(
-        create(SearchDriveItemsRequestSchema, { query, pageSize: 200 }),
-        { signal },
-      )
-    ).items;
+  async searchPage(
+    query: string,
+    pageToken = "",
+    signal?: AbortSignal,
+  ): Promise<DriveItemPage> {
+    const response = await this.drive.searchDriveItems(
+      create(SearchDriveItemsRequestSchema, {
+        query,
+        pageSize: 100,
+        pageToken,
+      }),
+      signal ? { signal } : undefined,
+    );
+    return { items: response.items, nextPageToken: response.nextPageToken };
   }
   async createDirectory(parentUid: string, name: string): Promise<DriveItem> {
     return required(

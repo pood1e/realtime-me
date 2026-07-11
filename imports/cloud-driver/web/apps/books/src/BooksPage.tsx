@@ -15,6 +15,7 @@ import {
   SelectValue,
   UploadButton,
   UploadClient,
+  useDialog,
   useToast,
 } from "@cloud-drive/shared";
 import { BookGrid } from "./BookGrid";
@@ -27,6 +28,7 @@ export function BooksPage() {
   const client = useMemo(() => new BooksClient(API_BASE), []);
   const uploader = useMemo(() => new UploadClient(API_BASE), []);
   const { showToast } = useToast();
+  const { confirm, prompt } = useDialog();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<BookFilter>("all");
   const [shelfUid, setShelfUid] = useState("all");
@@ -55,10 +57,10 @@ export function BooksPage() {
     await catalog.refresh();
   };
   const createShelf = async () => {
-    const name = window.prompt("书架名称");
-    if (!name?.trim()) return;
+    const name = await prompt({ title: "新建书架", label: "书架名称" });
+    if (!name) return;
     try {
-      await client.createShelf(name.trim());
+      await client.createShelf(name);
       await catalog.refresh();
     } catch (error) {
       showToast(message(error), "error");
@@ -66,10 +68,36 @@ export function BooksPage() {
   };
   const remove = async (book: Book) => {
     if (filter === "trash") {
-      if (!window.confirm("永久删除这本书？")) return;
+      if (
+        !(await confirm({
+          title: "永久删除书籍",
+          description: `“${book.title}”将无法恢复。`,
+          confirmLabel: "永久删除",
+          destructive: true,
+        }))
+      )
+        return;
       await client.purge(book.uid);
     } else await client.trash(book.uid);
     await catalog.refresh();
+  };
+  const emptyTrash = async () => {
+    if (
+      !(await confirm({
+        title: "清空书籍回收站",
+        description: "回收站中的全部书籍将被永久删除，此操作无法撤销。",
+        confirmLabel: "永久删除全部书籍",
+        destructive: true,
+      }))
+    )
+      return;
+    try {
+      await client.emptyTrash();
+      await catalog.refresh();
+      showToast("回收站已清空");
+    } catch (error) {
+      showToast(message(error), "error");
+    }
   };
   const restore = async (book: Book) => {
     await client.restore(book.uid);
@@ -89,10 +117,7 @@ export function BooksPage() {
       links={APP_LINKS}
       actions={
         filter === "trash" ? (
-          <Button
-            variant="destructive"
-            onClick={() => void emptyTrash(client, catalog.refresh, showToast)}
-          >
+          <Button variant="destructive" onClick={() => void emptyTrash()}>
             清空
           </Button>
         ) : (
@@ -186,18 +211,4 @@ function message(error: unknown) {
 function catalogSubtitle(count: number, hasMore: boolean, loading: boolean) {
   if (loading) return "正在加载";
   return hasMore ? `已加载 ${count} 本` : `${count} 本书`;
-}
-async function emptyTrash(
-  client: BooksClient,
-  reload: () => Promise<void>,
-  toast: (message: string, variant?: "default" | "error") => void,
-) {
-  if (!window.confirm("永久删除书籍回收站？")) return;
-  try {
-    await client.emptyTrash();
-    await reload();
-    toast("回收站已清空");
-  } catch (error) {
-    toast(message(error), "error");
-  }
 }

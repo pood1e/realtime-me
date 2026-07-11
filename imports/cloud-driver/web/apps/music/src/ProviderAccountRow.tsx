@@ -4,7 +4,7 @@ import {
   type ProviderConnection,
 } from "@cloud-drive/contracts";
 import { Badge, Button } from "@cloud-drive/shared";
-import { providerLabel } from "./music-model";
+import { useProviderLabel } from "./provider-catalog";
 import { providerConnectionDetail } from "./provider-account-model";
 
 export function ProviderAccountRow({
@@ -16,6 +16,7 @@ export function ProviderAccountRow({
   onConnect: () => void;
   onDisconnect: () => void;
 }) {
+  const providerLabel = useProviderLabel();
   const connected = connection.status === ProviderConnectionStatus.CONNECTED;
   const reconnect =
     connection.status === ProviderConnectionStatus.RECONNECT_REQUIRED;
@@ -30,12 +31,14 @@ export function ProviderAccountRow({
           />
         ) : (
           <div className="grid size-11 place-items-center rounded-full bg-muted text-sm font-semibold">
-            {providerLabel(connection.provider).slice(0, 1)}
+            {providerLabel(connection.providerId).slice(0, 1)}
           </div>
         )}
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-medium">{providerLabel(connection.provider)}</p>
+            <p className="font-medium">
+              {providerLabel(connection.providerId)}
+            </p>
             <ConnectionBadge status={connection.status} />
           </div>
           <p className="truncate text-sm text-muted-foreground">

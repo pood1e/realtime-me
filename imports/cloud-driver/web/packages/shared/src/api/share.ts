@@ -1,64 +1,70 @@
-import { fromJson } from "@bufbuild/protobuf";
-import type { JsonValue } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
+import { createClient, type Client } from "@connectrpc/connect";
 import {
-  ListSharedItemsResponseSchema,
-  ResolveShareResponseSchema,
+  ListSharedItemsRequestSchema,
+  ResolveShareRequestSchema,
+  ShareService,
 } from "@cloud-drive/contracts";
 import type { DriveItem, ShareLink } from "@cloud-drive/contracts";
 
-import { ApiError, normalizeBaseUrl, required, resolveApiUrl } from "./core";
+import {
+  normalizeBaseUrl,
+  publicTransport,
+  required,
+  resolveApiUrl,
+} from "./core";
+
+export type SharedItemPage = Readonly<{
+  items: DriveItem[];
+  nextPageToken: string;
+}>;
 
 export class PublicShareClient {
   private readonly baseUrl: string;
+  private readonly client: Client<typeof ShareService>;
+
   constructor(baseUrl: string) {
     this.baseUrl = normalizeBaseUrl(baseUrl);
+    this.client = createClient(ShareService, publicTransport(baseUrl));
   }
+
   async resolveShare(
     token: string,
     signal?: AbortSignal,
   ): Promise<ResolvedShare> {
-    const message = fromJson(
-      ResolveShareResponseSchema,
-      await this.get(`/v1/shares/${encodeURIComponent(token)}`, signal),
+    const response = await this.client.resolveShare(
+      create(ResolveShareRequestSchema, { shareToken: token }),
+      signal ? { signal } : undefined,
     );
     return {
-      shareLink: required(message.shareLink, "shareLink"),
-      target: required(message.target, "target"),
+      shareLink: required(response.shareLink, "shareLink"),
+      target: required(response.target, "target"),
     };
   }
-  async listSharedItems(
+
+  async listSharedItemsPage(
     token: string,
     parentUid: string,
+    pageToken = "",
     signal?: AbortSignal,
-  ): Promise<DriveItem[]> {
-    const query = new URLSearchParams({ parentUid, pageSize: "200" });
-    return fromJson(
-      ListSharedItemsResponseSchema,
-      await this.get(
-        `/v1/shares/${encodeURIComponent(token)}/items?${query}`,
-        signal,
-      ),
-    ).items;
+  ): Promise<SharedItemPage> {
+    const response = await this.client.listSharedItems(
+      create(ListSharedItemsRequestSchema, {
+        shareToken: token,
+        parentUid,
+        pageSize: 100,
+        pageToken,
+      }),
+      signal ? { signal } : undefined,
+    );
+    return { items: response.items, nextPageToken: response.nextPageToken };
   }
+
   contentUrl(token: string, itemUid: string): string {
     return resolveApiUrl(
       this.baseUrl,
       `/v1/shares/${encodeURIComponent(token)}/items/${encodeURIComponent(itemUid)}/content`,
     );
-  }
-  private async get(path: string, signal?: AbortSignal): Promise<JsonValue> {
-    const response = await fetch(resolveApiUrl(this.baseUrl, path), {
-      credentials: "omit",
-      headers: { Accept: "application/json" },
-      referrerPolicy: "no-referrer",
-      signal,
-    });
-    if (!response.ok)
-      throw new ApiError(
-        `Request failed (${response.status}).`,
-        response.status,
-      );
-    return response.json() as Promise<JsonValue>;
   }
 }
 

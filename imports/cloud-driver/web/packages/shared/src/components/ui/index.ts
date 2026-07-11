@@ -1,4 +1,5 @@
 export * from "./badge";
+export * from "./alert-dialog";
 export * from "./button";
 export {
   Dialog as DialogRoot,

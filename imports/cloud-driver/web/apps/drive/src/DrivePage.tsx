@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { Folder, FolderPlus, Search, Trash2 } from "lucide-react";
 import type { DriveItem } from "@cloud-drive/contracts";
 import {
@@ -10,6 +10,7 @@ import {
   EmptyState,
   InlineError,
   Input,
+  InfiniteScrollSentinel,
   LoadingIndicator,
   PrivateAppShell,
   UploadButton,
@@ -18,6 +19,8 @@ import {
   driveItemName,
   driveItemUid,
   useDriveViewMode,
+  useCursorQuery,
+  useDialog,
   useToast,
 } from "@cloud-drive/shared";
 import { DriveDialog, type DriveDialogState } from "./drive-dialogs";
@@ -32,36 +35,27 @@ export function DrivePage() {
   const client = useMemo(() => new DriveClient(API_BASE), []);
   const uploader = useMemo(() => new UploadClient(API_BASE), []);
   const { showToast } = useToast();
+  const { confirm } = useDialog();
   const [view, setView] = useState<View>("files");
   const [trail, setTrail] = useState<readonly Trail[]>(ROOT);
-  const [items, setItems] = useState<DriveItem[]>([]);
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [dialog, setDialog] = useState<DriveDialogState>(null);
   const [mode, setMode] = useDriveViewMode("cloud-drive.view-mode");
   const parentUid = trail.at(-1)?.id ?? "";
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const next =
-        view === "trash"
-          ? await client.listTrash()
-          : query.trim()
-            ? await client.search(query.trim())
-            : await client.list(parentUid);
-      setItems(next);
-    } catch (loadError) {
-      setError(message(loadError));
-    } finally {
-      setLoading(false);
-    }
-  }, [client, parentUid, query, view]);
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const deferredQuery = useDeferredValue(query.trim());
+  const catalog = useCursorQuery({
+    queryKey: ["drive-items", view, parentUid, deferredQuery],
+    loadPage: async (pageToken, signal) => {
+      if (view === "trash") return client.listTrashPage(pageToken, signal);
+      if (deferredQuery)
+        return client.searchPage(deferredQuery, pageToken, signal);
+      return client.listPage(parentUid, pageToken, signal);
+    },
+  });
+  const items = catalog.items;
+  const load = async () => {
+    await catalog.refetch();
+  };
 
   const upload = async (files: File[]) => {
     for (const file of files) {
@@ -87,7 +81,14 @@ export function DrivePage() {
   };
 
   const trash = async (item: DriveItem) => {
-    if (!window.confirm(`将“${driveItemName(item)}”移入回收站？`)) return;
+    if (
+      !(await confirm({
+        title: "移入回收站",
+        description: `将“${driveItemName(item)}”移入回收站？`,
+        confirmLabel: "移入回收站",
+      }))
+    )
+      return;
     try {
       await client.trash(driveItemUid(item));
       showToast("已移入回收站");
@@ -106,13 +107,39 @@ export function DrivePage() {
     }
   };
   const purge = async (item: DriveItem) => {
-    if (!window.confirm("永久删除后无法恢复，继续？")) return;
+    if (
+      !(await confirm({
+        title: "永久删除文件",
+        description: "此操作无法撤销。",
+        confirmLabel: "永久删除",
+        destructive: true,
+      }))
+    )
+      return;
     try {
       await client.purge(driveItemUid(item));
       showToast("已永久删除");
       await load();
     } catch (actionError) {
       showToast(message(actionError), "error");
+    }
+  };
+  const emptyTrash = async () => {
+    if (
+      !(await confirm({
+        title: "清空回收站",
+        description: "回收站中的全部内容将被永久删除，此操作无法撤销。",
+        confirmLabel: "永久删除全部内容",
+        destructive: true,
+      }))
+    )
+      return;
+    try {
+      await client.emptyTrash();
+      showToast("回收站已清空");
+      await load();
+    } catch (error) {
+      showToast(message(error), "error");
     }
   };
 
@@ -141,10 +168,7 @@ export function DrivePage() {
         view === "files" ? (
           <UploadButton onFiles={upload} />
         ) : (
-          <Button
-            variant="destructive"
-            onClick={() => void emptyTrash(client, load, showToast)}
-          >
+          <Button variant="destructive" onClick={() => void emptyTrash()}>
             清空回收站
           </Button>
         )
@@ -207,29 +231,42 @@ export function DrivePage() {
           />
         </div>
       ) : null}
-      {error ? (
-        <InlineError message={error} onRetry={() => void load()} />
-      ) : loading ? (
+      {catalog.error ? (
+        <InlineError
+          message={message(catalog.error)}
+          onRetry={() => void load()}
+        />
+      ) : catalog.isPending ? (
         <LoadingIndicator label="正在读取文件" />
       ) : (
-        <DriveItemView
-          mode={mode}
-          items={items}
-          onOpen={open}
-          actions={actions}
-          empty={
-            <EmptyState
-              icon={<Folder className="size-6" />}
-              title={
-                view === "trash"
-                  ? "回收站为空"
-                  : query
-                    ? "没有匹配文件"
-                    : "这里还没有文件"
-              }
-            />
-          }
-        />
+        <>
+          <DriveItemView
+            mode={mode}
+            items={items}
+            onOpen={open}
+            actions={actions}
+            empty={
+              <EmptyState
+                icon={<Folder className="size-6" />}
+                title={
+                  view === "trash"
+                    ? "回收站为空"
+                    : query
+                      ? "没有匹配文件"
+                      : "这里还没有文件"
+                }
+              />
+            }
+          />
+          <InfiniteScrollSentinel
+            hasMore={catalog.hasNextPage}
+            loading={catalog.isFetchingNextPage}
+            failed={catalog.isFetchNextPageError}
+            loadingLabel="继续加载文件"
+            completeLabel="已加载全部文件"
+            onLoadMore={() => void catalog.fetchNextPage()}
+          />
+        </>
       )}
       {dialog ? (
         <DriveDialog
@@ -250,18 +287,4 @@ export function DrivePage() {
 
 function message(error: unknown) {
   return error instanceof Error ? error.message : "操作未完成。";
-}
-async function emptyTrash(
-  client: DriveClient,
-  reload: () => Promise<void>,
-  toast: (message: string, variant?: "default" | "error") => void,
-) {
-  if (!window.confirm("永久删除回收站中的全部内容？")) return;
-  try {
-    await client.emptyTrash();
-    toast("回收站已清空");
-    await reload();
-  } catch (error) {
-    toast(message(error), "error");
-  }
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Download,
@@ -12,11 +12,12 @@ import type { DriveItem } from "@cloud-drive/contracts";
 import {
   Breadcrumbs,
   Button,
-  Dialog,
+  AppDialog,
   DriveItemView,
   DriveViewModeToggle,
   EmptyState,
   InlineError,
+  InfiniteScrollSentinel,
   LoadingIndicator,
   PublicShareClient,
   driveItemIsDirectory,
@@ -28,6 +29,7 @@ import {
   isUnavailableShareError,
   shareLinkExpiresAt,
   useDriveViewMode,
+  useCursorQuery,
 } from "@cloud-drive/shared";
 import type { ResolvedShare } from "@cloud-drive/shared";
 
@@ -44,9 +46,7 @@ export function App() {
   );
   const [share, setShare] = useState<ResolvedShare>();
   const [trail, setTrail] = useState<readonly Trail[]>([]);
-  const [items, setItems] = useState<DriveItem[]>([]);
   const [preview, setPreview] = useState<DriveItem>();
-  const [loadingItems, setLoadingItems] = useState(false);
   const [error, setError] = useState("");
   const [viewMode, setViewMode] = useDriveViewMode(
     "cloud-drive.share.view-mode",
@@ -74,22 +74,14 @@ export function App() {
 
   const parentUid = trail.at(-1)?.id ?? "";
   const folderShare = Boolean(share && driveItemIsDirectory(share.target));
-  const loadItems = useCallback(async () => {
-    if (!share || !token || !folderShare) return;
-    setLoadingItems(true);
-    setError("");
-    try {
-      setItems(await client.listSharedItems(token, parentUid));
-    } catch (loadError) {
-      setError(errorMessage(loadError));
-    } finally {
-      setLoadingItems(false);
-    }
-  }, [client, folderShare, parentUid, share, token]);
-
-  useEffect(() => {
-    void loadItems();
-  }, [loadItems]);
+  const catalog = useCursorQuery({
+    queryKey: ["shared-items", share?.shareLink.uid ?? "", parentUid],
+    enabled: Boolean(share && token && folderShare),
+    loadPage: async (pageToken, signal) => {
+      if (!token) return { items: [], nextPageToken: "" };
+      return client.listSharedItemsPage(token, parentUid, pageToken, signal);
+    },
+  });
 
   if (state === "loading") {
     return (
@@ -121,7 +113,7 @@ export function App() {
     );
   }
 
-  const visibleItems = folderShare ? items : [share.target];
+  const visibleItems = folderShare ? catalog.items : [share.target];
   return (
     <main className="min-h-dvh bg-background p-4 text-foreground sm:p-7 lg:p-10">
       <section className="mx-auto w-full max-w-[112rem]">
@@ -148,31 +140,48 @@ export function App() {
               "—"}
           </p>
         </header>
-        {error ? (
-          <InlineError message={error} onRetry={() => void loadItems()} />
-        ) : null}
-        {loadingItems ? <LoadingIndicator label="正在读取分享内容" /> : null}
-        {!loadingItems && !error ? (
-          <DriveItemView
-            mode={viewMode}
-            items={visibleItems}
-            onOpen={(item) => {
-              if (driveItemIsDirectory(item)) {
-                setTrail((current) => [
-                  ...current,
-                  { id: driveItemUid(item), label: driveItemName(item) },
-                ]);
-              } else {
-                setPreview(item);
-              }
-            }}
-            empty={
-              <EmptyState
-                icon={<Folder className="size-6" />}
-                title="文件夹为空"
-              />
-            }
+        {catalog.error ? (
+          <InlineError
+            message={errorMessage(catalog.error)}
+            onRetry={() => void catalog.refetch()}
           />
+        ) : null}
+        {catalog.isPending && folderShare ? (
+          <LoadingIndicator label="正在读取分享内容" />
+        ) : null}
+        {(!folderShare || !catalog.isPending) && !catalog.error ? (
+          <>
+            <DriveItemView
+              mode={viewMode}
+              items={visibleItems}
+              onOpen={(item) => {
+                if (driveItemIsDirectory(item)) {
+                  setTrail((current) => [
+                    ...current,
+                    { id: driveItemUid(item), label: driveItemName(item) },
+                  ]);
+                } else {
+                  setPreview(item);
+                }
+              }}
+              empty={
+                <EmptyState
+                  icon={<Folder className="size-6" />}
+                  title="文件夹为空"
+                />
+              }
+            />
+            {folderShare ? (
+              <InfiniteScrollSentinel
+                hasMore={catalog.hasNextPage}
+                loading={catalog.isFetchingNextPage}
+                failed={catalog.isFetchNextPageError}
+                loadingLabel="继续加载分享内容"
+                completeLabel="已加载全部分享内容"
+                onLoadMore={() => void catalog.fetchNextPage()}
+              />
+            ) : null}
+          </>
         ) : null}
       </section>
       {preview ? (
@@ -226,7 +235,12 @@ function PublicPreview({
   }, [item, url]);
 
   return (
-    <Dialog open title={driveItemName(item)} size="preview" onClose={onClose}>
+    <AppDialog
+      open
+      title={driveItemName(item)}
+      size="preview"
+      onClose={onClose}
+    >
       {error ? <InlineError message={error} /> : null}
       <div className="min-h-56 max-h-[70dvh] overflow-auto rounded-lg bg-muted/30 p-2">
         {isImage(item) ? (
@@ -263,7 +277,7 @@ function PublicPreview({
           </a>
         </Button>
       </div>
-    </Dialog>
+    </AppDialog>
   );
 }
 

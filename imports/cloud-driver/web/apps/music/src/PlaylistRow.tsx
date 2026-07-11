@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import type { Playlist } from "@cloud-drive/contracts";
 import { Badge, Button, Progress } from "@cloud-drive/shared";
-import { providerLabel } from "./music-model";
+import { useProviderLabel } from "./provider-catalog";
 
 export function PlaylistRow({
   playlist,
@@ -24,6 +24,7 @@ export function PlaylistRow({
   onDownload: () => void;
   onDelete: () => void;
 }) {
+  const providerLabel = useProviderLabel();
   const progress = playlist.downloadableTrackCount
     ? (playlist.completedTrackCount / playlist.downloadableTrackCount) * 100
     : 0;
@@ -45,6 +46,8 @@ export function PlaylistRow({
           <img
             src={playlist.artworkUrl}
             alt=""
+            loading="lazy"
+            decoding="async"
             className="size-14 shrink-0 rounded-md object-cover"
           />
         ) : (
@@ -60,7 +63,7 @@ export function PlaylistRow({
               {playlist.displayName}
             </p>
             <Badge variant="outline" className="shrink-0">
-              {providerLabel(playlist.provider)}
+              {providerLabel(playlist.providerId)}
             </Badge>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">

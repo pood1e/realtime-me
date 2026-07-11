@@ -20,6 +20,11 @@ import {
   resolveApiUrl,
 } from "./core";
 
+export type WallpaperPage = Readonly<{
+  wallpapers: Wallpaper[];
+  nextPageToken: string;
+}>;
+
 export class WallpaperAdminClient {
   private readonly client: Client<typeof WallpaperAdminService>;
   constructor(baseUrl: string) {
@@ -28,12 +33,18 @@ export class WallpaperAdminClient {
       privateTransport(baseUrl),
     );
   }
-  async list(): Promise<Wallpaper[]> {
-    return (
-      await this.client.listPublishedWallpapers(
-        create(ListPublishedWallpapersRequestSchema, { pageSize: 200 }),
-      )
-    ).wallpapers;
+  async listPage(pageToken = "", signal?: AbortSignal): Promise<WallpaperPage> {
+    const response = await this.client.listPublishedWallpapers(
+      create(ListPublishedWallpapersRequestSchema, {
+        pageSize: 60,
+        pageToken,
+      }),
+      signal ? { signal } : undefined,
+    );
+    return {
+      wallpapers: response.wallpapers,
+      nextPageToken: response.nextPageToken,
+    };
   }
   async publish(
     imageUid: string,
@@ -80,18 +91,23 @@ export class WallpaperPublicClient {
       publicTransport(baseUrl),
     );
   }
-  async list(
+  async listPage(
     options: {
       query?: string;
       tag?: string;
       orientation?: WallpaperOrientation;
+      pageToken?: string;
     } = {},
-  ): Promise<Wallpaper[]> {
-    return (
-      await this.client.listWallpapers(
-        create(ListWallpapersRequestSchema, { ...options, pageSize: 200 }),
-      )
-    ).wallpapers;
+    signal?: AbortSignal,
+  ): Promise<WallpaperPage> {
+    const response = await this.client.listWallpapers(
+      create(ListWallpapersRequestSchema, { ...options, pageSize: 60 }),
+      signal ? { signal } : undefined,
+    );
+    return {
+      wallpapers: response.wallpapers,
+      nextPageToken: response.nextPageToken,
+    };
   }
   assetUrl(path: string): string {
     return resolveApiUrl(this.baseUrl, path);

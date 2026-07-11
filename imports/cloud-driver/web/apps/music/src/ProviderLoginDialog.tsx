@@ -1,11 +1,8 @@
 import { useEffect, useState } from "react";
-import {
-  MusicProvider,
-  type ProviderConnectionAttempt,
-} from "@cloud-drive/contracts";
-import { Dialog } from "@cloud-drive/shared";
+import type { ProviderConnectionAttempt } from "@cloud-drive/contracts";
+import { AppDialog } from "@cloud-drive/shared";
 import { QRCodeSVG } from "qrcode.react";
-import { providerLabel } from "./music-model";
+import { useProviderLabel } from "./provider-catalog";
 import {
   connectionAttemptStatus,
   terminalConnectionAttempt,
@@ -15,15 +12,16 @@ export function ProviderLoginDialog({
   attempt,
   onClose,
 }: {
-  attempt?: ProviderConnectionAttempt;
+  attempt: ProviderConnectionAttempt | undefined;
   onClose: () => void;
 }) {
+  const providerLabel = useProviderLabel();
   const qr = attempt?.challenge.case === "qr" ? attempt.challenge.value : null;
   const imageURL = useQRImage(qr?.image, qr?.contentType);
   return (
-    <Dialog
+    <AppDialog
       open={Boolean(attempt)}
-      title={`连接${providerLabel(attempt?.provider ?? MusicProvider.UNSPECIFIED)}`}
+      title={`连接${providerLabel(attempt?.providerId ?? "")}`}
       description={connectionAttemptStatus(attempt?.status)}
       onClose={onClose}
     >
@@ -41,7 +39,7 @@ export function ProviderLoginDialog({
           页面会自动检查扫码结果
         </p>
       ) : null}
-    </Dialog>
+    </AppDialog>
   );
 }
 

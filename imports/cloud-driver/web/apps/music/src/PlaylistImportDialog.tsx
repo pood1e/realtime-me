@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { ListPlus } from "lucide-react";
-import { MusicProvider } from "@cloud-drive/contracts";
+import type { ProviderDescriptor } from "@cloud-drive/contracts";
 import {
   Button,
   DialogContent,
@@ -15,22 +15,32 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  type ProviderId,
 } from "@cloud-drive/shared";
+import { useProviderLabel } from "./provider-catalog";
 
 export function PlaylistImportDialog({
   importing,
+  providers,
   onImport,
 }: {
   importing: boolean;
-  onImport: (provider: MusicProvider, source: string) => Promise<boolean>;
+  providers: ProviderDescriptor[];
+  onImport: (providerId: ProviderId, source: string) => Promise<boolean>;
 }) {
+  const providerLabel = useProviderLabel();
   const [open, setOpen] = useState(false);
-  const [provider, setProvider] = useState(MusicProvider.QQ_MUSIC);
+  const [providerId, setProviderId] = useState("");
   const [source, setSource] = useState("");
+  useEffect(() => {
+    if (!providers.some((provider) => provider.id === providerId)) {
+      setProviderId(providers[0]?.id ?? "");
+    }
+  }, [providerId, providers]);
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!source.trim()) return;
-    if (!(await onImport(provider, source.trim()))) return;
+    if (!providerId || !(await onImport(providerId, source.trim()))) return;
     setSource("");
     setOpen(false);
   };
@@ -49,23 +59,16 @@ export function PlaylistImportDialog({
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-5 sm:grid-cols-[10rem_minmax(0,1fr)]">
-            <Select
-              value={String(provider)}
-              onValueChange={(value) => setProvider(Number(value))}
-            >
+            <Select value={providerId} onValueChange={setProviderId}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={String(MusicProvider.QQ_MUSIC)}>
-                  QQ 音乐
-                </SelectItem>
-                <SelectItem value={String(MusicProvider.NETEASE_CLOUD_MUSIC)}>
-                  网易云音乐
-                </SelectItem>
-                <SelectItem value={String(MusicProvider.SPOTIFY)}>
-                  Spotify
-                </SelectItem>
+                {providers.map((provider) => (
+                  <SelectItem key={provider.id} value={provider.id}>
+                    {provider.displayName || providerLabel(provider.id)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Input
@@ -76,7 +79,10 @@ export function PlaylistImportDialog({
             />
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={importing || !source.trim()}>
+            <Button
+              type="submit"
+              disabled={importing || !providerId || !source.trim()}
+            >
               {importing ? "正在导入" : "导入"}
             </Button>
           </DialogFooter>

@@ -5,7 +5,9 @@ import { RefreshCw, ShieldAlert } from "lucide-react";
 import {
   SessionClient,
   authenticationUrl,
+  hasRecentSessionValidation,
   isUnauthenticatedError,
+  markSessionValidated,
 } from "../api";
 import { EmptyState, LoadingIndicator } from "./feedback";
 import { Button } from "./ui/button";
@@ -20,7 +22,9 @@ export function AuthGuard({
   children,
 }: PropsWithChildren<{ apiBase: string; authOrigin: string }>) {
   const client = useMemo(() => new SessionClient(apiBase), [apiBase]);
-  const [state, setState] = useState<State>("checking");
+  const [state, setState] = useState<State>(() =>
+    hasRecentSessionValidation(apiBase) ? "ready" : "checking",
+  );
   const [showProgress, setShowProgress] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -28,7 +32,8 @@ export function AuthGuard({
     const controller = new AbortController();
     let disposed = false;
     let timedOut = false;
-    setState("checking");
+    const backgroundValidation = hasRecentSessionValidation(apiBase);
+    if (!backgroundValidation) setState("checking");
     setShowProgress(false);
     setMessage("");
     const feedbackTimer = window.setTimeout(() => {
@@ -38,6 +43,7 @@ export function AuthGuard({
       if (disposed) return;
       timedOut = true;
       controller.abort();
+      if (backgroundValidation) return;
       setMessage("会话验证超时，请重新验证。");
       setState("failed");
     }, validationTimeoutMs);
@@ -50,6 +56,7 @@ export function AuthGuard({
       .then(() => {
         if (disposed || timedOut) return;
         clearTimers();
+        markSessionValidated(apiBase);
         setState("ready");
       })
       .catch((error: unknown) => {
@@ -59,6 +66,7 @@ export function AuthGuard({
           window.location.replace(authenticationUrl(authOrigin));
           return;
         }
+        if (backgroundValidation) return;
         setMessage(
           error instanceof Error ? error.message : "暂时无法连接服务。",
         );
@@ -69,7 +77,7 @@ export function AuthGuard({
       clearTimers();
       controller.abort();
     };
-  }, [authOrigin, client]);
+  }, [apiBase, authOrigin, client]);
 
   if (state === "checking" && !showProgress)
     return <div className="min-h-dvh bg-background" aria-hidden="true" />;

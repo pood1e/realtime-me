@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { History } from "lucide-react";
 import type { PlayableTrack, PlaybackEntry } from "@cloud-drive/contracts";
 import {
   EmptyState,
+  InfiniteScrollSentinel,
   LoadingIndicator,
   MusicClient,
+  useCursorQuery,
   useToast,
 } from "@cloud-drive/shared";
 import { PlayableTrackRow } from "./PlayableTrackRow";
@@ -17,28 +19,28 @@ export function PlaybackHistory({
   onLyrics,
 }: {
   client: MusicClient;
-  current?: PlayableTrack;
+  current: PlayableTrack | undefined;
   refreshKey: number;
   onPlay: (track: PlayableTrack, queue: PlayableTrack[]) => void;
   onLyrics: (track: PlayableTrack) => void;
 }) {
   const { showToast } = useToast();
-  const [entries, setEntries] = useState<PlaybackEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const history = useCursorQuery({
+    queryKey: ["music-history", refreshKey],
+    loadPage: async (pageToken, signal) => {
+      const page = await client.library.historyPage(pageToken, signal);
+      return { items: page.entries, nextPageToken: page.nextPageToken };
+    },
+  });
   useEffect(() => {
-    let active = true;
-    setLoading(true);
-    void client
-      .history()
-      .then((history) => active && setEntries(history))
-      .catch((error: unknown) => showToast(message(error), "error"))
-      .finally(() => active && setLoading(false));
-    return () => {
-      active = false;
-    };
-  }, [client, refreshKey, showToast]);
-  if (loading) return <LoadingIndicator label="正在读取播放历史" />;
-  const tracks = entries.flatMap((entry) => (entry.track ? [entry.track] : []));
+    if (history.error) showToast(message(history.error), "error");
+  }, [history.error, showToast]);
+  if (history.isPending) return <LoadingIndicator label="正在读取播放历史" />;
+  const entries = history.items.filter(
+    (entry): entry is PlaybackEntry & { track: PlayableTrack } =>
+      Boolean(entry.track),
+  );
+  const tracks = entries.map((entry) => entry.track);
   if (!tracks.length)
     return (
       <EmptyState
@@ -48,31 +50,41 @@ export function PlaybackHistory({
       />
     );
   return (
-    <div className="overflow-hidden rounded-xl border bg-card/35">
-      {tracks.map((track, index) => (
-        <PlayableTrackRow
-          key={`${entries[index]?.uid}-${track.provider}-${track.trackId}`}
-          track={track}
-          index={index + 1}
-          active={sameTrack(current, track)}
-          client={client}
-          onPlay={() =>
-            onPlay(
-              track,
-              tracks.filter(
-                (candidate) => candidate.provider === track.provider,
-              ),
-            )
-          }
-          onLyrics={() => onLyrics(track)}
-        />
-      ))}
-    </div>
+    <>
+      <div className="overflow-hidden rounded-xl border bg-card/35">
+        {tracks.map((track, index) => (
+          <PlayableTrackRow
+            key={`${entries[index]?.uid}-${track.providerId}-${track.trackId}`}
+            track={track}
+            index={index + 1}
+            active={sameTrack(current, track)}
+            client={client}
+            onPlay={() =>
+              onPlay(
+                track,
+                tracks.filter(
+                  (candidate) => candidate.providerId === track.providerId,
+                ),
+              )
+            }
+            onLyrics={() => onLyrics(track)}
+          />
+        ))}
+      </div>
+      <InfiniteScrollSentinel
+        hasMore={history.hasNextPage}
+        loading={history.isFetchingNextPage}
+        failed={history.isFetchNextPageError}
+        loadingLabel="继续加载播放历史"
+        completeLabel="已加载全部播放历史"
+        onLoadMore={() => void history.fetchNextPage()}
+      />
+    </>
   );
 }
 
 function sameTrack(a: PlayableTrack | undefined, b: PlayableTrack): boolean {
-  return a?.provider === b.provider && a.trackId === b.trackId;
+  return a?.providerId === b.providerId && a.trackId === b.trackId;
 }
 
 function message(error: unknown): string {

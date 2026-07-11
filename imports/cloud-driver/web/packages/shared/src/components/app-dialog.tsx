@@ -17,7 +17,7 @@ const dialogSizes: Record<DialogSize, string> = {
   preview: "sm:max-w-5xl",
 };
 
-export function Dialog({
+export function AppDialog({
   open,
   title,
   description,

@@ -59,7 +59,7 @@ export class BooksClient {
   ): Promise<BookListPage> {
     const response = await this.client.listBooks(
       create(ListBooksRequestSchema, options),
-      { signal },
+      signal ? { signal } : undefined,
     );
     return {
       books: response.books,
@@ -131,9 +131,10 @@ export class BooksClient {
   }
   async shelves(signal?: AbortSignal): Promise<Shelf[]> {
     return (
-      await this.client.listShelves(create(ListShelvesRequestSchema), {
-        signal,
-      })
+      await this.client.listShelves(
+        create(ListShelvesRequestSchema),
+        signal ? { signal } : undefined,
+      )
     ).shelves;
   }
   async createShelf(displayName: string): Promise<Shelf> {

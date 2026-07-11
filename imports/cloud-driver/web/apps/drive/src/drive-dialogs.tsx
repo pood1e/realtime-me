@@ -4,7 +4,7 @@ import { Download, Link2 } from "lucide-react";
 import type { DriveItem } from "@cloud-drive/contracts";
 import {
   Button,
-  Dialog,
+  AppDialog,
   DriveClient,
   EmptyState,
   InlineError,
@@ -103,7 +103,7 @@ function EditDialog({
         ? "重命名"
         : "移动项目";
   return (
-    <Dialog open title={title} onClose={onClose}>
+    <AppDialog open title={title} onClose={onClose}>
       <form className="space-y-4" onSubmit={(event) => void submit(event)}>
         {state.kind === "move" ? (
           <label className="block text-sm">
@@ -147,7 +147,7 @@ function EditDialog({
           </Button>
         </div>
       </form>
-    </Dialog>
+    </AppDialog>
   );
 }
 
@@ -182,7 +182,7 @@ function ShareDialog({
     showToast("链接已复制");
   };
   return (
-    <Dialog
+    <AppDialog
       open
       title="分享文件"
       description="链接默认 7 天后失效。"
@@ -207,7 +207,7 @@ function ShareDialog({
           {busy ? "创建中" : "创建分享链接"}
         </Button>
       )}
-    </Dialog>
+    </AppDialog>
   );
 }
 
@@ -253,7 +253,12 @@ function PreviewDialog({
     ? `${url}${url.includes("?") ? "&" : "?"}download=1`
     : "";
   return (
-    <Dialog open title={driveItemName(item)} size="preview" onClose={onClose}>
+    <AppDialog
+      open
+      title={driveItemName(item)}
+      size="preview"
+      onClose={onClose}
+    >
       {error ? (
         <InlineError message={error} />
       ) : !url ? (
@@ -289,6 +294,6 @@ function PreviewDialog({
           </div>
         </div>
       )}
-    </Dialog>
+    </AppDialog>
   );
 }

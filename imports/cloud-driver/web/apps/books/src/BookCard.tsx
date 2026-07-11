@@ -1,5 +1,5 @@
 import { BookOpen, MoreHorizontal, Trash2 } from "lucide-react";
-import { BookFormat, BookProcessingStatus } from "@cloud-drive/contracts";
+import { BookFormat, ProcessingStatus } from "@cloud-drive/contracts";
 import type { Book } from "@cloud-drive/contracts";
 import {
   Badge,
@@ -77,9 +77,7 @@ function BookSummary({ book }: { book: Book }) {
       </p>
       <p className="mt-1 text-[11px] text-muted-foreground">
         {formatBytes(book.sizeBytes)}
-        {book.processingStatus === BookProcessingStatus.PENDING
-          ? " · 处理中"
-          : ""}
+        {book.processingStatus === ProcessingStatus.PENDING ? " · 处理中" : ""}
       </p>
     </div>
   );

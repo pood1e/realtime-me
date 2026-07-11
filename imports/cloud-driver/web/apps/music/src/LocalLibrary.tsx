@@ -9,6 +9,7 @@ import {
   MusicClient,
   UploadButton,
   UploadClient,
+  useDialog,
   useToast,
 } from "@cloud-drive/shared";
 import { LocalTrackList } from "./LocalTrackList";
@@ -26,11 +27,12 @@ export function LocalLibrary({
   mode: LocalLibraryMode;
   apiBase: string;
   client: MusicClient;
-  current?: PlayableTrack;
+  current: PlayableTrack | undefined;
   onPlay: (track: PlayableTrack, queue: PlayableTrack[]) => void;
 }) {
   const uploader = useMemo(() => new UploadClient(apiBase), [apiBase]);
   const { showToast } = useToast();
+  const { confirm } = useDialog();
   const [query, setQuery] = useState("");
   const onLoadError = useCallback(
     (error: unknown) => showToast(message(error), "error"),
@@ -49,7 +51,7 @@ export function LocalLibrary({
   const upload = async (files: File[]) => {
     for (const file of files) {
       try {
-        await client.importUpload(await uploader.upload(file));
+        await client.library.importUpload(await uploader.upload(file));
         showToast(`${file.name} 已加入音乐库`);
       } catch (error) {
         showToast(`${file.name}: ${message(error)}`, "error");
@@ -59,7 +61,7 @@ export function LocalLibrary({
   };
   const favorite = async (track: Track) => {
     try {
-      const updated = await client.favorite(track.uid, !track.favorite);
+      const updated = await client.library.favorite(track.uid, !track.favorite);
       if (mode === "favorites" && !updated.favorite)
         catalog.removeTrack(track.uid);
       else catalog.updateTrack(updated);
@@ -68,10 +70,19 @@ export function LocalLibrary({
     }
   };
   const remove = async (track: Track) => {
-    if (mode === "trash" && !window.confirm("永久删除这首音乐？")) return;
+    if (
+      mode === "trash" &&
+      !(await confirm({
+        title: "永久删除音乐",
+        description: `“${track.title}”将无法恢复。`,
+        confirmLabel: "永久删除",
+        destructive: true,
+      }))
+    )
+      return;
     try {
-      if (mode === "trash") await client.purge(track.uid);
-      else await client.trash(track.uid);
+      if (mode === "trash") await client.library.purge(track.uid);
+      else await client.library.trash(track.uid);
       catalog.removeTrack(track.uid);
     } catch (error) {
       showToast(message(error), "error");
@@ -79,16 +90,24 @@ export function LocalLibrary({
   };
   const restore = async (track: Track) => {
     try {
-      await client.restore(track.uid);
+      await client.library.restore(track.uid);
       catalog.removeTrack(track.uid);
     } catch (error) {
       showToast(message(error), "error");
     }
   };
   const emptyTrash = async () => {
-    if (!window.confirm("永久删除音乐回收站中的全部文件？")) return;
+    if (
+      !(await confirm({
+        title: "清空音乐回收站",
+        description: "回收站中的全部音乐将被永久删除，此操作无法撤销。",
+        confirmLabel: "永久删除全部音乐",
+        destructive: true,
+      }))
+    )
+      return;
     try {
-      await client.emptyTrash();
+      await client.library.emptyTrash();
       await catalog.refresh();
       showToast("回收站已清空");
     } catch (error) {

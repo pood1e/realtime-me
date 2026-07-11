@@ -1,13 +1,10 @@
-import {
-  MusicProvider,
-  type PlayableTrack,
-  type Track,
-} from "@cloud-drive/contracts";
+import type { PlayableTrack, Track } from "@cloud-drive/contracts";
+import { LOCAL_PROVIDER_ID } from "@cloud-drive/shared";
 
 export function localPlayableTrack(track: Track): PlayableTrack {
   return {
     $typeName: "cloud.music.v1.PlayableTrack",
-    provider: MusicProvider.LOCAL,
+    providerId: LOCAL_PROVIDER_ID,
     trackId: track.uid,
     title: track.title || track.originalFileName,
     artists: track.artists,
@@ -18,21 +15,6 @@ export function localPlayableTrack(track: Track): PlayableTrack {
     playable: true,
     lyricsAvailable: false,
   };
-}
-
-export function providerLabel(provider: MusicProvider): string {
-  switch (provider) {
-    case MusicProvider.LOCAL:
-      return "本地音乐";
-    case MusicProvider.QQ_MUSIC:
-      return "QQ 音乐";
-    case MusicProvider.NETEASE_CLOUD_MUSIC:
-      return "网易云音乐";
-    case MusicProvider.SPOTIFY:
-      return "Spotify";
-    default:
-      return "未知来源";
-  }
 }
 
 export function durationSeconds(track: PlayableTrack): number {

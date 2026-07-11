@@ -1,6 +1,5 @@
-import { useEffect, useRef } from "react";
 import type { Book } from "@cloud-drive/contracts";
-import { BooksClient, Button, LoadingIndicator } from "@cloud-drive/shared";
+import { BooksClient, InfiniteScrollSentinel } from "@cloud-drive/shared";
 import { BookCard } from "./BookCard";
 
 type BookGridProps = Readonly<{
@@ -28,28 +27,6 @@ export function BookGrid({
   onRemove,
   onRestore,
 }: BookGridProps) {
-  const sentinel = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const target = sentinel.current;
-    if (
-      !target ||
-      !hasMore ||
-      loadingMore ||
-      loadMoreFailed ||
-      !("IntersectionObserver" in window)
-    )
-      return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) void onLoadMore();
-      },
-      { rootMargin: "480px 0px" },
-    );
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [hasMore, loadMoreFailed, loadingMore, onLoadMore]);
-
   return (
     <>
       <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8">
@@ -65,25 +42,14 @@ export function BookGrid({
           />
         ))}
       </div>
-      {hasMore ? (
-        <div
-          ref={sentinel}
-          className="flex min-h-24 items-center justify-center"
-          aria-live="polite"
-        >
-          {loadingMore ? (
-            <LoadingIndicator label="继续加载书籍" />
-          ) : (
-            <Button variant="outline" onClick={() => void onLoadMore()}>
-              {loadMoreFailed ? "重试加载" : "加载更多"}
-            </Button>
-          )}
-        </div>
-      ) : (
-        <p className="sr-only" aria-live="polite">
-          已加载全部书籍
-        </p>
-      )}
+      <InfiniteScrollSentinel
+        hasMore={hasMore}
+        loading={loadingMore}
+        failed={loadMoreFailed}
+        loadingLabel="继续加载书籍"
+        completeLabel="已加载全部书籍"
+        onLoadMore={() => void onLoadMore()}
+      />
     </>
   );
 }

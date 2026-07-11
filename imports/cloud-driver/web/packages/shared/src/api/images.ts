@@ -26,6 +26,18 @@ import {
   resolveApiUrl,
 } from "./core";
 
+export type ImageListOptions = Readonly<{
+  query?: string;
+  albumUid?: string;
+  trashed?: boolean;
+  pageToken?: string;
+}>;
+
+export type ImagePage = Readonly<{
+  images: Image[];
+  nextPageToken: string;
+}>;
+
 export class ImagesClient {
   readonly baseUrl: string;
   private readonly client: Client<typeof ImageService>;
@@ -33,14 +45,15 @@ export class ImagesClient {
     this.baseUrl = normalizeBaseUrl(baseUrl);
     this.client = createClient(ImageService, privateTransport(baseUrl));
   }
-  async list(
-    options: { query?: string; albumUid?: string; trashed?: boolean } = {},
-  ): Promise<Image[]> {
-    return (
-      await this.client.listImages(
-        create(ListImagesRequestSchema, { ...options, pageSize: 200 }),
-      )
-    ).images;
+  async listPage(
+    options: ImageListOptions = {},
+    signal?: AbortSignal,
+  ): Promise<ImagePage> {
+    const response = await this.client.listImages(
+      create(ListImagesRequestSchema, { ...options, pageSize: 60 }),
+      signal ? { signal } : undefined,
+    );
+    return { images: response.images, nextPageToken: response.nextPageToken };
   }
   async get(imageUid: string): Promise<Image> {
     return required(
@@ -89,9 +102,12 @@ export class ImagesClient {
   async emptyTrash(): Promise<void> {
     await this.client.emptyImageTrash(create(EmptyImageTrashRequestSchema));
   }
-  async albums(): Promise<ImageAlbum[]> {
+  async albums(signal?: AbortSignal): Promise<ImageAlbum[]> {
     return (
-      await this.client.listImageAlbums(create(ListImageAlbumsRequestSchema))
+      await this.client.listImageAlbums(
+        create(ListImageAlbumsRequestSchema),
+        signal ? { signal } : undefined,
+      )
     ).albums;
   }
   async createAlbum(displayName: string): Promise<ImageAlbum> {

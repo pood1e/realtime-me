@@ -31,7 +31,7 @@ export function TrackRow({
   onRemove: () => void;
   onRestore: () => void;
 }) {
-  const artwork = track.artworkUrl ? client.artworkUrl(track) : "";
+  const artwork = track.artworkUrl ? client.library.artworkUrl(track) : "";
   return (
     <div className={rowClassName(active)}>
       <button
@@ -100,7 +100,7 @@ function TrackMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon-sm">
+        <Button variant="ghost" size="icon-sm" aria-label="音乐操作">
           <MoreHorizontal />
         </Button>
       </DropdownMenuTrigger>

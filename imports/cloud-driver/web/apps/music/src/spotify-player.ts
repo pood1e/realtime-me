@@ -1,4 +1,9 @@
 import type { MusicClient } from "@cloud-drive/shared";
+import { registerBrowserPlayer } from "./browser-player";
+
+const SPOTIFY_PROVIDER_ID = "spotify";
+const SPOTIFY_SDK_ID = "spotify_web_playback";
+const DEVICE_READY_TIMEOUT_MS = 15_000;
 
 export interface SpotifyPlayerState {
   paused: boolean;
@@ -39,10 +44,19 @@ declare global {
 
 let sdkPromise: Promise<SpotifySDK> | undefined;
 
+export function registerSpotifyBrowserPlayer(): void {
+  registerBrowserPlayer(
+    SPOTIFY_SDK_ID,
+    (client, onState, onError) =>
+      new SpotifyController(client, onState, onError),
+  );
+}
+
 export class SpotifyController {
-  private player?: SpotifySDKPlayer;
+  private player: SpotifySDKPlayer | undefined;
   private deviceID = "";
-  private stateTimer?: number;
+  private stateTimer: number | undefined;
+  private request: AbortController | undefined;
 
   constructor(
     private readonly client: MusicClient,
@@ -53,7 +67,11 @@ export class SpotifyController {
   async play(uri: string): Promise<void> {
     const player = await this.ensurePlayer();
     await player.activateElement();
-    const token = (await this.client.spotifyPlaybackToken()).accessToken;
+    const token = (
+      await this.client.providers.playbackToken(SPOTIFY_PROVIDER_ID)
+    ).accessToken;
+    this.request?.abort();
+    this.request = new AbortController();
     const response = await fetch(
       `https://api.spotify.com/v1/me/player/play?device_id=${encodeURIComponent(this.deviceID)}`,
       {
@@ -63,6 +81,7 @@ export class SpotifyController {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ uris: [uri] }),
+        signal: this.request.signal,
       },
     );
     if (!response.ok) throw new Error(spotifyPlaybackError(response.status));
@@ -78,7 +97,9 @@ export class SpotifyController {
   }
 
   disconnect(): void {
-    if (this.stateTimer) window.clearInterval(this.stateTimer);
+    this.request?.abort();
+    this.request = undefined;
+    if (this.stateTimer !== undefined) window.clearInterval(this.stateTimer);
     this.stateTimer = undefined;
     this.player?.disconnect();
     this.player = undefined;
@@ -92,8 +113,8 @@ export class SpotifyController {
       name: "Local Library 音乐盒",
       volume: 0.8,
       getOAuthToken: (callback) => {
-        void this.client
-          .spotifyPlaybackToken()
+        void this.client.providers
+          .playbackToken(SPOTIFY_PROVIDER_ID)
           .then((token) => callback(token.accessToken))
           .catch((error: unknown) => this.onError(message(error)));
       },
@@ -119,13 +140,30 @@ export class SpotifyController {
         reject(new Error("Spotify 播放设备已离线")),
       );
     });
-    if (!(await player.connect())) throw new Error("Spotify 播放器连接失败");
-    this.deviceID = await ready;
-    return player;
+    try {
+      if (!(await player.connect())) throw new Error("Spotify 播放器连接失败");
+      if (this.player !== player)
+        throw new DOMException("Aborted", "AbortError");
+      this.deviceID = await withTimeout(
+        ready,
+        DEVICE_READY_TIMEOUT_MS,
+        "Spotify 播放设备连接超时",
+      );
+      if (this.player !== player)
+        throw new DOMException("Aborted", "AbortError");
+      return player;
+    } catch (error) {
+      player.disconnect();
+      if (this.player === player) {
+        this.player = undefined;
+        this.deviceID = "";
+      }
+      throw error;
+    }
   }
 
   private startStateTimer() {
-    if (this.stateTimer) return;
+    if (this.stateTimer !== undefined) return;
     this.stateTimer = window.setInterval(() => {
       void this.player?.getCurrentState().then((state) => {
         if (state) this.publishState(state);
@@ -148,15 +186,44 @@ function loadSpotifySDK(): Promise<SpotifySDK> {
   sdkPromise = new Promise<SpotifySDK>((resolve, reject) => {
     window.onSpotifyWebPlaybackSDKReady = () => {
       if (window.Spotify) resolve(window.Spotify);
-      else reject(new Error("Spotify SDK 初始化失败"));
+      else {
+        sdkPromise = undefined;
+        reject(new Error("Spotify SDK 初始化失败"));
+      }
     };
     const script = document.createElement("script");
     script.src = "https://sdk.scdn.co/spotify-player.js";
     script.async = true;
-    script.onerror = () => reject(new Error("Spotify SDK 加载失败"));
+    script.onerror = () => {
+      sdkPromise = undefined;
+      reject(new Error("Spotify SDK 加载失败"));
+    };
     document.head.append(script);
   });
   return sdkPromise;
+}
+
+function withTimeout<T>(
+  operation: Promise<T>,
+  milliseconds: number,
+  message: string,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(
+      () => reject(new Error(message)),
+      milliseconds,
+    );
+    void operation.then(
+      (value) => {
+        window.clearTimeout(timeout);
+        resolve(value);
+      },
+      (error: unknown) => {
+        window.clearTimeout(timeout);
+        reject(error);
+      },
+    );
+  });
 }
 
 function spotifyPlaybackError(status: number): string {

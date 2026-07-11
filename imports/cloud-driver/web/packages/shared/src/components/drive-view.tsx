@@ -1,4 +1,4 @@
-import type { KeyboardEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   File,
   FileArchive,
@@ -109,17 +109,6 @@ type DriveItemCollectionProps = {
   actions?: (item: DriveItem) => ReactNode;
 };
 
-function onItemKeyDown(
-  event: KeyboardEvent<HTMLElement>,
-  item: DriveItem,
-  onOpen: (item: DriveItem) => void,
-) {
-  if (event.key === "Enter" || event.key === " ") {
-    event.preventDefault();
-    onOpen(item);
-  }
-}
-
 function DriveItemList({
   items,
   selectedUid,
@@ -141,7 +130,7 @@ function DriveItemList({
             item={item}
             selected={selectedUid === driveItemUid(item)}
             onOpen={onOpen}
-            actions={actions}
+            {...(actions ? { actions } : {})}
           />
         ))}
       </div>
@@ -163,42 +152,41 @@ function DriveListRow({
   const directory = driveItemIsDirectory(item);
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onOpen(item)}
-      onKeyDown={(event) => onItemKeyDown(event, item, onOpen)}
       className={cn(
-        "group grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 outline-none transition-colors hover:bg-accent/50 focus-visible:bg-accent sm:grid-cols-[minmax(0,1fr)_7rem_10rem_3rem] sm:gap-4 xl:grid-cols-[minmax(20rem,1fr)_9rem_12rem_3rem]",
+        "group grid grid-cols-[minmax(0,1fr)_3rem] items-stretch transition-colors hover:bg-accent/50",
         selected && "bg-accent",
       )}
     >
-      <div className="flex min-w-0 items-center gap-3">
-        <FileGlyph item={item} />
-        <div className="min-w-0">
-          <p
-            className="truncate text-sm font-medium"
-            title={driveItemName(item)}
-          >
-            {driveItemName(item)}
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground sm:hidden">
-            {directory
-              ? "文件夹"
-              : `${formatBytes(driveItemSize(item))} · ${formatDate(driveItemUpdatedAt(item))}`}
-          </p>
-        </div>
-      </div>
-      <span className="hidden text-sm text-muted-foreground sm:block">
-        {directory ? "—" : formatBytes(driveItemSize(item))}
-      </span>
-      <span className="hidden text-sm text-muted-foreground sm:block">
-        {formatDate(driveItemUpdatedAt(item))}
-      </span>
-      <div
-        className="flex justify-end"
-        onClick={(event) => event.stopPropagation()}
+      <button
+        type="button"
+        onClick={() => onOpen(item)}
+        className="grid min-w-0 grid-cols-[minmax(0,1fr)] items-center gap-3 px-4 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:grid-cols-[minmax(0,1fr)_7rem_10rem] sm:gap-4 xl:grid-cols-[minmax(20rem,1fr)_9rem_12rem]"
       >
-        {actions?.(item)}
+        <div className="flex min-w-0 items-center gap-3">
+          <FileGlyph item={item} />
+          <div className="min-w-0">
+            <p
+              className="truncate text-sm font-medium"
+              title={driveItemName(item)}
+            >
+              {driveItemName(item)}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground sm:hidden">
+              {directory
+                ? "文件夹"
+                : `${formatBytes(driveItemSize(item))} · ${formatDate(driveItemUpdatedAt(item))}`}
+            </p>
+          </div>
+        </div>
+        <span className="hidden text-sm text-muted-foreground sm:block">
+          {directory ? "—" : formatBytes(driveItemSize(item))}
+        </span>
+        <span className="hidden text-sm text-muted-foreground sm:block">
+          {formatDate(driveItemUpdatedAt(item))}
+        </span>
+      </button>
+      <div className="flex items-center justify-center">
+        {actions ? actions(item) : null}
       </div>
     </div>
   );
@@ -213,42 +201,42 @@ function DriveItemGrid({
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]">
       {items.map((item) => (
-        <div
-          role="button"
-          tabIndex={0}
+        <article
           key={driveItemUid(item)}
-          onClick={() => onOpen(item)}
-          onKeyDown={(event) => onItemKeyDown(event, item, onOpen)}
           className={cn(
-            "group flex min-h-40 cursor-pointer flex-col rounded-xl border bg-card/60 p-4 outline-none transition-colors hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring",
+            "group relative overflow-hidden rounded-xl border bg-card/60 transition-colors hover:bg-accent/50",
             selectedUid === driveItemUid(item) && "border-primary/50 bg-accent",
           )}
         >
-          <div className="flex items-start justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => onOpen(item)}
+            className="flex min-h-40 w-full flex-col p-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+          >
             <div className="grid size-11 place-items-center rounded-xl bg-muted">
               <FileGlyph item={item} className="size-7" />
             </div>
-            <div onClick={(event) => event.stopPropagation()}>
-              {actions?.(item)}
+            <div className="mt-5 min-w-0 max-w-[calc(100%-2rem)]">
+              <p
+                className="truncate text-sm font-medium"
+                title={driveItemName(item)}
+              >
+                {driveItemName(item)}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {driveItemIsDirectory(item)
+                  ? "文件夹"
+                  : formatBytes(driveItemSize(item))}
+              </p>
+              <p className="mt-1 truncate text-xs text-muted-foreground/70">
+                {formatDate(driveItemUpdatedAt(item))}
+              </p>
             </div>
-          </div>
-          <div className="mt-5 min-w-0">
-            <p
-              className="truncate text-sm font-medium"
-              title={driveItemName(item)}
-            >
-              {driveItemName(item)}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {driveItemIsDirectory(item)
-                ? "文件夹"
-                : formatBytes(driveItemSize(item))}
-            </p>
-            <p className="mt-1 truncate text-xs text-muted-foreground/70">
-              {formatDate(driveItemUpdatedAt(item))}
-            </p>
-          </div>
-        </div>
+          </button>
+          {actions ? (
+            <div className="absolute top-3 right-3">{actions(item)}</div>
+          ) : null}
+        </article>
       ))}
     </div>
   );

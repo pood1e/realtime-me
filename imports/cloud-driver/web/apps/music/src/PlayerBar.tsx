@@ -1,14 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pause, Play, Volume2 } from "lucide-react";
 import {
-  MusicProvider,
   PlaybackQuality,
   type PlaybackDescriptor,
   type PlayableTrack,
 } from "@cloud-drive/contracts";
-import { Badge, Button, MusicClient } from "@cloud-drive/shared";
-import { clock, durationSeconds, providerLabel } from "./music-model";
-import { SpotifyController } from "./spotify-player";
+import {
+  Badge,
+  Button,
+  LOCAL_PROVIDER_ID,
+  MusicClient,
+} from "@cloud-drive/shared";
+import { clock, durationSeconds } from "./music-model";
+import { createBrowserPlayer, type BrowserPlayer } from "./browser-player";
+import { useProviderLabel } from "./provider-catalog";
 
 export function PlayerBar({
   track,
@@ -21,8 +26,10 @@ export function PlayerBar({
   onEnded: () => void;
   onRecorded: () => void;
 }) {
+  const providerLabel = useProviderLabel();
   const audio = useRef<HTMLAudioElement>(null);
-  const spotify = useRef<SpotifyController | undefined>(undefined);
+  const browserPlayer = useRef<BrowserPlayer | undefined>(undefined);
+  const resolution = useRef<AbortController | undefined>(undefined);
   const recorded = useRef(false);
   const ended = useRef(false);
   const [descriptor, setDescriptor] = useState<PlaybackDescriptor>();
@@ -31,9 +38,19 @@ export function PlayerBar({
   const [duration, setDuration] = useState(durationSeconds(track));
   const [fallbackUsed, setFallbackUsed] = useState(false);
   const [error, setError] = useState("");
+  const recordPlayback = useCallback(() => {
+    if (recorded.current) return;
+    recorded.current = true;
+    void client.library
+      .recordPlayback(track)
+      .then(onRecorded)
+      .catch(() => {
+        recorded.current = false;
+      });
+  }, [client, onRecorded, track]);
   useEffect(() => {
-    spotify.current?.disconnect();
-    spotify.current = undefined;
+    browserPlayer.current?.disconnect();
+    browserPlayer.current = undefined;
     recorded.current = false;
     ended.current = false;
     setDescriptor(undefined);
@@ -42,14 +59,21 @@ export function PlayerBar({
     setDuration(durationSeconds(track));
     setFallbackUsed(false);
     setError("");
-    let active = true;
-    void client
-      .resolvePlayback(track)
+    resolution.current?.abort();
+    const controller = new AbortController();
+    resolution.current = controller;
+    void client.providers
+      .resolvePlayback(
+        track,
+        PlaybackQuality.BEST_COMPATIBLE,
+        controller.signal,
+      )
       .then((playback) => {
-        if (!active) return;
+        if (controller.signal.aborted) return;
         setDescriptor(playback);
-        if (playback.playback.case === "spotify") {
-          const controller = new SpotifyController(
+        if (playback.playback.case === "providerSdk") {
+          const player = createBrowserPlayer(
+            playback.playback.value.sdkId,
             client,
             (state) => {
               setPlaying(!state.paused);
@@ -67,23 +91,32 @@ export function PlayerBar({
             },
             setError,
           );
-          spotify.current = controller;
-          void controller
-            .play(playback.playback.value.uri)
-            .catch((reason: unknown) => setError(message(reason)));
+          if (!player) {
+            setError("当前浏览器不支持此平台播放器");
+            return;
+          }
+          browserPlayer.current = player;
+          void player
+            .play(playback.playback.value.resourceUri)
+            .catch((reason: unknown) => {
+              if (browserPlayer.current === player) setError(message(reason));
+            });
         }
       })
-      .catch((reason: unknown) => setError(message(reason)));
+      .catch((reason: unknown) => {
+        if (!controller.signal.aborted) setError(message(reason));
+      });
     return () => {
-      active = false;
+      resolution.current?.abort();
+      resolution.current = undefined;
     };
-  }, [client, track]);
-  useEffect(() => () => spotify.current?.disconnect(), []);
+  }, [client, onEnded, recordPlayback, track]);
+  useEffect(() => () => browserPlayer.current?.disconnect(), []);
   const direct =
     descriptor?.playback.case === "directAudio"
       ? descriptor.playback.value
       : undefined;
-  const directURL = direct ? client.playbackUrl(direct.url) : "";
+  const directURL = direct ? client.providers.playbackUrl(direct.url) : "";
   useEffect(() => {
     const node = audio.current;
     if (!node || !directURL) return;
@@ -93,19 +126,9 @@ export function PlayerBar({
       .then(() => setPlaying(true))
       .catch(() => setPlaying(false));
   }, [directURL]);
-  const recordPlayback = () => {
-    if (recorded.current) return;
-    recorded.current = true;
-    void client
-      .recordPlayback(track)
-      .then(onRecorded)
-      .catch(() => {
-        recorded.current = false;
-      });
-  };
   const toggle = () => {
-    if (descriptor?.playback.case === "spotify") {
-      void spotify.current
+    if (descriptor?.playback.case === "providerSdk") {
+      void browserPlayer.current
         ?.toggle()
         .catch((reason: unknown) => setError(message(reason)));
       return;
@@ -116,32 +139,39 @@ export function PlayerBar({
     else node.pause();
   };
   const seek = (value: number) => {
-    if (descriptor?.playback.case === "spotify") {
-      void spotify.current
+    if (descriptor?.playback.case === "providerSdk") {
+      void browserPlayer.current
         ?.seek(value)
         .catch((reason: unknown) => setError(message(reason)));
     } else if (audio.current) audio.current.currentTime = value;
     setTime(value);
   };
   const retryLowerQuality = () => {
-    if (descriptor?.provider === MusicProvider.LOCAL || fallbackUsed) {
+    if (descriptor?.providerId === LOCAL_PROVIDER_ID || fallbackUsed) {
       setError("当前音频无法播放");
       return;
     }
     setFallbackUsed(true);
-    void client
-      .resolvePlayback(track, PlaybackQuality.HIGH)
-      .then(setDescriptor)
-      .catch((reason: unknown) => setError(message(reason)));
+    resolution.current?.abort();
+    const controller = new AbortController();
+    resolution.current = controller;
+    void client.providers
+      .resolvePlayback(track, PlaybackQuality.HIGH, controller.signal)
+      .then((playback) => {
+        if (!controller.signal.aborted) setDescriptor(playback);
+      })
+      .catch((reason: unknown) => {
+        if (!controller.signal.aborted) setError(message(reason));
+      });
   };
-  const artwork = client.playableArtworkUrl(track);
+  const artwork = client.providers.artworkUrl(track);
   return (
     <div className="fixed right-0 bottom-0 left-0 z-40 border-t bg-card/95 px-4 py-3 shadow-2xl backdrop-blur lg:left-60">
       {direct ? (
         <audio
           ref={audio}
           crossOrigin={
-            descriptor?.provider === MusicProvider.LOCAL
+            descriptor?.providerId === LOCAL_PROVIDER_ID
               ? "use-credentials"
               : undefined
           }
@@ -177,10 +207,10 @@ export function PlayerBar({
                 variant="outline"
                 className="hidden shrink-0 md:inline-flex"
               >
-                {descriptor?.provider === MusicProvider.LOCAL &&
-                track.provider !== MusicProvider.LOCAL
+                {descriptor?.providerId === LOCAL_PROVIDER_ID &&
+                track.providerId !== LOCAL_PROVIDER_ID
                   ? "本地缓存"
-                  : providerLabel(track.provider)}
+                  : providerLabel(track.providerId)}
               </Badge>
             </div>
             <p className="truncate text-xs text-muted-foreground">
@@ -207,7 +237,12 @@ export function PlayerBar({
         </div>
         <div className="flex items-center gap-2">
           <Volume2 className="hidden size-4 text-muted-foreground md:block" />
-          <Button size="icon" onClick={toggle} disabled={!descriptor}>
+          <Button
+            size="icon"
+            onClick={toggle}
+            disabled={!descriptor}
+            aria-label={playing ? "暂停" : "播放"}
+          >
             {playing ? <Pause /> : <Play />}
           </Button>
         </div>

@@ -1,52 +1,63 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  MusicProvider,
   ProviderConnectionAttemptStatus,
   type ProviderConnection,
   type ProviderConnectionAttempt,
 } from "@cloud-drive/contracts";
-import { LoadingIndicator, MusicClient, useToast } from "@cloud-drive/shared";
-import { providerLabel } from "./music-model";
+import {
+  LoadingIndicator,
+  MusicClient,
+  type ProviderId,
+  useDialog,
+  useQuery,
+  useToast,
+} from "@cloud-drive/shared";
+import { useProviderLabel } from "./provider-catalog";
 import { ProviderAccountRow } from "./ProviderAccountRow";
 import { ProviderLoginDialog } from "./ProviderLoginDialog";
 import { terminalConnectionAttempt } from "./provider-account-model";
 
 export function ProviderAccounts({ client }: { client: MusicClient }) {
   const { showToast } = useToast();
-  const [connections, setConnections] = useState<ProviderConnection[]>([]);
+  const providerLabel = useProviderLabel();
+  const { confirm } = useDialog();
   const [attempt, setAttempt] = useState<ProviderConnectionAttempt>();
-  const [loading, setLoading] = useState(true);
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      setConnections(await client.providerConnections());
-    } catch (error) {
-      showToast(message(error), "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [client, showToast]);
-  useEffect(() => void load(), [load]);
-  useSpotifyReturn(showToast, load);
+  const connections = useQuery({
+    queryKey: ["music-provider-connections"],
+    queryFn: ({ signal }) => client.providers.connections(signal),
+  });
+  const reload = useCallback(async () => {
+    await connections.refetch();
+  }, [connections.refetch]);
+  const attemptQuery = useQuery({
+    queryKey: ["music-provider-attempt", attempt?.uid ?? ""],
+    enabled: Boolean(attempt && !terminalConnectionAttempt(attempt.status)),
+    queryFn: ({ signal }) =>
+      client.providers.connectionAttempt(attempt?.uid ?? "", signal),
+    refetchInterval: 2_000,
+    retry: 3,
+  });
+
+  useProviderReturn(showToast, reload, providerLabel);
   useEffect(() => {
-    if (!attempt || terminalConnectionAttempt(attempt.status)) return;
-    const timer = window.setTimeout(() => {
-      void client
-        .providerConnectionAttempt(attempt.uid)
-        .then((updated) => {
-          setAttempt(updated);
-          if (updated.status === ProviderConnectionAttemptStatus.CONNECTED) {
-            showToast(`${providerLabel(updated.provider)}已连接`);
-            void load();
-          }
-        })
-        .catch((error: unknown) => showToast(message(error), "error"));
-    }, 2_000);
-    return () => window.clearTimeout(timer);
-  }, [attempt, client, load, showToast]);
-  const connect = async (provider: MusicProvider) => {
+    if (connections.error) showToast(message(connections.error), "error");
+  }, [connections.error, showToast]);
+  useEffect(() => {
+    if (attemptQuery.error) showToast(message(attemptQuery.error), "error");
+  }, [attemptQuery.error, showToast]);
+  useEffect(() => {
+    const updated = attemptQuery.data;
+    if (!updated) return;
+    setAttempt(updated);
+    if (updated.status === ProviderConnectionAttemptStatus.CONNECTED) {
+      showToast(`${providerLabel(updated.providerId)}已连接`);
+      void reload();
+    }
+  }, [attemptQuery.data, reload, showToast]);
+
+  const connect = async (providerId: ProviderId) => {
     try {
-      const created = await client.beginProviderConnection(provider);
+      const created = await client.providers.beginConnection(providerId);
       if (created.challenge.case === "redirect") {
         window.location.assign(created.challenge.value.authorizationUrl);
         return;
@@ -57,25 +68,33 @@ export function ProviderAccounts({ client }: { client: MusicClient }) {
     }
   };
   const disconnect = async (connection: ProviderConnection) => {
-    if (!window.confirm(`断开${providerLabel(connection.provider)}账号？`))
+    if (
+      !(await confirm({
+        title: "断开音乐账号",
+        description: `断开${providerLabel(connection.providerId)}账号？本地歌曲不会被删除。`,
+        confirmLabel: "断开账号",
+        destructive: true,
+      }))
+    )
       return;
     try {
-      await client.disconnectProvider(connection.provider);
-      await load();
+      await client.providers.disconnect(connection.providerId);
+      await reload();
       showToast("账号已断开");
     } catch (error) {
       showToast(message(error), "error");
     }
   };
-  if (loading) return <LoadingIndicator label="正在读取音乐账号" />;
+  if (connections.isPending)
+    return <LoadingIndicator label="正在读取音乐账号" />;
   return (
     <>
       <div className="overflow-hidden rounded-xl border bg-card/35">
-        {connections.map((connection) => (
+        {(connections.data ?? []).map((connection) => (
           <ProviderAccountRow
-            key={connection.provider}
+            key={connection.providerId}
             connection={connection}
-            onConnect={() => void connect(connection.provider)}
+            onConnect={() => void connect(connection.providerId)}
             onDisconnect={() => void disconnect(connection)}
           />
         ))}
@@ -91,23 +110,27 @@ export function ProviderAccounts({ client }: { client: MusicClient }) {
   );
 }
 
-function useSpotifyReturn(
+function useProviderReturn(
   toast: (message: string, variant?: "default" | "error") => void,
   reload: () => Promise<void>,
+  providerLabel: (providerId: ProviderId) => string,
 ) {
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (url.searchParams.get("provider") !== "spotify") return;
+    const providerId = url.searchParams.get("provider") ?? "";
+    if (!providerId) return;
     const connected = url.searchParams.get("connection") === "connected";
     toast(
-      connected ? "Spotify 已连接" : "Spotify 连接失败",
+      connected
+        ? `${providerLabel(providerId)}已连接`
+        : `${providerLabel(providerId)}连接失败`,
       connected ? "default" : "error",
     );
     if (connected) void reload();
     url.searchParams.delete("provider");
     url.searchParams.delete("connection");
     window.history.replaceState(null, "", url);
-  }, [reload, toast]);
+  }, [providerLabel, reload, toast]);
 }
 
 function message(error: unknown): string {

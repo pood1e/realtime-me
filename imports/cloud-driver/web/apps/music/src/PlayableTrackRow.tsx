@@ -1,7 +1,8 @@
 import { ExternalLink, FileText, Music2, Play } from "lucide-react";
 import type { PlayableTrack } from "@cloud-drive/contracts";
 import { Badge, Button, MusicClient } from "@cloud-drive/shared";
-import { clock, durationSeconds, providerLabel } from "./music-model";
+import { clock, durationSeconds } from "./music-model";
+import { useProviderLabel } from "./provider-catalog";
 
 export function PlayableTrackRow({
   track,
@@ -18,7 +19,8 @@ export function PlayableTrackRow({
   onPlay: () => void;
   onLyrics?: () => void;
 }) {
-  const artwork = client.playableArtworkUrl(track);
+  const providerLabel = useProviderLabel();
+  const artwork = client.providers.artworkUrl(track);
   return (
     <div className={rowClassName(active)}>
       <button
@@ -29,7 +31,13 @@ export function PlayableTrackRow({
       >
         {artwork ? (
           <span className="relative h-full w-full">
-            <img src={artwork} alt="" className="h-full w-full object-cover" />
+            <img
+              src={artwork}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover"
+            />
             <span className="absolute inset-0 hidden place-items-center bg-black/45 text-white group-hover:grid">
               <Play className="size-4 fill-current" />
             </span>
@@ -55,7 +63,7 @@ export function PlayableTrackRow({
         {track.album || "—"}
       </p>
       <Badge variant="outline" className="hidden lg:inline-flex">
-        {providerLabel(track.provider)}
+        {providerLabel(track.providerId)}
       </Badge>
       <span className="hidden text-xs text-muted-foreground sm:block">
         {clock(durationSeconds(track))}

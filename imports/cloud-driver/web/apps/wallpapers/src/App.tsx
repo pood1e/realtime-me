@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { Download, ImageOff, Search, Sparkles, X } from "lucide-react";
 import { WallpaperOrientation } from "@cloud-drive/contracts";
 import type { Wallpaper } from "@cloud-drive/contracts";
@@ -8,6 +8,7 @@ import {
   DialogContent,
   EmptyState,
   Input,
+  InfiniteScrollSentinel,
   LoadingIndicator,
   Select,
   SelectContent,
@@ -15,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
   WallpaperPublicClient,
+  useCursorQuery,
 } from "@cloud-drive/shared";
 
 import { API_BASE } from "./config";
@@ -23,34 +25,26 @@ type OrientationFilter = "all" | "landscape" | "portrait" | "square";
 
 export function App() {
   const client = useMemo(() => new WallpaperPublicClient(API_BASE), []);
-  const [wallpapers, setWallpapers] = useState<Wallpaper[]>([]);
   const [query, setQuery] = useState("");
   const [orientation, setOrientation] = useState<OrientationFilter>("all");
   const [selected, setSelected] = useState<Wallpaper>();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      setWallpapers(
-        await client.list({
-          query,
-          orientation: orientationValue(orientation),
-        }),
+  const deferredQuery = useDeferredValue(query.trim());
+  const catalog = useCursorQuery({
+    queryKey: ["public-wallpapers", deferredQuery, orientation],
+    loadPage: async (pageToken, signal) => {
+      const page = await client.listPage(
+        {
+          query: deferredQuery,
+          ...(orientation === "all"
+            ? {}
+            : { orientation: orientationValue(orientation) }),
+          pageToken,
+        },
+        signal,
       );
-    } catch (loadError) {
-      setError(errorMessage(loadError));
-    } finally {
-      setLoading(false);
-    }
-  }, [client, orientation, query]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => void load(), 180);
-    return () => window.clearTimeout(timer);
-  }, [load]);
+      return { items: page.wallpapers, nextPageToken: page.nextPageToken };
+    },
+  });
 
   return (
     <main className="min-h-dvh bg-background text-foreground">
@@ -61,30 +55,42 @@ export function App() {
         onOrientationChange={setOrientation}
       />
       <section className="mx-auto w-full max-w-[112rem] px-4 py-8 sm:px-6 lg:px-8">
-        {loading ? <LoadingIndicator label="正在加载壁纸" /> : null}
-        {error ? (
+        {catalog.isPending ? <LoadingIndicator label="正在加载壁纸" /> : null}
+        {catalog.error ? (
           <EmptyState
             icon={<ImageOff className="size-6" />}
             title="壁纸暂时不可用"
-            detail={error}
+            detail={errorMessage(catalog.error)}
           />
         ) : null}
-        {!loading && !error && wallpapers.length === 0 ? (
+        {!catalog.isPending && !catalog.error && catalog.items.length === 0 ? (
           <EmptyState title="没有匹配的壁纸" detail="换个关键词或方向试试。" />
         ) : null}
-        {!loading && !error ? (
-          <WallpaperGrid
-            wallpapers={wallpapers}
-            client={client}
-            onSelect={setSelected}
-          />
+        {!catalog.isPending && !catalog.error ? (
+          <>
+            <WallpaperGrid
+              wallpapers={catalog.items}
+              client={client}
+              onSelect={setSelected}
+            />
+            <InfiniteScrollSentinel
+              hasMore={catalog.hasNextPage}
+              loading={catalog.isFetchingNextPage}
+              failed={catalog.isFetchNextPageError}
+              loadingLabel="继续加载壁纸"
+              completeLabel="已加载全部壁纸"
+              onLoadMore={() => void catalog.fetchNextPage()}
+            />
+          </>
         ) : null}
       </section>
-      <WallpaperPreview
-        wallpaper={selected}
-        client={client}
-        onClose={() => setSelected(undefined)}
-      />
+      {selected ? (
+        <WallpaperPreview
+          wallpaper={selected}
+          client={client}
+          onClose={() => setSelected(undefined)}
+        />
+      ) : null}
     </main>
   );
 }
@@ -192,59 +198,57 @@ function WallpaperPreview({
   client,
   onClose,
 }: {
-  wallpaper?: Wallpaper;
+  wallpaper: Wallpaper;
   client: WallpaperPublicClient;
   onClose: () => void;
 }) {
-  const variant = wallpaper?.variants.at(-1);
-  const downloadPath = variant?.url || wallpaper?.originalUrl || "";
+  const variant = wallpaper.variants.at(-1);
+  const downloadPath = variant?.url || wallpaper.originalUrl;
   return (
-    <DialogRoot
-      open={Boolean(wallpaper)}
-      onOpenChange={(open) => !open && onClose()}
-    >
+    <DialogRoot open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         showCloseButton={false}
         className="max-h-[calc(100dvh-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden border-0 bg-black p-0 sm:max-w-6xl"
       >
-        {wallpaper ? (
-          <div className="relative">
-            <img
-              src={client.assetUrl(downloadPath)}
-              alt={wallpaper.title}
-              className="max-h-[84dvh] w-full object-contain"
-            />
-            <div className="flex items-center gap-3 border-t border-white/10 bg-black p-4 text-white">
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{wallpaper.title}</p>
-                <p className="text-xs text-white/55">
-                  {wallpaper.tags.join(" · ")}
-                </p>
-              </div>
-              <Button asChild>
-                <a href={`${client.assetUrl(downloadPath)}?download=1`}>
-                  <Download />
-                  下载
-                </a>
-              </Button>
-              <Button variant="ghost" size="icon" onClick={onClose}>
-                <X />
-              </Button>
+        <div className="relative">
+          <img
+            src={client.assetUrl(downloadPath)}
+            alt={wallpaper.title}
+            className="max-h-[84dvh] w-full object-contain"
+          />
+          <div className="flex items-center gap-3 border-t border-white/10 bg-black p-4 text-white">
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-medium">{wallpaper.title}</p>
+              <p className="text-xs text-white/55">
+                {wallpaper.tags.join(" · ")}
+              </p>
             </div>
+            <Button asChild>
+              <a href={`${client.assetUrl(downloadPath)}?download=1`}>
+                <Download />
+                下载
+              </a>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              aria-label="关闭壁纸预览"
+            >
+              <X />
+            </Button>
           </div>
-        ) : null}
+        </div>
       </DialogContent>
     </DialogRoot>
   );
 }
 
-function orientationValue(
-  value: OrientationFilter,
-): WallpaperOrientation | undefined {
+function orientationValue(value: Exclude<OrientationFilter, "all">) {
   if (value === "landscape") return WallpaperOrientation.LANDSCAPE;
   if (value === "portrait") return WallpaperOrientation.PORTRAIT;
   if (value === "square") return WallpaperOrientation.SQUARE;
-  return undefined;
+  return WallpaperOrientation.SQUARE;
 }
 
 function errorMessage(error: unknown): string {

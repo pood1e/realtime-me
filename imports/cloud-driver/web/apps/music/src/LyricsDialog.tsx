@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import type { Lyric, PlayableTrack } from "@cloud-drive/contracts";
-import { Dialog, LoadingIndicator, MusicClient } from "@cloud-drive/shared";
+import { AppDialog, LoadingIndicator, MusicClient } from "@cloud-drive/shared";
 
 export function LyricsDialog({
   track,
   client,
   onClose,
 }: {
-  track?: PlayableTrack;
+  track: PlayableTrack | undefined;
   client: MusicClient;
   onClose: () => void;
 }) {
@@ -15,21 +15,21 @@ export function LyricsDialog({
   const [error, setError] = useState("");
   useEffect(() => {
     if (!track) return;
-    let active = true;
+    const controller = new AbortController();
     setLyric(undefined);
     setError("");
-    void client
-      .providerLyrics(track)
-      .then((value) => active && setLyric(value))
+    void client.providers
+      .lyrics(track, controller.signal)
+      .then((value) => !controller.signal.aborted && setLyric(value))
       .catch((reason: unknown) => {
-        if (active) setError(message(reason));
+        if (!controller.signal.aborted) setError(message(reason));
       });
     return () => {
-      active = false;
+      controller.abort();
     };
   }, [client, track]);
   return (
-    <Dialog
+    <AppDialog
       open={Boolean(track)}
       title={track?.title || "歌词"}
       description={track?.artists.join("、") || "来自当前音乐来源"}
@@ -45,7 +45,7 @@ export function LyricsDialog({
           <LyricText lyric={lyric} />
         )}
       </div>
-    </Dialog>
+    </AppDialog>
   );
 }
 

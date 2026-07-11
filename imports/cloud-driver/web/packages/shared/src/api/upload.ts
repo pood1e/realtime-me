@@ -4,8 +4,10 @@ import type { Client } from "@connectrpc/connect";
 import {
   AbandonUploadRequestSchema,
   ContentUploadService,
+  FinalizeUploadRequestSchema,
   GetUploadRequestSchema,
   StartUploadRequestSchema,
+  UploadStatus,
   WriteUploadChunkResponseSchema,
 } from "@cloud-drive/contracts";
 import type { Upload } from "@cloud-drive/contracts";
@@ -23,6 +25,7 @@ import {
   required,
   resolveApiUrl,
 } from "./core";
+import { abortableDelay } from "./delay";
 
 const MAX_UPLOAD_ATTEMPTS = 3;
 
@@ -58,30 +61,42 @@ export class UploadClient {
       totalBytes: file.size,
     });
 
-    const chunkSize = Math.max(1, uploadChunkSize(upload));
-    for (let start = 0; start < file.size; start += chunkSize) {
-      const end = Math.min(file.size, start + chunkSize);
-      if (rangeContains(uploadRanges(upload), start, end)) continue;
-      upload = await this.writeChunkWithRetry(
-        upload,
-        state.chunkUrl,
-        file.slice(start, end),
-        start,
-        file.size,
-        options.signal,
+    if (upload.status === UploadStatus.ACTIVE) {
+      const chunkSize = Math.max(1, uploadChunkSize(upload));
+      for (let start = 0; start < file.size; start += chunkSize) {
+        const end = Math.min(file.size, start + chunkSize);
+        if (rangeContains(uploadRanges(upload), start, end)) continue;
+        upload = await this.writeChunkWithRetry(
+          upload,
+          state.chunkUrl,
+          file.slice(start, end),
+          start,
+          file.size,
+          options.signal,
+        );
+        options.onProgress?.({
+          uploadedBytes: acknowledgedBytes(upload, file.size),
+          totalBytes: file.size,
+        });
+      }
+      upload = required(
+        (
+          await this.client.finalizeUpload(
+            create(FinalizeUploadRequestSchema, { uploadUid: uid }),
+            options.signal ? { signal: options.signal } : undefined,
+          )
+        ).upload,
+        "upload",
       );
-      options.onProgress?.({
-        uploadedBytes: acknowledgedBytes(upload, file.size),
-        totalBytes: file.size,
-      });
     }
+    await this.waitUntilSealed(upload, options.signal);
     return uid;
   }
 
   async abandon(uploadUidValue: string, signal?: AbortSignal): Promise<void> {
     await this.client.abandonUpload(
       create(AbandonUploadRequestSchema, { uploadUid: uploadUidValue }),
-      { signal },
+      signal ? { signal } : undefined,
     );
   }
 
@@ -92,7 +107,7 @@ export class UploadClient {
         contentType: file.type,
         totalSizeBytes: BigInt(file.size),
       }),
-      { signal },
+      signal ? { signal } : undefined,
     );
     return {
       upload: required(response.upload, "upload"),
@@ -103,7 +118,7 @@ export class UploadClient {
   private async resume(uid: string, signal?: AbortSignal) {
     const response = await this.client.getUpload(
       create(GetUploadRequestSchema, { uploadUid: uid }),
-      { signal },
+      signal ? { signal } : undefined,
     );
     return {
       upload: required(response.upload, "upload"),
@@ -133,7 +148,7 @@ export class UploadClient {
             "Content-Range": `bytes ${start}-${end - 1}/${total}`,
           },
           body: data,
-          signal,
+          signal: signal ?? null,
         });
         if (!response.ok)
           throw new ApiError(
@@ -148,12 +163,12 @@ export class UploadClient {
       } catch (error) {
         lastError = error;
         if (signal?.aborted || attempt === MAX_UPLOAD_ATTEMPTS) break;
-        await sleep(350 * 2 ** (attempt - 1), signal);
+        await abortableDelay(350 * 2 ** (attempt - 1), signal);
         const recovered = required(
           (
             await this.client.getUpload(
               create(GetUploadRequestSchema, { uploadUid: uid }),
-              { signal },
+              signal ? { signal } : undefined,
             )
           ).upload,
           "upload",
@@ -165,6 +180,38 @@ export class UploadClient {
     throw lastError instanceof Error
       ? lastError
       : new ApiError("Unable to upload this chunk.");
+  }
+
+  private async waitUntilSealed(
+    initial: Upload,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    let upload = initial;
+    for (;;) {
+      if (
+        upload.status === UploadStatus.SEALED ||
+        upload.status === UploadStatus.CLAIMED
+      )
+        return;
+      if (upload.status === UploadStatus.FAILED)
+        throw new ApiError(
+          upload.failureCode
+            ? `Upload finalization failed (${upload.failureCode}).`
+            : "Upload finalization failed.",
+        );
+      if (upload.status !== UploadStatus.FINALIZING)
+        throw new ApiError("Upload is no longer available.");
+      await abortableDelay(500, signal);
+      upload = required(
+        (
+          await this.client.getUpload(
+            create(GetUploadRequestSchema, { uploadUid: upload.uid }),
+            signal ? { signal } : undefined,
+          )
+        ).upload,
+        "upload",
+      );
+    }
   }
 }
 
@@ -188,18 +235,4 @@ function acknowledgedBytes(upload: Upload, totalBytes: number): number {
     covered = Math.max(covered, end);
   }
   return Math.min(totalBytes, Math.max(uploadReceivedBytes(upload), covered));
-}
-
-function sleep(milliseconds: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(resolve, milliseconds);
-    signal?.addEventListener(
-      "abort",
-      () => {
-        window.clearTimeout(timeout);
-        reject(signal.reason);
-      },
-      { once: true },
-    );
-  });
 }
