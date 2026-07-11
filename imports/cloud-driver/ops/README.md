@@ -70,16 +70,20 @@ sudoedit /etc/cloud-drive/runtime.env
 | `PRIVATE_APP_ORIGINS` | 认证、云盘、书架、音乐盒、图床的逗号分隔 HTTPS Origin |
 | `PUBLIC_APP_ORIGINS` | 壁纸站与分享页的逗号分隔 HTTPS Origin |
 | `SHARE_APP_ORIGIN` | 创建文件分享链接时使用的分享页 Origin |
+| `MUSIC_APP_ORIGIN` | Spotify OAuth 完成后固定返回的音乐盒 Origin |
 | `PRIVATE_API_HOST` | 所有私有应用共用的 API Host，仅主机名 |
 | `PUBLIC_API_HOST` | 壁纸、匿名图片与分享共用的 API Host，仅主机名 |
 | `PASSWORD_HASH_BASE64` | bcrypt cost 12 以上的密码哈希再做 padded Base64 |
 | `SESSION_SECRET` | 64 个十六进制字符 |
+| `MUSIC_PROVIDER_CREDENTIAL_KEY` | 32 字节 padded Base64，仅加密第三方账号凭据 |
+| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | 可选，但必须同时配置 |
 
 生成运行时秘密：
 
 ```bash
 htpasswd -nBC 12 local-library | cut -d: -f2 | base64 | tr -d '\n'
 openssl rand -hex 32
+openssl rand -base64 32  # 音乐 Provider 凭据密钥
 openssl rand -hex 32  # PostgreSQL 密码
 ```
 
@@ -111,6 +115,8 @@ catch-all          -> http_status:404
 
 私有 API 只公开登录和健康 RPC；其余 ConnectRPC、上传、源文件与衍生文件路由均需
 有效 Cookie。公开 API 只挂载壁纸读取、匿名图片和令牌范围内的只读分享路由。
+Spotify OAuth callback 是私有 Host 上唯一额外的无会话 GET 路由，通过一次性 state
+与 PKCE 验证，不依赖 `SameSite=Strict` Cookie，也不接受客户端指定的跳转 Origin。
 
 ## 启动与更新主机服务
 
@@ -193,7 +199,9 @@ snapshots/<UTC>/
 
 未变化对象通过 ext4 hard link 与上一份快照复用，默认保留最近 30 份。`artifacts/`、
 `uploads/`、`work/` 不备份；前者可重建，后两者是临时状态。备份不加密，能够读取
-移动硬盘的人可以直接读取内容与数据库 dump。
+移动硬盘的人可以直接读取内容与数据库 dump；第三方音乐账号字段仍是应用层密文。
+`MUSIC_PROVIDER_CREDENTIAL_KEY` 必须在数据库之外单独保管，否则恢复后需要重新连接
+QQ 音乐、网易云和 Spotify。
 
 ## 恢复演练
 

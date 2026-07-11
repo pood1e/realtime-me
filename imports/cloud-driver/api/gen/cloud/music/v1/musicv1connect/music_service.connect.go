@@ -62,6 +62,30 @@ const (
 	// MusicServiceListArtistsProcedure is the fully-qualified name of the MusicService's ListArtists
 	// RPC.
 	MusicServiceListArtistsProcedure = "/cloud.music.v1.MusicService/ListArtists"
+	// MusicServiceListProviderConnectionsProcedure is the fully-qualified name of the MusicService's
+	// ListProviderConnections RPC.
+	MusicServiceListProviderConnectionsProcedure = "/cloud.music.v1.MusicService/ListProviderConnections"
+	// MusicServiceBeginProviderConnectionProcedure is the fully-qualified name of the MusicService's
+	// BeginProviderConnection RPC.
+	MusicServiceBeginProviderConnectionProcedure = "/cloud.music.v1.MusicService/BeginProviderConnection"
+	// MusicServiceGetProviderConnectionAttemptProcedure is the fully-qualified name of the
+	// MusicService's GetProviderConnectionAttempt RPC.
+	MusicServiceGetProviderConnectionAttemptProcedure = "/cloud.music.v1.MusicService/GetProviderConnectionAttempt"
+	// MusicServiceDisconnectProviderProcedure is the fully-qualified name of the MusicService's
+	// DisconnectProvider RPC.
+	MusicServiceDisconnectProviderProcedure = "/cloud.music.v1.MusicService/DisconnectProvider"
+	// MusicServiceSearchMusicProcedure is the fully-qualified name of the MusicService's SearchMusic
+	// RPC.
+	MusicServiceSearchMusicProcedure = "/cloud.music.v1.MusicService/SearchMusic"
+	// MusicServiceResolvePlaybackProcedure is the fully-qualified name of the MusicService's
+	// ResolvePlayback RPC.
+	MusicServiceResolvePlaybackProcedure = "/cloud.music.v1.MusicService/ResolvePlayback"
+	// MusicServiceGetProviderLyricsProcedure is the fully-qualified name of the MusicService's
+	// GetProviderLyrics RPC.
+	MusicServiceGetProviderLyricsProcedure = "/cloud.music.v1.MusicService/GetProviderLyrics"
+	// MusicServiceGetSpotifyPlaybackTokenProcedure is the fully-qualified name of the MusicService's
+	// GetSpotifyPlaybackToken RPC.
+	MusicServiceGetSpotifyPlaybackTokenProcedure = "/cloud.music.v1.MusicService/GetSpotifyPlaybackToken"
 	// MusicServiceRecordPlaybackProcedure is the fully-qualified name of the MusicService's
 	// RecordPlayback RPC.
 	MusicServiceRecordPlaybackProcedure = "/cloud.music.v1.MusicService/RecordPlayback"
@@ -83,6 +107,14 @@ type MusicServiceClient interface {
 	RetryTrackProcessing(context.Context, *connect.Request[v1.RetryTrackProcessingRequest]) (*connect.Response[v1.RetryTrackProcessingResponse], error)
 	ListAlbums(context.Context, *connect.Request[v1.ListAlbumsRequest]) (*connect.Response[v1.ListAlbumsResponse], error)
 	ListArtists(context.Context, *connect.Request[v1.ListArtistsRequest]) (*connect.Response[v1.ListArtistsResponse], error)
+	ListProviderConnections(context.Context, *connect.Request[v1.ListProviderConnectionsRequest]) (*connect.Response[v1.ListProviderConnectionsResponse], error)
+	BeginProviderConnection(context.Context, *connect.Request[v1.BeginProviderConnectionRequest]) (*connect.Response[v1.BeginProviderConnectionResponse], error)
+	GetProviderConnectionAttempt(context.Context, *connect.Request[v1.GetProviderConnectionAttemptRequest]) (*connect.Response[v1.GetProviderConnectionAttemptResponse], error)
+	DisconnectProvider(context.Context, *connect.Request[v1.DisconnectProviderRequest]) (*connect.Response[v1.DisconnectProviderResponse], error)
+	SearchMusic(context.Context, *connect.Request[v1.SearchMusicRequest]) (*connect.Response[v1.SearchMusicResponse], error)
+	ResolvePlayback(context.Context, *connect.Request[v1.ResolvePlaybackRequest]) (*connect.Response[v1.ResolvePlaybackResponse], error)
+	GetProviderLyrics(context.Context, *connect.Request[v1.GetProviderLyricsRequest]) (*connect.Response[v1.GetProviderLyricsResponse], error)
+	GetSpotifyPlaybackToken(context.Context, *connect.Request[v1.GetSpotifyPlaybackTokenRequest]) (*connect.Response[v1.GetSpotifyPlaybackTokenResponse], error)
 	RecordPlayback(context.Context, *connect.Request[v1.RecordPlaybackRequest]) (*connect.Response[v1.RecordPlaybackResponse], error)
 	ListPlaybackHistory(context.Context, *connect.Request[v1.ListPlaybackHistoryRequest]) (*connect.Response[v1.ListPlaybackHistoryResponse], error)
 }
@@ -164,6 +196,54 @@ func NewMusicServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(musicServiceMethods.ByName("ListArtists")),
 			connect.WithClientOptions(opts...),
 		),
+		listProviderConnections: connect.NewClient[v1.ListProviderConnectionsRequest, v1.ListProviderConnectionsResponse](
+			httpClient,
+			baseURL+MusicServiceListProviderConnectionsProcedure,
+			connect.WithSchema(musicServiceMethods.ByName("ListProviderConnections")),
+			connect.WithClientOptions(opts...),
+		),
+		beginProviderConnection: connect.NewClient[v1.BeginProviderConnectionRequest, v1.BeginProviderConnectionResponse](
+			httpClient,
+			baseURL+MusicServiceBeginProviderConnectionProcedure,
+			connect.WithSchema(musicServiceMethods.ByName("BeginProviderConnection")),
+			connect.WithClientOptions(opts...),
+		),
+		getProviderConnectionAttempt: connect.NewClient[v1.GetProviderConnectionAttemptRequest, v1.GetProviderConnectionAttemptResponse](
+			httpClient,
+			baseURL+MusicServiceGetProviderConnectionAttemptProcedure,
+			connect.WithSchema(musicServiceMethods.ByName("GetProviderConnectionAttempt")),
+			connect.WithClientOptions(opts...),
+		),
+		disconnectProvider: connect.NewClient[v1.DisconnectProviderRequest, v1.DisconnectProviderResponse](
+			httpClient,
+			baseURL+MusicServiceDisconnectProviderProcedure,
+			connect.WithSchema(musicServiceMethods.ByName("DisconnectProvider")),
+			connect.WithClientOptions(opts...),
+		),
+		searchMusic: connect.NewClient[v1.SearchMusicRequest, v1.SearchMusicResponse](
+			httpClient,
+			baseURL+MusicServiceSearchMusicProcedure,
+			connect.WithSchema(musicServiceMethods.ByName("SearchMusic")),
+			connect.WithClientOptions(opts...),
+		),
+		resolvePlayback: connect.NewClient[v1.ResolvePlaybackRequest, v1.ResolvePlaybackResponse](
+			httpClient,
+			baseURL+MusicServiceResolvePlaybackProcedure,
+			connect.WithSchema(musicServiceMethods.ByName("ResolvePlayback")),
+			connect.WithClientOptions(opts...),
+		),
+		getProviderLyrics: connect.NewClient[v1.GetProviderLyricsRequest, v1.GetProviderLyricsResponse](
+			httpClient,
+			baseURL+MusicServiceGetProviderLyricsProcedure,
+			connect.WithSchema(musicServiceMethods.ByName("GetProviderLyrics")),
+			connect.WithClientOptions(opts...),
+		),
+		getSpotifyPlaybackToken: connect.NewClient[v1.GetSpotifyPlaybackTokenRequest, v1.GetSpotifyPlaybackTokenResponse](
+			httpClient,
+			baseURL+MusicServiceGetSpotifyPlaybackTokenProcedure,
+			connect.WithSchema(musicServiceMethods.ByName("GetSpotifyPlaybackToken")),
+			connect.WithClientOptions(opts...),
+		),
 		recordPlayback: connect.NewClient[v1.RecordPlaybackRequest, v1.RecordPlaybackResponse](
 			httpClient,
 			baseURL+MusicServiceRecordPlaybackProcedure,
@@ -181,19 +261,27 @@ func NewMusicServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 
 // musicServiceClient implements MusicServiceClient.
 type musicServiceClient struct {
-	getTrack             *connect.Client[v1.GetTrackRequest, v1.GetTrackResponse]
-	listTracks           *connect.Client[v1.ListTracksRequest, v1.ListTracksResponse]
-	importTrack          *connect.Client[v1.ImportTrackRequest, v1.ImportTrackResponse]
-	setTrackFavorite     *connect.Client[v1.SetTrackFavoriteRequest, v1.SetTrackFavoriteResponse]
-	deleteTrack          *connect.Client[v1.DeleteTrackRequest, v1.DeleteTrackResponse]
-	restoreTrack         *connect.Client[v1.RestoreTrackRequest, v1.RestoreTrackResponse]
-	purgeTrack           *connect.Client[v1.PurgeTrackRequest, v1.PurgeTrackResponse]
-	emptyTrackTrash      *connect.Client[v1.EmptyTrackTrashRequest, v1.EmptyTrackTrashResponse]
-	retryTrackProcessing *connect.Client[v1.RetryTrackProcessingRequest, v1.RetryTrackProcessingResponse]
-	listAlbums           *connect.Client[v1.ListAlbumsRequest, v1.ListAlbumsResponse]
-	listArtists          *connect.Client[v1.ListArtistsRequest, v1.ListArtistsResponse]
-	recordPlayback       *connect.Client[v1.RecordPlaybackRequest, v1.RecordPlaybackResponse]
-	listPlaybackHistory  *connect.Client[v1.ListPlaybackHistoryRequest, v1.ListPlaybackHistoryResponse]
+	getTrack                     *connect.Client[v1.GetTrackRequest, v1.GetTrackResponse]
+	listTracks                   *connect.Client[v1.ListTracksRequest, v1.ListTracksResponse]
+	importTrack                  *connect.Client[v1.ImportTrackRequest, v1.ImportTrackResponse]
+	setTrackFavorite             *connect.Client[v1.SetTrackFavoriteRequest, v1.SetTrackFavoriteResponse]
+	deleteTrack                  *connect.Client[v1.DeleteTrackRequest, v1.DeleteTrackResponse]
+	restoreTrack                 *connect.Client[v1.RestoreTrackRequest, v1.RestoreTrackResponse]
+	purgeTrack                   *connect.Client[v1.PurgeTrackRequest, v1.PurgeTrackResponse]
+	emptyTrackTrash              *connect.Client[v1.EmptyTrackTrashRequest, v1.EmptyTrackTrashResponse]
+	retryTrackProcessing         *connect.Client[v1.RetryTrackProcessingRequest, v1.RetryTrackProcessingResponse]
+	listAlbums                   *connect.Client[v1.ListAlbumsRequest, v1.ListAlbumsResponse]
+	listArtists                  *connect.Client[v1.ListArtistsRequest, v1.ListArtistsResponse]
+	listProviderConnections      *connect.Client[v1.ListProviderConnectionsRequest, v1.ListProviderConnectionsResponse]
+	beginProviderConnection      *connect.Client[v1.BeginProviderConnectionRequest, v1.BeginProviderConnectionResponse]
+	getProviderConnectionAttempt *connect.Client[v1.GetProviderConnectionAttemptRequest, v1.GetProviderConnectionAttemptResponse]
+	disconnectProvider           *connect.Client[v1.DisconnectProviderRequest, v1.DisconnectProviderResponse]
+	searchMusic                  *connect.Client[v1.SearchMusicRequest, v1.SearchMusicResponse]
+	resolvePlayback              *connect.Client[v1.ResolvePlaybackRequest, v1.ResolvePlaybackResponse]
+	getProviderLyrics            *connect.Client[v1.GetProviderLyricsRequest, v1.GetProviderLyricsResponse]
+	getSpotifyPlaybackToken      *connect.Client[v1.GetSpotifyPlaybackTokenRequest, v1.GetSpotifyPlaybackTokenResponse]
+	recordPlayback               *connect.Client[v1.RecordPlaybackRequest, v1.RecordPlaybackResponse]
+	listPlaybackHistory          *connect.Client[v1.ListPlaybackHistoryRequest, v1.ListPlaybackHistoryResponse]
 }
 
 // GetTrack calls cloud.music.v1.MusicService.GetTrack.
@@ -251,6 +339,46 @@ func (c *musicServiceClient) ListArtists(ctx context.Context, req *connect.Reque
 	return c.listArtists.CallUnary(ctx, req)
 }
 
+// ListProviderConnections calls cloud.music.v1.MusicService.ListProviderConnections.
+func (c *musicServiceClient) ListProviderConnections(ctx context.Context, req *connect.Request[v1.ListProviderConnectionsRequest]) (*connect.Response[v1.ListProviderConnectionsResponse], error) {
+	return c.listProviderConnections.CallUnary(ctx, req)
+}
+
+// BeginProviderConnection calls cloud.music.v1.MusicService.BeginProviderConnection.
+func (c *musicServiceClient) BeginProviderConnection(ctx context.Context, req *connect.Request[v1.BeginProviderConnectionRequest]) (*connect.Response[v1.BeginProviderConnectionResponse], error) {
+	return c.beginProviderConnection.CallUnary(ctx, req)
+}
+
+// GetProviderConnectionAttempt calls cloud.music.v1.MusicService.GetProviderConnectionAttempt.
+func (c *musicServiceClient) GetProviderConnectionAttempt(ctx context.Context, req *connect.Request[v1.GetProviderConnectionAttemptRequest]) (*connect.Response[v1.GetProviderConnectionAttemptResponse], error) {
+	return c.getProviderConnectionAttempt.CallUnary(ctx, req)
+}
+
+// DisconnectProvider calls cloud.music.v1.MusicService.DisconnectProvider.
+func (c *musicServiceClient) DisconnectProvider(ctx context.Context, req *connect.Request[v1.DisconnectProviderRequest]) (*connect.Response[v1.DisconnectProviderResponse], error) {
+	return c.disconnectProvider.CallUnary(ctx, req)
+}
+
+// SearchMusic calls cloud.music.v1.MusicService.SearchMusic.
+func (c *musicServiceClient) SearchMusic(ctx context.Context, req *connect.Request[v1.SearchMusicRequest]) (*connect.Response[v1.SearchMusicResponse], error) {
+	return c.searchMusic.CallUnary(ctx, req)
+}
+
+// ResolvePlayback calls cloud.music.v1.MusicService.ResolvePlayback.
+func (c *musicServiceClient) ResolvePlayback(ctx context.Context, req *connect.Request[v1.ResolvePlaybackRequest]) (*connect.Response[v1.ResolvePlaybackResponse], error) {
+	return c.resolvePlayback.CallUnary(ctx, req)
+}
+
+// GetProviderLyrics calls cloud.music.v1.MusicService.GetProviderLyrics.
+func (c *musicServiceClient) GetProviderLyrics(ctx context.Context, req *connect.Request[v1.GetProviderLyricsRequest]) (*connect.Response[v1.GetProviderLyricsResponse], error) {
+	return c.getProviderLyrics.CallUnary(ctx, req)
+}
+
+// GetSpotifyPlaybackToken calls cloud.music.v1.MusicService.GetSpotifyPlaybackToken.
+func (c *musicServiceClient) GetSpotifyPlaybackToken(ctx context.Context, req *connect.Request[v1.GetSpotifyPlaybackTokenRequest]) (*connect.Response[v1.GetSpotifyPlaybackTokenResponse], error) {
+	return c.getSpotifyPlaybackToken.CallUnary(ctx, req)
+}
+
 // RecordPlayback calls cloud.music.v1.MusicService.RecordPlayback.
 func (c *musicServiceClient) RecordPlayback(ctx context.Context, req *connect.Request[v1.RecordPlaybackRequest]) (*connect.Response[v1.RecordPlaybackResponse], error) {
 	return c.recordPlayback.CallUnary(ctx, req)
@@ -274,6 +402,14 @@ type MusicServiceHandler interface {
 	RetryTrackProcessing(context.Context, *connect.Request[v1.RetryTrackProcessingRequest]) (*connect.Response[v1.RetryTrackProcessingResponse], error)
 	ListAlbums(context.Context, *connect.Request[v1.ListAlbumsRequest]) (*connect.Response[v1.ListAlbumsResponse], error)
 	ListArtists(context.Context, *connect.Request[v1.ListArtistsRequest]) (*connect.Response[v1.ListArtistsResponse], error)
+	ListProviderConnections(context.Context, *connect.Request[v1.ListProviderConnectionsRequest]) (*connect.Response[v1.ListProviderConnectionsResponse], error)
+	BeginProviderConnection(context.Context, *connect.Request[v1.BeginProviderConnectionRequest]) (*connect.Response[v1.BeginProviderConnectionResponse], error)
+	GetProviderConnectionAttempt(context.Context, *connect.Request[v1.GetProviderConnectionAttemptRequest]) (*connect.Response[v1.GetProviderConnectionAttemptResponse], error)
+	DisconnectProvider(context.Context, *connect.Request[v1.DisconnectProviderRequest]) (*connect.Response[v1.DisconnectProviderResponse], error)
+	SearchMusic(context.Context, *connect.Request[v1.SearchMusicRequest]) (*connect.Response[v1.SearchMusicResponse], error)
+	ResolvePlayback(context.Context, *connect.Request[v1.ResolvePlaybackRequest]) (*connect.Response[v1.ResolvePlaybackResponse], error)
+	GetProviderLyrics(context.Context, *connect.Request[v1.GetProviderLyricsRequest]) (*connect.Response[v1.GetProviderLyricsResponse], error)
+	GetSpotifyPlaybackToken(context.Context, *connect.Request[v1.GetSpotifyPlaybackTokenRequest]) (*connect.Response[v1.GetSpotifyPlaybackTokenResponse], error)
 	RecordPlayback(context.Context, *connect.Request[v1.RecordPlaybackRequest]) (*connect.Response[v1.RecordPlaybackResponse], error)
 	ListPlaybackHistory(context.Context, *connect.Request[v1.ListPlaybackHistoryRequest]) (*connect.Response[v1.ListPlaybackHistoryResponse], error)
 }
@@ -351,6 +487,54 @@ func NewMusicServiceHandler(svc MusicServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(musicServiceMethods.ByName("ListArtists")),
 		connect.WithHandlerOptions(opts...),
 	)
+	musicServiceListProviderConnectionsHandler := connect.NewUnaryHandler(
+		MusicServiceListProviderConnectionsProcedure,
+		svc.ListProviderConnections,
+		connect.WithSchema(musicServiceMethods.ByName("ListProviderConnections")),
+		connect.WithHandlerOptions(opts...),
+	)
+	musicServiceBeginProviderConnectionHandler := connect.NewUnaryHandler(
+		MusicServiceBeginProviderConnectionProcedure,
+		svc.BeginProviderConnection,
+		connect.WithSchema(musicServiceMethods.ByName("BeginProviderConnection")),
+		connect.WithHandlerOptions(opts...),
+	)
+	musicServiceGetProviderConnectionAttemptHandler := connect.NewUnaryHandler(
+		MusicServiceGetProviderConnectionAttemptProcedure,
+		svc.GetProviderConnectionAttempt,
+		connect.WithSchema(musicServiceMethods.ByName("GetProviderConnectionAttempt")),
+		connect.WithHandlerOptions(opts...),
+	)
+	musicServiceDisconnectProviderHandler := connect.NewUnaryHandler(
+		MusicServiceDisconnectProviderProcedure,
+		svc.DisconnectProvider,
+		connect.WithSchema(musicServiceMethods.ByName("DisconnectProvider")),
+		connect.WithHandlerOptions(opts...),
+	)
+	musicServiceSearchMusicHandler := connect.NewUnaryHandler(
+		MusicServiceSearchMusicProcedure,
+		svc.SearchMusic,
+		connect.WithSchema(musicServiceMethods.ByName("SearchMusic")),
+		connect.WithHandlerOptions(opts...),
+	)
+	musicServiceResolvePlaybackHandler := connect.NewUnaryHandler(
+		MusicServiceResolvePlaybackProcedure,
+		svc.ResolvePlayback,
+		connect.WithSchema(musicServiceMethods.ByName("ResolvePlayback")),
+		connect.WithHandlerOptions(opts...),
+	)
+	musicServiceGetProviderLyricsHandler := connect.NewUnaryHandler(
+		MusicServiceGetProviderLyricsProcedure,
+		svc.GetProviderLyrics,
+		connect.WithSchema(musicServiceMethods.ByName("GetProviderLyrics")),
+		connect.WithHandlerOptions(opts...),
+	)
+	musicServiceGetSpotifyPlaybackTokenHandler := connect.NewUnaryHandler(
+		MusicServiceGetSpotifyPlaybackTokenProcedure,
+		svc.GetSpotifyPlaybackToken,
+		connect.WithSchema(musicServiceMethods.ByName("GetSpotifyPlaybackToken")),
+		connect.WithHandlerOptions(opts...),
+	)
 	musicServiceRecordPlaybackHandler := connect.NewUnaryHandler(
 		MusicServiceRecordPlaybackProcedure,
 		svc.RecordPlayback,
@@ -387,6 +571,22 @@ func NewMusicServiceHandler(svc MusicServiceHandler, opts ...connect.HandlerOpti
 			musicServiceListAlbumsHandler.ServeHTTP(w, r)
 		case MusicServiceListArtistsProcedure:
 			musicServiceListArtistsHandler.ServeHTTP(w, r)
+		case MusicServiceListProviderConnectionsProcedure:
+			musicServiceListProviderConnectionsHandler.ServeHTTP(w, r)
+		case MusicServiceBeginProviderConnectionProcedure:
+			musicServiceBeginProviderConnectionHandler.ServeHTTP(w, r)
+		case MusicServiceGetProviderConnectionAttemptProcedure:
+			musicServiceGetProviderConnectionAttemptHandler.ServeHTTP(w, r)
+		case MusicServiceDisconnectProviderProcedure:
+			musicServiceDisconnectProviderHandler.ServeHTTP(w, r)
+		case MusicServiceSearchMusicProcedure:
+			musicServiceSearchMusicHandler.ServeHTTP(w, r)
+		case MusicServiceResolvePlaybackProcedure:
+			musicServiceResolvePlaybackHandler.ServeHTTP(w, r)
+		case MusicServiceGetProviderLyricsProcedure:
+			musicServiceGetProviderLyricsHandler.ServeHTTP(w, r)
+		case MusicServiceGetSpotifyPlaybackTokenProcedure:
+			musicServiceGetSpotifyPlaybackTokenHandler.ServeHTTP(w, r)
 		case MusicServiceRecordPlaybackProcedure:
 			musicServiceRecordPlaybackHandler.ServeHTTP(w, r)
 		case MusicServiceListPlaybackHistoryProcedure:
@@ -442,6 +642,38 @@ func (UnimplementedMusicServiceHandler) ListAlbums(context.Context, *connect.Req
 
 func (UnimplementedMusicServiceHandler) ListArtists(context.Context, *connect.Request[v1.ListArtistsRequest]) (*connect.Response[v1.ListArtistsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.music.v1.MusicService.ListArtists is not implemented"))
+}
+
+func (UnimplementedMusicServiceHandler) ListProviderConnections(context.Context, *connect.Request[v1.ListProviderConnectionsRequest]) (*connect.Response[v1.ListProviderConnectionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.music.v1.MusicService.ListProviderConnections is not implemented"))
+}
+
+func (UnimplementedMusicServiceHandler) BeginProviderConnection(context.Context, *connect.Request[v1.BeginProviderConnectionRequest]) (*connect.Response[v1.BeginProviderConnectionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.music.v1.MusicService.BeginProviderConnection is not implemented"))
+}
+
+func (UnimplementedMusicServiceHandler) GetProviderConnectionAttempt(context.Context, *connect.Request[v1.GetProviderConnectionAttemptRequest]) (*connect.Response[v1.GetProviderConnectionAttemptResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.music.v1.MusicService.GetProviderConnectionAttempt is not implemented"))
+}
+
+func (UnimplementedMusicServiceHandler) DisconnectProvider(context.Context, *connect.Request[v1.DisconnectProviderRequest]) (*connect.Response[v1.DisconnectProviderResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.music.v1.MusicService.DisconnectProvider is not implemented"))
+}
+
+func (UnimplementedMusicServiceHandler) SearchMusic(context.Context, *connect.Request[v1.SearchMusicRequest]) (*connect.Response[v1.SearchMusicResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.music.v1.MusicService.SearchMusic is not implemented"))
+}
+
+func (UnimplementedMusicServiceHandler) ResolvePlayback(context.Context, *connect.Request[v1.ResolvePlaybackRequest]) (*connect.Response[v1.ResolvePlaybackResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.music.v1.MusicService.ResolvePlayback is not implemented"))
+}
+
+func (UnimplementedMusicServiceHandler) GetProviderLyrics(context.Context, *connect.Request[v1.GetProviderLyricsRequest]) (*connect.Response[v1.GetProviderLyricsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.music.v1.MusicService.GetProviderLyrics is not implemented"))
+}
+
+func (UnimplementedMusicServiceHandler) GetSpotifyPlaybackToken(context.Context, *connect.Request[v1.GetSpotifyPlaybackTokenRequest]) (*connect.Response[v1.GetSpotifyPlaybackTokenResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.music.v1.MusicService.GetSpotifyPlaybackToken is not implemented"))
 }
 
 func (UnimplementedMusicServiceHandler) RecordPlayback(context.Context, *connect.Request[v1.RecordPlaybackRequest]) (*connect.Response[v1.RecordPlaybackResponse], error) {

@@ -23,19 +23,29 @@ function apiOrigin(value: unknown, variableName: string): string {
   return url.origin;
 }
 
-function contentSecurityPolicy(origin: string): string {
+export interface ContentSecurityPolicyExtensions {
+  script?: readonly string[];
+  image?: readonly string[];
+  media?: readonly string[];
+  connect?: readonly string[];
+}
+
+function contentSecurityPolicy(
+  origin: string,
+  extensions: ContentSecurityPolicyExtensions,
+): string {
   return [
     "default-src 'self'",
     "base-uri 'none'",
     "object-src 'none'",
     "frame-ancestors 'none'",
     "form-action 'self'",
-    "script-src 'self'",
+    `script-src 'self' ${extensions.script?.join(" ") ?? ""}`,
     "style-src 'self' 'unsafe-inline'",
-    `img-src 'self' data: blob: ${origin}`,
-    `media-src 'self' blob: ${origin}`,
+    `img-src 'self' data: blob: ${origin} ${extensions.image?.join(" ") ?? ""}`,
+    `media-src 'self' blob: ${origin} ${extensions.media?.join(" ") ?? ""}`,
     `font-src 'self' data: blob: ${origin}`,
-    `connect-src 'self' ${origin}`,
+    `connect-src 'self' ${origin} ${extensions.connect?.join(" ") ?? ""}`,
     `frame-src 'self' blob: ${origin}`,
     "worker-src 'self' blob:",
     "upgrade-insecure-requests",
@@ -45,6 +55,7 @@ function contentSecurityPolicy(origin: string): string {
 export function cloudflarePagesHeaders(
   variableName: string,
   fallbackApiBase: string,
+  extensions: ContentSecurityPolicyExtensions = {},
 ): Plugin {
   let origin = apiOrigin(fallbackApiBase, variableName);
 
@@ -60,7 +71,7 @@ export function cloudflarePagesHeaders(
     generateBundle() {
       const lines = [
         "/*",
-        `  Content-Security-Policy: ${contentSecurityPolicy(origin)}`,
+        `  Content-Security-Policy: ${contentSecurityPolicy(origin, extensions)}`,
       ];
       for (const header of securityHeaders) {
         lines.push(`  ${header}`);

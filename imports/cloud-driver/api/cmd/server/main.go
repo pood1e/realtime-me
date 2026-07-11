@@ -15,6 +15,7 @@ import (
 	"example.com/cloud-drive/api/internal/auth"
 	"example.com/cloud-drive/api/internal/config"
 	"example.com/cloud-drive/api/internal/domain"
+	"example.com/cloud-drive/api/internal/provider"
 	"example.com/cloud-drive/api/internal/storage"
 	"example.com/cloud-drive/api/internal/store/postgres"
 	"example.com/cloud-drive/api/internal/transport"
@@ -49,6 +50,17 @@ func run(logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	credentialBox, err := provider.NewSecretBox(cfg.ProviderCredentialKey)
+	if err != nil {
+		return err
+	}
+	providerRegistry, err := provider.NewRegistry(provider.RegistryConfig{
+		SpotifyClientID: cfg.SpotifyClientID, SpotifyClientSecret: cfg.SpotifyClientSecret,
+		SpotifyRedirectURI: cfg.PrivateAPIOrigin() + "/v1/music/providers/spotify/callback",
+	})
+	if err != nil {
+		return err
+	}
 	content := app.NewContentService(store, store, files, clock, cfg.ChunkSizeBytes, cfg.ReservedFreeBytes, cfg.UploadTTL)
 	if err := content.MigrateLegacyContent(startupContext); err != nil {
 		return err
@@ -61,10 +73,12 @@ func run(logger *slog.Logger) error {
 		logger.Info("existing drive publications adopted", "count", adopted)
 	}
 	suite := &app.Suite{
-		Content:    content,
-		Drive:      app.NewDriveService(store, content, files, clock, cfg.ShareAppOrigin),
-		Books:      app.NewBookService(store, store, content, files),
-		Music:      app.NewMusicService(store, store, content, files, clock),
+		Content: content,
+		Drive:   app.NewDriveService(store, content, files, clock, cfg.ShareAppOrigin),
+		Books:   app.NewBookService(store, store, content, files),
+		Music: app.NewMusicService(store, store, content, files, clock, app.MusicProviderDependencies{
+			Store: store, Registry: providerRegistry, Credentials: credentialBox,
+		}),
 		Images:     app.NewImageService(store, store, content, files, cfg.PublicAPIOrigin()),
 		Wallpapers: app.NewWallpaperService(store, store, files, cfg.PublicAPIOrigin()),
 		System:     app.NewSystemService(store, store, files, clock),

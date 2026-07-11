@@ -57,6 +57,7 @@ type RetentionStore interface {
 	PurgeTrashedBooks(context.Context, time.Time) error
 	PurgeTrashedTracks(context.Context, time.Time) error
 	PurgeTrashedImages(context.Context, time.Time) error
+	PurgeExpiredProviderConnectionAttempts(context.Context, time.Time) error
 }
 
 // RetentionService applies upload, trash, and content collection policies.
@@ -86,6 +87,9 @@ func (s *RetentionService) PurgeExpired(ctx context.Context) error {
 		if err := purge(ctx, cutoff); err != nil {
 			return err
 		}
+	}
+	if err := s.store.PurgeExpiredProviderConnectionAttempts(ctx, s.clock.Now().UTC()); err != nil {
+		return err
 	}
 	return s.content.CollectGarbage(ctx)
 }

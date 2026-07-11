@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
-
 	"example.com/cloud-drive/api/internal/domain"
 )
 
@@ -54,13 +52,16 @@ func (s *Store) ListArtists(ctx context.Context, query string) ([]domain.Artist,
 
 // RecordPlayback persists one meaningful playback event.
 func (s *Store) RecordPlayback(ctx context.Context, entry domain.PlaybackEntry) (domain.PlaybackEntry, error) {
-	track, err := s.GetTrack(ctx, entry.Track.UID, false)
-	if err != nil {
-		return domain.PlaybackEntry{}, err
+	var localTrackUID any
+	if entry.Track.Provider == domain.MusicProviderLocal {
+		localTrackUID = entry.Track.TrackID
 	}
-	entry.Track = track
-	err = s.pool.QueryRow(ctx, `INSERT INTO playback_history (uid, track_uid, play_time)
-		VALUES ($1, $2, $3) RETURNING play_time`, entry.UID, track.UID, entry.PlayTime).Scan(&entry.PlayTime)
+	err := s.pool.QueryRow(ctx, `INSERT INTO playback_history (uid, track_uid, play_time, provider,
+		external_track_id, title, artists, album, duration_ms, artwork_url, provider_url, playable, lyrics_available)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING play_time`,
+		entry.UID, localTrackUID, entry.PlayTime, entry.Track.Provider, entry.Track.TrackID, entry.Track.Title,
+		entry.Track.Artists, entry.Track.Album, entry.Track.Duration.Milliseconds(), entry.Track.ArtworkURL,
+		entry.Track.ProviderURL, entry.Track.Playable, entry.Track.LyricsAvailable).Scan(&entry.PlayTime)
 	if err != nil {
 		return domain.PlaybackEntry{}, fmt.Errorf("record playback: %w", err)
 	}
@@ -70,11 +71,8 @@ func (s *Store) RecordPlayback(ctx context.Context, entry domain.PlaybackEntry) 
 // ListPlaybackHistory lists newest events first.
 func (s *Store) ListPlaybackHistory(ctx context.Context, pageSize int, pageToken string) (domain.PlaybackPage, error) {
 	pageSize = normalizePageSize(pageSize)
-	query := "SELECT history.uid, history.play_time, " + trackColumns + ` FROM playback_history history
-		JOIN tracks track ON track.uid = history.track_uid
-		JOIN content_objects content ON content.uid = track.content_uid
-		LEFT JOIN content_artifacts art ON art.content_uid = track.content_uid
-		AND art.kind = 'track_artwork' AND art.variant = 'default'`
+	query := `SELECT uid, play_time, provider, external_track_id, title, artists, album, duration_ms,
+		artwork_url, provider_url, playable, lyrics_available FROM playback_history`
 	arguments := []any{}
 	if pageToken != "" {
 		cursor, err := decodeCursor(pageToken)
@@ -99,21 +97,12 @@ func (s *Store) ListPlaybackHistory(ctx context.Context, pageSize int, pageToken
 	for rows.Next() {
 		var entry domain.PlaybackEntry
 		var durationMS int64
-		var status string
-		var deleteTime pgtype.Timestamptz
-		if err := rows.Scan(&entry.UID, &entry.PlayTime, &entry.Track.UID, &entry.Track.ContentUID, &entry.Track.Title,
-			&entry.Track.Artists, &entry.Track.Album, &entry.Track.AlbumArtist, &entry.Track.TrackNumber,
-			&entry.Track.DiscNumber, &entry.Track.Year, &durationMS, &entry.Track.OriginalFileName,
-			&entry.Track.ContentType, &entry.Track.SizeBytes, &entry.Track.ArtworkStorageKey, &entry.Track.Favorite,
-			&status, &entry.Track.CreateTime, &entry.Track.UpdateTime, &deleteTime); err != nil {
+		if err := rows.Scan(&entry.UID, &entry.PlayTime, &entry.Track.Provider, &entry.Track.TrackID,
+			&entry.Track.Title, &entry.Track.Artists, &entry.Track.Album, &durationMS, &entry.Track.ArtworkURL,
+			&entry.Track.ProviderURL, &entry.Track.Playable, &entry.Track.LyricsAvailable); err != nil {
 			return domain.PlaybackPage{}, fmt.Errorf("scan playback history: %w", err)
 		}
 		entry.Track.Duration = time.Duration(durationMS) * time.Millisecond
-		entry.Track.ProcessingStatus = domain.ProcessingStatus(status)
-		if deleteTime.Valid {
-			value := deleteTime.Time.UTC()
-			entry.Track.DeleteTime = &value
-		}
 		page.Entries = append(page.Entries, entry)
 	}
 	if len(page.Entries) > pageSize {

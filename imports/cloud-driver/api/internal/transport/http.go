@@ -23,6 +23,8 @@ import (
 
 const maxChunkBodyBytes = 16 << 20
 
+const spotifyCallbackPath = "/v1/music/providers/spotify/callback"
+
 // NewHTTPHandler creates strict host-separated private and public routes.
 func NewHTTPHandler(cfg config.Config, suite *app.Suite, sessions *auth.Manager, logger *slog.Logger) http.Handler {
 	privateMux := http.NewServeMux()
@@ -118,6 +120,10 @@ func (router *httpRouter) health(writer http.ResponseWriter, request *http.Reque
 
 func (router *httpRouter) servePrivate(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Cache-Control", "no-store")
+	if request.URL.Path == spotifyCallbackPath {
+		router.serveSpotifyCallback(writer, request)
+		return
+	}
 	if !applyCORS(writer, request, router.config.PrivateAppOrigins, "GET, POST, PUT, DELETE, OPTIONS", true) {
 		return
 	}
@@ -140,6 +146,28 @@ func (router *httpRouter) servePrivate(writer http.ResponseWriter, request *http
 		return
 	}
 	router.privateMux.ServeHTTP(writer, request)
+}
+
+func (router *httpRouter) serveSpotifyCallback(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodGet {
+		methodNotAllowed(writer, http.MethodGet)
+		return
+	}
+	if router.config.MusicAppOrigin == "" {
+		http.NotFound(writer, request)
+		return
+	}
+	status := "failed"
+	if request.URL.Query().Get("error") == "" {
+		err := router.suite.Music.CompleteSpotifyConnection(
+			request.Context(), request.URL.Query().Get("state"), request.URL.Query().Get("code"),
+		)
+		if err == nil {
+			status = "connected"
+		}
+	}
+	target := router.config.MusicAppOrigin + "/?provider=spotify&connection=" + status
+	http.Redirect(writer, request, target, http.StatusSeeOther)
 }
 
 func (router *httpRouter) servePublic(writer http.ResponseWriter, request *http.Request) {

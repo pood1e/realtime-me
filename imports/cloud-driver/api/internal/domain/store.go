@@ -89,6 +89,20 @@ type MusicStore interface {
 	ListPlaybackHistory(context.Context, int, string) (PlaybackPage, error)
 }
 
+// MusicProviderStore persists encrypted external accounts and login attempts.
+type MusicProviderStore interface {
+	ListProviderConnections(context.Context) ([]ProviderConnection, error)
+	GetProviderConnection(context.Context, MusicProvider) (ProviderConnection, error)
+	UpsertProviderConnection(context.Context, ProviderConnection) (ProviderConnection, error)
+	DeleteProviderConnection(context.Context, MusicProvider) error
+	CreateProviderConnectionAttempt(context.Context, ProviderConnectionAttempt) (ProviderConnectionAttempt, error)
+	GetProviderConnectionAttempt(context.Context, string) (ProviderConnectionAttempt, error)
+	GetProviderConnectionAttemptByStateHash(context.Context, []byte) (ProviderConnectionAttempt, error)
+	UpdateProviderConnectionAttempt(context.Context, ProviderConnectionAttempt) (ProviderConnectionAttempt, error)
+	ConsumeProviderConnectionAttempt(context.Context, string, time.Time) error
+	PurgeExpiredProviderConnectionAttempts(context.Context, time.Time) error
+}
+
 // ImageStore persists private images, anonymous links, and wallpapers.
 type ImageStore interface {
 	GetImage(context.Context, string, bool) (Image, error)

@@ -4,15 +4,19 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Lyric, MusicProvider, PlayableTrack, PlaybackDescriptor, PlaybackQuality, ProviderConnection, ProviderConnectionAttempt, ProviderSearchCursor, ProviderSearchGroup } from "./provider_pb.js";
+import { file_cloud_music_v1_provider } from "./provider_pb.js";
 import type { Album, Artist, PlaybackEntry, Track } from "./track_pb.js";
 import { file_cloud_music_v1_track } from "./track_pb.js";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file cloud/music/v1/music_service.proto.
  */
 export const file_cloud_music_v1_music_service: GenFile = /*@__PURE__*/
-  fileDesc("CiJjbG91ZC9tdXNpYy92MS9tdXNpY19zZXJ2aWNlLnByb3RvEg5jbG91ZC5tdXNpYy52MSIkCg9HZXRUcmFja1JlcXVlc3QSEQoJdHJhY2tfdWlkGAEgASgJIjgKEEdldFRyYWNrUmVzcG9uc2USJAoFdHJhY2sYASABKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjayKMAQoRTGlzdFRyYWNrc1JlcXVlc3QSDQoFcXVlcnkYASABKAkSDQoFYWxidW0YAiABKAkSDgoGYXJ0aXN0GAMgASgJEhEKCWZhdm9yaXRlcxgEIAEoCBIPCgd0cmFzaGVkGAUgASgIEhEKCXBhZ2Vfc2l6ZRgGIAEoBRISCgpwYWdlX3Rva2VuGAcgASgJIlQKEkxpc3RUcmFja3NSZXNwb25zZRIlCgZ0cmFja3MYASADKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjaxIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiKAoSSW1wb3J0VHJhY2tSZXF1ZXN0EhIKCnVwbG9hZF91aWQYASABKAkiOwoTSW1wb3J0VHJhY2tSZXNwb25zZRIkCgV0cmFjaxgBIAEoCzIVLmNsb3VkLm11c2ljLnYxLlRyYWNrIj4KF1NldFRyYWNrRmF2b3JpdGVSZXF1ZXN0EhEKCXRyYWNrX3VpZBgBIAEoCRIQCghmYXZvcml0ZRgCIAEoCCJAChhTZXRUcmFja0Zhdm9yaXRlUmVzcG9uc2USJAoFdHJhY2sYASABKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjayInChJEZWxldGVUcmFja1JlcXVlc3QSEQoJdHJhY2tfdWlkGAEgASgJIjsKE0RlbGV0ZVRyYWNrUmVzcG9uc2USJAoFdHJhY2sYASABKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjayIoChNSZXN0b3JlVHJhY2tSZXF1ZXN0EhEKCXRyYWNrX3VpZBgBIAEoCSI8ChRSZXN0b3JlVHJhY2tSZXNwb25zZRIkCgV0cmFjaxgBIAEoCzIVLmNsb3VkLm11c2ljLnYxLlRyYWNrIiYKEVB1cmdlVHJhY2tSZXF1ZXN0EhEKCXRyYWNrX3VpZBgBIAEoCSIUChJQdXJnZVRyYWNrUmVzcG9uc2UiGAoWRW1wdHlUcmFja1RyYXNoUmVxdWVzdCIZChdFbXB0eVRyYWNrVHJhc2hSZXNwb25zZSIwChtSZXRyeVRyYWNrUHJvY2Vzc2luZ1JlcXVlc3QSEQoJdHJhY2tfdWlkGAEgASgJIkQKHFJldHJ5VHJhY2tQcm9jZXNzaW5nUmVzcG9uc2USJAoFdHJhY2sYASABKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjayIiChFMaXN0QWxidW1zUmVxdWVzdBINCgVxdWVyeRgBIAEoCSI7ChJMaXN0QWxidW1zUmVzcG9uc2USJQoGYWxidW1zGAEgAygLMhUuY2xvdWQubXVzaWMudjEuQWxidW0iIwoSTGlzdEFydGlzdHNSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJIj4KE0xpc3RBcnRpc3RzUmVzcG9uc2USJwoHYXJ0aXN0cxgBIAMoCzIWLmNsb3VkLm11c2ljLnYxLkFydGlzdCIqChVSZWNvcmRQbGF5YmFja1JlcXVlc3QSEQoJdHJhY2tfdWlkGAEgASgJIk8KFlJlY29yZFBsYXliYWNrUmVzcG9uc2USNQoOcGxheWJhY2tfZW50cnkYASABKAsyHS5jbG91ZC5tdXNpYy52MS5QbGF5YmFja0VudHJ5IkMKGkxpc3RQbGF5YmFja0hpc3RvcnlSZXF1ZXN0EhEKCXBhZ2Vfc2l6ZRgBIAEoBRISCgpwYWdlX3Rva2VuGAIgASgJIm8KG0xpc3RQbGF5YmFja0hpc3RvcnlSZXNwb25zZRI3ChBwbGF5YmFja19lbnRyaWVzGAEgAygLMh0uY2xvdWQubXVzaWMudjEuUGxheWJhY2tFbnRyeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkyzgkKDE11c2ljU2VydmljZRJNCghHZXRUcmFjaxIfLmNsb3VkLm11c2ljLnYxLkdldFRyYWNrUmVxdWVzdBogLmNsb3VkLm11c2ljLnYxLkdldFRyYWNrUmVzcG9uc2USUwoKTGlzdFRyYWNrcxIhLmNsb3VkLm11c2ljLnYxLkxpc3RUcmFja3NSZXF1ZXN0GiIuY2xvdWQubXVzaWMudjEuTGlzdFRyYWNrc1Jlc3BvbnNlElYKC0ltcG9ydFRyYWNrEiIuY2xvdWQubXVzaWMudjEuSW1wb3J0VHJhY2tSZXF1ZXN0GiMuY2xvdWQubXVzaWMudjEuSW1wb3J0VHJhY2tSZXNwb25zZRJlChBTZXRUcmFja0Zhdm9yaXRlEicuY2xvdWQubXVzaWMudjEuU2V0VHJhY2tGYXZvcml0ZVJlcXVlc3QaKC5jbG91ZC5tdXNpYy52MS5TZXRUcmFja0Zhdm9yaXRlUmVzcG9uc2USVgoLRGVsZXRlVHJhY2sSIi5jbG91ZC5tdXNpYy52MS5EZWxldGVUcmFja1JlcXVlc3QaIy5jbG91ZC5tdXNpYy52MS5EZWxldGVUcmFja1Jlc3BvbnNlElkKDFJlc3RvcmVUcmFjaxIjLmNsb3VkLm11c2ljLnYxLlJlc3RvcmVUcmFja1JlcXVlc3QaJC5jbG91ZC5tdXNpYy52MS5SZXN0b3JlVHJhY2tSZXNwb25zZRJTCgpQdXJnZVRyYWNrEiEuY2xvdWQubXVzaWMudjEuUHVyZ2VUcmFja1JlcXVlc3QaIi5jbG91ZC5tdXNpYy52MS5QdXJnZVRyYWNrUmVzcG9uc2USYgoPRW1wdHlUcmFja1RyYXNoEiYuY2xvdWQubXVzaWMudjEuRW1wdHlUcmFja1RyYXNoUmVxdWVzdBonLmNsb3VkLm11c2ljLnYxLkVtcHR5VHJhY2tUcmFzaFJlc3BvbnNlEnEKFFJldHJ5VHJhY2tQcm9jZXNzaW5nEisuY2xvdWQubXVzaWMudjEuUmV0cnlUcmFja1Byb2Nlc3NpbmdSZXF1ZXN0GiwuY2xvdWQubXVzaWMudjEuUmV0cnlUcmFja1Byb2Nlc3NpbmdSZXNwb25zZRJTCgpMaXN0QWxidW1zEiEuY2xvdWQubXVzaWMudjEuTGlzdEFsYnVtc1JlcXVlc3QaIi5jbG91ZC5tdXNpYy52MS5MaXN0QWxidW1zUmVzcG9uc2USVgoLTGlzdEFydGlzdHMSIi5jbG91ZC5tdXNpYy52MS5MaXN0QXJ0aXN0c1JlcXVlc3QaIy5jbG91ZC5tdXNpYy52MS5MaXN0QXJ0aXN0c1Jlc3BvbnNlEl8KDlJlY29yZFBsYXliYWNrEiUuY2xvdWQubXVzaWMudjEuUmVjb3JkUGxheWJhY2tSZXF1ZXN0GiYuY2xvdWQubXVzaWMudjEuUmVjb3JkUGxheWJhY2tSZXNwb25zZRJuChNMaXN0UGxheWJhY2tIaXN0b3J5EiouY2xvdWQubXVzaWMudjEuTGlzdFBsYXliYWNrSGlzdG9yeVJlcXVlc3QaKy5jbG91ZC5tdXNpYy52MS5MaXN0UGxheWJhY2tIaXN0b3J5UmVzcG9uc2VCOFo2ZXhhbXBsZS5jb20vY2xvdWQtZHJpdmUvYXBpL2dlbi9jbG91ZC9tdXNpYy92MTttdXNpY3YxYgZwcm90bzM", [file_cloud_music_v1_track]);
+  fileDesc("CiJjbG91ZC9tdXNpYy92MS9tdXNpY19zZXJ2aWNlLnByb3RvEg5jbG91ZC5tdXNpYy52MSIkCg9HZXRUcmFja1JlcXVlc3QSEQoJdHJhY2tfdWlkGAEgASgJIjgKEEdldFRyYWNrUmVzcG9uc2USJAoFdHJhY2sYASABKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjayKMAQoRTGlzdFRyYWNrc1JlcXVlc3QSDQoFcXVlcnkYASABKAkSDQoFYWxidW0YAiABKAkSDgoGYXJ0aXN0GAMgASgJEhEKCWZhdm9yaXRlcxgEIAEoCBIPCgd0cmFzaGVkGAUgASgIEhEKCXBhZ2Vfc2l6ZRgGIAEoBRISCgpwYWdlX3Rva2VuGAcgASgJIlQKEkxpc3RUcmFja3NSZXNwb25zZRIlCgZ0cmFja3MYASADKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjaxIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiKAoSSW1wb3J0VHJhY2tSZXF1ZXN0EhIKCnVwbG9hZF91aWQYASABKAkiOwoTSW1wb3J0VHJhY2tSZXNwb25zZRIkCgV0cmFjaxgBIAEoCzIVLmNsb3VkLm11c2ljLnYxLlRyYWNrIj4KF1NldFRyYWNrRmF2b3JpdGVSZXF1ZXN0EhEKCXRyYWNrX3VpZBgBIAEoCRIQCghmYXZvcml0ZRgCIAEoCCJAChhTZXRUcmFja0Zhdm9yaXRlUmVzcG9uc2USJAoFdHJhY2sYASABKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjayInChJEZWxldGVUcmFja1JlcXVlc3QSEQoJdHJhY2tfdWlkGAEgASgJIjsKE0RlbGV0ZVRyYWNrUmVzcG9uc2USJAoFdHJhY2sYASABKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjayIoChNSZXN0b3JlVHJhY2tSZXF1ZXN0EhEKCXRyYWNrX3VpZBgBIAEoCSI8ChRSZXN0b3JlVHJhY2tSZXNwb25zZRIkCgV0cmFjaxgBIAEoCzIVLmNsb3VkLm11c2ljLnYxLlRyYWNrIiYKEVB1cmdlVHJhY2tSZXF1ZXN0EhEKCXRyYWNrX3VpZBgBIAEoCSIUChJQdXJnZVRyYWNrUmVzcG9uc2UiGAoWRW1wdHlUcmFja1RyYXNoUmVxdWVzdCIZChdFbXB0eVRyYWNrVHJhc2hSZXNwb25zZSIwChtSZXRyeVRyYWNrUHJvY2Vzc2luZ1JlcXVlc3QSEQoJdHJhY2tfdWlkGAEgASgJIkQKHFJldHJ5VHJhY2tQcm9jZXNzaW5nUmVzcG9uc2USJAoFdHJhY2sYASABKAsyFS5jbG91ZC5tdXNpYy52MS5UcmFjayIiChFMaXN0QWxidW1zUmVxdWVzdBINCgVxdWVyeRgBIAEoCSI7ChJMaXN0QWxidW1zUmVzcG9uc2USJQoGYWxidW1zGAEgAygLMhUuY2xvdWQubXVzaWMudjEuQWxidW0iIwoSTGlzdEFydGlzdHNSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJIj4KE0xpc3RBcnRpc3RzUmVzcG9uc2USJwoHYXJ0aXN0cxgBIAMoCzIWLmNsb3VkLm11c2ljLnYxLkFydGlzdCIgCh5MaXN0UHJvdmlkZXJDb25uZWN0aW9uc1JlcXVlc3QiWgofTGlzdFByb3ZpZGVyQ29ubmVjdGlvbnNSZXNwb25zZRI3Cgtjb25uZWN0aW9ucxgBIAMoCzIiLmNsb3VkLm11c2ljLnYxLlByb3ZpZGVyQ29ubmVjdGlvbiJRCh5CZWdpblByb3ZpZGVyQ29ubmVjdGlvblJlcXVlc3QSLwoIcHJvdmlkZXIYASABKA4yHS5jbG91ZC5tdXNpYy52MS5NdXNpY1Byb3ZpZGVyIl0KH0JlZ2luUHJvdmlkZXJDb25uZWN0aW9uUmVzcG9uc2USOgoHYXR0ZW1wdBgBIAEoCzIpLmNsb3VkLm11c2ljLnYxLlByb3ZpZGVyQ29ubmVjdGlvbkF0dGVtcHQiOgojR2V0UHJvdmlkZXJDb25uZWN0aW9uQXR0ZW1wdFJlcXVlc3QSEwoLYXR0ZW1wdF91aWQYASABKAkiYgokR2V0UHJvdmlkZXJDb25uZWN0aW9uQXR0ZW1wdFJlc3BvbnNlEjoKB2F0dGVtcHQYASABKAsyKS5jbG91ZC5tdXNpYy52MS5Qcm92aWRlckNvbm5lY3Rpb25BdHRlbXB0IkwKGURpc2Nvbm5lY3RQcm92aWRlclJlcXVlc3QSLwoIcHJvdmlkZXIYASABKA4yHS5jbG91ZC5tdXNpYy52MS5NdXNpY1Byb3ZpZGVyIhwKGkRpc2Nvbm5lY3RQcm92aWRlclJlc3BvbnNlIloKElNlYXJjaE11c2ljUmVxdWVzdBINCgVxdWVyeRgBIAEoCRI1CgdjdXJzb3JzGAIgAygLMiQuY2xvdWQubXVzaWMudjEuUHJvdmlkZXJTZWFyY2hDdXJzb3IiSgoTU2VhcmNoTXVzaWNSZXNwb25zZRIzCgZncm91cHMYASADKAsyIy5jbG91ZC5tdXNpYy52MS5Qcm92aWRlclNlYXJjaEdyb3VwIo0BChZSZXNvbHZlUGxheWJhY2tSZXF1ZXN0Ei8KCHByb3ZpZGVyGAEgASgOMh0uY2xvdWQubXVzaWMudjEuTXVzaWNQcm92aWRlchIQCgh0cmFja19pZBgCIAEoCRIwCgdxdWFsaXR5GAMgASgOMh8uY2xvdWQubXVzaWMudjEuUGxheWJhY2tRdWFsaXR5Ik8KF1Jlc29sdmVQbGF5YmFja1Jlc3BvbnNlEjQKCHBsYXliYWNrGAEgASgLMiIuY2xvdWQubXVzaWMudjEuUGxheWJhY2tEZXNjcmlwdG9yIl0KGEdldFByb3ZpZGVyTHlyaWNzUmVxdWVzdBIvCghwcm92aWRlchgBIAEoDjIdLmNsb3VkLm11c2ljLnYxLk11c2ljUHJvdmlkZXISEAoIdHJhY2tfaWQYAiABKAkiQQoZR2V0UHJvdmlkZXJMeXJpY3NSZXNwb25zZRIkCgVseXJpYxgBIAEoCzIVLmNsb3VkLm11c2ljLnYxLkx5cmljIiAKHkdldFNwb3RpZnlQbGF5YmFja1Rva2VuUmVxdWVzdCJoCh9HZXRTcG90aWZ5UGxheWJhY2tUb2tlblJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRIvCgtleHBpcmVfdGltZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiRQoVUmVjb3JkUGxheWJhY2tSZXF1ZXN0EiwKBXRyYWNrGAEgASgLMh0uY2xvdWQubXVzaWMudjEuUGxheWFibGVUcmFjayJPChZSZWNvcmRQbGF5YmFja1Jlc3BvbnNlEjUKDnBsYXliYWNrX2VudHJ5GAEgASgLMh0uY2xvdWQubXVzaWMudjEuUGxheWJhY2tFbnRyeSJDChpMaXN0UGxheWJhY2tIaXN0b3J5UmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCSJvChtMaXN0UGxheWJhY2tIaXN0b3J5UmVzcG9uc2USNwoQcGxheWJhY2tfZW50cmllcxgBIAMoCzIdLmNsb3VkLm11c2ljLnYxLlBsYXliYWNrRW50cnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJMuEQCgxNdXNpY1NlcnZpY2USTQoIR2V0VHJhY2sSHy5jbG91ZC5tdXNpYy52MS5HZXRUcmFja1JlcXVlc3QaIC5jbG91ZC5tdXNpYy52MS5HZXRUcmFja1Jlc3BvbnNlElMKCkxpc3RUcmFja3MSIS5jbG91ZC5tdXNpYy52MS5MaXN0VHJhY2tzUmVxdWVzdBoiLmNsb3VkLm11c2ljLnYxLkxpc3RUcmFja3NSZXNwb25zZRJWCgtJbXBvcnRUcmFjaxIiLmNsb3VkLm11c2ljLnYxLkltcG9ydFRyYWNrUmVxdWVzdBojLmNsb3VkLm11c2ljLnYxLkltcG9ydFRyYWNrUmVzcG9uc2USZQoQU2V0VHJhY2tGYXZvcml0ZRInLmNsb3VkLm11c2ljLnYxLlNldFRyYWNrRmF2b3JpdGVSZXF1ZXN0GiguY2xvdWQubXVzaWMudjEuU2V0VHJhY2tGYXZvcml0ZVJlc3BvbnNlElYKC0RlbGV0ZVRyYWNrEiIuY2xvdWQubXVzaWMudjEuRGVsZXRlVHJhY2tSZXF1ZXN0GiMuY2xvdWQubXVzaWMudjEuRGVsZXRlVHJhY2tSZXNwb25zZRJZCgxSZXN0b3JlVHJhY2sSIy5jbG91ZC5tdXNpYy52MS5SZXN0b3JlVHJhY2tSZXF1ZXN0GiQuY2xvdWQubXVzaWMudjEuUmVzdG9yZVRyYWNrUmVzcG9uc2USUwoKUHVyZ2VUcmFjaxIhLmNsb3VkLm11c2ljLnYxLlB1cmdlVHJhY2tSZXF1ZXN0GiIuY2xvdWQubXVzaWMudjEuUHVyZ2VUcmFja1Jlc3BvbnNlEmIKD0VtcHR5VHJhY2tUcmFzaBImLmNsb3VkLm11c2ljLnYxLkVtcHR5VHJhY2tUcmFzaFJlcXVlc3QaJy5jbG91ZC5tdXNpYy52MS5FbXB0eVRyYWNrVHJhc2hSZXNwb25zZRJxChRSZXRyeVRyYWNrUHJvY2Vzc2luZxIrLmNsb3VkLm11c2ljLnYxLlJldHJ5VHJhY2tQcm9jZXNzaW5nUmVxdWVzdBosLmNsb3VkLm11c2ljLnYxLlJldHJ5VHJhY2tQcm9jZXNzaW5nUmVzcG9uc2USUwoKTGlzdEFsYnVtcxIhLmNsb3VkLm11c2ljLnYxLkxpc3RBbGJ1bXNSZXF1ZXN0GiIuY2xvdWQubXVzaWMudjEuTGlzdEFsYnVtc1Jlc3BvbnNlElYKC0xpc3RBcnRpc3RzEiIuY2xvdWQubXVzaWMudjEuTGlzdEFydGlzdHNSZXF1ZXN0GiMuY2xvdWQubXVzaWMudjEuTGlzdEFydGlzdHNSZXNwb25zZRJ6ChdMaXN0UHJvdmlkZXJDb25uZWN0aW9ucxIuLmNsb3VkLm11c2ljLnYxLkxpc3RQcm92aWRlckNvbm5lY3Rpb25zUmVxdWVzdBovLmNsb3VkLm11c2ljLnYxLkxpc3RQcm92aWRlckNvbm5lY3Rpb25zUmVzcG9uc2USegoXQmVnaW5Qcm92aWRlckNvbm5lY3Rpb24SLi5jbG91ZC5tdXNpYy52MS5CZWdpblByb3ZpZGVyQ29ubmVjdGlvblJlcXVlc3QaLy5jbG91ZC5tdXNpYy52MS5CZWdpblByb3ZpZGVyQ29ubmVjdGlvblJlc3BvbnNlEokBChxHZXRQcm92aWRlckNvbm5lY3Rpb25BdHRlbXB0EjMuY2xvdWQubXVzaWMudjEuR2V0UHJvdmlkZXJDb25uZWN0aW9uQXR0ZW1wdFJlcXVlc3QaNC5jbG91ZC5tdXNpYy52MS5HZXRQcm92aWRlckNvbm5lY3Rpb25BdHRlbXB0UmVzcG9uc2USawoSRGlzY29ubmVjdFByb3ZpZGVyEikuY2xvdWQubXVzaWMudjEuRGlzY29ubmVjdFByb3ZpZGVyUmVxdWVzdBoqLmNsb3VkLm11c2ljLnYxLkRpc2Nvbm5lY3RQcm92aWRlclJlc3BvbnNlElYKC1NlYXJjaE11c2ljEiIuY2xvdWQubXVzaWMudjEuU2VhcmNoTXVzaWNSZXF1ZXN0GiMuY2xvdWQubXVzaWMudjEuU2VhcmNoTXVzaWNSZXNwb25zZRJiCg9SZXNvbHZlUGxheWJhY2sSJi5jbG91ZC5tdXNpYy52MS5SZXNvbHZlUGxheWJhY2tSZXF1ZXN0GicuY2xvdWQubXVzaWMudjEuUmVzb2x2ZVBsYXliYWNrUmVzcG9uc2USaAoRR2V0UHJvdmlkZXJMeXJpY3MSKC5jbG91ZC5tdXNpYy52MS5HZXRQcm92aWRlckx5cmljc1JlcXVlc3QaKS5jbG91ZC5tdXNpYy52MS5HZXRQcm92aWRlckx5cmljc1Jlc3BvbnNlEnoKF0dldFNwb3RpZnlQbGF5YmFja1Rva2VuEi4uY2xvdWQubXVzaWMudjEuR2V0U3BvdGlmeVBsYXliYWNrVG9rZW5SZXF1ZXN0Gi8uY2xvdWQubXVzaWMudjEuR2V0U3BvdGlmeVBsYXliYWNrVG9rZW5SZXNwb25zZRJfCg5SZWNvcmRQbGF5YmFjaxIlLmNsb3VkLm11c2ljLnYxLlJlY29yZFBsYXliYWNrUmVxdWVzdBomLmNsb3VkLm11c2ljLnYxLlJlY29yZFBsYXliYWNrUmVzcG9uc2USbgoTTGlzdFBsYXliYWNrSGlzdG9yeRIqLmNsb3VkLm11c2ljLnYxLkxpc3RQbGF5YmFja0hpc3RvcnlSZXF1ZXN0GisuY2xvdWQubXVzaWMudjEuTGlzdFBsYXliYWNrSGlzdG9yeVJlc3BvbnNlQjhaNmV4YW1wbGUuY29tL2Nsb3VkLWRyaXZlL2FwaS9nZW4vY2xvdWQvbXVzaWMvdjE7bXVzaWN2MWIGcHJvdG8z", [file_cloud_music_v1_provider, file_cloud_music_v1_track, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message cloud.music.v1.GetTrackRequest
@@ -417,13 +421,298 @@ export const ListArtistsResponseSchema: GenMessage<ListArtistsResponse> = /*@__P
   messageDesc(file_cloud_music_v1_music_service, 21);
 
 /**
+ * @generated from message cloud.music.v1.ListProviderConnectionsRequest
+ */
+export type ListProviderConnectionsRequest = Message<"cloud.music.v1.ListProviderConnectionsRequest"> & {
+};
+
+/**
+ * Describes the message cloud.music.v1.ListProviderConnectionsRequest.
+ * Use `create(ListProviderConnectionsRequestSchema)` to create a new message.
+ */
+export const ListProviderConnectionsRequestSchema: GenMessage<ListProviderConnectionsRequest> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 22);
+
+/**
+ * @generated from message cloud.music.v1.ListProviderConnectionsResponse
+ */
+export type ListProviderConnectionsResponse = Message<"cloud.music.v1.ListProviderConnectionsResponse"> & {
+  /**
+   * @generated from field: repeated cloud.music.v1.ProviderConnection connections = 1;
+   */
+  connections: ProviderConnection[];
+};
+
+/**
+ * Describes the message cloud.music.v1.ListProviderConnectionsResponse.
+ * Use `create(ListProviderConnectionsResponseSchema)` to create a new message.
+ */
+export const ListProviderConnectionsResponseSchema: GenMessage<ListProviderConnectionsResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 23);
+
+/**
+ * @generated from message cloud.music.v1.BeginProviderConnectionRequest
+ */
+export type BeginProviderConnectionRequest = Message<"cloud.music.v1.BeginProviderConnectionRequest"> & {
+  /**
+   * @generated from field: cloud.music.v1.MusicProvider provider = 1;
+   */
+  provider: MusicProvider;
+};
+
+/**
+ * Describes the message cloud.music.v1.BeginProviderConnectionRequest.
+ * Use `create(BeginProviderConnectionRequestSchema)` to create a new message.
+ */
+export const BeginProviderConnectionRequestSchema: GenMessage<BeginProviderConnectionRequest> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 24);
+
+/**
+ * @generated from message cloud.music.v1.BeginProviderConnectionResponse
+ */
+export type BeginProviderConnectionResponse = Message<"cloud.music.v1.BeginProviderConnectionResponse"> & {
+  /**
+   * @generated from field: cloud.music.v1.ProviderConnectionAttempt attempt = 1;
+   */
+  attempt?: ProviderConnectionAttempt | undefined;
+};
+
+/**
+ * Describes the message cloud.music.v1.BeginProviderConnectionResponse.
+ * Use `create(BeginProviderConnectionResponseSchema)` to create a new message.
+ */
+export const BeginProviderConnectionResponseSchema: GenMessage<BeginProviderConnectionResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 25);
+
+/**
+ * @generated from message cloud.music.v1.GetProviderConnectionAttemptRequest
+ */
+export type GetProviderConnectionAttemptRequest = Message<"cloud.music.v1.GetProviderConnectionAttemptRequest"> & {
+  /**
+   * @generated from field: string attempt_uid = 1;
+   */
+  attemptUid: string;
+};
+
+/**
+ * Describes the message cloud.music.v1.GetProviderConnectionAttemptRequest.
+ * Use `create(GetProviderConnectionAttemptRequestSchema)` to create a new message.
+ */
+export const GetProviderConnectionAttemptRequestSchema: GenMessage<GetProviderConnectionAttemptRequest> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 26);
+
+/**
+ * @generated from message cloud.music.v1.GetProviderConnectionAttemptResponse
+ */
+export type GetProviderConnectionAttemptResponse = Message<"cloud.music.v1.GetProviderConnectionAttemptResponse"> & {
+  /**
+   * @generated from field: cloud.music.v1.ProviderConnectionAttempt attempt = 1;
+   */
+  attempt?: ProviderConnectionAttempt | undefined;
+};
+
+/**
+ * Describes the message cloud.music.v1.GetProviderConnectionAttemptResponse.
+ * Use `create(GetProviderConnectionAttemptResponseSchema)` to create a new message.
+ */
+export const GetProviderConnectionAttemptResponseSchema: GenMessage<GetProviderConnectionAttemptResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 27);
+
+/**
+ * @generated from message cloud.music.v1.DisconnectProviderRequest
+ */
+export type DisconnectProviderRequest = Message<"cloud.music.v1.DisconnectProviderRequest"> & {
+  /**
+   * @generated from field: cloud.music.v1.MusicProvider provider = 1;
+   */
+  provider: MusicProvider;
+};
+
+/**
+ * Describes the message cloud.music.v1.DisconnectProviderRequest.
+ * Use `create(DisconnectProviderRequestSchema)` to create a new message.
+ */
+export const DisconnectProviderRequestSchema: GenMessage<DisconnectProviderRequest> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 28);
+
+/**
+ * @generated from message cloud.music.v1.DisconnectProviderResponse
+ */
+export type DisconnectProviderResponse = Message<"cloud.music.v1.DisconnectProviderResponse"> & {
+};
+
+/**
+ * Describes the message cloud.music.v1.DisconnectProviderResponse.
+ * Use `create(DisconnectProviderResponseSchema)` to create a new message.
+ */
+export const DisconnectProviderResponseSchema: GenMessage<DisconnectProviderResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 29);
+
+/**
+ * @generated from message cloud.music.v1.SearchMusicRequest
+ */
+export type SearchMusicRequest = Message<"cloud.music.v1.SearchMusicRequest"> & {
+  /**
+   * @generated from field: string query = 1;
+   */
+  query: string;
+
+  /**
+   * @generated from field: repeated cloud.music.v1.ProviderSearchCursor cursors = 2;
+   */
+  cursors: ProviderSearchCursor[];
+};
+
+/**
+ * Describes the message cloud.music.v1.SearchMusicRequest.
+ * Use `create(SearchMusicRequestSchema)` to create a new message.
+ */
+export const SearchMusicRequestSchema: GenMessage<SearchMusicRequest> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 30);
+
+/**
+ * @generated from message cloud.music.v1.SearchMusicResponse
+ */
+export type SearchMusicResponse = Message<"cloud.music.v1.SearchMusicResponse"> & {
+  /**
+   * @generated from field: repeated cloud.music.v1.ProviderSearchGroup groups = 1;
+   */
+  groups: ProviderSearchGroup[];
+};
+
+/**
+ * Describes the message cloud.music.v1.SearchMusicResponse.
+ * Use `create(SearchMusicResponseSchema)` to create a new message.
+ */
+export const SearchMusicResponseSchema: GenMessage<SearchMusicResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 31);
+
+/**
+ * @generated from message cloud.music.v1.ResolvePlaybackRequest
+ */
+export type ResolvePlaybackRequest = Message<"cloud.music.v1.ResolvePlaybackRequest"> & {
+  /**
+   * @generated from field: cloud.music.v1.MusicProvider provider = 1;
+   */
+  provider: MusicProvider;
+
+  /**
+   * @generated from field: string track_id = 2;
+   */
+  trackId: string;
+
+  /**
+   * @generated from field: cloud.music.v1.PlaybackQuality quality = 3;
+   */
+  quality: PlaybackQuality;
+};
+
+/**
+ * Describes the message cloud.music.v1.ResolvePlaybackRequest.
+ * Use `create(ResolvePlaybackRequestSchema)` to create a new message.
+ */
+export const ResolvePlaybackRequestSchema: GenMessage<ResolvePlaybackRequest> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 32);
+
+/**
+ * @generated from message cloud.music.v1.ResolvePlaybackResponse
+ */
+export type ResolvePlaybackResponse = Message<"cloud.music.v1.ResolvePlaybackResponse"> & {
+  /**
+   * @generated from field: cloud.music.v1.PlaybackDescriptor playback = 1;
+   */
+  playback?: PlaybackDescriptor | undefined;
+};
+
+/**
+ * Describes the message cloud.music.v1.ResolvePlaybackResponse.
+ * Use `create(ResolvePlaybackResponseSchema)` to create a new message.
+ */
+export const ResolvePlaybackResponseSchema: GenMessage<ResolvePlaybackResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 33);
+
+/**
+ * @generated from message cloud.music.v1.GetProviderLyricsRequest
+ */
+export type GetProviderLyricsRequest = Message<"cloud.music.v1.GetProviderLyricsRequest"> & {
+  /**
+   * @generated from field: cloud.music.v1.MusicProvider provider = 1;
+   */
+  provider: MusicProvider;
+
+  /**
+   * @generated from field: string track_id = 2;
+   */
+  trackId: string;
+};
+
+/**
+ * Describes the message cloud.music.v1.GetProviderLyricsRequest.
+ * Use `create(GetProviderLyricsRequestSchema)` to create a new message.
+ */
+export const GetProviderLyricsRequestSchema: GenMessage<GetProviderLyricsRequest> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 34);
+
+/**
+ * @generated from message cloud.music.v1.GetProviderLyricsResponse
+ */
+export type GetProviderLyricsResponse = Message<"cloud.music.v1.GetProviderLyricsResponse"> & {
+  /**
+   * @generated from field: cloud.music.v1.Lyric lyric = 1;
+   */
+  lyric?: Lyric | undefined;
+};
+
+/**
+ * Describes the message cloud.music.v1.GetProviderLyricsResponse.
+ * Use `create(GetProviderLyricsResponseSchema)` to create a new message.
+ */
+export const GetProviderLyricsResponseSchema: GenMessage<GetProviderLyricsResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 35);
+
+/**
+ * @generated from message cloud.music.v1.GetSpotifyPlaybackTokenRequest
+ */
+export type GetSpotifyPlaybackTokenRequest = Message<"cloud.music.v1.GetSpotifyPlaybackTokenRequest"> & {
+};
+
+/**
+ * Describes the message cloud.music.v1.GetSpotifyPlaybackTokenRequest.
+ * Use `create(GetSpotifyPlaybackTokenRequestSchema)` to create a new message.
+ */
+export const GetSpotifyPlaybackTokenRequestSchema: GenMessage<GetSpotifyPlaybackTokenRequest> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 36);
+
+/**
+ * @generated from message cloud.music.v1.GetSpotifyPlaybackTokenResponse
+ */
+export type GetSpotifyPlaybackTokenResponse = Message<"cloud.music.v1.GetSpotifyPlaybackTokenResponse"> & {
+  /**
+   * @generated from field: string access_token = 1;
+   */
+  accessToken: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp expire_time = 2;
+   */
+  expireTime?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message cloud.music.v1.GetSpotifyPlaybackTokenResponse.
+ * Use `create(GetSpotifyPlaybackTokenResponseSchema)` to create a new message.
+ */
+export const GetSpotifyPlaybackTokenResponseSchema: GenMessage<GetSpotifyPlaybackTokenResponse> = /*@__PURE__*/
+  messageDesc(file_cloud_music_v1_music_service, 37);
+
+/**
  * @generated from message cloud.music.v1.RecordPlaybackRequest
  */
 export type RecordPlaybackRequest = Message<"cloud.music.v1.RecordPlaybackRequest"> & {
   /**
-   * @generated from field: string track_uid = 1;
+   * @generated from field: cloud.music.v1.PlayableTrack track = 1;
    */
-  trackUid: string;
+  track?: PlayableTrack | undefined;
 };
 
 /**
@@ -431,7 +720,7 @@ export type RecordPlaybackRequest = Message<"cloud.music.v1.RecordPlaybackReques
  * Use `create(RecordPlaybackRequestSchema)` to create a new message.
  */
 export const RecordPlaybackRequestSchema: GenMessage<RecordPlaybackRequest> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_music_service, 22);
+  messageDesc(file_cloud_music_v1_music_service, 38);
 
 /**
  * @generated from message cloud.music.v1.RecordPlaybackResponse
@@ -448,7 +737,7 @@ export type RecordPlaybackResponse = Message<"cloud.music.v1.RecordPlaybackRespo
  * Use `create(RecordPlaybackResponseSchema)` to create a new message.
  */
 export const RecordPlaybackResponseSchema: GenMessage<RecordPlaybackResponse> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_music_service, 23);
+  messageDesc(file_cloud_music_v1_music_service, 39);
 
 /**
  * @generated from message cloud.music.v1.ListPlaybackHistoryRequest
@@ -470,7 +759,7 @@ export type ListPlaybackHistoryRequest = Message<"cloud.music.v1.ListPlaybackHis
  * Use `create(ListPlaybackHistoryRequestSchema)` to create a new message.
  */
 export const ListPlaybackHistoryRequestSchema: GenMessage<ListPlaybackHistoryRequest> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_music_service, 24);
+  messageDesc(file_cloud_music_v1_music_service, 40);
 
 /**
  * @generated from message cloud.music.v1.ListPlaybackHistoryResponse
@@ -492,7 +781,7 @@ export type ListPlaybackHistoryResponse = Message<"cloud.music.v1.ListPlaybackHi
  * Use `create(ListPlaybackHistoryResponseSchema)` to create a new message.
  */
 export const ListPlaybackHistoryResponseSchema: GenMessage<ListPlaybackHistoryResponse> = /*@__PURE__*/
-  messageDesc(file_cloud_music_v1_music_service, 25);
+  messageDesc(file_cloud_music_v1_music_service, 41);
 
 /**
  * MusicService manages the private audio catalog and playback state.
@@ -587,6 +876,70 @@ export const MusicService: GenService<{
     methodKind: "unary";
     input: typeof ListArtistsRequestSchema;
     output: typeof ListArtistsResponseSchema;
+  },
+  /**
+   * @generated from rpc cloud.music.v1.MusicService.ListProviderConnections
+   */
+  listProviderConnections: {
+    methodKind: "unary";
+    input: typeof ListProviderConnectionsRequestSchema;
+    output: typeof ListProviderConnectionsResponseSchema;
+  },
+  /**
+   * @generated from rpc cloud.music.v1.MusicService.BeginProviderConnection
+   */
+  beginProviderConnection: {
+    methodKind: "unary";
+    input: typeof BeginProviderConnectionRequestSchema;
+    output: typeof BeginProviderConnectionResponseSchema;
+  },
+  /**
+   * @generated from rpc cloud.music.v1.MusicService.GetProviderConnectionAttempt
+   */
+  getProviderConnectionAttempt: {
+    methodKind: "unary";
+    input: typeof GetProviderConnectionAttemptRequestSchema;
+    output: typeof GetProviderConnectionAttemptResponseSchema;
+  },
+  /**
+   * @generated from rpc cloud.music.v1.MusicService.DisconnectProvider
+   */
+  disconnectProvider: {
+    methodKind: "unary";
+    input: typeof DisconnectProviderRequestSchema;
+    output: typeof DisconnectProviderResponseSchema;
+  },
+  /**
+   * @generated from rpc cloud.music.v1.MusicService.SearchMusic
+   */
+  searchMusic: {
+    methodKind: "unary";
+    input: typeof SearchMusicRequestSchema;
+    output: typeof SearchMusicResponseSchema;
+  },
+  /**
+   * @generated from rpc cloud.music.v1.MusicService.ResolvePlayback
+   */
+  resolvePlayback: {
+    methodKind: "unary";
+    input: typeof ResolvePlaybackRequestSchema;
+    output: typeof ResolvePlaybackResponseSchema;
+  },
+  /**
+   * @generated from rpc cloud.music.v1.MusicService.GetProviderLyrics
+   */
+  getProviderLyrics: {
+    methodKind: "unary";
+    input: typeof GetProviderLyricsRequestSchema;
+    output: typeof GetProviderLyricsResponseSchema;
+  },
+  /**
+   * @generated from rpc cloud.music.v1.MusicService.GetSpotifyPlaybackToken
+   */
+  getSpotifyPlaybackToken: {
+    methodKind: "unary";
+    input: typeof GetSpotifyPlaybackTokenRequestSchema;
+    output: typeof GetSpotifyPlaybackTokenResponseSchema;
   },
   /**
    * @generated from rpc cloud.music.v1.MusicService.RecordPlayback

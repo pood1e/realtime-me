@@ -27,6 +27,8 @@ func connectError(err error) error {
 		return connect.NewError(connect.CodeResourceExhausted, errors.New("storage capacity is unavailable"))
 	case errors.Is(err, domain.ErrConflict):
 		return connect.NewError(connect.CodeFailedPrecondition, errors.New("request cannot be applied"))
+	case errors.Is(err, domain.ErrProviderReconnectRequired):
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New("provider account must be reconnected"))
 	case errors.Is(err, domain.ErrUnavailable):
 		return connect.NewError(connect.CodeUnavailable, errors.New("service temporarily unavailable"))
 	default:

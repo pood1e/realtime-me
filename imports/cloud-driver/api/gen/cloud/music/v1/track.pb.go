@@ -415,7 +415,7 @@ func (x *Artist) GetTrackCount() int32 {
 type PlaybackEntry struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Uid           string                 `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
-	Track         *Track                 `protobuf:"bytes,2,opt,name=track,proto3" json:"track,omitempty"`
+	Track         *PlayableTrack         `protobuf:"bytes,2,opt,name=track,proto3" json:"track,omitempty"`
 	PlayTime      *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=play_time,json=playTime,proto3" json:"play_time,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -458,7 +458,7 @@ func (x *PlaybackEntry) GetUid() string {
 	return ""
 }
 
-func (x *PlaybackEntry) GetTrack() *Track {
+func (x *PlaybackEntry) GetTrack() *PlayableTrack {
 	if x != nil {
 		return x.Track
 	}
@@ -476,7 +476,7 @@ var File_cloud_music_v1_track_proto protoreflect.FileDescriptor
 
 const file_cloud_music_v1_track_proto_rawDesc = "" +
 	"\n" +
-	"\x1acloud/music/v1/track.proto\x12\x0ecloud.music.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xea\x05\n" +
+	"\x1acloud/music/v1/track.proto\x12\x0ecloud.music.v1\x1a\x1dcloud/music/v1/provider.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xea\x05\n" +
 	"\x05Track\x12\x10\n" +
 	"\x03uid\x18\x01 \x01(\tR\x03uid\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
@@ -518,10 +518,10 @@ const file_cloud_music_v1_track_proto_rawDesc = "" +
 	"\x03uid\x18\x01 \x01(\tR\x03uid\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x1f\n" +
 	"\vtrack_count\x18\x03 \x01(\x05R\n" +
-	"trackCount\"\x87\x01\n" +
+	"trackCount\"\x8f\x01\n" +
 	"\rPlaybackEntry\x12\x10\n" +
-	"\x03uid\x18\x01 \x01(\tR\x03uid\x12+\n" +
-	"\x05track\x18\x02 \x01(\v2\x15.cloud.music.v1.TrackR\x05track\x127\n" +
+	"\x03uid\x18\x01 \x01(\tR\x03uid\x123\n" +
+	"\x05track\x18\x02 \x01(\v2\x1d.cloud.music.v1.PlayableTrackR\x05track\x127\n" +
 	"\tplay_time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bplayTime*\xac\x01\n" +
 	"\x15TrackProcessingStatus\x12'\n" +
 	"#TRACK_PROCESSING_STATUS_UNSPECIFIED\x10\x00\x12#\n" +
@@ -551,6 +551,7 @@ var file_cloud_music_v1_track_proto_goTypes = []any{
 	(*PlaybackEntry)(nil),         // 4: cloud.music.v1.PlaybackEntry
 	(*durationpb.Duration)(nil),   // 5: google.protobuf.Duration
 	(*timestamppb.Timestamp)(nil), // 6: google.protobuf.Timestamp
+	(*PlayableTrack)(nil),         // 7: cloud.music.v1.PlayableTrack
 }
 var file_cloud_music_v1_track_proto_depIdxs = []int32{
 	5, // 0: cloud.music.v1.Track.duration:type_name -> google.protobuf.Duration
@@ -558,7 +559,7 @@ var file_cloud_music_v1_track_proto_depIdxs = []int32{
 	6, // 2: cloud.music.v1.Track.create_time:type_name -> google.protobuf.Timestamp
 	6, // 3: cloud.music.v1.Track.update_time:type_name -> google.protobuf.Timestamp
 	6, // 4: cloud.music.v1.Track.delete_time:type_name -> google.protobuf.Timestamp
-	1, // 5: cloud.music.v1.PlaybackEntry.track:type_name -> cloud.music.v1.Track
+	7, // 5: cloud.music.v1.PlaybackEntry.track:type_name -> cloud.music.v1.PlayableTrack
 	6, // 6: cloud.music.v1.PlaybackEntry.play_time:type_name -> google.protobuf.Timestamp
 	7, // [7:7] is the sub-list for method output_type
 	7, // [7:7] is the sub-list for method input_type
@@ -572,6 +573,7 @@ func file_cloud_music_v1_track_proto_init() {
 	if File_cloud_music_v1_track_proto != nil {
 		return
 	}
+	file_cloud_music_v1_provider_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

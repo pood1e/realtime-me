@@ -12,16 +12,35 @@ import (
 
 // MusicService manages the private music application independently of the drive.
 type MusicService struct {
-	store    domain.MusicStore
-	contents domain.ContentStore
-	content  *ContentService
-	files    ContentFiles
-	clock    domain.Clock
+	store         domain.MusicStore
+	providerStore domain.MusicProviderStore
+	providers     domain.MusicProviderRegistry
+	credentials   CredentialProtector
+	contents      domain.ContentStore
+	content       *ContentService
+	files         ContentFiles
+	clock         domain.Clock
+}
+
+// CredentialProtector encrypts provider state before persistence.
+type CredentialProtector interface {
+	Seal(string, []byte) ([]byte, error)
+	Open(string, []byte) ([]byte, error)
+}
+
+// MusicProviderDependencies contains external provider infrastructure.
+type MusicProviderDependencies struct {
+	Store       domain.MusicProviderStore
+	Registry    domain.MusicProviderRegistry
+	Credentials CredentialProtector
 }
 
 // NewMusicService constructs the music application service.
-func NewMusicService(store domain.MusicStore, contents domain.ContentStore, content *ContentService, files ContentFiles, clock domain.Clock) *MusicService {
-	return &MusicService{store: store, contents: contents, content: content, files: files, clock: clock}
+func NewMusicService(store domain.MusicStore, contents domain.ContentStore, content *ContentService, files ContentFiles, clock domain.Clock, providers MusicProviderDependencies) *MusicService {
+	return &MusicService{
+		store: store, providerStore: providers.Store, providers: providers.Registry, credentials: providers.Credentials,
+		contents: contents, content: content, files: files, clock: clock,
+	}
 }
 
 func (s *MusicService) Get(ctx context.Context, uid string) (domain.Track, error) {
@@ -86,8 +105,12 @@ func (s *MusicService) ListArtists(ctx context.Context, query string) ([]domain.
 	return s.store.ListArtists(ctx, strings.TrimSpace(query))
 }
 
-func (s *MusicService) RecordPlayback(ctx context.Context, trackUID string) (domain.PlaybackEntry, error) {
-	return s.store.RecordPlayback(ctx, domain.PlaybackEntry{UID: uuid.NewString(), Track: domain.Track{UID: trackUID}, PlayTime: s.clock.Now().UTC()})
+func (s *MusicService) RecordPlayback(ctx context.Context, track domain.PlayableTrack) (domain.PlaybackEntry, error) {
+	validated, err := s.validatePlaybackTrack(ctx, track)
+	if err != nil {
+		return domain.PlaybackEntry{}, err
+	}
+	return s.store.RecordPlayback(ctx, domain.PlaybackEntry{UID: uuid.NewString(), Track: validated, PlayTime: s.clock.Now().UTC()})
 }
 
 func (s *MusicService) ListPlaybackHistory(ctx context.Context, pageSize int, pageToken string) (domain.PlaybackPage, error) {

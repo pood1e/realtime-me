@@ -196,7 +196,7 @@ func artistProto(artist domain.Artist) *musicv1.Artist {
 }
 
 func playbackProto(entry domain.PlaybackEntry) *musicv1.PlaybackEntry {
-	return &musicv1.PlaybackEntry{Uid: entry.UID, Track: trackProto(entry.Track), PlayTime: timestamppb.New(entry.PlayTime)}
+	return &musicv1.PlaybackEntry{Uid: entry.UID, Track: playableTrackProto(entry.Track), PlayTime: timestamppb.New(entry.PlayTime)}
 }
 
 func imageProto(image domain.Image) *imagesv1.Image {

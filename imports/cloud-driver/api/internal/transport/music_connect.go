@@ -109,7 +109,7 @@ func (s *musicServer) ListArtists(ctx context.Context, request *connect.Request[
 }
 
 func (s *musicServer) RecordPlayback(ctx context.Context, request *connect.Request[musicv1.RecordPlaybackRequest]) (*connect.Response[musicv1.RecordPlaybackResponse], error) {
-	entry, err := s.service.RecordPlayback(ctx, request.Msg.GetTrackUid())
+	entry, err := s.service.RecordPlayback(ctx, playableTrackDomain(request.Msg.GetTrack()))
 	if err != nil {
 		return nil, connectError(err)
 	}

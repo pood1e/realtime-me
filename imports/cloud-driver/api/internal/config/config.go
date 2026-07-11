@@ -21,19 +21,23 @@ const (
 
 // Config contains validated API runtime settings.
 type Config struct {
-	DatabaseURL       string
-	DataRoot          string
-	ListenAddr        string
-	PrivateAPIHost    string
-	PublicAPIHost     string
-	PrivateAppOrigins map[string]struct{}
-	PublicAppOrigins  map[string]struct{}
-	ShareAppOrigin    string
-	PasswordHash      []byte
-	SessionSecret     []byte
-	ChunkSizeBytes    int64
-	ReservedFreeBytes int64
-	UploadTTL         time.Duration
+	DatabaseURL           string
+	DataRoot              string
+	ListenAddr            string
+	PrivateAPIHost        string
+	PublicAPIHost         string
+	PrivateAppOrigins     map[string]struct{}
+	PublicAppOrigins      map[string]struct{}
+	ShareAppOrigin        string
+	MusicAppOrigin        string
+	PasswordHash          []byte
+	SessionSecret         []byte
+	ProviderCredentialKey []byte
+	SpotifyClientID       string
+	SpotifyClientSecret   string
+	ChunkSizeBytes        int64
+	ReservedFreeBytes     int64
+	UploadTTL             time.Duration
 }
 
 // WorkerConfig contains only settings required by the local processing worker.
@@ -61,20 +65,28 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	config := Config{
-		DatabaseURL:       strings.TrimSpace(os.Getenv("DATABASE_URL")),
-		DataRoot:          strings.TrimSpace(os.Getenv("DATA_ROOT")),
-		ListenAddr:        valueOrDefault("LISTEN_ADDR", defaultListenAddr),
-		PrivateAPIHost:    normalizeHost(os.Getenv("PRIVATE_API_HOST")),
-		PublicAPIHost:     normalizeHost(os.Getenv("PUBLIC_API_HOST")),
-		PrivateAppOrigins: privateOrigins,
-		PublicAppOrigins:  publicOrigins,
-		ShareAppOrigin:    trimTrailingSlash(os.Getenv("SHARE_APP_ORIGIN")),
-		PasswordHash:      passwordHash,
-		SessionSecret:     sessionSecret,
-		ChunkSizeBytes:    defaultChunkSizeBytes,
-		ReservedFreeBytes: defaultReservedFreeByte,
-		UploadTTL:         defaultUploadTTL,
+		DatabaseURL:         strings.TrimSpace(os.Getenv("DATABASE_URL")),
+		DataRoot:            strings.TrimSpace(os.Getenv("DATA_ROOT")),
+		ListenAddr:          valueOrDefault("LISTEN_ADDR", defaultListenAddr),
+		PrivateAPIHost:      normalizeHost(os.Getenv("PRIVATE_API_HOST")),
+		PublicAPIHost:       normalizeHost(os.Getenv("PUBLIC_API_HOST")),
+		PrivateAppOrigins:   privateOrigins,
+		PublicAppOrigins:    publicOrigins,
+		ShareAppOrigin:      trimTrailingSlash(os.Getenv("SHARE_APP_ORIGIN")),
+		MusicAppOrigin:      trimTrailingSlash(os.Getenv("MUSIC_APP_ORIGIN")),
+		PasswordHash:        passwordHash,
+		SessionSecret:       sessionSecret,
+		SpotifyClientID:     strings.TrimSpace(os.Getenv("SPOTIFY_CLIENT_ID")),
+		SpotifyClientSecret: strings.TrimSpace(os.Getenv("SPOTIFY_CLIENT_SECRET")),
+		ChunkSizeBytes:      defaultChunkSizeBytes,
+		ReservedFreeBytes:   defaultReservedFreeByte,
+		UploadTTL:           defaultUploadTTL,
 	}
+	providerCredentialKey, err := decodeProviderCredentialKey(os.Getenv("MUSIC_PROVIDER_CREDENTIAL_KEY"))
+	if err != nil {
+		return Config{}, err
+	}
+	config.ProviderCredentialKey = providerCredentialKey
 	if err := applyNumericOverrides(&config); err != nil {
 		return Config{}, err
 	}
@@ -90,6 +102,9 @@ func Load() (Config, error) {
 	if _, found := config.PublicAppOrigins[config.ShareAppOrigin]; !found {
 		return Config{}, errors.New("SHARE_APP_ORIGIN must be present in PUBLIC_APP_ORIGINS")
 	}
+	if err := validateSpotifyConfig(config); err != nil {
+		return Config{}, err
+	}
 	return config, nil
 }
 
@@ -104,6 +119,9 @@ func LoadWorker() (WorkerConfig, error) {
 
 // PublicAPIOrigin returns the canonical externally visible API origin.
 func (c Config) PublicAPIOrigin() string { return "https://" + c.PublicAPIHost }
+
+// PrivateAPIOrigin returns the canonical private API origin.
+func (c Config) PrivateAPIOrigin() string { return "https://" + c.PrivateAPIHost }
 
 // ReturnURL validates an authentication return URL against private application origins.
 func (c Config) ReturnURL(value string) (string, error) {
@@ -181,6 +199,32 @@ func decodeSessionSecret(value string) ([]byte, error) {
 		return nil, errors.New("SESSION_SECRET must contain at least 64 hexadecimal characters")
 	}
 	return decoded, nil
+}
+
+func decodeProviderCredentialKey(value string) ([]byte, error) {
+	encoded := strings.TrimSpace(value)
+	decoded, err := base64.StdEncoding.Strict().DecodeString(encoded)
+	if err != nil || len(decoded) != 32 {
+		return nil, errors.New("MUSIC_PROVIDER_CREDENTIAL_KEY must be padded Base64 containing exactly 32 bytes")
+	}
+	return decoded, nil
+}
+
+func validateSpotifyConfig(config Config) error {
+	configured := config.SpotifyClientID != "" || config.SpotifyClientSecret != ""
+	if configured && (config.SpotifyClientID == "" || config.SpotifyClientSecret == "") {
+		return errors.New("SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET must be configured together")
+	}
+	if !configured {
+		return nil
+	}
+	if err := validateOrigin("MUSIC_APP_ORIGIN", config.MusicAppOrigin); err != nil {
+		return err
+	}
+	if _, found := config.PrivateAppOrigins[config.MusicAppOrigin]; !found {
+		return errors.New("MUSIC_APP_ORIGIN must be present in PRIVATE_APP_ORIGINS")
+	}
+	return nil
 }
 
 func valueOrDefault(key, fallback string) string {

@@ -2,7 +2,9 @@ syntax = "proto3";
 
 package cloud.music.v1;
 
+import "cloud/music/v1/provider.proto";
 import "cloud/music/v1/track.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "example.com/cloud-drive/api/gen/cloud/music/v1;musicv1";
 
@@ -19,6 +21,14 @@ service MusicService {
   rpc RetryTrackProcessing(RetryTrackProcessingRequest) returns (RetryTrackProcessingResponse);
   rpc ListAlbums(ListAlbumsRequest) returns (ListAlbumsResponse);
   rpc ListArtists(ListArtistsRequest) returns (ListArtistsResponse);
+  rpc ListProviderConnections(ListProviderConnectionsRequest) returns (ListProviderConnectionsResponse);
+  rpc BeginProviderConnection(BeginProviderConnectionRequest) returns (BeginProviderConnectionResponse);
+  rpc GetProviderConnectionAttempt(GetProviderConnectionAttemptRequest) returns (GetProviderConnectionAttemptResponse);
+  rpc DisconnectProvider(DisconnectProviderRequest) returns (DisconnectProviderResponse);
+  rpc SearchMusic(SearchMusicRequest) returns (SearchMusicResponse);
+  rpc ResolvePlayback(ResolvePlaybackRequest) returns (ResolvePlaybackResponse);
+  rpc GetProviderLyrics(GetProviderLyricsRequest) returns (GetProviderLyricsResponse);
+  rpc GetSpotifyPlaybackToken(GetSpotifyPlaybackTokenRequest) returns (GetSpotifyPlaybackTokenResponse);
   rpc RecordPlayback(RecordPlaybackRequest) returns (RecordPlaybackResponse);
   rpc ListPlaybackHistory(ListPlaybackHistoryRequest) returns (ListPlaybackHistoryResponse);
 }
@@ -59,7 +69,36 @@ message ListAlbumsRequest { string query = 1; }
 message ListAlbumsResponse { repeated Album albums = 1; }
 message ListArtistsRequest { string query = 1; }
 message ListArtistsResponse { repeated Artist artists = 1; }
-message RecordPlaybackRequest { string track_uid = 1; }
+message ListProviderConnectionsRequest {}
+message ListProviderConnectionsResponse { repeated ProviderConnection connections = 1; }
+message BeginProviderConnectionRequest { MusicProvider provider = 1; }
+message BeginProviderConnectionResponse { ProviderConnectionAttempt attempt = 1; }
+message GetProviderConnectionAttemptRequest { string attempt_uid = 1; }
+message GetProviderConnectionAttemptResponse { ProviderConnectionAttempt attempt = 1; }
+message DisconnectProviderRequest { MusicProvider provider = 1; }
+message DisconnectProviderResponse {}
+message SearchMusicRequest {
+  string query = 1;
+  repeated ProviderSearchCursor cursors = 2;
+}
+message SearchMusicResponse { repeated ProviderSearchGroup groups = 1; }
+message ResolvePlaybackRequest {
+  MusicProvider provider = 1;
+  string track_id = 2;
+  PlaybackQuality quality = 3;
+}
+message ResolvePlaybackResponse { PlaybackDescriptor playback = 1; }
+message GetProviderLyricsRequest {
+  MusicProvider provider = 1;
+  string track_id = 2;
+}
+message GetProviderLyricsResponse { Lyric lyric = 1; }
+message GetSpotifyPlaybackTokenRequest {}
+message GetSpotifyPlaybackTokenResponse {
+  string access_token = 1;
+  google.protobuf.Timestamp expire_time = 2;
+}
+message RecordPlaybackRequest { PlayableTrack track = 1; }
 message RecordPlaybackResponse { PlaybackEntry playback_entry = 1; }
 message ListPlaybackHistoryRequest {
   int32 page_size = 1;

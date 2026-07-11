@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package cloud.music.v1;
 
+import "cloud/music/v1/provider.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -58,6 +59,6 @@ message Artist {
 // PlaybackEntry records one meaningful playback event.
 message PlaybackEntry {
   string uid = 1;
-  Track track = 2;
+  PlayableTrack track = 2;
   google.protobuf.Timestamp play_time = 3;
 }
