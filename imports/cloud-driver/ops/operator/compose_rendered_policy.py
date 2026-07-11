@@ -15,14 +15,16 @@ def validate_rendered(
 ) -> None:
     root = _mapping(config, "configuration")
     services = _mapping(root.get("services"), "services")
-    _expect_keys(services, {"api", "cloudflared", "postgres", "worker"}, "services")
+    _expect_keys(services, {"api", "cloudflared", "migrate", "postgres", "worker"}, "services")
 
     postgres_environment = _service_environment(services, "postgres")
+    migrate_environment = _service_environment(services, "migrate")
     api_environment = _service_environment(services, "api")
     worker_environment = _service_environment(services, "worker")
     cloudflared_environment = _service_environment(services, "cloudflared")
     _validate_environments(
         postgres_environment,
+        migrate_environment,
         api_environment,
         worker_environment,
         cloudflared_environment,
@@ -46,6 +48,7 @@ def validate_rendered(
 
     expected = build_expected_configuration(
         postgres_environment=postgres_environment,
+        migrate_environment=migrate_environment,
         api_environment=api_environment,
         worker_environment=worker_environment,
         cloudflared_environment=cloudflared_environment,
@@ -62,10 +65,16 @@ def validate_rendered(
 
 def _validate_environments(
     postgres: dict[str, Any],
+    migrate: dict[str, Any],
     api: dict[str, Any],
     worker: dict[str, Any],
     cloudflared: dict[str, Any],
 ) -> None:
+    _expect_keys(
+        migrate,
+        {"DATABASE_URL", "DATA_ROOT"},
+        "migrate environment",
+    )
     _expect_keys(
         postgres,
         {"PGDATA", "POSTGRES_DB", "POSTGRES_INITDB_ARGS", "POSTGRES_PASSWORD", "POSTGRES_USER"},
@@ -94,7 +103,15 @@ def _validate_environments(
     )
     _expect_keys(
         worker,
-        {"DATABASE_URL", "DATA_ROOT", "MUSIC_PROVIDER_CREDENTIAL_KEY", "RESERVED_FREE_BYTES"},
+        {
+            "DATABASE_URL",
+            "DATA_ROOT",
+            "MUSIC_PROVIDER_CREDENTIAL_KEY",
+            "PRIVATE_API_HOST",
+            "RESERVED_FREE_BYTES",
+            "SPOTIFY_CLIENT_ID",
+            "SPOTIFY_CLIENT_SECRET",
+        },
         "worker environment",
     )
     _expect_keys(cloudflared, {"TUNNEL_TOKEN_FILE"}, "cloudflared environment")
@@ -108,6 +125,7 @@ def _validate_environments(
     )
     database_url = f"postgres://{username}:{password}@postgres:5432/{database}?sslmode=disable"
     _expect_equal(api["DATABASE_URL"], database_url, "api database URL")
+    _expect_equal(migrate["DATABASE_URL"], database_url, "migrate database URL")
     _expect_equal(worker["DATABASE_URL"], database_url, "worker database URL")
 
     _matching_text(api["PASSWORD_HASH_BASE64"], r"[A-Za-z0-9+/]+={0,2}", "password hash")
@@ -135,6 +153,9 @@ def _validate_environments(
     spotify_client_secret = _text(api["SPOTIFY_CLIENT_SECRET"], "Spotify client secret")
     if bool(spotify_client_id) != bool(spotify_client_secret):
         raise PolicyError("Spotify credentials must be configured together")
+    _expect_equal(worker["PRIVATE_API_HOST"], api["PRIVATE_API_HOST"], "worker private API host")
+    _expect_equal(worker["SPOTIFY_CLIENT_ID"], spotify_client_id, "worker Spotify client ID")
+    _expect_equal(worker["SPOTIFY_CLIENT_SECRET"], spotify_client_secret, "worker Spotify client secret")
 
 
 

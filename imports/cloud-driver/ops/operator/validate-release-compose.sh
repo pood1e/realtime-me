@@ -5,62 +5,35 @@ IFS=$'\n\t'
 # shellcheck source=lib.sh
 source /usr/local/libexec/cloud-drive-operator/lib.sh
 
-INCOMING_DIR=/var/lib/cloud-drive-release/incoming-compose
-INCOMING_FILE="$INCOMING_DIR/docker-compose.yml"
-INSTALL_FILE=/opt/cloud-drive/ops/docker-compose.yml
-DEPLOY_SCRIPT=/opt/cloud-drive/ops/scripts/deploy.sh
-HOST_LIB=/opt/cloud-drive/ops/scripts/lib.sh
 VALIDATOR=/usr/local/libexec/cloud-drive-operator/validate-compose.py
-POLICY_DIR=/usr/local/libexec/cloud-drive-operator
+HOST_LIB=/opt/cloud-drive/ops/scripts/lib.sh
 RUNTIME_ENV=/etc/cloud-drive/runtime.env
-LOCK_FILE=/run/lock/cloud-drive-release.lock
-MAX_SOURCE_BYTES=$((128 * 1024))
 
 require_root
-require_no_arguments "$@"
-for command in docker env flock install mktemp rm stat timeout; do
+[[ $# -eq 2 ]] || die 'validate-release-compose.sh requires candidate and work directory'
+CANDIDATE_FILE=$1
+WORK_DIR=$2
+
+for command in docker env timeout; do
   require_command "$command"
 done
 for file in \
-  /opt/cloud-drive/.dockerignore \
-  /opt/cloud-drive/api/Dockerfile \
-  "$DEPLOY_SCRIPT" \
   "$HOST_LIB" \
-  "$INSTALL_FILE" \
-  "$POLICY_DIR/compose_expected.py" \
-  "$POLICY_DIR/compose_policy.py" \
-  "$POLICY_DIR/compose_rendered_policy.py" \
-  "$POLICY_DIR/compose_source_policy.py" \
+  /usr/local/libexec/cloud-drive-operator/compose_expected.py \
+  /usr/local/libexec/cloud-drive-operator/compose_policy.py \
+  /usr/local/libexec/cloud-drive-operator/compose_rendered_policy.py \
+  /usr/local/libexec/cloud-drive-operator/compose_source_policy.py \
   "$VALIDATOR"; do
   require_root_controlled_file "$file"
 done
-[[ -d "$INCOMING_DIR" && ! -L "$INCOMING_DIR" ]] ||
-  die "incoming Compose directory is unavailable: $INCOMING_DIR"
-[[ -f "$INCOMING_FILE" && ! -L "$INCOMING_FILE" ]] ||
-  die "stage docker-compose.yml in $INCOMING_DIR"
-SOURCE_BYTES=$(stat --format='%s' "$INCOMING_FILE")
-[[ "$SOURCE_BYTES" =~ ^[0-9]+$ ]] || die 'could not determine staged Compose size'
-((SOURCE_BYTES > 0 && SOURCE_BYTES <= MAX_SOURCE_BYTES)) ||
-  die 'staged Compose file has an invalid size'
+require_root_controlled_file "$CANDIDATE_FILE"
+[[ -d "$WORK_DIR" && ! -L "$WORK_DIR" ]] || die 'release validation work directory is invalid'
 
-exec 9>"$LOCK_FILE"
-flock -n 9 || die 'another cloud-drive release is already running'
-
-WORK_DIR=$(mktemp -d /var/lib/cloud-drive-release/compose.XXXXXX)
-cleanup() {
-  rm -rf -- "$WORK_DIR"
-}
-trap cleanup EXIT
-
-CANDIDATE_FILE="$WORK_DIR/docker-compose.yml"
-PREVIOUS_FILE="$WORK_DIR/docker-compose.previous.yml"
 DUMMY_ENV="$WORK_DIR/validation.env"
 DUMMY_RENDERED="$WORK_DIR/validation.json"
 RUNTIME_RENDERED="$WORK_DIR/runtime.json"
 
-install -o root -g root -m 0600 "$INCOMING_FILE" "$CANDIDATE_FILE"
 "$VALIDATOR" source "$CANDIDATE_FILE"
-
 cat >"$DUMMY_ENV" <<'EOF'
 POSTGRES_DB=cloud_drive_validation
 POSTGRES_USER=cloud_drive_validation
@@ -116,22 +89,3 @@ unset TUNNEL_TOKEN
 "$VALIDATOR" rendered "$RUNTIME_RENDERED" \
   --data-directory "$DATA_DIRECTORY" \
   --postgres-directory "$POSTGRES_DIRECTORY"
-
-install -o root -g root -m 0644 "$INSTALL_FILE" "$PREVIOUS_FILE"
-install -o root -g root -m 0644 "$CANDIDATE_FILE" "$INSTALL_FILE"
-
-restore_previous() {
-  install -o root -g root -m 0644 "$PREVIOUS_FILE" "$INSTALL_FILE"
-}
-
-if "$DEPLOY_SCRIPT"; then
-  note 'operator Compose release completed'
-  exit 0
-fi
-
-note 'new Compose release failed; restoring the previous configuration'
-restore_previous
-if ! "$DEPLOY_SCRIPT"; then
-  die 'the Compose release and automatic rollback both failed'
-fi
-die 'the Compose release failed and was rolled back successfully'

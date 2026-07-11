@@ -60,7 +60,7 @@ while (($# > 0)); do
 done
 
 require_root
-for command in docker mountpoint flock date du df awk rm tr rsync install mktemp find sort tail mv ln sync; do
+for command in docker mountpoint flock date du df awk rm tr rsync install mktemp find sort tail mv ln sync sha256sum wc; do
   require_command "$command"
 done
 
@@ -170,8 +170,9 @@ trap cleanup EXIT
 umask 0077
 note 'creating PostgreSQL backup dump'
 compose exec --no-TTY postgres pg_dump --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --format=custom >"$DUMP_FILE"
-unset TUNNEL_TOKEN
 [[ -s "$DUMP_FILE" ]] || die 'PostgreSQL dump is empty'
+compose exec --no-TTY postgres pg_restore --list <"$DUMP_FILE" >/dev/null || die 'PostgreSQL dump validation failed'
+unset TUNNEL_TOKEN
 
 SNAPSHOT_NAME=$(date --utc +%Y%m%dT%H%M%SZ)
 FINAL_SNAPSHOT="$SNAPSHOTS_DIR/$SNAPSHOT_NAME"
@@ -186,7 +187,22 @@ fi
 
 note 'copying immutable objects into a plain incremental snapshot'
 rsync "${RSYNC_ARGUMENTS[@]}" "$IMMUTABLE_OBJECTS_DIR/" "$INCOMPLETE_SNAPSHOT/objects/"
+VERIFY_OUTPUT=$(rsync --archive --delete --numeric-ids --checksum --dry-run "$IMMUTABLE_OBJECTS_DIR/" "$INCOMPLETE_SNAPSHOT/objects/")
+[[ -z "$VERIFY_OUTPUT" ]] || die 'immutable object snapshot verification failed'
 install -o root -g root -m 0600 "$DUMP_FILE" "$INCOMPLETE_SNAPSHOT/postgres.dump"
+DUMP_SHA256=$(sha256sum "$INCOMPLETE_SNAPSHOT/postgres.dump" | awk '{ print $1 }')
+OBJECT_COUNT=$(find "$INCOMPLETE_SNAPSHOT/objects" -type f -printf '.\n' | wc --lines | tr -d ' ')
+OBJECT_BYTES=$(find "$INCOMPLETE_SNAPSHOT/objects" -type f -printf '%s\n' |
+  awk '{ total += $1 } END { print total + 0 }')
+cat >"$INCOMPLETE_SNAPSHOT/manifest" <<EOF
+FORMAT_VERSION=1
+SNAPSHOT_NAME=$SNAPSHOT_NAME
+POSTGRES_DUMP_SHA256=$DUMP_SHA256
+OBJECT_COUNT=$OBJECT_COUNT
+OBJECT_BYTES=$OBJECT_BYTES
+EOF
+chown root:root "$INCOMPLETE_SNAPSHOT/manifest"
+chmod 0600 "$INCOMPLETE_SNAPSHOT/manifest"
 sync --file-system "$INCOMPLETE_SNAPSHOT"
 
 mv --no-target-directory "$INCOMPLETE_SNAPSHOT" "$FINAL_SNAPSHOT"

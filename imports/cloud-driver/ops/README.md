@@ -1,18 +1,21 @@
 # 生产运维
 
-本目录管理主机上的 PostgreSQL、Go API、内容 Worker 与 cloudflared，以及七个
+本目录管理主机上的 PostgreSQL、一次性迁移、Go API、内容 Worker 与 cloudflared，以及七个
 Cloudflare Pages 项目的手动发布。所有真实域名、主机地址、项目名、Tunnel 标识和
 凭据都留在被 Git 忽略的本地配置或主机 root-only 文件中。
 
 ## 容器边界
 
 - `postgres` 只加入内部 `backend` 网络，不发布端口。
+- `migrate` 只加入 `backend`，在每次发布时先校验并应用 append-only 迁移，成功退出后
+  API 与 Worker 才能启动。
 - `worker` 加入内部 `backend` 与独立 `provider-egress` 网络；前者访问 PostgreSQL，
   后者只用于歌单音频出站下载。Worker 不监听 HTTP 端口。
 - `api` 加入 `backend` 与 `edge`，只由 `cloudflared` 访问。
 - `cloudflared` 通过 Docker secret 读取 Tunnel token，不接收明文命令行参数。
 - 所有 bind mount 都使用 `create_host_path: false`；数据卷未挂载时部署直接失败。
-- API、Worker、PostgreSQL 与 cloudflared 均使用 `restart: unless-stopped`。
+- API、Worker、PostgreSQL 与 cloudflared 使用 `restart: unless-stopped`；Migrate 是
+  `restart: no` 的启动门禁。
 
 ## 安装工作树
 
@@ -129,8 +132,9 @@ sudo /opt/cloud-drive/ops/scripts/compose.sh -- logs --tail=100 api worker
 ```
 
 `deploy.sh` 校验 root-only 配置、挂载标记、20 GiB 余量与 Compose 渲染，然后构建
-同一个包含 API 和 Worker 二进制的镜像并等待服务健康。Worker 通过数据库心跳上报
-状态；重启后会继续认领未完成任务。
+同一个包含 Migrate、API 和 Worker 二进制的镜像并等待服务健康。Worker 通过数据库
+心跳上报状态，并用独立的交互任务通道和 Provider 下载通道处理工作；重启后会凭租约
+继续认领未完成任务。
 
 ## 发布七个 Pages
 
@@ -164,27 +168,29 @@ sudo /opt/cloud-drive/ops/scripts/install-operator-access.sh \
 重新登录后该用户只能执行：
 
 ```bash
-sudo -n cloud-drive-release-api
-sudo -n cloud-drive-release-compose
+sudo -n cloud-drive-release
 sudo -n cloud-drive-backup-now
 sudo -n cloud-drive-status
-sudo -n cloud-drive-logs api       # api | worker | postgres | cloudflared | backup
+sudo -n cloud-drive-logs api       # api | worker | migrate | postgres | cloudflared | backup
 ```
 
 `sudo -n` 只进入 root 安装的固定网关，不会询问密码，也不会授予 Docker socket 或
-通用 sudo 权限。API/Worker 源码发布目录为
-`/var/lib/cloud-drive-release/incoming-api/`；Compose 发布方式为：
+通用 sudo 权限。发布前同时暂存 API/Worker 源码与 Compose：
 
 ```bash
+rsync -rltzO --delete --exclude=/Dockerfile \
+  api/ /var/lib/cloud-drive-release/incoming-api/
 cp ops/docker-compose.yml \
   /var/lib/cloud-drive-release/incoming-compose/docker-compose.yml
-sudo -n cloud-drive-release-compose
+sudo -n cloud-drive-release
 ```
 
-两个发布网关都会串行部署并在失败时自动回滚。Compose 网关先使用无敏感信息的环境
-渲染，再按固定的服务、镜像、网络、挂载和 secret 策略校验真实配置；当前策略只允许
-PostgreSQL、API、本机下载 Worker 与 cloudflared。Dockerfile、运维脚本或 Compose
-安全策略本身仍属于 root 控制面，需要 root 重新审核安装。
+唯一发布网关会把源码、迁移和 Compose 作为一个版本串行部署。网关先使用无敏感信息的
+环境渲染 Compose，再按固定的服务、镜像、网络、挂载和 secret 策略校验真实配置，并在
+越过迁移边界前强制生成一份成功备份。当前策略只允许 PostgreSQL、一次性 Migrate、API、
+本机下载 Worker 与 cloudflared。数据库迁移是 forward-only；如果迁移后的启动失败，候选
+版本会保留以便向前修复，不会用不兼容的旧程序覆盖新 schema。Dockerfile、运维脚本或
+Compose 安全策略本身仍属于 root 控制面，需要 root 重新审核安装。
 
 ## 明文增量备份
 
@@ -208,11 +214,13 @@ sudo readlink -f /mnt/cloud-drive-backup/cloud-drive-backups/latest
 
 ```text
 snapshots/<UTC>/
+├── manifest
 ├── postgres.dump
 └── objects/
 ```
 
-未变化对象通过 ext4 hard link 与上一份快照复用，默认保留最近 30 份。`artifacts/`、
+清单记录 dump SHA-256、对象数量和逻辑字节数，创建后还会以 checksum dry-run 比对源
+对象。未变化对象通过 ext4 hard link 与上一份快照复用，默认保留最近 30 份。`artifacts/`、
 `uploads/`、`work/` 不备份；前者可重建，后两者是临时状态。备份不加密，能够读取
 移动硬盘的人可以直接读取内容与数据库 dump；第三方音乐账号字段仍是应用层密文。
 `MUSIC_PROVIDER_CREDENTIAL_KEY` 必须在数据库之外单独保管，否则恢复后需要重新连接

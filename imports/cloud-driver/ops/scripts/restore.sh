@@ -62,7 +62,7 @@ while (($# > 0)); do
 done
 
 require_root
-for command in docker mountpoint rsync install rm; do
+for command in docker mountpoint rsync install rm sha256sum du find wc awk tr basename; do
   require_command "$command"
 done
 [[ "$CONFIRM" == true ]] || die '--confirm-destroy is required'
@@ -70,6 +70,19 @@ done
 SNAPSHOT=$(cd -- "$SNAPSHOT" && pwd -P)
 [[ -f "$SNAPSHOT/postgres.dump" ]] || die "missing snapshot database dump: $SNAPSHOT/postgres.dump"
 [[ -d "$SNAPSHOT/objects" ]] || die "missing snapshot objects: $SNAPSHOT/objects"
+[[ -f "$SNAPSHOT/manifest" ]] || die "missing snapshot manifest: $SNAPSHOT/manifest"
+[[ "$(require_env_value "$SNAPSHOT/manifest" FORMAT_VERSION)" == 1 ]] || die 'unsupported snapshot manifest version'
+[[ "$(require_env_value "$SNAPSHOT/manifest" SNAPSHOT_NAME)" == "$(basename "$SNAPSHOT")" ]] || die 'snapshot manifest name mismatch'
+EXPECTED_DUMP_SHA256=$(require_env_value "$SNAPSHOT/manifest" POSTGRES_DUMP_SHA256)
+ACTUAL_DUMP_SHA256=$(sha256sum "$SNAPSHOT/postgres.dump" | awk '{ print $1 }')
+[[ "$ACTUAL_DUMP_SHA256" == "$EXPECTED_DUMP_SHA256" ]] || die 'snapshot database checksum mismatch'
+EXPECTED_OBJECT_COUNT=$(require_env_value "$SNAPSHOT/manifest" OBJECT_COUNT)
+EXPECTED_OBJECT_BYTES=$(require_env_value "$SNAPSHOT/manifest" OBJECT_BYTES)
+ACTUAL_OBJECT_COUNT=$(find "$SNAPSHOT/objects" -type f -printf '.\n' | wc --lines | tr -d ' ')
+ACTUAL_OBJECT_BYTES=$(find "$SNAPSHOT/objects" -type f -printf '%s\n' |
+  awk '{ total += $1 } END { print total + 0 }')
+[[ "$ACTUAL_OBJECT_COUNT" == "$EXPECTED_OBJECT_COUNT" ]] || die 'snapshot object count mismatch'
+[[ "$ACTUAL_OBJECT_BYTES" == "$EXPECTED_OBJECT_BYTES" ]] || die 'snapshot object size mismatch'
 
 REPO_DIR=$(cd -- "$REPO_DIR" && pwd -P)
 COMPOSE_FILE=${COMPOSE_FILE:-$REPO_DIR/ops/docker-compose.yml}
@@ -97,6 +110,7 @@ compose() {
 note 'stopping request and processing services'
 compose stop api worker cloudflared || true
 compose up --detach --wait postgres
+compose exec --no-TTY postgres pg_restore --list <"$SNAPSHOT/postgres.dump" >/dev/null || die 'snapshot database dump is invalid'
 
 note 'replacing immutable content objects'
 install -d -o 10001 -g 10001 -m 0700 "$DATA_DIR/objects"
@@ -113,15 +127,23 @@ compose exec --no-TTY postgres pg_restore \
   --dbname "$POSTGRES_DB" \
   --exit-on-error <"$SNAPSHOT/postgres.dump"
 
+note 'applying current append-only migrations'
+compose run --rm migrate
+
 note 'queuing deterministic artifact regeneration'
 compose exec --no-TTY postgres psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --set ON_ERROR_STOP=1 <<'SQL'
 BEGIN;
 TRUNCATE content_artifacts;
 DELETE FROM processing_jobs;
 DELETE FROM worker_state;
+DELETE FROM uploads WHERE status <> 'claimed';
 UPDATE books SET processing_status = 'pending';
 UPDATE tracks SET processing_status = 'pending';
 UPDATE images SET processing_status = 'pending';
+UPDATE music_playlist_tracks SET download_status = 'pending'
+WHERE download_status = 'running' AND local_track_uid IS NULL;
+UPDATE music_playlist_imports SET status = 'pending', failure_code = '', update_time = now()
+WHERE status IN ('pending', 'running');
 INSERT INTO processing_jobs (uid, kind, resource_uid, status)
 SELECT gen_random_uuid()::text, 'book', uid, 'pending' FROM books
 UNION ALL
@@ -129,7 +151,13 @@ SELECT gen_random_uuid()::text, 'track', uid, 'pending' FROM tracks
 UNION ALL
 SELECT gen_random_uuid()::text, 'image', uid, 'pending' FROM images
 UNION ALL
-SELECT gen_random_uuid()::text, 'wallpaper', uid, 'pending' FROM wallpapers;
+SELECT gen_random_uuid()::text, 'wallpaper', uid, 'pending' FROM wallpapers
+UNION ALL
+SELECT gen_random_uuid()::text, 'music_download', uid, 'pending'
+FROM music_playlist_tracks WHERE download_status = 'pending' AND local_track_uid IS NULL
+UNION ALL
+SELECT gen_random_uuid()::text, 'playlist_import', uid, 'pending'
+FROM music_playlist_imports WHERE status = 'pending';
 COMMIT;
 SQL
 

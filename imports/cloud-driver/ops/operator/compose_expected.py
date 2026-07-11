@@ -6,6 +6,7 @@ from typing import Any
 def build_expected_configuration(
     *,
     postgres_environment: dict[str, Any],
+    migrate_environment: dict[str, Any],
     api_environment: dict[str, Any],
     worker_environment: dict[str, Any],
     cloudflared_environment: dict[str, Any],
@@ -17,6 +18,10 @@ def build_expected_configuration(
 ) -> dict[str, Any]:
     build = {"context": "/opt/cloud-drive", "dockerfile": "api/Dockerfile"}
     postgres_dependency = {"postgres": {"condition": "service_healthy", "required": True}}
+    application_dependencies = {
+        **postgres_dependency,
+        "migrate": {"condition": "service_completed_successfully", "required": True},
+    }
     data_volume = [
         {
             "type": "bind",
@@ -42,7 +47,7 @@ def build_expected_configuration(
             "api": {
                 "build": build,
                 "command": None,
-                "depends_on": postgres_dependency,
+                "depends_on": application_dependencies,
                 "entrypoint": None,
                 "environment": api_environment,
                 "expose": ["8080"],
@@ -93,6 +98,17 @@ def build_expected_configuration(
                     }
                 ],
             },
+            "migrate": {
+                "build": build,
+                "command": ["/usr/local/bin/cloud-drive-migrate"],
+                "depends_on": postgres_dependency,
+                "entrypoint": None,
+                "environment": migrate_environment,
+                "image": app_image,
+                "networks": {"backend": None},
+                "restart": "no",
+                "volumes": data_volume,
+            },
             "postgres": {
                 "command": None,
                 "entrypoint": None,
@@ -123,7 +139,7 @@ def build_expected_configuration(
             "worker": {
                 "build": build,
                 "command": ["/usr/local/bin/cloud-drive-worker"],
-                "depends_on": postgres_dependency,
+                "depends_on": application_dependencies,
                 "entrypoint": None,
                 "environment": worker_environment,
                 "image": app_image,

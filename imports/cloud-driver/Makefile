@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: generate verify verify-proto verify-api verify-web verify-ops build-api build-web
+.PHONY: generate verify verify-generated verify-proto verify-api verify-web verify-ops build-api build-web
 
 generate:
 	cd proto && buf generate
@@ -11,7 +11,10 @@ build-api:
 build-web:
 	pnpm run build:web
 
-verify: verify-proto verify-api verify-web verify-ops
+verify: verify-generated verify-proto verify-api verify-web verify-ops
+
+verify-generated: generate
+	git diff --exit-code -- api/gen web/packages/contracts/src/gen
 
 verify-proto:
 	cd proto && buf lint
@@ -21,7 +24,7 @@ verify-api:
 	cd api && go vet ./... && go build ./...
 
 verify-web:
-	pnpm exec prettier --check 'web/apps/**/*.{ts,tsx,css,json,html}' 'web/packages/shared/**/*.{ts,tsx,css,json}' 'web/build/**/*.ts'
+	pnpm exec prettier --check 'web/apps/**/*.{ts,tsx,css,json,html}' 'web/packages/shared/**/*.{ts,tsx,css,json}' 'web/build/**/*.ts' web/tsconfig.app.json
 	pnpm run typecheck:web
 	pnpm run build:web
 

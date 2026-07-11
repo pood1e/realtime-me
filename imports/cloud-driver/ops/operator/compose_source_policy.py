@@ -19,28 +19,28 @@ _EXPECTED_VARIABLES = Counter(
         "$$POSTGRES_DB": 1,
         "$$POSTGRES_USER": 1,
         "${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.6.0}": 1,
-        "${CLOUD_DRIVE_DATA_DIR:?CLOUD_DRIVE_DATA_DIR is required}": 2,
+        "${CLOUD_DRIVE_DATA_DIR:?CLOUD_DRIVE_DATA_DIR is required}": 3,
         "${CLOUD_DRIVE_IMAGE:-cloud-drive:local}": 1,
         "${CLOUD_DRIVE_POSTGRES_DIR:?CLOUD_DRIVE_POSTGRES_DIR is required}": 1,
         "${MUSIC_APP_ORIGIN:?MUSIC_APP_ORIGIN is required}": 1,
         "${MUSIC_PROVIDER_CREDENTIAL_KEY:?MUSIC_PROVIDER_CREDENTIAL_KEY is required}": 2,
         "${PASSWORD_HASH_BASE64:?PASSWORD_HASH_BASE64 is required}": 1,
-        "${POSTGRES_DB:?POSTGRES_DB is required}": 3,
+        "${POSTGRES_DB:?POSTGRES_DB is required}": 4,
         "${POSTGRES_IMAGE:-postgres:18.4-alpine}": 1,
-        "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}": 3,
-        "${POSTGRES_USER:?POSTGRES_USER is required}": 3,
-        "${PRIVATE_API_HOST:?PRIVATE_API_HOST is required}": 1,
+        "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}": 4,
+        "${POSTGRES_USER:?POSTGRES_USER is required}": 4,
+        "${PRIVATE_API_HOST:?PRIVATE_API_HOST is required}": 2,
         "${PRIVATE_APP_ORIGINS:?PRIVATE_APP_ORIGINS is required}": 1,
         "${PUBLIC_API_HOST:?PUBLIC_API_HOST is required}": 1,
         "${PUBLIC_APP_ORIGINS:?PUBLIC_APP_ORIGINS is required}": 1,
         "${RESERVED_FREE_BYTES:-21474836480}": 2,
         "${SESSION_SECRET:?SESSION_SECRET is required}": 1,
         "${SHARE_APP_ORIGIN:?SHARE_APP_ORIGIN is required}": 1,
-        "${SPOTIFY_CLIENT_ID:-}": 1,
-        "${SPOTIFY_CLIENT_SECRET:-}": 1,
+        "${SPOTIFY_CLIENT_ID:-}": 2,
+        "${SPOTIFY_CLIENT_SECRET:-}": 2,
     }
 )
-_EXPECTED_YAML_REFERENCES = Counter({"&app-image": 1, "*app-image": 2})
+_EXPECTED_YAML_REFERENCES = Counter({"&app-image": 1, "*app-image": 3})
 
 
 def validate_source(path: Path) -> None:
@@ -59,7 +59,7 @@ def validate_source(path: Path) -> None:
         raise PolicyError("Compose source contains unsupported YAML syntax")
     if _FORBIDDEN_KEY_PATTERN.search(source):
         raise PolicyError("Compose source may not load external files")
-    if source.count("<<:") != 2:
+    if source.count("<<:") != 3:
         raise PolicyError("Compose source has an unexpected merge structure")
 
     variables = Counter(_VARIABLE_PATTERN.findall(source))

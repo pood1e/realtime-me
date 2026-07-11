@@ -46,7 +46,7 @@ while (($# > 0)); do
 done
 
 require_root
-for command in getent groupadd id install mktemp python3 usermod visudo; do
+for command in getent groupadd id install mktemp python3 rm usermod visudo; do
   require_command "$command"
 done
 [[ -n "$OPERATOR_USER" ]] || die '--user is required'
@@ -73,10 +73,11 @@ install -o root -g root -m 0644 \
 install -o root -g root -m 0755 \
   "$REPO_DIR/ops/operator/validate-compose.py" \
   "$LIBEXEC_DIR/validate-compose.py"
-install -o root -g root -m 0755 "$REPO_DIR/ops/operator/release-api.sh" "$SBIN_DIR/cloud-drive-release-api"
 install -o root -g root -m 0755 \
-  "$REPO_DIR/ops/operator/release-compose.sh" \
-  "$SBIN_DIR/cloud-drive-release-compose"
+  "$REPO_DIR/ops/operator/validate-release-compose.sh" \
+  "$LIBEXEC_DIR/validate-release-compose.sh"
+install -o root -g root -m 0755 "$REPO_DIR/ops/operator/release.sh" "$SBIN_DIR/cloud-drive-release"
+rm -f -- "$SBIN_DIR/cloud-drive-release-api" "$SBIN_DIR/cloud-drive-release-compose"
 install -o root -g root -m 0755 "$REPO_DIR/ops/operator/backup-now.sh" "$SBIN_DIR/cloud-drive-backup-now"
 install -o root -g root -m 0755 "$REPO_DIR/ops/operator/status.sh" "$SBIN_DIR/cloud-drive-status"
 install -o root -g root -m 0755 "$REPO_DIR/ops/operator/logs.sh" "$SBIN_DIR/cloud-drive-logs"
@@ -87,7 +88,7 @@ cleanup() {
 }
 trap cleanup EXIT
 cat >"$SUDOERS_TEMP" <<EOF
-Cmnd_Alias CLOUD_DRIVE_OPERATOR_COMMANDS = $SBIN_DIR/cloud-drive-release-api, $SBIN_DIR/cloud-drive-release-compose, $SBIN_DIR/cloud-drive-backup-now, $SBIN_DIR/cloud-drive-status, $SBIN_DIR/cloud-drive-logs
+Cmnd_Alias CLOUD_DRIVE_OPERATOR_COMMANDS = $SBIN_DIR/cloud-drive-release, $SBIN_DIR/cloud-drive-backup-now, $SBIN_DIR/cloud-drive-status, $SBIN_DIR/cloud-drive-logs
 %$OPERATOR_GROUP ALL=(root) NOPASSWD: CLOUD_DRIVE_OPERATOR_COMMANDS
 EOF
 visudo -cf "$SUDOERS_TEMP"
