@@ -32,16 +32,22 @@ type Files interface {
 
 // Worker performs bounded local metadata and derivative processing.
 type Worker struct {
-	store     domain.WorkerStore
-	files     Files
-	clock     domain.Clock
-	logger    *slog.Logger
-	downloads *MusicDownloader
+	store  domain.WorkerStore
+	files  Files
+	clock  domain.Clock
+	logger *slog.Logger
+	music  MusicProcessors
+}
+
+// MusicProcessors contains the independent provider-backed background jobs.
+type MusicProcessors struct {
+	Downloads *MusicDownloader
+	Artwork   *MusicArtworkImporter
 }
 
 // New constructs a single-concurrency content worker.
-func New(store domain.WorkerStore, files Files, clock domain.Clock, logger *slog.Logger, downloads *MusicDownloader) *Worker {
-	return &Worker{store: store, files: files, clock: clock, logger: logger, downloads: downloads}
+func New(store domain.WorkerStore, files Files, clock domain.Clock, logger *slog.Logger, music MusicProcessors) *Worker {
+	return &Worker{store: store, files: files, clock: clock, logger: logger, music: music}
 }
 
 // Run heartbeats, leases, and processes jobs until cancellation.
@@ -111,10 +117,15 @@ func (w *Worker) process(ctx context.Context, job domain.ProcessingJob) error {
 	case "wallpaper":
 		return w.processWallpaper(ctx, job, workDir)
 	case "music_download":
-		if w.downloads == nil {
+		if w.music.Downloads == nil {
 			return errors.New("music downloader is unavailable")
 		}
-		return w.downloads.Process(ctx, job.ResourceUID, workDir)
+		return w.music.Downloads.Process(ctx, job.ResourceUID, workDir)
+	case "music_artwork":
+		if w.music.Artwork == nil {
+			return errors.New("music artwork importer is unavailable")
+		}
+		return w.music.Artwork.Process(ctx, job.ResourceUID, workDir)
 	default:
 		return fmt.Errorf("unsupported job kind %q", job.Kind)
 	}

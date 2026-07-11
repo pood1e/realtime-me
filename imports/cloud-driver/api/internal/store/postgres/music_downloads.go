@@ -91,6 +91,9 @@ func (s *Store) CompleteMusicDownload(ctx context.Context, item domain.PlaylistT
 		locked.Track.Provider, locked.Track.TrackID); err != nil {
 		return fmt.Errorf("touch downloaded playlists: %w", err)
 	}
+	if err := enqueueJob(ctx, tx, "music_artwork", trackUID); err != nil {
+		return err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit music download: %w", err)
 	}

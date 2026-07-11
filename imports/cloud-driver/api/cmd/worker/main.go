@@ -59,11 +59,14 @@ func run(logger *slog.Logger) error {
 		return err
 	}
 	clock := domain.SystemClock{}
-	downloads := contentworker.NewMusicDownloader(
-		store, store, providerRegistry, credentialBox, files, downloadHTTPClient, clock, cfg.ReservedFreeBytes,
-	)
+	music := contentworker.MusicProcessors{
+		Downloads: contentworker.NewMusicDownloader(
+			store, store, providerRegistry, credentialBox, files, downloadHTTPClient, clock, cfg.ReservedFreeBytes,
+		),
+		Artwork: contentworker.NewMusicArtworkImporter(store, files, downloadHTTPClient),
+	}
 	logger.Info("content worker started")
-	return contentworker.New(store, files, clock, logger, downloads).Run(ctx)
+	return contentworker.New(store, files, clock, logger, music).Run(ctx)
 }
 
 func newDownloadHTTPClient() (*http.Client, error) {

@@ -119,6 +119,7 @@ flowchart LR
 QQ 音乐和网易云由原生 Go Provider 适配器访问，Spotify 只使用官方 OAuth、Web API
 与 Web Playback SDK。搜索结果按来源分组，播放队列不会跨来源混合或自动替换音源。
 QQ 音乐或网易云曲目已有可见的本地副本时，播放解析会优先返回本地内容 URL。
+下载任务会把平台封面转换为有界尺寸的本地 JPEG artifact，不依赖长期外链。
 Cookie、refresh token 与临时登录状态使用服务器环境密钥 AES-256-GCM 加密后写入
 PostgreSQL；浏览器只会取得 Spotify SDK 必需的短期 access token。
 

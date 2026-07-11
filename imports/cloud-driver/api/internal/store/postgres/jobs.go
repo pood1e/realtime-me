@@ -100,7 +100,7 @@ func (s *Store) FailProcessingJob(ctx context.Context, job domain.ProcessingJob,
 	}
 	if status == "failed" {
 		table, ok := processingTable(job.Kind)
-		if !ok && job.Kind != "wallpaper" && job.Kind != "music_download" {
+		if !ok && !allowsJobOnlyFailure(job.Kind) {
 			return fmt.Errorf("unknown processing job kind %q", job.Kind)
 		}
 		if ok {
@@ -176,6 +176,15 @@ func processingTable(kind string) (string, bool) {
 		return "images", true
 	default:
 		return "", false
+	}
+}
+
+func allowsJobOnlyFailure(kind string) bool {
+	switch kind {
+	case "wallpaper", "music_download", "music_artwork":
+		return true
+	default:
+		return false
 	}
 }
 
