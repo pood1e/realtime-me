@@ -10,6 +10,7 @@ import {
   useToast,
 } from "@cloud-drive/shared";
 import { PlayableTrackRow } from "./PlayableTrackRow";
+import type { PlaybackQueueSelection } from "./playback/playback-types";
 
 export function PlaybackHistory({
   client,
@@ -21,7 +22,7 @@ export function PlaybackHistory({
   client: MusicClient;
   current: PlayableTrack | undefined;
   refreshKey: number;
-  onPlay: (track: PlayableTrack, queue: PlayableTrack[]) => void;
+  onPlay: (selection: PlaybackQueueSelection) => void;
   onLyrics: (track: PlayableTrack) => void;
 }) {
   const { showToast } = useToast();
@@ -41,6 +42,13 @@ export function PlaybackHistory({
       Boolean(entry.track),
   );
   const tracks = entries.map((entry) => entry.track);
+  const loadPlaybackPage = async (pageToken: string, signal: AbortSignal) => {
+    const page = await client.library.historyPage(pageToken, signal);
+    return {
+      tracks: playableHistoryTracks(page.entries),
+      nextPageToken: page.nextPageToken,
+    };
+  };
   if (!tracks.length)
     return (
       <EmptyState
@@ -60,12 +68,12 @@ export function PlaybackHistory({
             active={sameTrack(current, track)}
             client={client}
             onPlay={() =>
-              onPlay(
-                track,
-                tracks.filter(
-                  (candidate) => candidate.providerId === track.providerId,
-                ),
-              )
+              onPlay({
+                tracks,
+                startIndex: index,
+                nextPageToken: history.data?.pages.at(-1)?.nextPageToken ?? "",
+                loadNextPage: loadPlaybackPage,
+              })
             }
             onLyrics={() => onLyrics(track)}
           />
@@ -89,4 +97,8 @@ function sameTrack(a: PlayableTrack | undefined, b: PlayableTrack): boolean {
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : "播放历史读取失败";
+}
+
+function playableHistoryTracks(entries: PlaybackEntry[]): PlayableTrack[] {
+  return entries.flatMap((entry) => (entry.track ? [entry.track] : []));
 }

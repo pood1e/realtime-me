@@ -7,6 +7,7 @@ import type {
   TrackListOptions,
 } from "@cloud-drive/shared";
 import { useCursorQuery, useQueryClient } from "@cloud-drive/shared";
+import { localPlayableTrack } from "./music-model";
 
 const TRACK_PAGE_SIZE = 50;
 
@@ -91,6 +92,19 @@ export function useLocalTrackCatalog({
   const refresh = useCallback(async () => {
     await catalog.refetch();
   }, [catalog.refetch]);
+  const loadPlaybackPage = useCallback(
+    async (pageToken: string, signal: AbortSignal) => {
+      const page = await client.library.trackPage(
+        listOptions(deferredQuery, mode, pageToken),
+        signal,
+      );
+      return {
+        tracks: page.tracks.map(localPlayableTrack),
+        nextPageToken: page.nextPageToken,
+      };
+    },
+    [client, deferredQuery, mode],
+  );
 
   return {
     tracks: catalog.items,
@@ -99,6 +113,8 @@ export function useLocalTrackCatalog({
     loadMoreFailed: catalog.isFetchNextPageError,
     hasMore: catalog.hasNextPage,
     loadMore,
+    nextPageToken: catalog.data?.pages.at(-1)?.nextPageToken ?? "",
+    loadPlaybackPage,
     refresh,
     updateTrack,
     removeTrack,

@@ -14,6 +14,7 @@ import {
 } from "@cloud-drive/shared";
 import { LocalTrackList } from "./LocalTrackList";
 import { localPlayableTrack } from "./music-model";
+import type { PlaybackQueueSelection } from "./playback/playback-types";
 import { useLocalTrackCatalog } from "./useLocalTrackCatalog";
 import type { LocalLibraryMode } from "./useLocalTrackCatalog";
 
@@ -28,7 +29,7 @@ export function LocalLibrary({
   apiBase: string;
   client: MusicClient;
   current: PlayableTrack | undefined;
-  onPlay: (track: PlayableTrack, queue: PlayableTrack[]) => void;
+  onPlay: (selection: PlaybackQueueSelection) => void;
 }) {
   const uploader = useMemo(() => new UploadClient(apiBase), [apiBase]);
   const { showToast } = useToast();
@@ -145,7 +146,6 @@ export function LocalLibrary({
       ) : catalog.tracks.length ? (
         <LocalTrackList
           tracks={catalog.tracks}
-          queue={queue}
           client={client}
           current={current}
           trashed={mode === "trash"}
@@ -153,8 +153,13 @@ export function LocalLibrary({
           loadingMore={catalog.loadingMore}
           loadMoreFailed={catalog.loadMoreFailed}
           onLoadMore={catalog.loadMore}
-          onPlay={(track, nextQueue) =>
-            onPlay(localPlayableTrack(track), nextQueue)
+          onPlay={(index) =>
+            onPlay({
+              tracks: queue,
+              startIndex: index,
+              nextPageToken: catalog.nextPageToken,
+              loadNextPage: catalog.loadPlaybackPage,
+            })
           }
           onFavorite={(track) => void favorite(track)}
           onRemove={(track) => void remove(track)}

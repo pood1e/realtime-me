@@ -20,6 +20,7 @@ import {
 import { PlaylistImportDialog } from "./PlaylistImportDialog";
 import { PlaylistRow } from "./PlaylistRow";
 import { PlaylistTracks } from "./PlaylistTracks";
+import type { PlaybackQueueSelection } from "./playback/playback-types";
 
 export function PlaylistLibrary({
   client,
@@ -29,7 +30,7 @@ export function PlaylistLibrary({
 }: {
   client: MusicClient;
   current: PlayableTrack | undefined;
-  onPlay: (track: PlayableTrack, queue: PlayableTrack[]) => void;
+  onPlay: (selection: PlaybackQueueSelection) => void;
   onLyrics: (track: PlayableTrack) => void;
 }) {
   const { showToast } = useToast();

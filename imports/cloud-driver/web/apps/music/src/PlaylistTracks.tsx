@@ -13,6 +13,7 @@ import {
   useToast,
 } from "@cloud-drive/shared";
 import { PlayableTrackRow } from "./PlayableTrackRow";
+import type { PlaybackQueueSelection } from "./playback/playback-types";
 
 export function PlaylistTracks({
   playlist,
@@ -24,7 +25,7 @@ export function PlaylistTracks({
   playlist: Playlist;
   client: MusicClient;
   current: PlayableTrack | undefined;
-  onPlay: (track: PlayableTrack, queue: PlayableTrack[]) => void;
+  onPlay: (selection: PlaybackQueueSelection) => void;
   onLyrics: (track: PlayableTrack) => void;
 }) {
   const { showToast } = useToast();
@@ -55,6 +56,13 @@ export function PlaylistTracks({
       Boolean(entry.track),
   );
   const queue = entries.map((entry) => entry.track);
+  const loadPlaybackPage = async (pageToken: string, signal: AbortSignal) => {
+    const page = await client.playlists.tracks(playlist.uid, pageToken, signal);
+    return {
+      tracks: playableTracks(page.tracks),
+      nextPageToken: page.nextPageToken,
+    };
+  };
   return (
     <div className="border-t bg-background/35 px-3 py-3 sm:px-12">
       {entries.length ? (
@@ -67,7 +75,15 @@ export function PlaylistTracks({
                 index={index + 1}
                 active={sameTrack(current, entry.track)}
                 client={client}
-                onPlay={() => onPlay(entry.track, queue)}
+                onPlay={() =>
+                  onPlay({
+                    tracks: queue,
+                    startIndex: index,
+                    nextPageToken:
+                      catalog.data?.pages.at(-1)?.nextPageToken ?? "",
+                    loadNextPage: loadPlaybackPage,
+                  })
+                }
                 onLyrics={() => onLyrics(entry.track)}
               />
             ))}
@@ -96,4 +112,8 @@ function sameTrack(a: PlayableTrack | undefined, b: PlayableTrack): boolean {
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : "歌单读取失败";
+}
+
+function playableTracks(entries: PlaylistTrack[]): PlayableTrack[] {
+  return entries.flatMap((entry) => (entry.track ? [entry.track] : []));
 }

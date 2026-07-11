@@ -1,15 +1,14 @@
 import type { MusicClient } from "@cloud-drive/shared";
-import { registerBrowserPlayer } from "./browser-player";
+import type {
+  PlaybackAdapter,
+  PlaybackAdapterEvents,
+} from "./playback/playback-types";
+import { registerProviderPlayer } from "./playback/provider-player-registry";
 
 const SPOTIFY_PROVIDER_ID = "spotify";
 const SPOTIFY_SDK_ID = "spotify_web_playback";
 const DEVICE_READY_TIMEOUT_MS = 15_000;
-
-export interface SpotifyPlayerState {
-  paused: boolean;
-  position: number;
-  duration: number;
-}
+const PLAYBACK_REQUEST_TIMEOUT_MS = 15_000;
 
 interface SpotifySDKState {
   paused: boolean;
@@ -22,8 +21,10 @@ interface SpotifySDKPlayer {
   connect(): Promise<boolean>;
   disconnect(): void;
   activateElement(): Promise<void>;
-  togglePlay(): Promise<void>;
+  resume(): Promise<void>;
+  pause(): Promise<void>;
   seek(position: number): Promise<void>;
+  setVolume(volume: number): Promise<void>;
   getCurrentState(): Promise<SpotifySDKState | null>;
 }
 
@@ -45,65 +46,94 @@ declare global {
 let sdkPromise: Promise<SpotifySDK> | undefined;
 
 export function registerSpotifyBrowserPlayer(): void {
-  registerBrowserPlayer(
+  registerProviderPlayer(
     SPOTIFY_SDK_ID,
-    (client, onState, onError) =>
-      new SpotifyController(client, onState, onError),
+    (client, events) => new SpotifyController(client, events),
   );
 }
 
-export class SpotifyController {
+export class SpotifyController implements PlaybackAdapter {
   private player: SpotifySDKPlayer | undefined;
   private deviceID = "";
   private stateTimer: number | undefined;
+  private endTimer: number | undefined;
   private request: AbortController | undefined;
+  private volume = 0.8;
+  private ended = false;
 
   constructor(
     private readonly client: MusicClient,
-    private readonly onState: (state: SpotifyPlayerState) => void,
-    private readonly onError: (message: string) => void,
+    private readonly events: PlaybackAdapterEvents,
   ) {}
 
-  async play(uri: string): Promise<void> {
+  async load(uri: string): Promise<void> {
+    this.clearEndTimer();
     const player = await this.ensurePlayer();
     await player.activateElement();
-    const token = (
-      await this.client.providers.playbackToken(SPOTIFY_PROVIDER_ID)
-    ).accessToken;
     this.request?.abort();
     this.request = new AbortController();
-    const response = await fetch(
-      `https://api.spotify.com/v1/me/player/play?device_id=${encodeURIComponent(this.deviceID)}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ uris: [uri] }),
-        signal: this.request.signal,
-      },
+    const controller = this.request;
+    const timeout = window.setTimeout(
+      () => controller.abort(),
+      PLAYBACK_REQUEST_TIMEOUT_MS,
     );
-    if (!response.ok) throw new Error(spotifyPlaybackError(response.status));
-    this.startStateTimer();
+    try {
+      const token = (
+        await this.client.providers.playbackToken(
+          SPOTIFY_PROVIDER_ID,
+          controller.signal,
+        )
+      ).accessToken;
+      const response = await fetch(
+        `https://api.spotify.com/v1/me/player/play?device_id=${encodeURIComponent(this.deviceID)}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ uris: [uri] }),
+          signal: controller.signal,
+        },
+      );
+      if (!response.ok) throw new Error(spotifyPlaybackError(response.status));
+      this.ended = false;
+      this.startStateTimer();
+    } finally {
+      window.clearTimeout(timeout);
+      if (this.request === controller) this.request = undefined;
+    }
   }
 
-  async toggle(): Promise<void> {
-    await (await this.ensurePlayer()).togglePlay();
+  async play(): Promise<void> {
+    await (await this.ensurePlayer()).resume();
+  }
+
+  async pause(): Promise<void> {
+    await (await this.ensurePlayer()).pause();
+    this.clearEndTimer();
   }
 
   async seek(seconds: number): Promise<void> {
+    this.clearEndTimer();
     await (await this.ensurePlayer()).seek(Math.max(0, seconds * 1_000));
   }
 
-  disconnect(): void {
+  async setVolume(volume: number): Promise<void> {
+    this.volume = Math.min(1, Math.max(0, volume));
+    if (this.player) await this.player.setVolume(this.volume);
+  }
+
+  destroy(): void {
     this.request?.abort();
     this.request = undefined;
     if (this.stateTimer !== undefined) window.clearInterval(this.stateTimer);
     this.stateTimer = undefined;
+    this.clearEndTimer();
     this.player?.disconnect();
     this.player = undefined;
     this.deviceID = "";
+    this.ended = false;
   }
 
   private async ensurePlayer(): Promise<SpotifySDKPlayer> {
@@ -111,12 +141,12 @@ export class SpotifyController {
     const sdk = await loadSpotifySDK();
     const player = new sdk.Player({
       name: "Local Library 音乐盒",
-      volume: 0.8,
+      volume: this.volume,
       getOAuthToken: (callback) => {
         void this.client.providers
           .playbackToken(SPOTIFY_PROVIDER_ID)
           .then((token) => callback(token.accessToken))
-          .catch((error: unknown) => this.onError(message(error)));
+          .catch((error: unknown) => this.events.onError(error));
       },
     });
     this.player = player;
@@ -130,7 +160,9 @@ export class SpotifyController {
       "playback_error",
       "autoplay_failed",
     ]) {
-      player.addListener(event, (value) => this.onError(sdkError(value)));
+      player.addListener(event, (value) =>
+        this.events.onError(new Error(sdkError(value))),
+      );
     }
     const ready = new Promise<string>((resolve, reject) => {
       player.addListener("ready", (value) =>
@@ -165,18 +197,50 @@ export class SpotifyController {
   private startStateTimer() {
     if (this.stateTimer !== undefined) return;
     this.stateTimer = window.setInterval(() => {
-      void this.player?.getCurrentState().then((state) => {
-        if (state) this.publishState(state);
-      });
+      const player = this.player;
+      if (!player) return;
+      void player
+        .getCurrentState()
+        .then((state) => {
+          if (state && this.player === player) this.publishState(state);
+        })
+        .catch((error: unknown) => {
+          if (this.player !== player) return;
+          window.clearInterval(this.stateTimer);
+          this.stateTimer = undefined;
+          this.events.onError(error);
+        });
     }, 1_000);
   }
 
   private publishState(state: SpotifySDKState) {
-    this.onState({
+    const normalized = {
       paused: state.paused,
       position: state.position / 1_000,
       duration: state.duration / 1_000,
-    });
+    };
+    this.events.onState(normalized);
+    this.scheduleEnded(normalized);
+  }
+
+  private scheduleEnded(state: SpotifySDKState) {
+    this.clearEndTimer();
+    if (this.ended || state.paused || state.duration <= 0) return;
+    const remaining = Math.max(0, state.duration - state.position);
+    this.endTimer = window.setTimeout(
+      () => {
+        this.endTimer = undefined;
+        if (this.ended || !this.player) return;
+        this.ended = true;
+        this.events.onEnded();
+      },
+      remaining * 1_000 + 300,
+    );
+  }
+
+  private clearEndTimer() {
+    if (this.endTimer !== undefined) window.clearTimeout(this.endTimer);
+    this.endTimer = undefined;
   }
 }
 
@@ -237,8 +301,4 @@ function sdkError(value: unknown): string {
   if (value && typeof value === "object" && "message" in value)
     return String(value.message);
   return "Spotify 播放器发生错误";
-}
-
-function message(error: unknown): string {
-  return error instanceof Error ? error.message : "Spotify 授权失败";
 }

@@ -16,6 +16,7 @@ import {
   useToast,
 } from "@cloud-drive/shared";
 import { PlayableTrackRow } from "./PlayableTrackRow";
+import type { PlaybackQueueSelection } from "./playback/playback-types";
 import { useProviderLabel } from "./provider-catalog";
 
 export function OnlineSearch({
@@ -26,7 +27,7 @@ export function OnlineSearch({
 }: {
   client: MusicClient;
   current: PlayableTrack | undefined;
-  onPlay: (track: PlayableTrack, queue: PlayableTrack[]) => void;
+  onPlay: (selection: PlaybackQueueSelection) => void;
   onLyrics: (track: PlayableTrack) => void;
 }) {
   const { showToast } = useToast();
@@ -123,6 +124,7 @@ export function OnlineSearch({
           <SearchGroup
             key={group.providerId}
             group={group}
+            query={submittedQuery}
             current={current}
             client={client}
             onPlay={onPlay}
@@ -135,7 +137,7 @@ export function OnlineSearch({
         <EmptyState
           icon={<Music2 className="size-6" />}
           title="搜索你的音乐来源"
-          detail="结果按来源分组展示，不会跨来源混合播放。"
+          detail="结果按来源分组展示，并按当前结果建立播放队列。"
         />
       )}
     </div>
@@ -144,6 +146,7 @@ export function OnlineSearch({
 
 function SearchGroup({
   group,
+  query,
   current,
   client,
   onPlay,
@@ -152,15 +155,30 @@ function SearchGroup({
   loadingMore,
 }: {
   group: ProviderSearchGroup;
+  query: string;
   current: PlayableTrack | undefined;
   client: MusicClient;
-  onPlay: (track: PlayableTrack, queue: PlayableTrack[]) => void;
+  onPlay: (selection: PlaybackQueueSelection) => void;
   onLyrics: (track: PlayableTrack) => void;
   onLoadMore: () => void;
   loadingMore: boolean;
 }) {
   const providerLabel = useProviderLabel();
   const detail = groupDetail(group);
+  const loadPlaybackPage = async (pageToken: string, signal: AbortSignal) => {
+    const pages = await client.providers.search(
+      query,
+      [{ providerId: group.providerId, pageToken }],
+      signal,
+    );
+    const page = pages.find(
+      (candidate) => candidate.providerId === group.providerId,
+    );
+    return {
+      tracks: page?.tracks ?? [],
+      nextPageToken: page?.nextPageToken ?? "",
+    };
+  };
   return (
     <section>
       <div className="mb-3 flex items-end justify-between gap-3">
@@ -185,7 +203,14 @@ function SearchGroup({
               index={index + 1}
               active={sameTrack(current, track)}
               client={client}
-              onPlay={() => onPlay(track, group.tracks)}
+              onPlay={() =>
+                onPlay({
+                  tracks: group.tracks,
+                  startIndex: index,
+                  nextPageToken: group.nextPageToken,
+                  loadNextPage: loadPlaybackPage,
+                })
+              }
               onLyrics={() => onLyrics(track)}
             />
           ))}

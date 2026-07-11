@@ -4,7 +4,6 @@ import { TrackRow } from "./TrackRow";
 
 type LocalTrackListProps = Readonly<{
   tracks: Track[];
-  queue: PlayableTrack[];
   client: MusicClient;
   current: PlayableTrack | undefined;
   trashed: boolean;
@@ -12,7 +11,7 @@ type LocalTrackListProps = Readonly<{
   loadingMore: boolean;
   loadMoreFailed: boolean;
   onLoadMore: () => Promise<void>;
-  onPlay: (track: Track, queue: PlayableTrack[]) => void;
+  onPlay: (index: number) => void;
   onFavorite: (track: Track) => void;
   onRemove: (track: Track) => void;
   onRestore: (track: Track) => void;
@@ -20,7 +19,6 @@ type LocalTrackListProps = Readonly<{
 
 export function LocalTrackList({
   tracks,
-  queue,
   client,
   current,
   trashed,
@@ -44,7 +42,7 @@ export function LocalTrackList({
             client={client}
             active={current?.trackId === track.uid}
             trashed={trashed}
-            onPlay={() => onPlay(track, queue)}
+            onPlay={() => onPlay(index)}
             onFavorite={() => onFavorite(track)}
             onRemove={() => onRemove(track)}
             onRestore={() => onRestore(track)}
