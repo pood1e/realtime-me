@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any
 
 from status_common import (
+    decode_json,
     json_response,
     label_set,
     run,
@@ -630,14 +631,6 @@ def read_json_object(path: Path) -> dict[str, Any]:
     try:
         data = json.loads(path.read_text(errors="ignore"))
     except (OSError, json.JSONDecodeError):
-        return {}
-    return data if isinstance(data, dict) else {}
-
-
-def decode_json(line: str) -> dict[str, Any]:
-    try:
-        data = json.loads(line)
-    except json.JSONDecodeError:
         return {}
     return data if isinstance(data, dict) else {}
 

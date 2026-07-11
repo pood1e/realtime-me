@@ -20,7 +20,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from typing import Callable, NamedTuple
+from typing import Any, Callable, NamedTuple
 
 JSON_CONTENT_TYPE = "application/json; charset=utf-8"
 METRICS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
@@ -289,6 +289,19 @@ def run(command: list[str], timeout_seconds: float = 5) -> str:
         return subprocess.check_output(command, text=True, stderr=subprocess.DEVNULL, timeout=timeout_seconds)
     except (OSError, subprocess.SubprocessError):
         return ""
+
+
+def decode_json(text: str) -> dict[str, Any]:
+    """The object this text holds, or nothing at all if it holds anything else.
+
+    A probe reads JSON that another program wrote -- a transcript line, the answer
+    of a command -- and a scrape must survive every one of them being malformed.
+    """
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 def utc_now() -> str:

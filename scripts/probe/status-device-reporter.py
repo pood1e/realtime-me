@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from status_common import (
+    decode_json,
     json_response,
     label_set,
     run,
@@ -28,11 +29,16 @@ from status_common import (
 )
 
 
+# What a track is, who owns it, and whether it is moving. Named rather than dumped
+# with get-raw, whose answer also carries the cover art as tens of kilobytes of
+# base64 -- an image this exporter has no use for and must never publish.
+NOWPLAYING_FIELDS = ("title", "artist", "playbackRate", "clientBundleIdentifier")
+
+
 @dataclass(frozen=True)
 class MediaSnapshot:
     title: str
     artist: str = ""
-    player: str = ""
 
 
 @dataclass(frozen=True)
@@ -73,8 +79,7 @@ def render_prometheus_metrics() -> str:
     ]
     media = current_media()
     if media:
-        labels = {"title": media.title, "artist": media.artist, "player": media.player}
-        lines.append(f"realtime_device_media_playing{label_set(labels)} 1")
+        lines.append(f"realtime_device_media_playing{label_set({'title': media.title, 'artist': media.artist})} 1")
     for accessory in bluetooth_audio_accessories():
         labels = accessory_labels(accessory)
         lines.append(f"realtime_device_accessory_connected{label_set(labels)} 1")
@@ -249,36 +254,30 @@ def darwin_media() -> MediaSnapshot | None:
 
 
 def darwin_nowplaying_cli() -> MediaSnapshot | None:
+    """The track MediaRemote is playing, whichever application queued it.
+
+    Every field is read in one call, so the snapshot is of a single moment: asked
+    a field at a time, a track that changes mid-scrape hands back one song's title
+    over the next song's artist.
+    """
     command = command_path("nowplaying-cli")
     if not command:
         return None
-    if not nowplaying_cli_is_playing(command):
+    playing = decode_json(run([command, "get", "--json", *NOWPLAYING_FIELDS]))
+    # nowplaying-cli answers with the last item even when it is paused, so only a
+    # positive playback rate means a track is actually coming out of the speakers.
+    if read_float(playing.get("playbackRate")) <= 0:
         return None
-    # Every field is answered with the string "null" when MediaRemote has none,
-    # which survives .strip() and only empties once sanitized. Sanitize first, so
-    # a track named "null" is the only thing an empty title can mean.
-    title = sanitize_media_text(run([command, "get", "title"]))
-    player = sanitize_media_text(run([command, "get", "bundleIdentifier"]))
-    # MediaRemote keeps the last item long after the application that queued it
-    # has quit, and goes on calling it playing. Nothing owns that item, and
-    # nothing is coming out of the speakers: an unattributed track is a ghost.
-    if not title or not player:
+    # MediaRemote keeps that item long after the application that queued it has
+    # quit, and goes on calling it playing. Nothing owns a track like that, so the
+    # application still holding it is what separates a live one from a ghost.
+    # It names the owner and never reaches a label: the page is told what is
+    # playing, not which program the host plays it with.
+    title = sanitize_media_text(str(playing.get("title") or ""))
+    owner = sanitize_media_text(str(playing.get("clientBundleIdentifier") or ""))
+    if not title or not owner:
         return None
-    return MediaSnapshot(
-        title=title,
-        artist=sanitize_media_text(run([command, "get", "artist"])),
-        player=player,
-    )
-
-
-def nowplaying_cli_is_playing(command: str) -> bool:
-    # nowplaying-cli returns the last item even when paused; a positive playback
-    # rate is the only reliable "actually playing" signal.
-    rate = run([command, "get", "playbackRate"]).strip().lower()
-    try:
-        return float(rate) > 0
-    except ValueError:
-        return False
+    return MediaSnapshot(title=title, artist=sanitize_media_text(str(playing.get("artist") or "")))
 
 
 def darwin_music_media() -> MediaSnapshot | None:
@@ -296,7 +295,7 @@ return ""
     title, artist = media_title_artist(run_osascript(script))
     if not title:
         return None
-    return MediaSnapshot(title=title, artist=artist, player="Music")
+    return MediaSnapshot(title=title, artist=artist)
 
 
 def darwin_spotify_media() -> MediaSnapshot | None:
@@ -314,7 +313,7 @@ return ""
     title, artist = media_title_artist(run_osascript(script))
     if not title:
         return None
-    return MediaSnapshot(title=title, artist=artist, player="Spotify")
+    return MediaSnapshot(title=title, artist=artist)
 
 
 def linux_media() -> MediaSnapshot | None:
@@ -330,11 +329,7 @@ def linux_media() -> MediaSnapshot | None:
                 run(["playerctl", "--player", player, "metadata", "artist"]).strip(),
                 run(["playerctl", "--player", player, "metadata", "xesam:artist"]).strip(),
             )
-            return MediaSnapshot(
-                title=sanitize_media_text(title),
-                artist=sanitize_media_text(artist),
-                player=sanitize_media_text(player),
-            )
+            return MediaSnapshot(title=sanitize_media_text(title), artist=sanitize_media_text(artist))
     return None
 
 
@@ -351,6 +346,14 @@ def first_non_empty(*values: str) -> str:
         if value:
             return value
     return ""
+
+
+def read_float(value: object) -> float:
+    """A number from a field that was only ever meant to hold one."""
+    try:
+        return float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def run_osascript(script: str) -> str:
