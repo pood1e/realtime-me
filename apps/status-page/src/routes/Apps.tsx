@@ -1,11 +1,10 @@
 import { ExternalLink, Images, LayoutGrid, Library, Music } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardAction, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyCard, StatusSection } from '@/components/layout';
 
 type ExternalApp = {
   title: string;
-  description: string;
   icon: ReactElement;
   path: string;
 };
@@ -19,19 +18,16 @@ type LinkedApp = ExternalApp & { href: string };
 const APPS: ExternalApp[] = [
   {
     title: 'Music',
-    description: 'Search and listen. Playlists are kept in your own browser.',
     icon: <Music className="size-5" />,
     path: '/music',
   },
   {
     title: 'Library',
-    description: 'The shelf of published books, read in the browser.',
     icon: <Library className="size-5" />,
     path: '/books',
   },
   {
     title: 'Wallpapers',
-    description: 'A public gallery. Browse it, take what you like.',
     icon: <Images className="size-5" />,
     path: '/wallpapers',
   },
@@ -68,10 +64,6 @@ function AppCard({ app }: { app: LinkedApp }) {
             {app.title}
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3">
-          <CardDescription>{app.description}</CardDescription>
-          <span className="text-xs text-muted-foreground">Opens in a new tab</span>
-        </CardContent>
       </Card>
     </a>
   );
