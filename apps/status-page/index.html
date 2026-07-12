@@ -6,14 +6,19 @@
     <title>pood1e</title>
     <link rel="icon" type="image/png" href="/scallion.png" />
     <link rel="apple-touch-icon" href="/scallion.png" />
+    <!-- The theme has to be on the document before the first paint, or the page flashes the
+         other one. It comes from a cookie, not localStorage, because the preference is shared
+         with the sibling sites on this domain and localStorage is not. -->
     <script>
       (function () {
         try {
-          var t = localStorage.getItem('theme');
-          if (t !== 'light' && t !== 'dark') {
-            t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-          }
-          document.documentElement.classList.toggle('dark', t === 'dark');
+          var m = document.cookie.match(/(?:^|;\s*)theme=(dark|light)/);
+          var t = m
+            ? m[1]
+            : window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+          document.documentElement.classList.add(t);
         } catch (e) {}
       })();
     </script>

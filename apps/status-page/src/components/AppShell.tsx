@@ -85,6 +85,7 @@ function NavTabs() {
   return (
     <nav className="flex items-center gap-5 text-sm font-medium">
       <Tab to="/">Status</Tab>
+      <Tab to="/apps">应用</Tab>
       <Tab to="/about">About</Tab>
     </nav>
   );

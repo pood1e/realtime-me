@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import { AppShell } from '@/components/AppShell';
+import { AppsApp } from '@/routes/Apps';
 import { InternalStatusApp } from '@/routes/Internal';
 import { ProfileApp } from '@/routes/Profile';
 import { PublicStatusApp } from '@/routes/PublicStatus';
@@ -9,6 +10,7 @@ export function App() {
     <Routes>
       <Route element={<AppShell />}>
         <Route path="/" element={<PublicStatusApp />} />
+        <Route path="/apps" element={<AppsApp />} />
         <Route path="/about" element={<ProfileApp />} />
         <Route path="*" element={<PublicStatusApp />} />
       </Route>
