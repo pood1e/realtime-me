@@ -6,4 +6,7 @@
 // than offering links that go nowhere.
 interface ImportMetaEnv {
   readonly VITE_COMMONS_APP_URL?: string;
+  // The owner's console. Its card is only drawn for a browser that has recently signed in, and
+  // an unset address means no card at all rather than one that goes nowhere.
+  readonly VITE_CONSOLE_APP_URL?: string;
 }

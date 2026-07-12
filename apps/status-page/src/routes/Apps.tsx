@@ -1,5 +1,5 @@
-import { ExternalLink, Images, LayoutGrid, Library, Music } from 'lucide-react';
-import type { ReactElement } from 'react';
+import { ExternalLink, Images, LayoutGrid, LayoutDashboard, Library, Music } from 'lucide-react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { Card, CardAction, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyCard, StatusSection } from '@/components/layout';
 
@@ -33,11 +33,48 @@ const APPS: ExternalApp[] = [
   },
 ];
 
+// The console is the owner's own, and only the owner has any use for it, so it is offered only
+// to a browser that has recently signed into it. The console says so itself, by leaving a cookie
+// on this domain — this page asks it nothing and cannot: the session is a __Host- cookie bound
+// to the API's own host, and the alternative to a note left in the open would have been giving
+// a page that anyone can open the right to make credentialed calls to the private API.
+//
+// The note is a hint about what to draw, and nothing more. Forging it earns a visitor a link,
+// and following the link shows them the sign-in screen, which is what they would have got
+// anyway.
+function signedIntoConsole(): boolean {
+  return /(?:^|;\s*)signed_in=1/.test(document.cookie);
+}
+
 export function AppsApp() {
-  const origin = appUrl(import.meta.env.VITE_COMMONS_APP_URL);
-  const apps: LinkedApp[] = origin
-    ? APPS.map((app) => ({ ...app, href: `${origin}${app.path}` }))
-    : [];
+  const commons = appUrl(import.meta.env.VITE_COMMONS_APP_URL);
+  const console_ = appUrl(import.meta.env.VITE_CONSOLE_APP_URL);
+  const [signedIn, setSignedIn] = useState(signedIntoConsole);
+
+  // Signing out happens on the other site, and nothing tells this page that a cookie moved. It
+  // is read again when the page is looked at again — the moment it would otherwise be offering
+  // a door that is no longer there.
+  useEffect(() => {
+    const resync = () => {
+      if (document.visibilityState === 'visible') setSignedIn(signedIntoConsole());
+    };
+    document.addEventListener('visibilitychange', resync);
+    return () => document.removeEventListener('visibilitychange', resync);
+  }, []);
+
+  const apps: LinkedApp[] = [
+    ...(commons ? APPS.map((app) => ({ ...app, href: `${commons}${app.path}` })) : []),
+    ...(signedIn && console_
+      ? [
+          {
+            title: 'Console',
+            icon: <LayoutDashboard className="size-5" />,
+            path: '/drive',
+            href: `${console_}/drive`,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <StatusSection title="Apps" icon={<LayoutGrid className="size-4" />}>
