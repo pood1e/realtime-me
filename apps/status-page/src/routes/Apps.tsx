@@ -18,20 +18,20 @@ type LinkedApp = ExternalApp & { href: string };
 // all rather than links that go nowhere.
 const APPS: ExternalApp[] = [
   {
-    title: '音乐',
-    description: '搜索并播放音乐，歌单存在你自己的浏览器里。',
+    title: 'Music',
+    description: 'Search and listen. Playlists are kept in your own browser.',
     icon: <Music className="size-5" />,
     path: '/music',
   },
   {
-    title: '书库',
-    description: '已上架电子书的书架，打开就能在浏览器里读。',
+    title: 'Library',
+    description: 'The shelf of published books, read in the browser.',
     icon: <Library className="size-5" />,
     path: '/books',
   },
   {
-    title: '壁纸',
-    description: '公开的壁纸图库，随便逛，随便挑。',
+    title: 'Wallpapers',
+    description: 'A public gallery. Browse it, take what you like.',
     icon: <Images className="size-5" />,
     path: '/wallpapers',
   },
@@ -44,8 +44,8 @@ export function AppsApp() {
     : [];
 
   return (
-    <StatusSection title="应用" icon={<LayoutGrid className="size-4" />}>
-      {apps.length === 0 ? <EmptyCard text="暂时没有可用的应用。" /> : apps.map((app) => <AppCard key={app.title} app={app} />)}
+    <StatusSection title="Apps" icon={<LayoutGrid className="size-4" />}>
+      {apps.length === 0 ? <EmptyCard text="No apps are configured." /> : apps.map((app) => <AppCard key={app.title} app={app} />)}
     </StatusSection>
   );
 }
@@ -70,7 +70,7 @@ function AppCard({ app }: { app: LinkedApp }) {
         </CardHeader>
         <CardContent className="grid gap-3">
           <CardDescription>{app.description}</CardDescription>
-          <span className="text-xs text-muted-foreground">在新标签页打开</span>
+          <span className="text-xs text-muted-foreground">Opens in a new tab</span>
         </CardContent>
       </Card>
     </a>
