@@ -8,7 +8,7 @@ import (
 )
 
 func TestProjectsReportUnreadableCuration(t *testing.T) {
-	service := NewProjectsService(ProjectsConfig{}, os.ErrNotExist, NewGitHubProjectsClient(""), 30)
+	service := NewProjectsService(ProjectsConfig{}, os.ErrNotExist, NewGitHubProjectsClient(nil), 30)
 	if _, err := service.List(); err == nil {
 		t.Fatal("a curated list that failed to load must report the fault, not an empty page")
 	}
@@ -20,7 +20,7 @@ func TestProjectsReportNotYetFetched(t *testing.T) {
 	service := NewProjectsService(
 		ProjectsConfig{Projects: []CuratedProject{{Repo: "pood1e/realtime-me"}}},
 		nil,
-		NewGitHubProjectsClient(""),
+		NewGitHubProjectsClient(nil),
 		30,
 	)
 	if _, err := service.List(); err == nil {

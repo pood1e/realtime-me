@@ -25,7 +25,7 @@ Wear OS Data Layer requires the phone and watch APKs to use the same package nam
 
 ## GitHub status
 
-GitHub is updated by `apps/status-gateway`, not by the phone. Put a classic personal access token in the gateway host `.env`:
+GitHub is updated by `apps/status-gateway`, not by the phone. Put a classic personal access token in `github.status_token` in the gateway's `gateway.yaml`:
 
 - Scope: `user`.
 - Repository permissions: none.
@@ -112,22 +112,35 @@ The debug receiver exists only in debug builds and stores the token through the 
 
 The status stack stores raw time-series data in Prometheus on your own host. Cloudflare only needs to expose the public API/page through a Tunnel or Worker custom domain. Linux host and VM metrics are scraped by Prometheus through node-exporter and HTTP service discovery. Extra device signals, such as the currently playing media title and connected Bluetooth audio accessory battery on macOS/Linux, are scraped from `status-device-reporter.py`.
 
+Every setting the gateway reads lives in one file, `infra/status-stack/gateway.yaml`:
+the two bearer tokens, the two kinds of GitHub credential, and the owner's profile.
+An unknown key in it is a startup error, never a setting that quietly does nothing.
+
 ```sh
 cd infra/status-stack
-cp .env.example .env
-openssl rand -base64 32 # paste into STATUS_INGEST_TOKEN  (write)
-openssl rand -base64 32 # paste into STATUS_QUERY_TOKEN   (read)
-printf %s "<STATUS_QUERY_TOKEN>" > prometheus/query_token
+cp gateway.example.yaml gateway.yaml   # tokens, GitHub credentials, profile
+cp projects.example.json projects.json # which repositories the page may show
+cp .env.example .env                   # only what Compose itself interpolates
+
+openssl rand -base64 32 # paste into tokens.ingest  (write)
+openssl rand -base64 32 # paste into tokens.query   (read)
+printf %s "<tokens.query>" > prometheus/query_token  # Prometheus presents the same one
 ```
 
-Set these values in `.env`:
+`gateway.example.yaml` explains each setting where it stands. The two that catch
+people out:
 
-- `STATUS_INGEST_TOKEN`: write access — enrollment, phone push, scrape-target registration.
-- `STATUS_QUERY_TOKEN`: read access — the internal dashboard, charts, and scrape discovery. Must differ from the ingest token: it is pasted into a browser. Prometheus reads the same value from `prometheus/query_token`.
-- `STATUS_GATEWAY_BIND`: LAN address that should accept phone updates, or `127.0.0.1` when only Cloudflare Tunnel should reach it.
-- `GITHUB_TOKEN`: GitHub token with the `user` scope.
-- `GITHUB_STATUS_MIN_INTERVAL_SECONDS`: default `10`.
-- `GITHUB_STATUS_TTL_MINUTES`: default `20`.
+- `tokens.query` **must differ** from `tokens.ingest`. It is pasted into a browser and
+  kept in localStorage; if they were the same value, every visitor with the dashboard
+  open could enroll a device. The gateway refuses to start when they match.
+- `github.projects_tokens` is **plural and read-only**, and is not
+  `github.status_token`. See [Profile and projects](#profile-and-projects) below.
+
+`.env` now holds only what Docker Compose has to interpolate for itself —
+`STATUS_GATEWAY_BIND`, `PROMETHEUS_RETENTION`, `CLOUDFLARE_TUNNEL_TOKEN` — because
+Compose cannot read the YAML. Everything the *gateway* reads is in the YAML, and the
+container's own paths and ports are set in `compose.yaml`, where you never have to
+think about them.
 
 ```sh
 docker compose up -d --build
@@ -192,32 +205,29 @@ because they answer to different pages. `ProfileService/GetProfile` is the name,
 avatar, and contact links the topbar carries on *every* screen.
 `ProjectsService/ListProjects` is the `/projects` page, and nothing else.
 
-Each is backed by one small hand-written file, mounted into the gateway from
-`infra/status-stack/`. Both are gitignored — the profile carries a real email, the
-curated list names private repositories — so copy each from the `.example` beside it
-before the first `docker compose up`. The paths are named in `compose.yaml`, not in
-`.env`: `.env` is rewritten whenever a token rotates, and a config line that quietly
-leaves with it is not a failure anyone notices.
+The profile is a *setting*, so it sits in `gateway.yaml` with the rest of them. It
+holds the login, and the ways to reach the owner that GitHub cannot supply. The name,
+the avatar, and the GitHub link are *not* written down: all three are read from the
+login, and `github.com/<login>.png` always resolves to the current avatar, so the page
+follows a change on GitHub without anyone editing a file.
 
-`profile.json` is the whole of the owner's identity:
-
-```json
-{
-  "profile": {
-    "display_name": "pood1e",
-    "avatar_url": "https://github.com/pood1e.png",
-    "github_login": "pood1e",
-    "links": [
-      { "label": "GitHub", "uri": "https://github.com/pood1e", "platform": "github" },
-      { "label": "Email", "uri": "mailto:me@example.com", "platform": "email" }
-    ]
-  }
-}
+```yaml
+profile:
+  github_login: your-login
+  links:
+    - platform: telegram
+      label: Telegram
+      uri: https://t.me/your-handle
+    - platform: email
+      label: Email
+      uri: mailto:me@example.com
 ```
 
-`projects.json` *curates*, and does not describe. It names the repositories the page
-may show — as `owner/name`, because the token reaches organizations too — and carries
-the one field GitHub cannot give back:
+`projects.json` is *data*, not settings, so it stays JSON and stays in its own file:
+long prose reads badly in YAML, and these summaries are prose. It *curates*, and does
+not describe — it names the repositories the page may show, as `owner/name`, because
+the projects reach across organizations — and carries the one field GitHub cannot give
+back:
 
 ```json
 {
@@ -230,22 +240,30 @@ the one field GitHub cannot give back:
 
 Everything else a card draws — the description, languages, stars, topics, the
 archived flag, the created month, the commit sparkline — the gateway reads from
-GitHub once a day (`GITHUB_PROJECTS_REFRESH_HOURS`, default 24) and serves from
+GitHub once a day (`github.projects_refresh_hours`, default 24) and serves from
 memory. A snapshot of those fields ages the moment it is written; a live one does
-not. The page cannot fetch on demand: one refresh costs a call for the repository
-list plus two per project, and against GitHub's 5,000-request hourly budget a
-per-visitor fetch would be spent inside seventy page loads.
+not. The page cannot fetch on demand: a refresh costs three calls per project, and
+against GitHub's 5,000-request hourly budget a per-visitor fetch would be spent
+inside a couple of dozen page loads — and would make every visitor wait on all of it.
 
-Curation is explicit on purpose. Publishing whatever the token can see would put
-every private repository the owner creates *from now on* onto a public page. A
-private project that *is* curated appears with a badge and no link — the response
-withholds `repository_url` for it, always.
+Curation is explicit on purpose. There is no listing call: the gateway reads only the
+repositories `projects.json` names, so a private repository the owner creates *from
+now on* cannot walk onto a public page by itself. A private project that *is* curated
+appears with a badge and no link — the response withholds `repository_url` for it,
+always.
 
-This needs `GITHUB_PROJECTS_TOKEN`: a **second, read-only** token, separate from the
-`GITHUB_TOKEN` that writes the owner's GitHub status. A fine-grained token with
-*Repository access: All repositories* and *Metadata: read-only* is enough for every
-call the gateway makes with it — it reads no file in any repository, and the write
-token must not be widened to cover this.
+This needs `github.projects_tokens`: **read-only** tokens, separate from the
+`github.status_token` that *writes* the owner's GitHub status. It is a list because a
+fine-grained token reaches the repositories of a single user or organization and no
+further, while the curated projects span several owners — so create one per owner at
+<https://github.com/settings/personal-access-tokens/new>, each with *Repository
+access: All repositories* and *Metadata: read-only*, and nothing else. An organization
+may hold its token pending until an owner approves it, under *Settings → Personal
+access tokens → Pending requests*.
+
+Read-only is the reason for the shape. A classic token has no read-only grade for
+private repositories: the only scope that reaches them is `repo`, which is read *and
+write* over every repository you have, on a host that needs to write to none of them.
 
 If either file is configured but unreadable, the gateway logs the path, keeps serving
 status and ingest, and answers that one service with `unavailable`. The page then says
@@ -253,7 +271,7 @@ it cannot load, rather than rendering an empty life as though nobody had written
 
 ## Runtime setup
 
-1. Deploy `infra/status-stack`. Configure `STATUS_INGEST_TOKEN`, `STATUS_QUERY_TOKEN`, `GITHUB_TOKEN`, and `GITHUB_PROJECTS_TOKEN` in `.env`, and copy `profile.example.json` and `projects.example.json` to `profile.json` and `projects.json` beside them.
+1. Deploy `infra/status-stack`. Fill in `gateway.yaml` (tokens, GitHub credentials, profile) and `projects.json` (the curated repositories), each copied from the `.example` beside it.
 2. Build/install `apps/mobile` with gateway endpoint build properties and save the gateway token once.
 3. Install `apps/watch` on the Pixel Watch.
 4. Open the watch app once and grant the requested sensor/background permissions. The watch activity exits after starting the foreground collection service.

@@ -67,25 +67,47 @@ already publish.
 **Who the owner is and what the owner built are two documents.** `ProfileService`
 serves the name, avatar, and contact links the topbar carries on *every* page;
 `ProjectsService` serves `/projects`, and nothing else. Neither is a "page" — the
-contract does not model screens. Each is backed by one small hand-written file
-bind-mounted from `infra/status-stack/`, and both are gitignored (a real email; the
-names of private repositories), so an `.example` sits beside each. The paths are
-named in `compose.yaml`, never in `.env`: `.env` is rewritten whenever a token
-rotates, and the profile once vanished for days because its line left with one.
+contract does not model screens.
+
+**Settings live in one YAML; data lives in JSON beside it.** `gateway.yaml` is
+everything a person chooses — both bearer tokens, both kinds of GitHub credential, the
+profile — and an unknown key in it is a startup error, never a setting that quietly
+does nothing. `projects.json` is data: the curated repositories and their summaries,
+which are prose and read badly in YAML. What the container *is* — port, state paths,
+the address of Prometheus — stays in `compose.yaml`, because Compose decides it and
+nobody should keep it in step by hand. Nothing the gateway reads goes in `.env`: `.env`
+is rewritten whenever a token rotates, and the profile once vanished for four days
+because its line left with one. Both hand-written files are gitignored (five secrets;
+the names of private repos), so an `.example` sits beside each.
+
+**The login is the only identity written down.** `gateway.yaml` carries
+`profile.github_login` and the links GitHub cannot supply — Telegram, Discord, an email. The
+display name, the avatar, and the GitHub link are *derived* from the login, never
+configured: `github.com/<login>.png` already resolves to the current avatar, and
+GitHub's own `name` field is the login here, so asking GitHub for any of it would
+fetch a string the login already spells and hand the topbar a way to go nameless
+whenever GitHub is down. Writing the login into four fields is four chances to change
+three of them.
 
 **`projects.json` curates; it does not describe.** It names the repositories the page
-may show — as `owner/name`, never a bare name: the token reaches organizations as well
-as the account, and a bare name would silently resolve to whichever organization
-paginated last — and carries `summary`, the one field GitHub cannot give back. Everything
-else on a card — description, languages, stars, topics, archived, created, the commit
-sparkline — the gateway reads from GitHub once a day and serves from memory. Do not
-fetch on demand: a refresh is one call for the repository list plus two per project,
-and against 5,000 requests an hour a per-visitor fetch is spent inside seventy page
-loads. Do not publish whatever the token can see, either — curation is what keeps
-every private repository the owner creates *from now on* off a public page. This
-needs `GITHUB_PROJECTS_TOKEN`, a read-only token (fine-grained, Metadata: read-only)
-kept separate from the `GITHUB_TOKEN` that *writes* the owner's GitHub status; do not
-widen the write token to read repositories.
+may show — as `owner/name`, never a bare name: the projects span four owners, and a
+bare name identifies nothing. It carries `summary`, the one field GitHub cannot give
+back. Everything else on a card — description, languages, stars, topics, archived,
+created, the commit sparkline — the gateway reads from GitHub once a day and serves
+from memory. Do not fetch on demand: a refresh is three calls per project, and against
+5,000 requests an hour a per-visitor fetch is spent inside a couple of dozen page
+loads. There is deliberately **no listing call**: the gateway reads only what
+`projects.json` names, which is what keeps a private repository created *from now on*
+from walking onto a public page by itself.
+
+**`github.projects_tokens` is plural, read-only, and not `github.status_token`.** A
+fine-grained token reaches a single user or organization and no further, so the
+curated projects need one per owner — each Metadata: read-only, none able to write a
+byte. Do not collapse them into one classic token: classic has no read-only grade for
+private repositories, only `repo`, which is read *and write* over every repository the
+owner has, on a host that needs to write to none of them. `github.status_token` is a
+different secret entirely — it *writes* the owner's GitHub status and needs the `user`
+scope. Never widen it to read repositories.
 
 **A missing config file is a fault, not an empty document.** `loadJSONConfig` returns
 an error when a configured path cannot be read, and the service it feeds answers

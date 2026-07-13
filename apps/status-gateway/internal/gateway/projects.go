@@ -111,40 +111,31 @@ func (service *ProjectsService) List() ([]*mev1.Project, error) {
 	return service.projects, nil
 }
 
-// refresh reads every curated repository from GitHub and swaps in the result. A
-// failed refresh keeps the last good snapshot: a GitHub outage should not empty a
-// page that was correct a minute ago.
+// refresh reads every curated repository from GitHub and swaps in the result. One
+// repository that cannot be read costs its own card and no other: a page is not
+// worth emptying over a repository that was renamed, deleted, or blocked.
 func (service *ProjectsService) refresh(ctx context.Context) {
-	repos, err := service.github.Repositories(ctx)
-	if err != nil {
-		slog.Error("failed to list GitHub repositories", "error", err)
-		return
-	}
-
 	built := make([]*mev1.Project, len(service.curated))
 	semaphore := make(chan struct{}, projectFetchConcurrency)
 	var group sync.WaitGroup
 
 	for index, curated := range service.curated {
-		repo, ok := repos[strings.ToLower(strings.TrimSpace(curated.Repo))]
-		if !ok {
-			// A curated name the token cannot see is a typo, or a repository that
-			// was deleted or renamed. Name it: dropping it in silence would leave
-			// the owner staring at a page one project short, for no stated reason.
-			slog.Warn("curated repository not found on GitHub", "repo", curated.Repo)
-			continue
-		}
-
 		group.Add(1)
-		go func(index int, repo GitHubRepository, summary string) {
+		go func(index int, fullName string, summary string) {
 			defer group.Done()
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
-			// Detail cannot fail the project. What it reads is decoration, and one
-			// repository GitHub declines to describe must not cost the page a card.
-			built[index] = publicProject(repo, service.github.Detail(ctx, repo), summary)
-		}(index, repo, curated.Summary)
+			repo, detail, err := service.github.Project(ctx, strings.TrimSpace(fullName))
+			if err != nil {
+				// A curated repository nobody can see is a typo, a rename, or one
+				// GitHub has blocked. Name it: dropping it in silence would leave the
+				// owner staring at a page one project short, for no stated reason.
+				slog.Warn("failed to read curated repository", "repo", fullName, "error", err)
+				return
+			}
+			built[index] = publicProject(repo, detail, summary)
+		}(index, curated.Repo, curated.Summary)
 	}
 	group.Wait()
 
@@ -153,6 +144,13 @@ func (service *ProjectsService) refresh(ctx context.Context) {
 		if project != nil {
 			projects = append(projects, project)
 		}
+	}
+	if len(projects) == 0 {
+		// Every repository failed, which is GitHub being unreachable or every token
+		// being dead — not the owner having deleted their life's work. Keep the last
+		// good snapshot rather than blanking a page that was right this morning.
+		slog.Error("no curated repository could be read; keeping the previous projects")
+		return
 	}
 
 	// The timeline labels a card with the month of its last push, and only when that

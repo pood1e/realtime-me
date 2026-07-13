@@ -14,7 +14,11 @@ import (
 )
 
 func main() {
-	config := gateway.LoadConfig()
+	config, err := gateway.LoadConfig()
+	if err != nil {
+		slog.Error("failed to load configuration", "error", err)
+		os.Exit(1)
+	}
 	if err := config.Validate(); err != nil {
 		slog.Error("invalid configuration", "error", err)
 		os.Exit(1)
@@ -34,17 +38,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	// The curated projects are data, not settings, and they live in their own file.
 	// This process also carries phone ingest and Prometheus scrape discovery, so a
-	// document it cannot read must not take the metrics pipeline down with it. Say
-	// so here, and let that one service answer unavailable; the rest serve on.
-	profileConfig, profileErr := gateway.LoadProfileConfig(config.ProfileConfigFile)
-	if profileErr != nil {
-		slog.Error("failed to load profile config", "path", config.ProfileConfigFile, "error", profileErr)
-	}
-
-	projectsConfig, projectsErr := gateway.LoadProjectsConfig(config.ProjectsConfigFile)
+	// file it cannot read must not take the metrics pipeline down with it: say so
+	// here, and let ProjectsService answer unavailable while the rest serve on.
+	projectsConfig, projectsErr := gateway.LoadProjectsConfig(config.ProjectsFile)
 	if projectsErr != nil {
-		slog.Error("failed to load projects config", "path", config.ProjectsConfigFile, "error", projectsErr)
+		slog.Error("failed to load projects file", "path", config.ProjectsFile, "error", projectsErr)
 	}
 
 	metrics, err := gateway.NewMetricsExporter(store)
@@ -55,11 +55,11 @@ func main() {
 
 	prometheus := gateway.NewPrometheusClient(config.PrometheusURL)
 	github := gateway.NewGitHubStatusPublisher(config, store)
-	profile := gateway.NewProfileService(profileConfig, profileErr)
+	profile := gateway.NewProfileService(config.Profile)
 	projects := gateway.NewProjectsService(
 		projectsConfig,
 		projectsErr,
-		gateway.NewGitHubProjectsClient(config.GitHubProjectsToken),
+		gateway.NewGitHubProjectsClient(config.GitHubProjectsTokens),
 		config.GitHubProjectsRefreshHours,
 	)
 	server := gateway.NewServer(config, store, identity, prometheus, github, profile, projects, metrics.Handler())

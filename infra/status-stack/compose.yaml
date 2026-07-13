@@ -11,28 +11,31 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    # What the container *is*: its port, where it keeps its state, who its neighbours
+    # are. Everything a person *chooses* — tokens, GitHub credentials, the profile —
+    # lives in gateway.yaml, mounted below. These paths are named here rather than in
+    # .env because .env is rewritten whenever a token rotates, and a config line that
+    # quietly leaves with one is exactly how the profile went missing for four days.
     environment:
       PORT: "8080"
       STATUS_STATE_FILE: /data/status-state.json
-      # Both documents are named here, not in .env: they are paths inside this
-      # container rather than secrets or host addresses. .env is rewritten whenever
-      # a token rotates, and neither line is something you should have to remember
-      # to carry across — forgetting one is exactly how the profile went missing.
-      PROFILE_CONFIG_FILE: /etc/status-gateway/profile.json
+      STATUS_GATEWAY_CONFIG: /etc/status-gateway/gateway.yaml
       PROJECTS_CONFIG_FILE: /etc/status-gateway/projects.json
       PROMETHEUS_URL: http://prometheus:9090
     ports:
       - "${STATUS_GATEWAY_BIND:-127.0.0.1}:18080:8080"
     volumes:
       - status-gateway-data:/data
-      # The two documents the owner writes by hand: who they are, and which of their
-      # repositories the page may show. Everything else a project card carries is
-      # read from GitHub at runtime, so these stay small — and they are mounted from
-      # the stack directory rather than kept in the data volume, where a `down -v`
-      # would take them with it. Copy each from its .example before the first `up`,
-      # or Docker will helpfully create a directory in its place and the gateway will
-      # report that half the page is unavailable.
-      - ./profile.json:/etc/status-gateway/profile.json:ro
+      # The two files the owner writes by hand. gateway.yaml is every setting there is:
+      # the tokens, the GitHub credentials, the profile. projects.json is data rather
+      # than settings — which repositories the page may show, and the summaries GitHub
+      # cannot give back — and it is JSON because long prose reads badly in YAML.
+      #
+      # Both are mounted from this directory rather than kept in the data volume, where
+      # a `down -v` would take them with it. Copy each from its .example before the
+      # first `up`: Docker will otherwise create a *directory* in place of a missing
+      # file, and the gateway will refuse to start on a settings file it cannot read.
+      - ./gateway.yaml:/etc/status-gateway/gateway.yaml:ro
       - ./projects.json:/etc/status-gateway/projects.json:ro
     # restart: unless-stopped cannot notice a hung but living process. The
     # healthcheck is what turns "the container is running" into "the container

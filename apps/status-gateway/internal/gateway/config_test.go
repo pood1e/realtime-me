@@ -1,6 +1,8 @@
 package gateway
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -75,18 +77,84 @@ func TestAuthorizedWithEmptySetRejects(t *testing.T) {
 	}
 }
 
-func TestParseTokens(t *testing.T) {
-	tokens := parseTokens(" alpha , beta ,, ")
-	if len(tokens) != 2 {
-		t.Fatalf("parseTokens returned %d tokens, want 2", len(tokens))
+func loadSettingsFile(t *testing.T, document string) (Config, error) {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "gateway.yaml")
+	if err := os.WriteFile(path, []byte(document), 0o600); err != nil {
+		t.Fatalf("write settings: %v", err)
 	}
-	for _, want := range []string{"alpha", "beta"} {
-		if _, ok := tokens[want]; !ok {
-			t.Errorf("parseTokens dropped %q", want)
-		}
+	t.Setenv("STATUS_GATEWAY_CONFIG", path)
+	return LoadConfig()
+}
+
+// One file holds every setting a person writes: the two bearer tokens, the two kinds
+// of GitHub credential, and the owner's profile.
+func TestSettingsCarryTheTokensAndTheProfile(t *testing.T) {
+	config, err := loadSettingsFile(t, `
+tokens:
+  ingest: write-me
+  query: read-me
+github:
+  status_token: ghp_status
+  projects_tokens:
+    - github_pat_one
+    - github_pat_two
+profile:
+  github_login: pood1e
+  links:
+    - platform: telegram
+      label: Telegram
+      uri: https://t.me/a-handle
+`)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
 	}
-	if len(parseTokens("")) != 0 {
-		t.Error("an empty value must yield no tokens")
+	if err := config.Validate(); err != nil {
+		t.Fatalf("validate: %v", err)
+	}
+
+	if _, ok := config.IngestTokens["write-me"]; !ok {
+		t.Fatal("the ingest token must reach the interceptor")
+	}
+	if config.GitHubToken != "ghp_status" {
+		t.Fatalf("the status token is the one that writes, got %q", config.GitHubToken)
+	}
+	if len(config.GitHubProjectsTokens) != 2 {
+		t.Fatalf("one read-only token per owner, got %d", len(config.GitHubProjectsTokens))
+	}
+	if config.Profile.GitHubLogin != "pood1e" || len(config.Profile.Links) != 1 {
+		t.Fatalf("the profile rides in the settings now, got %+v", config.Profile)
+	}
+	// An omitted interval must not become zero: a zero refresh would spin on GitHub.
+	if config.GitHubProjectsRefreshHours != 24 || config.GitHubStatusTTLMinutes != 20 {
+		t.Fatalf("an omitted interval falls back to its default, got %+v", config)
+	}
+}
+
+// A browser holds the query token. Were it also the ingest token, anyone with the
+// dashboard open could enroll a device.
+func TestOneTokenCannotBeBothHalvesOfTheAPI(t *testing.T) {
+	config, err := loadSettingsFile(t, "tokens:\n  ingest: same\n  query: same\n")
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if err := config.Validate(); err == nil {
+		t.Fatal("the read and write tokens must be different secrets")
+	}
+}
+
+// A misspelled setting that silently does nothing is the very failure this file was
+// introduced to end. Say so at startup instead of serving without it.
+func TestAMisspelledSettingIsAStartupError(t *testing.T) {
+	if _, err := loadSettingsFile(t, "tokens:\n  ingest: a\n  querry: b\n"); err == nil {
+		t.Fatal("an unknown field must fail the load, not be ignored")
+	}
+}
+
+func TestAMissingSettingsFileIsAStartupError(t *testing.T) {
+	t.Setenv("STATUS_GATEWAY_CONFIG", filepath.Join(t.TempDir(), "absent.yaml"))
+	if _, err := LoadConfig(); err == nil {
+		t.Fatal("a settings file that does not exist must fail the load")
 	}
 }
 

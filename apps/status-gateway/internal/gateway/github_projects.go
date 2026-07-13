@@ -9,38 +9,47 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	mev1 "realtime-me/apps/status-gateway/internal/genproto/realtime/me/v1"
 )
 
 const (
-	gitHubAPIURL = "https://api.github.com"
-
-	// GitHub caps a page at 100, and stops us walking forever if it ever stops
-	// shrinking the last page.
-	gitHubPageSize  = 100
-	gitHubMaxPages  = 10
+	gitHubAPIURL    = "https://api.github.com"
 	gitHubReadLimit = 10 * time.Second
 )
 
-// GitHubProjectsClient reads repositories. It holds a token of its own, separate
-// from the one that writes the owner's GitHub status: this one only ever reads, and
-// a fine-grained token with Metadata: read-only is enough for every call it makes.
+// GitHubProjectsClient reads repositories, and only ever reads them. It holds tokens
+// of its own, separate from the one that writes the owner's GitHub status.
+//
+// It holds more than one because a fine-grained token reaches the repositories of a
+// single user or organization and no further, while the curated list spans several
+// owners. One token per owner, each needing no more than Metadata: read-only — which
+// is the whole point: a classic token has no read-only grade for private
+// repositories, only `repo`, which is read *and write* over every repository the
+// owner has, on a server that needs to write to none of them.
 type GitHubProjectsClient struct {
-	token  string
+	tokens []string
 	client *http.Client
+
+	// Which token turned out to be the one that can see a given owner. Resolved on
+	// first use and remembered, so a refresh does not re-probe every owner from the
+	// top of the list for every repository it holds.
+	mutex        sync.Mutex
+	tokenByOwner map[string]string
 }
 
-func NewGitHubProjectsClient(token string) *GitHubProjectsClient {
+func NewGitHubProjectsClient(tokens []string) *GitHubProjectsClient {
 	return &GitHubProjectsClient{
-		token:  token,
-		client: &http.Client{Timeout: gitHubReadLimit},
+		tokens:       tokens,
+		client:       &http.Client{Timeout: gitHubReadLimit},
+		tokenByOwner: map[string]string{},
 	}
 }
 
-// GitHubRepository is a repository as the listing endpoint describes it. One call
-// carries every field a card needs except the languages and the commit activity.
+// GitHubRepository is a repository as GitHub describes it. It carries every field a
+// card needs except the languages and the commit activity, which cost a call apiece.
 type GitHubRepository struct {
 	Name        string   `json:"name"`
 	FullName    string   `json:"full_name"`
@@ -56,56 +65,91 @@ type GitHubRepository struct {
 	Private     bool     `json:"private"`
 }
 
-// GitHubRepositoryDetail is what the listing does not carry, and what costs a call
-// apiece to learn.
+// GitHubRepositoryDetail is the decoration: what the repository itself does not
+// carry, and what a card can do without.
 type GitHubRepositoryDetail struct {
 	Languages      []*mev1.LanguageShare
 	CommitActivity []int32
 }
 
-// Repositories lists every repository the token can see, keyed by lowercase full
-// name ("owner/name"). The token reaches organizations as well as the owner's own
-// account, so a bare repository name does not identify one.
-func (github *GitHubProjectsClient) Repositories(ctx context.Context) (map[string]GitHubRepository, error) {
-	if strings.TrimSpace(github.token) == "" {
-		return nil, errors.New("GITHUB_PROJECTS_TOKEN is not set")
+// Project reads one curated repository by its full name, "owner/name". The curated
+// list is the only thing that decides which repositories are read: there is no
+// listing call, and so no way for a repository nobody curated to reach the page.
+func (github *GitHubProjectsClient) Project(ctx context.Context, fullName string) (GitHubRepository, GitHubRepositoryDetail, error) {
+	if len(github.tokens) == 0 {
+		return GitHubRepository{}, GitHubRepositoryDetail{}, errors.New("GITHUB_PROJECTS_TOKENS is not set")
 	}
 
-	repositories := map[string]GitHubRepository{}
-	for page := 1; page <= gitHubMaxPages; page++ {
-		url := fmt.Sprintf(
-			"%s/user/repos?affiliation=owner,organization_member&visibility=all&sort=pushed&per_page=%d&page=%d",
-			gitHubAPIURL, gitHubPageSize, page,
-		)
-		var batch []GitHubRepository
-		if err := github.get(ctx, url, &batch); err != nil {
-			return nil, err
-		}
-		for _, repository := range batch {
-			repositories[strings.ToLower(repository.FullName)] = repository
-		}
-		if len(batch) < gitHubPageSize {
-			break
-		}
+	token, repo, err := github.resolve(ctx, fullName)
+	if err != nil {
+		return GitHubRepository{}, GitHubRepositoryDetail{}, err
 	}
-	return repositories, nil
+
+	// Neither of these is worth losing a card over. A repository whose languages
+	// GitHub declines to serve still belongs on the page, just without its bar.
+	return repo, GitHubRepositoryDetail{
+		Languages:      github.languages(ctx, fullName, token),
+		CommitActivity: github.commitActivity(ctx, fullName, token),
+	}, nil
 }
 
-// Detail reads the two things the listing withholds. Neither is worth losing a
-// project over: a repository whose language breakdown GitHub declines to serve still
-// belongs on the page, just without its bar. Both are decoration, and a decoration
-// that fails must not take the card with it.
-func (github *GitHubProjectsClient) Detail(ctx context.Context, repo GitHubRepository) GitHubRepositoryDetail {
-	return GitHubRepositoryDetail{
-		Languages:      github.languages(ctx, repo.FullName),
-		CommitActivity: github.commitActivity(ctx, repo.FullName),
+// resolve finds the token that can see this repository. GitHub answers 404, not 403,
+// for a repository a token cannot see, so "not visible" and "not there" look alike
+// from here — which is why every token is tried before the repository is given up on.
+func (github *GitHubProjectsClient) resolve(ctx context.Context, fullName string) (string, GitHubRepository, error) {
+	owner, _, ok := strings.Cut(fullName, "/")
+	if !ok {
+		return "", GitHubRepository{}, fmt.Errorf("github: %q is not an owner/name", fullName)
 	}
+	owner = strings.ToLower(owner)
+
+	for _, token := range github.orderedFor(owner) {
+		repo, err := github.repository(ctx, fullName, token)
+		if err != nil {
+			continue
+		}
+		github.remember(owner, token)
+		return token, repo, nil
+	}
+	return "", GitHubRepository{}, fmt.Errorf("github: no token can see %s", fullName)
 }
 
-func (github *GitHubProjectsClient) languages(ctx context.Context, fullName string) []*mev1.LanguageShare {
+// orderedFor puts the token already known to work for this owner first, and keeps
+// the rest as fallbacks in case a token was rotated or its grant withdrawn.
+func (github *GitHubProjectsClient) orderedFor(owner string) []string {
+	github.mutex.Lock()
+	known, ok := github.tokenByOwner[owner]
+	github.mutex.Unlock()
+	if !ok {
+		return github.tokens
+	}
+
+	ordered := make([]string, 0, len(github.tokens))
+	ordered = append(ordered, known)
+	for _, token := range github.tokens {
+		if token != known {
+			ordered = append(ordered, token)
+		}
+	}
+	return ordered
+}
+
+func (github *GitHubProjectsClient) remember(owner string, token string) {
+	github.mutex.Lock()
+	github.tokenByOwner[owner] = token
+	github.mutex.Unlock()
+}
+
+func (github *GitHubProjectsClient) repository(ctx context.Context, fullName string, token string) (GitHubRepository, error) {
+	var repo GitHubRepository
+	err := github.get(ctx, fmt.Sprintf("%s/repos/%s", gitHubAPIURL, fullName), token, &repo)
+	return repo, err
+}
+
+func (github *GitHubProjectsClient) languages(ctx context.Context, fullName string, token string) []*mev1.LanguageShare {
 	var bytesByLanguage map[string]int64
 	url := fmt.Sprintf("%s/repos/%s/languages", gitHubAPIURL, fullName)
-	if err := github.get(ctx, url, &bytesByLanguage); err != nil {
+	if err := github.get(ctx, url, token, &bytesByLanguage); err != nil {
 		slog.Warn("failed to read repository languages", "repo", fullName, "error", err)
 		return nil
 	}
@@ -120,29 +164,28 @@ func (github *GitHubProjectsClient) languages(ctx context.Context, fullName stri
 	return shares
 }
 
-// commitActivity reads the weekly commit counts behind the sparkline. GitHub
-// computes these lazily and answers 202 with an empty body while it does, so a miss
-// is normal and means "not yet", not "broken": draw no sparkline and try again on
-// the next refresh.
-func (github *GitHubProjectsClient) commitActivity(ctx context.Context, fullName string) []int32 {
+// commitActivity reads the weekly commit counts behind the sparkline. GitHub computes
+// these lazily and answers 202 with an empty body while it does, so a miss is normal
+// and means "not yet", not "broken": draw no sparkline, and ask again tomorrow.
+func (github *GitHubProjectsClient) commitActivity(ctx context.Context, fullName string, token string) []int32 {
 	var participation struct {
 		All []int32 `json:"all"`
 	}
 	url := fmt.Sprintf("%s/repos/%s/stats/participation", gitHubAPIURL, fullName)
-	if err := github.get(ctx, url, &participation); err != nil {
+	if err := github.get(ctx, url, token, &participation); err != nil {
 		return nil
 	}
 	return participation.All
 }
 
-func (github *GitHubProjectsClient) get(ctx context.Context, url string, target any) error {
+func (github *GitHubProjectsClient) get(ctx context.Context, url string, token string, target any) error {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Accept", "application/vnd.github+json")
 	request.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-	request.Header.Set("Authorization", "Bearer "+github.token)
+	request.Header.Set("Authorization", "Bearer "+token)
 
 	response, err := github.client.Do(request)
 	if err != nil {
@@ -151,8 +194,8 @@ func (github *GitHubProjectsClient) get(ctx context.Context, url string, target 
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		// The status code is the whole story here, and the body may carry the token
-		// back at us in an error message. Report the code and nothing else.
+		// The status code is the whole story here, and the body may quote the request
+		// back at us. Report the code, and never what was sent to get it.
 		return fmt.Errorf("github: HTTP %d", response.StatusCode)
 	}
 	return json.NewDecoder(response.Body).Decode(target)
