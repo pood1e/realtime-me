@@ -24,6 +24,12 @@ node_modules/
 # Bearer token Prometheus presents to the gateway's scrape-discovery endpoint.
 infra/status-stack/prometheus/query_token
 
+# The owner's real identity, and the repositories the page may show — the latter
+# names private repos. Copy each .example file beside them and fill it in; the stack
+# bind-mounts both into the gateway.
+infra/status-stack/profile.json
+infra/status-stack/projects.json
+
 # Generated per-repo project docs (may include private repo internals)
 docs/projects/
 

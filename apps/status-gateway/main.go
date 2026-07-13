@@ -34,9 +34,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	profileConfig, err := gateway.LoadProfileConfig(config.ProfileConfigFile)
-	if err != nil {
-		slog.Error("failed to load profile config", "error", err)
+	// This process also carries phone ingest and Prometheus scrape discovery, so a
+	// document it cannot read must not take the metrics pipeline down with it. Say
+	// so here, and let that one service answer unavailable; the rest serve on.
+	profileConfig, profileErr := gateway.LoadProfileConfig(config.ProfileConfigFile)
+	if profileErr != nil {
+		slog.Error("failed to load profile config", "path", config.ProfileConfigFile, "error", profileErr)
+	}
+
+	projectsConfig, projectsErr := gateway.LoadProjectsConfig(config.ProjectsConfigFile)
+	if projectsErr != nil {
+		slog.Error("failed to load projects config", "path", config.ProjectsConfigFile, "error", projectsErr)
 	}
 
 	metrics, err := gateway.NewMetricsExporter(store)
@@ -47,8 +55,14 @@ func main() {
 
 	prometheus := gateway.NewPrometheusClient(config.PrometheusURL)
 	github := gateway.NewGitHubStatusPublisher(config, store)
-	profile := gateway.NewProfileService(profileConfig)
-	server := gateway.NewServer(config, store, identity, prometheus, github, profile, metrics.Handler())
+	profile := gateway.NewProfileService(profileConfig, profileErr)
+	projects := gateway.NewProjectsService(
+		projectsConfig,
+		projectsErr,
+		gateway.NewGitHubProjectsClient(config.GitHubProjectsToken),
+		config.GitHubProjectsRefreshMinutes,
+	)
+	server := gateway.NewServer(config, store, identity, prometheus, github, profile, projects, metrics.Handler())
 
 	httpServer := &http.Server{
 		Addr:              ":" + config.Port,
@@ -63,6 +77,7 @@ func main() {
 	defer stop()
 
 	go github.Run(ctx)
+	go projects.Run(ctx)
 
 	go func() {
 		slog.Info("status-gateway listening", "address", httpServer.Addr)

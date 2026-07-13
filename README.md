@@ -139,7 +139,8 @@ The gateway speaks ConnectRPC (`POST /realtime.me.v1.<Service>/<Method>`, JSON o
 StatusService/GetPublicStatus       # public, unauthenticated — what the page reads
 StatusService/GetInternalStatus     # Bearer <STATUS_QUERY_TOKEN>
 MetricsService/GetMetricRange       # Bearer <STATUS_QUERY_TOKEN> — chart time series
-ProfileService/GetProfilePage       # public — the /about page
+ProfileService/GetProfile           # public — the owner's name, avatar, contact links
+ProjectsService/ListProjects        # public — the /projects page
 EnrollmentService/EnrollDevice      # Bearer <STATUS_INGEST_TOKEN> — mints the device uid
 IngestService/ReportMobileStatus    # Bearer <STATUS_INGEST_TOKEN> — phone push
 IngestService/RegisterScrapeTargets # Bearer <STATUS_INGEST_TOKEN> — central device registration
@@ -181,57 +182,77 @@ The Worker serves the SPA and proxies the ConnectRPC calls (`/realtime.me.v1.*`)
 
 ```text
 https://me.pood1e.space/realtime.me.v1.StatusService/GetPublicStatus
-https://me.pood1e.space/realtime.me.v1.ProfileService/GetProfilePage
+https://me.pood1e.space/realtime.me.v1.ProjectsService/ListProjects
 ```
 
-## Profile page
+## Profile and projects
 
-`/about` renders a personal profile with GitHub projects. The gateway is passive: it reads a static profile config file (`PROFILE_CONFIG_FILE`) and serves it at `ProfileService/GetProfilePage`. It never calls GitHub or Claude and holds no keys. The response withholds `repository_url` for `private` projects, which are shown with a badge and no link.
+The owner's identity and the owner's work are two documents, served by two services,
+because they answer to different pages. `ProfileService/GetProfile` is the name,
+avatar, and contact links the topbar carries on *every* screen.
+`ProjectsService/ListProjects` is the `/projects` page, and nothing else.
 
-The config holds the bio, contact links, and the projects collected once as data:
+Each is backed by one small hand-written file, mounted into the gateway from
+`infra/status-stack/`. Both are gitignored — the profile carries a real email, the
+curated list names private repositories — so copy each from the `.example` beside it
+before the first `docker compose up`. The paths are named in `compose.yaml`, not in
+`.env`: `.env` is rewritten whenever a token rotates, and a config line that quietly
+leaves with it is not a failure anyone notices.
+
+`profile.json` is the whole of the owner's identity:
 
 ```json
 {
   "profile": {
     "display_name": "pood1e",
-    "headline": "Realtime device tinkerer",
-    "bio": "I build realtime status pipelines for my devices.",
+    "avatar_url": "https://github.com/pood1e.png",
     "github_login": "pood1e",
     "links": [
-      { "label": "Email", "uri": "mailto:me@example.com", "platform": "email" },
-      { "label": "GitHub", "uri": "https://github.com/pood1e", "platform": "github" }
+      { "label": "GitHub", "uri": "https://github.com/pood1e", "platform": "github" },
+      { "label": "Email", "uri": "mailto:me@example.com", "platform": "email" }
     ]
-  },
+  }
+}
+```
+
+`projects.json` *curates*, and does not describe. It names the repositories the page
+may show, and carries the one field GitHub cannot give back:
+
+```json
+{
   "projects": [
-    {
-      "display_name": "Realtime Me",
-      "summary": "A self-hosted pipeline that publishes live device health to a status page.",
-      "visibility": "public",
-      "primary_language": "Go",
-      "repository_url": "https://github.com/pood1e/realtime-me"
-    }
+    { "repo": "realtime-me", "summary": "Optional. Stands in for GitHub's own description." },
+    { "repo": "some-other-repo" }
   ]
 }
 ```
 
-### Collecting projects (one-time)
+Everything else a card draws — the description, languages, stars, topics, the
+archived flag, the created month, the commit sparkline — the gateway reads from
+GitHub on a timer (`GITHUB_PROJECTS_REFRESH_MINUTES`, default 30) and serves from
+memory. A snapshot of those fields ages the moment it is written; a live one does
+not. The page cannot fetch on demand: one refresh costs a call for the repository
+list plus two per project, and against GitHub's 5,000-request hourly budget a
+per-visitor fetch would be spent inside seventy page loads.
 
-Projects are a one-time collection, not a live feed. `scripts/operator/collect-projects.py` fetches your repositories and, when `ANTHROPIC_API_KEY` is set, writes a short per-repository summary with Claude, then stores them in the config. Re-run it only when you want to refresh.
+Curation is explicit on purpose. Publishing whatever the token can see would put
+every private repository the owner creates *from now on* onto a public page. A
+private project that *is* curated appears with a badge and no link — the response
+withholds `repository_url` for it, always.
 
-```sh
-# All owned repos + summaries, written into the gateway's profile config
-GITHUB_TOKEN=... ANTHROPIC_API_KEY=... \
-  ./scripts/operator/collect-projects.py --config /data/profile.json
+This needs `GITHUB_PROJECTS_TOKEN`: a **second, read-only** token, separate from the
+`GITHUB_TOKEN` that writes the owner's GitHub status. A fine-grained token with
+*Repository access: All repositories* and *Metadata: read-only* is enough for every
+call the gateway makes with it — it reads no file in any repository, and the write
+token must not be widened to cover this.
 
-# Specific repos, printed to stdout (no summaries)
-GITHUB_TOKEN=... ./scripts/operator/collect-projects.py --repos realtime-me,dotfiles
-```
-
-The GitHub token and Anthropic key are used only while the script runs, never by the gateway. Including private repositories needs a token with repository read access (classic `repo`, or a fine-grained token with *Contents* + *Metadata: read*); summaries need `pip install anthropic`.
+If either file is configured but unreadable, the gateway logs the path, keeps serving
+status and ingest, and answers that one service with `unavailable`. The page then says
+it cannot load, rather than rendering an empty life as though nobody had written one.
 
 ## Runtime setup
 
-1. Deploy `infra/status-stack` and configure `STATUS_INGEST_TOKEN` plus `GITHUB_TOKEN` on the host.
+1. Deploy `infra/status-stack`. Configure `STATUS_INGEST_TOKEN`, `STATUS_QUERY_TOKEN`, `GITHUB_TOKEN`, and `GITHUB_PROJECTS_TOKEN` in `.env`, and copy `profile.example.json` and `projects.example.json` to `profile.json` and `projects.json` beside them.
 2. Build/install `apps/mobile` with gateway endpoint build properties and save the gateway token once.
 3. Install `apps/watch` on the Pixel Watch.
 4. Open the watch app once and grant the requested sensor/background permissions. The watch activity exits after starting the foreground collection service.

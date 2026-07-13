@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"strconv"
@@ -19,7 +20,34 @@ type Config struct {
 	GitHubToken                    string
 	GitHubStatusMinIntervalSeconds int
 	GitHubStatusTTLMinutes         int
+	GitHubProjectsToken            string
+	GitHubProjectsRefreshMinutes   int
 	ProfileConfigFile              string
+	ProjectsConfigFile             string
+}
+
+// loadJSONConfig reads a configured JSON document. An empty path means the document
+// was not configured, and yields the zero value.
+//
+// A configured file that cannot be read is an error, not an empty document. The two
+// are indistinguishable once served — an empty page reads as one nobody has filled
+// in — so swallowing the missing file is what lets a lost config sit unnoticed
+// behind a healthy 200.
+func loadJSONConfig[T any](path string) (T, error) {
+	var config T
+	if strings.TrimSpace(path) == "" {
+		return config, nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		var zero T
+		return zero, err
+	}
+	if err := json.Unmarshal(data, &config); err != nil {
+		var zero T
+		return zero, err
+	}
+	return config, nil
 }
 
 // LoadConfig reads the gateway configuration from the environment. The read and
@@ -42,7 +70,14 @@ func LoadConfig() Config {
 		GitHubToken:                    secretEnv("GITHUB_TOKEN"),
 		GitHubStatusMinIntervalSeconds: positiveInt("GITHUB_STATUS_MIN_INTERVAL_SECONDS", 10),
 		GitHubStatusTTLMinutes:         positiveInt("GITHUB_STATUS_TTL_MINUTES", 20),
+		// A second, read-only token. GITHUB_TOKEN writes the owner's GitHub status
+		// and needs the user scope; reading private repositories needs a different
+		// grant entirely, and widening the write token to cover it would hand the
+		// status publisher the run of every repository the owner has.
+		GitHubProjectsToken:          secretEnv("GITHUB_PROJECTS_TOKEN"),
+		GitHubProjectsRefreshMinutes: positiveInt("GITHUB_PROJECTS_REFRESH_MINUTES", 30),
 		ProfileConfigFile:              strings.TrimSpace(os.Getenv("PROFILE_CONFIG_FILE")),
+		ProjectsConfigFile:             strings.TrimSpace(os.Getenv("PROJECTS_CONFIG_FILE")),
 	}
 }
 

@@ -2,6 +2,7 @@ import { Code, ConnectError, createClient } from '@connectrpc/connect';
 import { createConnectTransport } from '@connectrpc/connect-web';
 import { MetricsService } from '@/gen/realtime/me/v1/metrics_pb';
 import { ProfileService } from '@/gen/realtime/me/v1/profile_pb';
+import { ProjectsService } from '@/gen/realtime/me/v1/projects_pb';
 import { StatusService } from '@/gen/realtime/me/v1/status_pb';
 
 // POLL_INTERVAL_MS is the cadence for the public and internal status loops.
@@ -13,6 +14,7 @@ const transport = createConnectTransport({ baseUrl: resolveApiBaseUrl() });
 
 export const statusClient = createClient(StatusService, transport);
 export const profileClient = createClient(ProfileService, transport);
+export const projectsClient = createClient(ProjectsService, transport);
 export const metricsClient = createClient(MetricsService, transport);
 
 export function authHeaders(token: string): HeadersInit {

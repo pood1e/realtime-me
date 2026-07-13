@@ -25,8 +25,8 @@ import {
   siTypescript,
   siVuedotjs,
 } from 'simple-icons/icons';
-import type { LanguageShare, Project } from '@/gen/realtime/me/v1/profile_pb';
-import { ProjectVisibility } from '@/gen/realtime/me/v1/profile_pb';
+import type { LanguageShare, Project } from '@/gen/realtime/me/v1/projects_pb';
+import { ProjectVisibility } from '@/gen/realtime/me/v1/projects_pb';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

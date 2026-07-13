@@ -8,7 +8,7 @@ type Env = {
 };
 
 // The browser speaks only ConnectRPC, POSTed to /<proto package>.<Service>/<Method>,
-// and it reads. The three read services are named one by one rather than by their
+// and it reads. The four read services are named one by one rather than by their
 // shared package prefix, which would also carry EnrollmentService and IngestService
 // -- the write half of the API, which no browser has any business reaching.
 // Nothing under /api/ is proxied either: those are the gateway's control-plane
@@ -16,6 +16,7 @@ type Env = {
 const PROXY_PREFIXES = [
   '/realtime.me.v1.StatusService/',
   '/realtime.me.v1.ProfileService/',
+  '/realtime.me.v1.ProjectsService/',
   '/realtime.me.v1.MetricsService/',
 ];
 

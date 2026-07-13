@@ -64,6 +64,35 @@ exports only what it owns: the phone's pushed status and its GitHub sync state.
 Re-exporting host or agent series here would duplicate what the exporters
 already publish.
 
+**Who the owner is and what the owner built are two documents.** `ProfileService`
+serves the name, avatar, and contact links the topbar carries on *every* page;
+`ProjectsService` serves `/projects`, and nothing else. Neither is a "page" — the
+contract does not model screens. Each is backed by one small hand-written file
+bind-mounted from `infra/status-stack/`, and both are gitignored (a real email; the
+names of private repositories), so an `.example` sits beside each. The paths are
+named in `compose.yaml`, never in `.env`: `.env` is rewritten whenever a token
+rotates, and the profile once vanished for days because its line left with one.
+
+**`projects.json` curates; it does not describe.** It names the repositories the page
+may show and carries `summary`, the one field GitHub cannot give back. Everything
+else on a card — description, languages, stars, topics, archived, created, the commit
+sparkline — the gateway reads from GitHub on a timer and serves from memory. Do not
+fetch on demand: a refresh is one call for the repository list plus two per project,
+and against 5,000 requests an hour a per-visitor fetch is spent inside seventy page
+loads. Do not publish whatever the token can see, either — curation is what keeps
+every private repository the owner creates *from now on* off a public page. This
+needs `GITHUB_PROJECTS_TOKEN`, a read-only token (fine-grained, Metadata: read-only)
+kept separate from the `GITHUB_TOKEN` that *writes* the owner's GitHub status; do not
+widen the write token to read repositories.
+
+**A missing config file is a fault, not an empty document.** `loadJSONConfig` returns
+an error when a configured path cannot be read, and the service it feeds answers
+`unavailable` rather than serving an empty one. It does not exit: this process also
+carries phone ingest and Prometheus scrape discovery, and a cosmetic file must not
+take the metrics pipeline down. Swallowing the missing file is what let a lost
+profile sit for days behind a healthy 200 — and why the topbar no longer hardcodes a
+name and avatar to fall back on.
+
 **`scripts/` has a published URL contract, and the probe payload is flat at
 runtime.** The installers fetch each file from
 `https://raw.githubusercontent.com/pood1e/realtime-me/main/scripts` (jsdelivr
@@ -178,9 +207,9 @@ run an arbitrary query. Don't reintroduce a `query=` parameter.
 - Prometheus runs without `--web.enable-lifecycle`: nothing here reloads it, and
   the flag serves unauthenticated `/-/reload` and `/-/quit`. Config changes need a
   container restart.
-- The status page's Worker proxies the three read services — `StatusService`,
-  `ProfileService`, `MetricsService` — to `STATUS_API_BASE_URL` by name, so the
-  browser always sees one origin. Don't collapse them back to the
+- The status page's Worker proxies the four read services — `StatusService`,
+  `ProfileService`, `ProjectsService`, `MetricsService` — to `STATUS_API_BASE_URL`
+  by name, so the browser always sees one origin. Don't collapse them back to the
   `/realtime.me.v1.*` package prefix: that also carries `IngestService` and
   `EnrollmentService`, the write half of the API. It proxies nothing under
   `/api/` either: those are the gateway's control-plane routes, such as scrape

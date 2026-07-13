@@ -29,31 +29,6 @@ export function SiteLogo() {
   );
 }
 
-export function NavLinks() {
-  return (
-    <nav className="flex items-center gap-1 rounded-full border bg-card/70 p-1 text-sm shadow-sm backdrop-blur">
-      <TabLink to="/">Status</TabLink>
-      <TabLink to="/about">About</TabLink>
-    </nav>
-  );
-}
-
-function TabLink({ to, children }: { to: string; children: ReactNode }) {
-  return (
-    <NavLink
-      to={to}
-      end={to === '/'}
-      className={({ isActive }) =>
-        `rounded-full px-3.5 py-1.5 font-medium transition-colors ${
-          isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-        }`
-      }
-    >
-      {children}
-    </NavLink>
-  );
-}
-
 export function HeaderActions({ failed, refresh }: { failed: boolean; refresh: () => void }) {
   return (
     <div className="flex items-center gap-2">

@@ -177,11 +177,40 @@ func NewProfileServer(profile *ProfileService) *ProfileServer {
 	return &ProfileServer{profile: profile}
 }
 
-func (server *ProfileServer) GetProfilePage(
+// GetProfile answers with the owner's identity, or reports that it is unavailable.
+// The reason is a filesystem path, which is the operator's business and not a
+// visitor's, so it stays in the log the gateway already wrote at startup.
+func (server *ProfileServer) GetProfile(
 	_ context.Context,
-	_ *connect.Request[mev1.GetProfilePageRequest],
-) (*connect.Response[mev1.GetProfilePageResponse], error) {
-	return connect.NewResponse(&mev1.GetProfilePageResponse{Page: server.profile.Page(time.Now())}), nil
+	_ *connect.Request[mev1.GetProfileRequest],
+) (*connect.Response[mev1.GetProfileResponse], error) {
+	profile, err := server.profile.Profile()
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("profile is unavailable"))
+	}
+	return connect.NewResponse(&mev1.GetProfileResponse{Profile: profile}), nil
+}
+
+// ProjectsServer implements the Connect ProjectsService.
+type ProjectsServer struct {
+	projects *ProjectsService
+}
+
+func NewProjectsServer(projects *ProjectsService) *ProjectsServer {
+	return &ProjectsServer{projects: projects}
+}
+
+// ListProjects answers with the curated projects, or reports that they are
+// unavailable, for the same reason GetProfile does.
+func (server *ProjectsServer) ListProjects(
+	_ context.Context,
+	_ *connect.Request[mev1.ListProjectsRequest],
+) (*connect.Response[mev1.ListProjectsResponse], error) {
+	projects, err := server.projects.List()
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("projects are unavailable"))
+	}
+	return connect.NewResponse(&mev1.ListProjectsResponse{Projects: projects}), nil
 }
 
 // NewAuthInterceptor rejects unauthenticated server-side calls whose bearer

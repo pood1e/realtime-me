@@ -9,7 +9,6 @@ package mev1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -22,80 +21,27 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// ProjectVisibility describes the source repository's visibility on GitHub.
-type ProjectVisibility int32
-
-const (
-	// Visibility is not known.
-	ProjectVisibility_PROJECT_VISIBILITY_UNSPECIFIED ProjectVisibility = 0
-	// The repository is publicly visible on GitHub.
-	ProjectVisibility_PROJECT_VISIBILITY_PUBLIC ProjectVisibility = 1
-	// The repository is private on GitHub.
-	ProjectVisibility_PROJECT_VISIBILITY_PRIVATE ProjectVisibility = 2
-)
-
-// Enum value maps for ProjectVisibility.
-var (
-	ProjectVisibility_name = map[int32]string{
-		0: "PROJECT_VISIBILITY_UNSPECIFIED",
-		1: "PROJECT_VISIBILITY_PUBLIC",
-		2: "PROJECT_VISIBILITY_PRIVATE",
-	}
-	ProjectVisibility_value = map[string]int32{
-		"PROJECT_VISIBILITY_UNSPECIFIED": 0,
-		"PROJECT_VISIBILITY_PUBLIC":      1,
-		"PROJECT_VISIBILITY_PRIVATE":     2,
-	}
-)
-
-func (x ProjectVisibility) Enum() *ProjectVisibility {
-	p := new(ProjectVisibility)
-	*p = x
-	return p
-}
-
-func (x ProjectVisibility) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ProjectVisibility) Descriptor() protoreflect.EnumDescriptor {
-	return file_realtime_me_v1_profile_proto_enumTypes[0].Descriptor()
-}
-
-func (ProjectVisibility) Type() protoreflect.EnumType {
-	return &file_realtime_me_v1_profile_proto_enumTypes[0]
-}
-
-func (x ProjectVisibility) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ProjectVisibility.Descriptor instead.
-func (ProjectVisibility) EnumDescriptor() ([]byte, []int) {
-	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{0}
-}
-
-// GetProfilePageRequest is the request for the profile document.
-type GetProfilePageRequest struct {
+// GetProfileRequest is the request for the owner's identity.
+type GetProfileRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetProfilePageRequest) Reset() {
-	*x = GetProfilePageRequest{}
+func (x *GetProfileRequest) Reset() {
+	*x = GetProfileRequest{}
 	mi := &file_realtime_me_v1_profile_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetProfilePageRequest) String() string {
+func (x *GetProfileRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetProfilePageRequest) ProtoMessage() {}
+func (*GetProfileRequest) ProtoMessage() {}
 
-func (x *GetProfilePageRequest) ProtoReflect() protoreflect.Message {
+func (x *GetProfileRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_realtime_me_v1_profile_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -107,34 +53,34 @@ func (x *GetProfilePageRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetProfilePageRequest.ProtoReflect.Descriptor instead.
-func (*GetProfilePageRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetProfileRequest.ProtoReflect.Descriptor instead.
+func (*GetProfileRequest) Descriptor() ([]byte, []int) {
 	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{0}
 }
 
-// GetProfilePageResponse carries the profile document.
-type GetProfilePageResponse struct {
+// GetProfileResponse carries the owner's identity.
+type GetProfileResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// page is the public profile document.
-	Page          *ProfilePage `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
+	// profile is the site owner's public identity.
+	Profile       *Profile `protobuf:"bytes,1,opt,name=profile,proto3" json:"profile,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetProfilePageResponse) Reset() {
-	*x = GetProfilePageResponse{}
+func (x *GetProfileResponse) Reset() {
+	*x = GetProfileResponse{}
 	mi := &file_realtime_me_v1_profile_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetProfilePageResponse) String() string {
+func (x *GetProfileResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetProfilePageResponse) ProtoMessage() {}
+func (*GetProfileResponse) ProtoMessage() {}
 
-func (x *GetProfilePageResponse) ProtoReflect() protoreflect.Message {
+func (x *GetProfileResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_realtime_me_v1_profile_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -146,100 +92,30 @@ func (x *GetProfilePageResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetProfilePageResponse.ProtoReflect.Descriptor instead.
-func (*GetProfilePageResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetProfileResponse.ProtoReflect.Descriptor instead.
+func (*GetProfileResponse) Descriptor() ([]byte, []int) {
 	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *GetProfilePageResponse) GetPage() *ProfilePage {
-	if x != nil {
-		return x.Page
-	}
-	return nil
-}
-
-// ProfilePage is the personal profile document served to the status page.
-// It bundles the owner's introduction with the curated set of GitHub projects
-// already projected for public display and ordered for rendering.
-type ProfilePage struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// profile is the owner's personal introduction.
-	Profile *Profile `protobuf:"bytes,1,opt,name=profile,proto3" json:"profile,omitempty"`
-	// projects are the curated GitHub projects in display order.
-	Projects []*Project `protobuf:"bytes,2,rep,name=projects,proto3" json:"projects,omitempty"`
-	// update_time is when this profile document was last assembled.
-	UpdateTime    *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ProfilePage) Reset() {
-	*x = ProfilePage{}
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ProfilePage) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ProfilePage) ProtoMessage() {}
-
-func (x *ProfilePage) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ProfilePage.ProtoReflect.Descriptor instead.
-func (*ProfilePage) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *ProfilePage) GetProfile() *Profile {
+func (x *GetProfileResponse) GetProfile() *Profile {
 	if x != nil {
 		return x.Profile
 	}
 	return nil
 }
 
-func (x *ProfilePage) GetProjects() []*Project {
-	if x != nil {
-		return x.Projects
-	}
-	return nil
-}
-
-func (x *ProfilePage) GetUpdateTime() *timestamppb.Timestamp {
-	if x != nil {
-		return x.UpdateTime
-	}
-	return nil
-}
-
-// Profile is the owner's personal introduction shown at the top of the page.
+// Profile is the site owner's public identity: who the page belongs to, and how
+// to reach them. It says nothing about what the owner has built — that is a
+// project, and ProjectsService serves those.
 type Profile struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// display_name is the human-readable name shown as the page heading.
+	// display_name is the human-readable name shown in the topbar.
 	DisplayName string `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	// headline is a short one-line tagline shown under the name.
-	Headline string `protobuf:"bytes,2,opt,name=headline,proto3" json:"headline,omitempty"`
-	// bio is a longer free-form introduction in Markdown.
-	Bio string `protobuf:"bytes,3,opt,name=bio,proto3" json:"bio,omitempty"`
 	// avatar_url is the URL of the profile picture.
 	AvatarUrl string `protobuf:"bytes,4,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
-	// location is a human-readable location label, such as a city.
-	Location string `protobuf:"bytes,5,opt,name=location,proto3" json:"location,omitempty"`
-	// github_login is the GitHub username whose repositories drive the projects.
+	// github_login is the owner's GitHub username.
 	GithubLogin string `protobuf:"bytes,6,opt,name=github_login,json=githubLogin,proto3" json:"github_login,omitempty"`
-	// links are external profile and contact links.
+	// links are the owner's public contact links.
 	Links         []*ProfileLink `protobuf:"bytes,7,rep,name=links,proto3" json:"links,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -247,7 +123,7 @@ type Profile struct {
 
 func (x *Profile) Reset() {
 	*x = Profile{}
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[3]
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -259,7 +135,7 @@ func (x *Profile) String() string {
 func (*Profile) ProtoMessage() {}
 
 func (x *Profile) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[3]
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -272,7 +148,7 @@ func (x *Profile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Profile.ProtoReflect.Descriptor instead.
 func (*Profile) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{3}
+	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Profile) GetDisplayName() string {
@@ -282,30 +158,9 @@ func (x *Profile) GetDisplayName() string {
 	return ""
 }
 
-func (x *Profile) GetHeadline() string {
-	if x != nil {
-		return x.Headline
-	}
-	return ""
-}
-
-func (x *Profile) GetBio() string {
-	if x != nil {
-		return x.Bio
-	}
-	return ""
-}
-
 func (x *Profile) GetAvatarUrl() string {
 	if x != nil {
 		return x.AvatarUrl
-	}
-	return ""
-}
-
-func (x *Profile) GetLocation() string {
-	if x != nil {
-		return x.Location
 	}
 	return ""
 }
@@ -324,15 +179,16 @@ func (x *Profile) GetLinks() []*ProfileLink {
 	return nil
 }
 
-// ProfileLink is one external link shown on the profile, such as a social handle.
+// ProfileLink is one public contact link, such as an email address or a social
+// handle.
 type ProfileLink struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// label is the human-readable link text.
+	// label is the human-readable link text, used as the icon's accessible name.
 	Label string `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
 	// uri is the link target.
 	Uri string `protobuf:"bytes,2,opt,name=uri,proto3" json:"uri,omitempty"`
 	// platform is a lowercase platform key used to pick an icon, such as
-	// "github", "x", or "website". Unknown values fall back to a generic icon.
+	// "github", "email", or "website". Unknown values fall back to a generic icon.
 	Platform      string `protobuf:"bytes,3,opt,name=platform,proto3" json:"platform,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -340,7 +196,7 @@ type ProfileLink struct {
 
 func (x *ProfileLink) Reset() {
 	*x = ProfileLink{}
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[4]
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -352,7 +208,7 @@ func (x *ProfileLink) String() string {
 func (*ProfileLink) ProtoMessage() {}
 
 func (x *ProfileLink) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[4]
+	mi := &file_realtime_me_v1_profile_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -365,7 +221,7 @@ func (x *ProfileLink) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProfileLink.ProtoReflect.Descriptor instead.
 func (*ProfileLink) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{4}
+	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ProfileLink) GetLabel() string {
@@ -389,294 +245,27 @@ func (x *ProfileLink) GetPlatform() string {
 	return ""
 }
 
-// Project is one curated GitHub repository presented as a personal project.
-type Project struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// uid is the system-assigned opaque identifier for this project.
-	Uid string `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
-	// display_name is the shown project title; it defaults to the repository name.
-	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	// description is the repository's own short description from GitHub.
-	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	// summary is the generated per-repository summary shown on the card.
-	// It is empty until the summary has been produced.
-	Summary string `protobuf:"bytes,4,opt,name=summary,proto3" json:"summary,omitempty"`
-	// visibility indicates whether the source repository is public or private.
-	Visibility ProjectVisibility `protobuf:"varint,5,opt,name=visibility,proto3,enum=realtime.me.v1.ProjectVisibility" json:"visibility,omitempty"`
-	// primary_language is the repository's main programming language.
-	PrimaryLanguage string `protobuf:"bytes,6,opt,name=primary_language,json=primaryLanguage,proto3" json:"primary_language,omitempty"`
-	// topics are the repository topics used as tags.
-	Topics []string `protobuf:"bytes,7,rep,name=topics,proto3" json:"topics,omitempty"`
-	// star_count is the repository's stargazer count.
-	StarCount int32 `protobuf:"varint,8,opt,name=star_count,json=starCount,proto3" json:"star_count,omitempty"`
-	// repository_url is the GitHub page for the repository. It is omitted for
-	// private projects on the public surface.
-	RepositoryUrl string `protobuf:"bytes,9,opt,name=repository_url,json=repositoryUrl,proto3" json:"repository_url,omitempty"`
-	// homepage_url is the project's homepage or live demo, if any.
-	HomepageUrl string `protobuf:"bytes,10,opt,name=homepage_url,json=homepageUrl,proto3" json:"homepage_url,omitempty"`
-	// last_push_time is the most recent push to the repository.
-	LastPushTime *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=last_push_time,json=lastPushTime,proto3" json:"last_push_time,omitempty"`
-	// create_time is when the repository was created on GitHub.
-	CreateTime *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
-	// archived is true when the source repository is archived (read-only) on GitHub.
-	Archived bool `protobuf:"varint,13,opt,name=archived,proto3" json:"archived,omitempty"`
-	// languages is the repository's language breakdown by source bytes, ordered
-	// from the largest share to the smallest.
-	Languages []*LanguageShare `protobuf:"bytes,14,rep,name=languages,proto3" json:"languages,omitempty"`
-	// commit_activity is the weekly commit counts for roughly the last year,
-	// oldest week first, used to draw a contribution sparkline.
-	CommitActivity []int32 `protobuf:"varint,15,rep,packed,name=commit_activity,json=commitActivity,proto3" json:"commit_activity,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *Project) Reset() {
-	*x = Project{}
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Project) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Project) ProtoMessage() {}
-
-func (x *Project) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Project.ProtoReflect.Descriptor instead.
-func (*Project) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *Project) GetUid() string {
-	if x != nil {
-		return x.Uid
-	}
-	return ""
-}
-
-func (x *Project) GetDisplayName() string {
-	if x != nil {
-		return x.DisplayName
-	}
-	return ""
-}
-
-func (x *Project) GetDescription() string {
-	if x != nil {
-		return x.Description
-	}
-	return ""
-}
-
-func (x *Project) GetSummary() string {
-	if x != nil {
-		return x.Summary
-	}
-	return ""
-}
-
-func (x *Project) GetVisibility() ProjectVisibility {
-	if x != nil {
-		return x.Visibility
-	}
-	return ProjectVisibility_PROJECT_VISIBILITY_UNSPECIFIED
-}
-
-func (x *Project) GetPrimaryLanguage() string {
-	if x != nil {
-		return x.PrimaryLanguage
-	}
-	return ""
-}
-
-func (x *Project) GetTopics() []string {
-	if x != nil {
-		return x.Topics
-	}
-	return nil
-}
-
-func (x *Project) GetStarCount() int32 {
-	if x != nil {
-		return x.StarCount
-	}
-	return 0
-}
-
-func (x *Project) GetRepositoryUrl() string {
-	if x != nil {
-		return x.RepositoryUrl
-	}
-	return ""
-}
-
-func (x *Project) GetHomepageUrl() string {
-	if x != nil {
-		return x.HomepageUrl
-	}
-	return ""
-}
-
-func (x *Project) GetLastPushTime() *timestamppb.Timestamp {
-	if x != nil {
-		return x.LastPushTime
-	}
-	return nil
-}
-
-func (x *Project) GetCreateTime() *timestamppb.Timestamp {
-	if x != nil {
-		return x.CreateTime
-	}
-	return nil
-}
-
-func (x *Project) GetArchived() bool {
-	if x != nil {
-		return x.Archived
-	}
-	return false
-}
-
-func (x *Project) GetLanguages() []*LanguageShare {
-	if x != nil {
-		return x.Languages
-	}
-	return nil
-}
-
-func (x *Project) GetCommitActivity() []int32 {
-	if x != nil {
-		return x.CommitActivity
-	}
-	return nil
-}
-
-// LanguageShare is one programming language's share of a repository, measured
-// in source bytes.
-type LanguageShare struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// name is the language name, for example "TypeScript".
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// bytes is the amount of source attributed to this language, in bytes.
-	Bytes         int64 `protobuf:"varint,2,opt,name=bytes,proto3" json:"bytes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LanguageShare) Reset() {
-	*x = LanguageShare{}
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LanguageShare) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LanguageShare) ProtoMessage() {}
-
-func (x *LanguageShare) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_profile_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LanguageShare.ProtoReflect.Descriptor instead.
-func (*LanguageShare) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_profile_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *LanguageShare) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *LanguageShare) GetBytes() int64 {
-	if x != nil {
-		return x.Bytes
-	}
-	return 0
-}
-
 var File_realtime_me_v1_profile_proto protoreflect.FileDescriptor
 
 const file_realtime_me_v1_profile_proto_rawDesc = "" +
 	"\n" +
-	"\x1crealtime/me/v1/profile.proto\x12\x0erealtime.me.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x17\n" +
-	"\x15GetProfilePageRequest\"I\n" +
-	"\x16GetProfilePageResponse\x12/\n" +
-	"\x04page\x18\x01 \x01(\v2\x1b.realtime.me.v1.ProfilePageR\x04page\"\xb2\x01\n" +
-	"\vProfilePage\x121\n" +
-	"\aprofile\x18\x01 \x01(\v2\x17.realtime.me.v1.ProfileR\aprofile\x123\n" +
-	"\bprojects\x18\x02 \x03(\v2\x17.realtime.me.v1.ProjectR\bprojects\x12;\n" +
-	"\vupdate_time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"updateTime\"\xeb\x01\n" +
+	"\x1crealtime/me/v1/profile.proto\x12\x0erealtime.me.v1\"\x13\n" +
+	"\x11GetProfileRequest\"G\n" +
+	"\x12GetProfileResponse\x121\n" +
+	"\aprofile\x18\x01 \x01(\v2\x17.realtime.me.v1.ProfileR\aprofile\"\xcc\x01\n" +
 	"\aProfile\x12!\n" +
-	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12\x1a\n" +
-	"\bheadline\x18\x02 \x01(\tR\bheadline\x12\x10\n" +
-	"\x03bio\x18\x03 \x01(\tR\x03bio\x12\x1d\n" +
+	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12\x1d\n" +
 	"\n" +
-	"avatar_url\x18\x04 \x01(\tR\tavatarUrl\x12\x1a\n" +
-	"\blocation\x18\x05 \x01(\tR\blocation\x12!\n" +
+	"avatar_url\x18\x04 \x01(\tR\tavatarUrl\x12!\n" +
 	"\fgithub_login\x18\x06 \x01(\tR\vgithubLogin\x121\n" +
-	"\x05links\x18\a \x03(\v2\x1b.realtime.me.v1.ProfileLinkR\x05links\"Q\n" +
+	"\x05links\x18\a \x03(\v2\x1b.realtime.me.v1.ProfileLinkR\x05linksJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04J\x04\b\x05\x10\x06R\bheadlineR\x03bioR\blocation\"Q\n" +
 	"\vProfileLink\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12\x10\n" +
 	"\x03uri\x18\x02 \x01(\tR\x03uri\x12\x1a\n" +
-	"\bplatform\x18\x03 \x01(\tR\bplatform\"\xea\x04\n" +
-	"\aProject\x12\x10\n" +
-	"\x03uid\x18\x01 \x01(\tR\x03uid\x12!\n" +
-	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x18\n" +
-	"\asummary\x18\x04 \x01(\tR\asummary\x12A\n" +
+	"\bplatform\x18\x03 \x01(\tR\bplatform2e\n" +
+	"\x0eProfileService\x12S\n" +
 	"\n" +
-	"visibility\x18\x05 \x01(\x0e2!.realtime.me.v1.ProjectVisibilityR\n" +
-	"visibility\x12)\n" +
-	"\x10primary_language\x18\x06 \x01(\tR\x0fprimaryLanguage\x12\x16\n" +
-	"\x06topics\x18\a \x03(\tR\x06topics\x12\x1d\n" +
-	"\n" +
-	"star_count\x18\b \x01(\x05R\tstarCount\x12%\n" +
-	"\x0erepository_url\x18\t \x01(\tR\rrepositoryUrl\x12!\n" +
-	"\fhomepage_url\x18\n" +
-	" \x01(\tR\vhomepageUrl\x12@\n" +
-	"\x0elast_push_time\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\flastPushTime\x12;\n" +
-	"\vcreate_time\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"createTime\x12\x1a\n" +
-	"\barchived\x18\r \x01(\bR\barchived\x12;\n" +
-	"\tlanguages\x18\x0e \x03(\v2\x1d.realtime.me.v1.LanguageShareR\tlanguages\x12'\n" +
-	"\x0fcommit_activity\x18\x0f \x03(\x05R\x0ecommitActivity\"9\n" +
-	"\rLanguageShare\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
-	"\x05bytes\x18\x02 \x01(\x03R\x05bytes*v\n" +
-	"\x11ProjectVisibility\x12\"\n" +
-	"\x1ePROJECT_VISIBILITY_UNSPECIFIED\x10\x00\x12\x1d\n" +
-	"\x19PROJECT_VISIBILITY_PUBLIC\x10\x01\x12\x1e\n" +
-	"\x1aPROJECT_VISIBILITY_PRIVATE\x10\x022q\n" +
-	"\x0eProfileService\x12_\n" +
-	"\x0eGetProfilePage\x12%.realtime.me.v1.GetProfilePageRequest\x1a&.realtime.me.v1.GetProfilePageResponseB\xc3\x01\n" +
+	"GetProfile\x12!.realtime.me.v1.GetProfileRequest\x1a\".realtime.me.v1.GetProfileResponseB\xc3\x01\n" +
 	"\x12com.realtime.me.v1B\fProfileProtoP\x01ZErealtime-me/apps/status-gateway/internal/genproto/realtime/me/v1;mev1\xa2\x02\x03RMX\xaa\x02\x0eRealtime.Me.V1\xca\x02\x0eRealtime\\Me\\V1\xe2\x02\x1aRealtime\\Me\\V1\\GPBMetadata\xea\x02\x10Realtime::Me::V1b\x06proto3"
 
 var (
@@ -691,36 +280,23 @@ func file_realtime_me_v1_profile_proto_rawDescGZIP() []byte {
 	return file_realtime_me_v1_profile_proto_rawDescData
 }
 
-var file_realtime_me_v1_profile_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_realtime_me_v1_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_realtime_me_v1_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_realtime_me_v1_profile_proto_goTypes = []any{
-	(ProjectVisibility)(0),         // 0: realtime.me.v1.ProjectVisibility
-	(*GetProfilePageRequest)(nil),  // 1: realtime.me.v1.GetProfilePageRequest
-	(*GetProfilePageResponse)(nil), // 2: realtime.me.v1.GetProfilePageResponse
-	(*ProfilePage)(nil),            // 3: realtime.me.v1.ProfilePage
-	(*Profile)(nil),                // 4: realtime.me.v1.Profile
-	(*ProfileLink)(nil),            // 5: realtime.me.v1.ProfileLink
-	(*Project)(nil),                // 6: realtime.me.v1.Project
-	(*LanguageShare)(nil),          // 7: realtime.me.v1.LanguageShare
-	(*timestamppb.Timestamp)(nil),  // 8: google.protobuf.Timestamp
+	(*GetProfileRequest)(nil),  // 0: realtime.me.v1.GetProfileRequest
+	(*GetProfileResponse)(nil), // 1: realtime.me.v1.GetProfileResponse
+	(*Profile)(nil),            // 2: realtime.me.v1.Profile
+	(*ProfileLink)(nil),        // 3: realtime.me.v1.ProfileLink
 }
 var file_realtime_me_v1_profile_proto_depIdxs = []int32{
-	3,  // 0: realtime.me.v1.GetProfilePageResponse.page:type_name -> realtime.me.v1.ProfilePage
-	4,  // 1: realtime.me.v1.ProfilePage.profile:type_name -> realtime.me.v1.Profile
-	6,  // 2: realtime.me.v1.ProfilePage.projects:type_name -> realtime.me.v1.Project
-	8,  // 3: realtime.me.v1.ProfilePage.update_time:type_name -> google.protobuf.Timestamp
-	5,  // 4: realtime.me.v1.Profile.links:type_name -> realtime.me.v1.ProfileLink
-	0,  // 5: realtime.me.v1.Project.visibility:type_name -> realtime.me.v1.ProjectVisibility
-	8,  // 6: realtime.me.v1.Project.last_push_time:type_name -> google.protobuf.Timestamp
-	8,  // 7: realtime.me.v1.Project.create_time:type_name -> google.protobuf.Timestamp
-	7,  // 8: realtime.me.v1.Project.languages:type_name -> realtime.me.v1.LanguageShare
-	1,  // 9: realtime.me.v1.ProfileService.GetProfilePage:input_type -> realtime.me.v1.GetProfilePageRequest
-	2,  // 10: realtime.me.v1.ProfileService.GetProfilePage:output_type -> realtime.me.v1.GetProfilePageResponse
-	10, // [10:11] is the sub-list for method output_type
-	9,  // [9:10] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	2, // 0: realtime.me.v1.GetProfileResponse.profile:type_name -> realtime.me.v1.Profile
+	3, // 1: realtime.me.v1.Profile.links:type_name -> realtime.me.v1.ProfileLink
+	0, // 2: realtime.me.v1.ProfileService.GetProfile:input_type -> realtime.me.v1.GetProfileRequest
+	1, // 3: realtime.me.v1.ProfileService.GetProfile:output_type -> realtime.me.v1.GetProfileResponse
+	3, // [3:4] is the sub-list for method output_type
+	2, // [2:3] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_realtime_me_v1_profile_proto_init() }
@@ -733,14 +309,13 @@ func file_realtime_me_v1_profile_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_realtime_me_v1_profile_proto_rawDesc), len(file_realtime_me_v1_profile_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   7,
+			NumEnums:      0,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_realtime_me_v1_profile_proto_goTypes,
 		DependencyIndexes: file_realtime_me_v1_profile_proto_depIdxs,
-		EnumInfos:         file_realtime_me_v1_profile_proto_enumTypes,
 		MessageInfos:      file_realtime_me_v1_profile_proto_msgTypes,
 	}.Build()
 	File_realtime_me_v1_profile_proto = out.File

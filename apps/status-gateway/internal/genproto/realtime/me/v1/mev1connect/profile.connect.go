@@ -33,15 +33,15 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// ProfileServiceGetProfilePageProcedure is the fully-qualified name of the ProfileService's
-	// GetProfilePage RPC.
-	ProfileServiceGetProfilePageProcedure = "/realtime.me.v1.ProfileService/GetProfilePage"
+	// ProfileServiceGetProfileProcedure is the fully-qualified name of the ProfileService's GetProfile
+	// RPC.
+	ProfileServiceGetProfileProcedure = "/realtime.me.v1.ProfileService/GetProfile"
 )
 
 // ProfileServiceClient is a client for the realtime.me.v1.ProfileService service.
 type ProfileServiceClient interface {
-	// GetProfilePage returns the public profile document.
-	GetProfilePage(context.Context, *connect.Request[v1.GetProfilePageRequest]) (*connect.Response[v1.GetProfilePageResponse], error)
+	// GetProfile returns the site owner's public identity.
+	GetProfile(context.Context, *connect.Request[v1.GetProfileRequest]) (*connect.Response[v1.GetProfileResponse], error)
 }
 
 // NewProfileServiceClient constructs a client for the realtime.me.v1.ProfileService service. By
@@ -55,10 +55,10 @@ func NewProfileServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 	baseURL = strings.TrimRight(baseURL, "/")
 	profileServiceMethods := v1.File_realtime_me_v1_profile_proto.Services().ByName("ProfileService").Methods()
 	return &profileServiceClient{
-		getProfilePage: connect.NewClient[v1.GetProfilePageRequest, v1.GetProfilePageResponse](
+		getProfile: connect.NewClient[v1.GetProfileRequest, v1.GetProfileResponse](
 			httpClient,
-			baseURL+ProfileServiceGetProfilePageProcedure,
-			connect.WithSchema(profileServiceMethods.ByName("GetProfilePage")),
+			baseURL+ProfileServiceGetProfileProcedure,
+			connect.WithSchema(profileServiceMethods.ByName("GetProfile")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -66,18 +66,18 @@ func NewProfileServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // profileServiceClient implements ProfileServiceClient.
 type profileServiceClient struct {
-	getProfilePage *connect.Client[v1.GetProfilePageRequest, v1.GetProfilePageResponse]
+	getProfile *connect.Client[v1.GetProfileRequest, v1.GetProfileResponse]
 }
 
-// GetProfilePage calls realtime.me.v1.ProfileService.GetProfilePage.
-func (c *profileServiceClient) GetProfilePage(ctx context.Context, req *connect.Request[v1.GetProfilePageRequest]) (*connect.Response[v1.GetProfilePageResponse], error) {
-	return c.getProfilePage.CallUnary(ctx, req)
+// GetProfile calls realtime.me.v1.ProfileService.GetProfile.
+func (c *profileServiceClient) GetProfile(ctx context.Context, req *connect.Request[v1.GetProfileRequest]) (*connect.Response[v1.GetProfileResponse], error) {
+	return c.getProfile.CallUnary(ctx, req)
 }
 
 // ProfileServiceHandler is an implementation of the realtime.me.v1.ProfileService service.
 type ProfileServiceHandler interface {
-	// GetProfilePage returns the public profile document.
-	GetProfilePage(context.Context, *connect.Request[v1.GetProfilePageRequest]) (*connect.Response[v1.GetProfilePageResponse], error)
+	// GetProfile returns the site owner's public identity.
+	GetProfile(context.Context, *connect.Request[v1.GetProfileRequest]) (*connect.Response[v1.GetProfileResponse], error)
 }
 
 // NewProfileServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -87,16 +87,16 @@ type ProfileServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewProfileServiceHandler(svc ProfileServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	profileServiceMethods := v1.File_realtime_me_v1_profile_proto.Services().ByName("ProfileService").Methods()
-	profileServiceGetProfilePageHandler := connect.NewUnaryHandler(
-		ProfileServiceGetProfilePageProcedure,
-		svc.GetProfilePage,
-		connect.WithSchema(profileServiceMethods.ByName("GetProfilePage")),
+	profileServiceGetProfileHandler := connect.NewUnaryHandler(
+		ProfileServiceGetProfileProcedure,
+		svc.GetProfile,
+		connect.WithSchema(profileServiceMethods.ByName("GetProfile")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/realtime.me.v1.ProfileService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case ProfileServiceGetProfilePageProcedure:
-			profileServiceGetProfilePageHandler.ServeHTTP(w, r)
+		case ProfileServiceGetProfileProcedure:
+			profileServiceGetProfileHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -106,6 +106,6 @@ func NewProfileServiceHandler(svc ProfileServiceHandler, opts ...connect.Handler
 // UnimplementedProfileServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedProfileServiceHandler struct{}
 
-func (UnimplementedProfileServiceHandler) GetProfilePage(context.Context, *connect.Request[v1.GetProfilePageRequest]) (*connect.Response[v1.GetProfilePageResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("realtime.me.v1.ProfileService.GetProfilePage is not implemented"))
+func (UnimplementedProfileServiceHandler) GetProfile(context.Context, *connect.Request[v1.GetProfileRequest]) (*connect.Response[v1.GetProfileResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("realtime.me.v1.ProfileService.GetProfile is not implemented"))
 }

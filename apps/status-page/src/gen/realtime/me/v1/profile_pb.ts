@@ -2,169 +2,88 @@
 // @generated from file realtime/me/v1/profile.proto (package realtime.me.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { Timestamp, TimestampJson } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file realtime/me/v1/profile.proto.
  */
 export const file_realtime_me_v1_profile: GenFile = /*@__PURE__*/
-  fileDesc("ChxyZWFsdGltZS9tZS92MS9wcm9maWxlLnByb3RvEg5yZWFsdGltZS5tZS52MSIXChVHZXRQcm9maWxlUGFnZVJlcXVlc3QiQwoWR2V0UHJvZmlsZVBhZ2VSZXNwb25zZRIpCgRwYWdlGAEgASgLMhsucmVhbHRpbWUubWUudjEuUHJvZmlsZVBhZ2UikwEKC1Byb2ZpbGVQYWdlEigKB3Byb2ZpbGUYASABKAsyFy5yZWFsdGltZS5tZS52MS5Qcm9maWxlEikKCHByb2plY3RzGAIgAygLMhcucmVhbHRpbWUubWUudjEuUHJvamVjdBIvCgt1cGRhdGVfdGltZRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAipgEKB1Byb2ZpbGUSFAoMZGlzcGxheV9uYW1lGAEgASgJEhAKCGhlYWRsaW5lGAIgASgJEgsKA2JpbxgDIAEoCRISCgphdmF0YXJfdXJsGAQgASgJEhAKCGxvY2F0aW9uGAUgASgJEhQKDGdpdGh1Yl9sb2dpbhgGIAEoCRIqCgVsaW5rcxgHIAMoCzIbLnJlYWx0aW1lLm1lLnYxLlByb2ZpbGVMaW5rIjsKC1Byb2ZpbGVMaW5rEg0KBWxhYmVsGAEgASgJEgsKA3VyaRgCIAEoCRIQCghwbGF0Zm9ybRgDIAEoCSK3AwoHUHJvamVjdBILCgN1aWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEg8KB3N1bW1hcnkYBCABKAkSNQoKdmlzaWJpbGl0eRgFIAEoDjIhLnJlYWx0aW1lLm1lLnYxLlByb2plY3RWaXNpYmlsaXR5EhgKEHByaW1hcnlfbGFuZ3VhZ2UYBiABKAkSDgoGdG9waWNzGAcgAygJEhIKCnN0YXJfY291bnQYCCABKAUSFgoOcmVwb3NpdG9yeV91cmwYCSABKAkSFAoMaG9tZXBhZ2VfdXJsGAogASgJEjIKDmxhc3RfcHVzaF90aW1lGAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtjcmVhdGVfdGltZRgMIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIYXJjaGl2ZWQYDSABKAgSMAoJbGFuZ3VhZ2VzGA4gAygLMh0ucmVhbHRpbWUubWUudjEuTGFuZ3VhZ2VTaGFyZRIXCg9jb21taXRfYWN0aXZpdHkYDyADKAUiLAoNTGFuZ3VhZ2VTaGFyZRIMCgRuYW1lGAEgASgJEg0KBWJ5dGVzGAIgASgDKnYKEVByb2plY3RWaXNpYmlsaXR5EiIKHlBST0pFQ1RfVklTSUJJTElUWV9VTlNQRUNJRklFRBAAEh0KGVBST0pFQ1RfVklTSUJJTElUWV9QVUJMSUMQARIeChpQUk9KRUNUX1ZJU0lCSUxJVFlfUFJJVkFURRACMnEKDlByb2ZpbGVTZXJ2aWNlEl8KDkdldFByb2ZpbGVQYWdlEiUucmVhbHRpbWUubWUudjEuR2V0UHJvZmlsZVBhZ2VSZXF1ZXN0GiYucmVhbHRpbWUubWUudjEuR2V0UHJvZmlsZVBhZ2VSZXNwb25zZULDAQoSY29tLnJlYWx0aW1lLm1lLnYxQgxQcm9maWxlUHJvdG9QAVpFcmVhbHRpbWUtbWUvYXBwcy9zdGF0dXMtZ2F0ZXdheS9pbnRlcm5hbC9nZW5wcm90by9yZWFsdGltZS9tZS92MTttZXYxogIDUk1YqgIOUmVhbHRpbWUuTWUuVjHKAg5SZWFsdGltZVxNZVxWMeICGlJlYWx0aW1lXE1lXFYxXEdQQk1ldGFkYXRh6gIQUmVhbHRpbWU6Ok1lOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("ChxyZWFsdGltZS9tZS92MS9wcm9maWxlLnByb3RvEg5yZWFsdGltZS5tZS52MSITChFHZXRQcm9maWxlUmVxdWVzdCI+ChJHZXRQcm9maWxlUmVzcG9uc2USKAoHcHJvZmlsZRgBIAEoCzIXLnJlYWx0aW1lLm1lLnYxLlByb2ZpbGUioAEKB1Byb2ZpbGUSFAoMZGlzcGxheV9uYW1lGAEgASgJEhIKCmF2YXRhcl91cmwYBCABKAkSFAoMZ2l0aHViX2xvZ2luGAYgASgJEioKBWxpbmtzGAcgAygLMhsucmVhbHRpbWUubWUudjEuUHJvZmlsZUxpbmtKBAgCEANKBAgDEARKBAgFEAZSCGhlYWRsaW5lUgNiaW9SCGxvY2F0aW9uIjsKC1Byb2ZpbGVMaW5rEg0KBWxhYmVsGAEgASgJEgsKA3VyaRgCIAEoCRIQCghwbGF0Zm9ybRgDIAEoCTJlCg5Qcm9maWxlU2VydmljZRJTCgpHZXRQcm9maWxlEiEucmVhbHRpbWUubWUudjEuR2V0UHJvZmlsZVJlcXVlc3QaIi5yZWFsdGltZS5tZS52MS5HZXRQcm9maWxlUmVzcG9uc2VCwwEKEmNvbS5yZWFsdGltZS5tZS52MUIMUHJvZmlsZVByb3RvUAFaRXJlYWx0aW1lLW1lL2FwcHMvc3RhdHVzLWdhdGV3YXkvaW50ZXJuYWwvZ2VucHJvdG8vcmVhbHRpbWUvbWUvdjE7bWV2MaICA1JNWKoCDlJlYWx0aW1lLk1lLlYxygIOUmVhbHRpbWVcTWVcVjHiAhpSZWFsdGltZVxNZVxWMVxHUEJNZXRhZGF0YeoCEFJlYWx0aW1lOjpNZTo6VjFiBnByb3RvMw");
 
 /**
- * GetProfilePageRequest is the request for the profile document.
+ * GetProfileRequest is the request for the owner's identity.
  *
- * @generated from message realtime.me.v1.GetProfilePageRequest
+ * @generated from message realtime.me.v1.GetProfileRequest
  */
-export type GetProfilePageRequest = Message<"realtime.me.v1.GetProfilePageRequest"> & {
+export type GetProfileRequest = Message<"realtime.me.v1.GetProfileRequest"> & {
 };
 
 /**
- * GetProfilePageRequest is the request for the profile document.
+ * GetProfileRequest is the request for the owner's identity.
  *
- * @generated from message realtime.me.v1.GetProfilePageRequest
+ * @generated from message realtime.me.v1.GetProfileRequest
  */
-export type GetProfilePageRequestJson = {
+export type GetProfileRequestJson = {
 };
 
 /**
- * Describes the message realtime.me.v1.GetProfilePageRequest.
- * Use `create(GetProfilePageRequestSchema)` to create a new message.
+ * Describes the message realtime.me.v1.GetProfileRequest.
+ * Use `create(GetProfileRequestSchema)` to create a new message.
  */
-export const GetProfilePageRequestSchema: GenMessage<GetProfilePageRequest, {jsonType: GetProfilePageRequestJson}> = /*@__PURE__*/
+export const GetProfileRequestSchema: GenMessage<GetProfileRequest, {jsonType: GetProfileRequestJson}> = /*@__PURE__*/
   messageDesc(file_realtime_me_v1_profile, 0);
 
 /**
- * GetProfilePageResponse carries the profile document.
+ * GetProfileResponse carries the owner's identity.
  *
- * @generated from message realtime.me.v1.GetProfilePageResponse
+ * @generated from message realtime.me.v1.GetProfileResponse
  */
-export type GetProfilePageResponse = Message<"realtime.me.v1.GetProfilePageResponse"> & {
+export type GetProfileResponse = Message<"realtime.me.v1.GetProfileResponse"> & {
   /**
-   * page is the public profile document.
-   *
-   * @generated from field: realtime.me.v1.ProfilePage page = 1;
-   */
-  page?: ProfilePage | undefined;
-};
-
-/**
- * GetProfilePageResponse carries the profile document.
- *
- * @generated from message realtime.me.v1.GetProfilePageResponse
- */
-export type GetProfilePageResponseJson = {
-  /**
-   * page is the public profile document.
-   *
-   * @generated from field: realtime.me.v1.ProfilePage page = 1;
-   */
-  page?: ProfilePageJson;
-};
-
-/**
- * Describes the message realtime.me.v1.GetProfilePageResponse.
- * Use `create(GetProfilePageResponseSchema)` to create a new message.
- */
-export const GetProfilePageResponseSchema: GenMessage<GetProfilePageResponse, {jsonType: GetProfilePageResponseJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_profile, 1);
-
-/**
- * ProfilePage is the personal profile document served to the status page.
- * It bundles the owner's introduction with the curated set of GitHub projects
- * already projected for public display and ordered for rendering.
- *
- * @generated from message realtime.me.v1.ProfilePage
- */
-export type ProfilePage = Message<"realtime.me.v1.ProfilePage"> & {
-  /**
-   * profile is the owner's personal introduction.
+   * profile is the site owner's public identity.
    *
    * @generated from field: realtime.me.v1.Profile profile = 1;
    */
   profile?: Profile | undefined;
-
-  /**
-   * projects are the curated GitHub projects in display order.
-   *
-   * @generated from field: repeated realtime.me.v1.Project projects = 2;
-   */
-  projects: Project[];
-
-  /**
-   * update_time is when this profile document was last assembled.
-   *
-   * @generated from field: google.protobuf.Timestamp update_time = 3;
-   */
-  updateTime?: Timestamp | undefined;
 };
 
 /**
- * ProfilePage is the personal profile document served to the status page.
- * It bundles the owner's introduction with the curated set of GitHub projects
- * already projected for public display and ordered for rendering.
+ * GetProfileResponse carries the owner's identity.
  *
- * @generated from message realtime.me.v1.ProfilePage
+ * @generated from message realtime.me.v1.GetProfileResponse
  */
-export type ProfilePageJson = {
+export type GetProfileResponseJson = {
   /**
-   * profile is the owner's personal introduction.
+   * profile is the site owner's public identity.
    *
    * @generated from field: realtime.me.v1.Profile profile = 1;
    */
   profile?: ProfileJson;
-
-  /**
-   * projects are the curated GitHub projects in display order.
-   *
-   * @generated from field: repeated realtime.me.v1.Project projects = 2;
-   */
-  projects?: ProjectJson[];
-
-  /**
-   * update_time is when this profile document was last assembled.
-   *
-   * @generated from field: google.protobuf.Timestamp update_time = 3;
-   */
-  updateTime?: TimestampJson;
 };
 
 /**
- * Describes the message realtime.me.v1.ProfilePage.
- * Use `create(ProfilePageSchema)` to create a new message.
+ * Describes the message realtime.me.v1.GetProfileResponse.
+ * Use `create(GetProfileResponseSchema)` to create a new message.
  */
-export const ProfilePageSchema: GenMessage<ProfilePage, {jsonType: ProfilePageJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_profile, 2);
+export const GetProfileResponseSchema: GenMessage<GetProfileResponse, {jsonType: GetProfileResponseJson}> = /*@__PURE__*/
+  messageDesc(file_realtime_me_v1_profile, 1);
 
 /**
- * Profile is the owner's personal introduction shown at the top of the page.
+ * Profile is the site owner's public identity: who the page belongs to, and how
+ * to reach them. It says nothing about what the owner has built — that is a
+ * project, and ProjectsService serves those.
  *
  * @generated from message realtime.me.v1.Profile
  */
 export type Profile = Message<"realtime.me.v1.Profile"> & {
   /**
-   * display_name is the human-readable name shown as the page heading.
+   * display_name is the human-readable name shown in the topbar.
    *
    * @generated from field: string display_name = 1;
    */
   displayName: string;
-
-  /**
-   * headline is a short one-line tagline shown under the name.
-   *
-   * @generated from field: string headline = 2;
-   */
-  headline: string;
-
-  /**
-   * bio is a longer free-form introduction in Markdown.
-   *
-   * @generated from field: string bio = 3;
-   */
-  bio: string;
 
   /**
    * avatar_url is the URL of the profile picture.
@@ -174,21 +93,14 @@ export type Profile = Message<"realtime.me.v1.Profile"> & {
   avatarUrl: string;
 
   /**
-   * location is a human-readable location label, such as a city.
-   *
-   * @generated from field: string location = 5;
-   */
-  location: string;
-
-  /**
-   * github_login is the GitHub username whose repositories drive the projects.
+   * github_login is the owner's GitHub username.
    *
    * @generated from field: string github_login = 6;
    */
   githubLogin: string;
 
   /**
-   * links are external profile and contact links.
+   * links are the owner's public contact links.
    *
    * @generated from field: repeated realtime.me.v1.ProfileLink links = 7;
    */
@@ -196,31 +108,19 @@ export type Profile = Message<"realtime.me.v1.Profile"> & {
 };
 
 /**
- * Profile is the owner's personal introduction shown at the top of the page.
+ * Profile is the site owner's public identity: who the page belongs to, and how
+ * to reach them. It says nothing about what the owner has built — that is a
+ * project, and ProjectsService serves those.
  *
  * @generated from message realtime.me.v1.Profile
  */
 export type ProfileJson = {
   /**
-   * display_name is the human-readable name shown as the page heading.
+   * display_name is the human-readable name shown in the topbar.
    *
    * @generated from field: string display_name = 1;
    */
   displayName?: string;
-
-  /**
-   * headline is a short one-line tagline shown under the name.
-   *
-   * @generated from field: string headline = 2;
-   */
-  headline?: string;
-
-  /**
-   * bio is a longer free-form introduction in Markdown.
-   *
-   * @generated from field: string bio = 3;
-   */
-  bio?: string;
 
   /**
    * avatar_url is the URL of the profile picture.
@@ -230,21 +130,14 @@ export type ProfileJson = {
   avatarUrl?: string;
 
   /**
-   * location is a human-readable location label, such as a city.
-   *
-   * @generated from field: string location = 5;
-   */
-  location?: string;
-
-  /**
-   * github_login is the GitHub username whose repositories drive the projects.
+   * github_login is the owner's GitHub username.
    *
    * @generated from field: string github_login = 6;
    */
   githubLogin?: string;
 
   /**
-   * links are external profile and contact links.
+   * links are the owner's public contact links.
    *
    * @generated from field: repeated realtime.me.v1.ProfileLink links = 7;
    */
@@ -256,16 +149,17 @@ export type ProfileJson = {
  * Use `create(ProfileSchema)` to create a new message.
  */
 export const ProfileSchema: GenMessage<Profile, {jsonType: ProfileJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_profile, 3);
+  messageDesc(file_realtime_me_v1_profile, 2);
 
 /**
- * ProfileLink is one external link shown on the profile, such as a social handle.
+ * ProfileLink is one public contact link, such as an email address or a social
+ * handle.
  *
  * @generated from message realtime.me.v1.ProfileLink
  */
 export type ProfileLink = Message<"realtime.me.v1.ProfileLink"> & {
   /**
-   * label is the human-readable link text.
+   * label is the human-readable link text, used as the icon's accessible name.
    *
    * @generated from field: string label = 1;
    */
@@ -280,7 +174,7 @@ export type ProfileLink = Message<"realtime.me.v1.ProfileLink"> & {
 
   /**
    * platform is a lowercase platform key used to pick an icon, such as
-   * "github", "x", or "website". Unknown values fall back to a generic icon.
+   * "github", "email", or "website". Unknown values fall back to a generic icon.
    *
    * @generated from field: string platform = 3;
    */
@@ -288,13 +182,14 @@ export type ProfileLink = Message<"realtime.me.v1.ProfileLink"> & {
 };
 
 /**
- * ProfileLink is one external link shown on the profile, such as a social handle.
+ * ProfileLink is one public contact link, such as an email address or a social
+ * handle.
  *
  * @generated from message realtime.me.v1.ProfileLink
  */
 export type ProfileLinkJson = {
   /**
-   * label is the human-readable link text.
+   * label is the human-readable link text, used as the icon's accessible name.
    *
    * @generated from field: string label = 1;
    */
@@ -309,7 +204,7 @@ export type ProfileLinkJson = {
 
   /**
    * platform is a lowercase platform key used to pick an icon, such as
-   * "github", "x", or "website". Unknown values fall back to a generic icon.
+   * "github", "email", or "website". Unknown values fall back to a generic icon.
    *
    * @generated from field: string platform = 3;
    */
@@ -321,354 +216,25 @@ export type ProfileLinkJson = {
  * Use `create(ProfileLinkSchema)` to create a new message.
  */
 export const ProfileLinkSchema: GenMessage<ProfileLink, {jsonType: ProfileLinkJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_profile, 4);
+  messageDesc(file_realtime_me_v1_profile, 3);
 
 /**
- * Project is one curated GitHub repository presented as a personal project.
- *
- * @generated from message realtime.me.v1.Project
- */
-export type Project = Message<"realtime.me.v1.Project"> & {
-  /**
-   * uid is the system-assigned opaque identifier for this project.
-   *
-   * @generated from field: string uid = 1;
-   */
-  uid: string;
-
-  /**
-   * display_name is the shown project title; it defaults to the repository name.
-   *
-   * @generated from field: string display_name = 2;
-   */
-  displayName: string;
-
-  /**
-   * description is the repository's own short description from GitHub.
-   *
-   * @generated from field: string description = 3;
-   */
-  description: string;
-
-  /**
-   * summary is the generated per-repository summary shown on the card.
-   * It is empty until the summary has been produced.
-   *
-   * @generated from field: string summary = 4;
-   */
-  summary: string;
-
-  /**
-   * visibility indicates whether the source repository is public or private.
-   *
-   * @generated from field: realtime.me.v1.ProjectVisibility visibility = 5;
-   */
-  visibility: ProjectVisibility;
-
-  /**
-   * primary_language is the repository's main programming language.
-   *
-   * @generated from field: string primary_language = 6;
-   */
-  primaryLanguage: string;
-
-  /**
-   * topics are the repository topics used as tags.
-   *
-   * @generated from field: repeated string topics = 7;
-   */
-  topics: string[];
-
-  /**
-   * star_count is the repository's stargazer count.
-   *
-   * @generated from field: int32 star_count = 8;
-   */
-  starCount: number;
-
-  /**
-   * repository_url is the GitHub page for the repository. It is omitted for
-   * private projects on the public surface.
-   *
-   * @generated from field: string repository_url = 9;
-   */
-  repositoryUrl: string;
-
-  /**
-   * homepage_url is the project's homepage or live demo, if any.
-   *
-   * @generated from field: string homepage_url = 10;
-   */
-  homepageUrl: string;
-
-  /**
-   * last_push_time is the most recent push to the repository.
-   *
-   * @generated from field: google.protobuf.Timestamp last_push_time = 11;
-   */
-  lastPushTime?: Timestamp | undefined;
-
-  /**
-   * create_time is when the repository was created on GitHub.
-   *
-   * @generated from field: google.protobuf.Timestamp create_time = 12;
-   */
-  createTime?: Timestamp | undefined;
-
-  /**
-   * archived is true when the source repository is archived (read-only) on GitHub.
-   *
-   * @generated from field: bool archived = 13;
-   */
-  archived: boolean;
-
-  /**
-   * languages is the repository's language breakdown by source bytes, ordered
-   * from the largest share to the smallest.
-   *
-   * @generated from field: repeated realtime.me.v1.LanguageShare languages = 14;
-   */
-  languages: LanguageShare[];
-
-  /**
-   * commit_activity is the weekly commit counts for roughly the last year,
-   * oldest week first, used to draw a contribution sparkline.
-   *
-   * @generated from field: repeated int32 commit_activity = 15;
-   */
-  commitActivity: number[];
-};
-
-/**
- * Project is one curated GitHub repository presented as a personal project.
- *
- * @generated from message realtime.me.v1.Project
- */
-export type ProjectJson = {
-  /**
-   * uid is the system-assigned opaque identifier for this project.
-   *
-   * @generated from field: string uid = 1;
-   */
-  uid?: string;
-
-  /**
-   * display_name is the shown project title; it defaults to the repository name.
-   *
-   * @generated from field: string display_name = 2;
-   */
-  displayName?: string;
-
-  /**
-   * description is the repository's own short description from GitHub.
-   *
-   * @generated from field: string description = 3;
-   */
-  description?: string;
-
-  /**
-   * summary is the generated per-repository summary shown on the card.
-   * It is empty until the summary has been produced.
-   *
-   * @generated from field: string summary = 4;
-   */
-  summary?: string;
-
-  /**
-   * visibility indicates whether the source repository is public or private.
-   *
-   * @generated from field: realtime.me.v1.ProjectVisibility visibility = 5;
-   */
-  visibility?: ProjectVisibilityJson;
-
-  /**
-   * primary_language is the repository's main programming language.
-   *
-   * @generated from field: string primary_language = 6;
-   */
-  primaryLanguage?: string;
-
-  /**
-   * topics are the repository topics used as tags.
-   *
-   * @generated from field: repeated string topics = 7;
-   */
-  topics?: string[];
-
-  /**
-   * star_count is the repository's stargazer count.
-   *
-   * @generated from field: int32 star_count = 8;
-   */
-  starCount?: number;
-
-  /**
-   * repository_url is the GitHub page for the repository. It is omitted for
-   * private projects on the public surface.
-   *
-   * @generated from field: string repository_url = 9;
-   */
-  repositoryUrl?: string;
-
-  /**
-   * homepage_url is the project's homepage or live demo, if any.
-   *
-   * @generated from field: string homepage_url = 10;
-   */
-  homepageUrl?: string;
-
-  /**
-   * last_push_time is the most recent push to the repository.
-   *
-   * @generated from field: google.protobuf.Timestamp last_push_time = 11;
-   */
-  lastPushTime?: TimestampJson;
-
-  /**
-   * create_time is when the repository was created on GitHub.
-   *
-   * @generated from field: google.protobuf.Timestamp create_time = 12;
-   */
-  createTime?: TimestampJson;
-
-  /**
-   * archived is true when the source repository is archived (read-only) on GitHub.
-   *
-   * @generated from field: bool archived = 13;
-   */
-  archived?: boolean;
-
-  /**
-   * languages is the repository's language breakdown by source bytes, ordered
-   * from the largest share to the smallest.
-   *
-   * @generated from field: repeated realtime.me.v1.LanguageShare languages = 14;
-   */
-  languages?: LanguageShareJson[];
-
-  /**
-   * commit_activity is the weekly commit counts for roughly the last year,
-   * oldest week first, used to draw a contribution sparkline.
-   *
-   * @generated from field: repeated int32 commit_activity = 15;
-   */
-  commitActivity?: number[];
-};
-
-/**
- * Describes the message realtime.me.v1.Project.
- * Use `create(ProjectSchema)` to create a new message.
- */
-export const ProjectSchema: GenMessage<Project, {jsonType: ProjectJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_profile, 5);
-
-/**
- * LanguageShare is one programming language's share of a repository, measured
- * in source bytes.
- *
- * @generated from message realtime.me.v1.LanguageShare
- */
-export type LanguageShare = Message<"realtime.me.v1.LanguageShare"> & {
-  /**
-   * name is the language name, for example "TypeScript".
-   *
-   * @generated from field: string name = 1;
-   */
-  name: string;
-
-  /**
-   * bytes is the amount of source attributed to this language, in bytes.
-   *
-   * @generated from field: int64 bytes = 2;
-   */
-  bytes: bigint;
-};
-
-/**
- * LanguageShare is one programming language's share of a repository, measured
- * in source bytes.
- *
- * @generated from message realtime.me.v1.LanguageShare
- */
-export type LanguageShareJson = {
-  /**
-   * name is the language name, for example "TypeScript".
-   *
-   * @generated from field: string name = 1;
-   */
-  name?: string;
-
-  /**
-   * bytes is the amount of source attributed to this language, in bytes.
-   *
-   * @generated from field: int64 bytes = 2;
-   */
-  bytes?: string;
-};
-
-/**
- * Describes the message realtime.me.v1.LanguageShare.
- * Use `create(LanguageShareSchema)` to create a new message.
- */
-export const LanguageShareSchema: GenMessage<LanguageShare, {jsonType: LanguageShareJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_profile, 6);
-
-/**
- * ProjectVisibility describes the source repository's visibility on GitHub.
- *
- * @generated from enum realtime.me.v1.ProjectVisibility
- */
-export enum ProjectVisibility {
-  /**
-   * Visibility is not known.
-   *
-   * @generated from enum value: PROJECT_VISIBILITY_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * The repository is publicly visible on GitHub.
-   *
-   * @generated from enum value: PROJECT_VISIBILITY_PUBLIC = 1;
-   */
-  PUBLIC = 1,
-
-  /**
-   * The repository is private on GitHub.
-   *
-   * @generated from enum value: PROJECT_VISIBILITY_PRIVATE = 2;
-   */
-  PRIVATE = 2,
-}
-
-/**
- * ProjectVisibility describes the source repository's visibility on GitHub.
- *
- * @generated from enum realtime.me.v1.ProjectVisibility
- */
-export type ProjectVisibilityJson = "PROJECT_VISIBILITY_UNSPECIFIED" | "PROJECT_VISIBILITY_PUBLIC" | "PROJECT_VISIBILITY_PRIVATE";
-
-/**
- * Describes the enum realtime.me.v1.ProjectVisibility.
- */
-export const ProjectVisibilitySchema: GenEnum<ProjectVisibility, ProjectVisibilityJson> = /*@__PURE__*/
-  enumDesc(file_realtime_me_v1_profile, 0);
-
-/**
- * ProfileService serves the personal profile page document.
+ * ProfileService serves the site owner's identity. The page carries it on every
+ * screen — the name and avatar in the topbar, the contact links beside them — so
+ * it is fetched on its own and owes nothing to whatever a given page is showing.
  *
  * @generated from service realtime.me.v1.ProfileService
  */
 export const ProfileService: GenService<{
   /**
-   * GetProfilePage returns the public profile document.
+   * GetProfile returns the site owner's public identity.
    *
-   * @generated from rpc realtime.me.v1.ProfileService.GetProfilePage
+   * @generated from rpc realtime.me.v1.ProfileService.GetProfile
    */
-  getProfilePage: {
+  getProfile: {
     methodKind: "unary";
-    input: typeof GetProfilePageRequestSchema;
-    output: typeof GetProfilePageResponseSchema;
+    input: typeof GetProfileRequestSchema;
+    output: typeof GetProfileResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_realtime_me_v1_profile, 0);

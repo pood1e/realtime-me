@@ -20,10 +20,11 @@ type Server struct {
 	prometheus *PrometheusClient
 	github     *GitHubStatusPublisher
 	profile    *ProfileService
+	projects   *ProjectsService
 	metrics    http.Handler
 }
 
-func NewServer(config Config, store *StatusStore, identity *IdentityStore, prometheus *PrometheusClient, github *GitHubStatusPublisher, profile *ProfileService, metrics http.Handler) *Server {
+func NewServer(config Config, store *StatusStore, identity *IdentityStore, prometheus *PrometheusClient, github *GitHubStatusPublisher, profile *ProfileService, projects *ProjectsService, metrics http.Handler) *Server {
 	return &Server{
 		config:     config,
 		store:      store,
@@ -31,6 +32,7 @@ func NewServer(config Config, store *StatusStore, identity *IdentityStore, prome
 		prometheus: prometheus,
 		github:     github,
 		profile:    profile,
+		projects:   projects,
 		metrics:    metrics,
 	}
 }
@@ -57,8 +59,8 @@ func (server *Server) Handler() http.Handler {
 }
 
 // mountConnectServices mounts the ConnectRPC handlers. Enrollment and ingest
-// require an ingest token; the profile and public status are unauthenticated,
-// while internal status requires a token.
+// require an ingest token; the profile, the projects, and the public status are
+// unauthenticated, while internal status requires a token.
 func (server *Server) mountConnectServices(router *gin.Engine) {
 	mount := func(path string, handler http.Handler) {
 		router.Any(path+"*any", gin.WrapH(handler))
@@ -82,6 +84,9 @@ func (server *Server) mountConnectServices(router *gin.Engine) {
 	))
 	mount(mev1connect.NewProfileServiceHandler(
 		NewProfileServer(server.profile),
+	))
+	mount(mev1connect.NewProjectsServiceHandler(
+		NewProjectsServer(server.projects),
 	))
 }
 
