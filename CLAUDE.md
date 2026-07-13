@@ -78,7 +78,7 @@ may show — as `owner/name`, never a bare name: the token reaches organizations
 as the account, and a bare name would silently resolve to whichever organization
 paginated last — and carries `summary`, the one field GitHub cannot give back. Everything
 else on a card — description, languages, stars, topics, archived, created, the commit
-sparkline — the gateway reads from GitHub on a timer and serves from memory. Do not
+sparkline — the gateway reads from GitHub once a day and serves from memory. Do not
 fetch on demand: a refresh is one call for the repository list plus two per project,
 and against 5,000 requests an hour a per-visitor fetch is spent inside seventy page
 loads. Do not publish whatever the token can see, either — curation is what keeps

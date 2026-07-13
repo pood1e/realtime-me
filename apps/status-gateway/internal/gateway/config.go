@@ -21,7 +21,7 @@ type Config struct {
 	GitHubStatusMinIntervalSeconds int
 	GitHubStatusTTLMinutes         int
 	GitHubProjectsToken            string
-	GitHubProjectsRefreshMinutes   int
+	GitHubProjectsRefreshHours     int
 	ProfileConfigFile              string
 	ProjectsConfigFile             string
 }
@@ -74,10 +74,10 @@ func LoadConfig() Config {
 		// and needs the user scope; reading private repositories needs a different
 		// grant entirely, and widening the write token to cover it would hand the
 		// status publisher the run of every repository the owner has.
-		GitHubProjectsToken:          secretEnv("GITHUB_PROJECTS_TOKEN"),
-		GitHubProjectsRefreshMinutes: positiveInt("GITHUB_PROJECTS_REFRESH_MINUTES", 30),
-		ProfileConfigFile:              strings.TrimSpace(os.Getenv("PROFILE_CONFIG_FILE")),
-		ProjectsConfigFile:             strings.TrimSpace(os.Getenv("PROJECTS_CONFIG_FILE")),
+		GitHubProjectsToken:        secretEnv("GITHUB_PROJECTS_TOKEN"),
+		GitHubProjectsRefreshHours: positiveInt("GITHUB_PROJECTS_REFRESH_HOURS", 24),
+		ProfileConfigFile:          strings.TrimSpace(os.Getenv("PROFILE_CONFIG_FILE")),
+		ProjectsConfigFile:         strings.TrimSpace(os.Getenv("PROJECTS_CONFIG_FILE")),
 	}
 }
 

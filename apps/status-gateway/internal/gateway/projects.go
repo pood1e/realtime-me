@@ -52,8 +52,9 @@ func LoadProjectsConfig(path string) (ProjectsConfig, error) {
 	return loadJSONConfig[ProjectsConfig](path)
 }
 
-// ProjectsService serves the curated projects, refreshed from GitHub in the
-// background and served from memory.
+// ProjectsService serves the curated projects, refreshed from GitHub once a day and
+// served from memory. A repository's languages and stars do not move quickly enough
+// to be worth asking about more often than that.
 //
 // A page cannot fetch on demand. One refresh costs a call for the repository list
 // plus two per project, and against a 5,000-request hourly budget a per-visitor
@@ -70,12 +71,12 @@ type ProjectsService struct {
 	fetched  bool
 }
 
-func NewProjectsService(config ProjectsConfig, configErr error, github *GitHubProjectsClient, refreshMinutes int) *ProjectsService {
+func NewProjectsService(config ProjectsConfig, configErr error, github *GitHubProjectsClient, refreshHours int) *ProjectsService {
 	return &ProjectsService{
 		curated:   config.Projects,
 		configErr: configErr,
 		github:    github,
-		interval:  time.Duration(refreshMinutes) * time.Minute,
+		interval:  time.Duration(refreshHours) * time.Hour,
 	}
 }
 

@@ -60,7 +60,7 @@ func main() {
 		projectsConfig,
 		projectsErr,
 		gateway.NewGitHubProjectsClient(config.GitHubProjectsToken),
-		config.GitHubProjectsRefreshMinutes,
+		config.GitHubProjectsRefreshHours,
 	)
 	server := gateway.NewServer(config, store, identity, prometheus, github, profile, projects, metrics.Handler())
 

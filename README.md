@@ -230,7 +230,7 @@ the one field GitHub cannot give back:
 
 Everything else a card draws — the description, languages, stars, topics, the
 archived flag, the created month, the commit sparkline — the gateway reads from
-GitHub on a timer (`GITHUB_PROJECTS_REFRESH_MINUTES`, default 30) and serves from
+GitHub once a day (`GITHUB_PROJECTS_REFRESH_HOURS`, default 24) and serves from
 memory. A snapshot of those fields ages the moment it is written; a live one does
 not. The page cannot fetch on demand: one refresh costs a call for the repository
 list plus two per project, and against GitHub's 5,000-request hourly budget a
