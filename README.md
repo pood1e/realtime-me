@@ -125,6 +125,12 @@ cp .env.example .env                   # only what Compose itself interpolates
 openssl rand -base64 32 # paste into tokens.ingest  (write)
 openssl rand -base64 32 # paste into tokens.query   (read)
 printf %s "<tokens.query>" > prometheus/query_token  # Prometheus presents the same one
+
+# The gateway runs as uid 10001, not as you, so it cannot open a 0600 file you own.
+# Put the read bit on the files and take it off the directory: the daemon mounts them
+# as root, so the directory's mode never reaches the container — it only keeps other
+# accounts on the host away from five secrets.
+chmod 700 . && chmod 644 gateway.yaml projects.json
 ```
 
 `gateway.example.yaml` explains each setting where it stands. The two that catch

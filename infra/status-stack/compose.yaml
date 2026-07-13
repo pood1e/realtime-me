@@ -35,6 +35,13 @@ services:
       # a `down -v` would take them with it. Copy each from its .example before the
       # first `up`: Docker will otherwise create a *directory* in place of a missing
       # file, and the gateway will refuse to start on a settings file it cannot read.
+      #
+      # The gateway runs as appuser (uid 10001), not as you, so a bind-mounted 0600
+      # file owned by your account is one it cannot open. Give the files the read bit
+      # and take it off the directory instead — the daemon mounts them as root, so the
+      # directory's mode never reaches the container, but it is what keeps every other
+      # account on the host away from five secrets:
+      #   chmod 700 . && chmod 644 gateway.yaml projects.json
       - ./gateway.yaml:/etc/status-gateway/gateway.yaml:ro
       - ./projects.json:/etc/status-gateway/projects.json:ro
     # restart: unless-stopped cannot notice a hung but living process. The
