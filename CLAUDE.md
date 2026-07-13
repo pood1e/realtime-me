@@ -74,7 +74,9 @@ named in `compose.yaml`, never in `.env`: `.env` is rewritten whenever a token
 rotates, and the profile once vanished for days because its line left with one.
 
 **`projects.json` curates; it does not describe.** It names the repositories the page
-may show and carries `summary`, the one field GitHub cannot give back. Everything
+may show — as `owner/name`, never a bare name: the token reaches organizations as well
+as the account, and a bare name would silently resolve to whichever organization
+paginated last — and carries `summary`, the one field GitHub cannot give back. Everything
 else on a card — description, languages, stars, topics, archived, created, the commit
 sparkline — the gateway reads from GitHub on a timer and serves from memory. Do not
 fetch on demand: a refresh is one call for the repository list plus two per project,

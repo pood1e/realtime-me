@@ -1,11 +1,11 @@
 {
   "projects": [
     {
-      "repo": "realtime-me",
+      "repo": "your-login/realtime-me",
       "summary": "Optional. Your own blurb for the card. GitHub's repository description stands in when this is empty."
     },
     {
-      "repo": "some-other-repo"
+      "repo": "your-org/some-other-repo"
     }
   ]
 }

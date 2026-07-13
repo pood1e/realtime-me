@@ -18,7 +18,7 @@ func TestProjectsReportUnreadableCuration(t *testing.T) {
 // same as saying the owner has built nothing.
 func TestProjectsReportNotYetFetched(t *testing.T) {
 	service := NewProjectsService(
-		ProjectsConfig{Projects: []CuratedProject{{Repo: "realtime-me"}}},
+		ProjectsConfig{Projects: []CuratedProject{{Repo: "pood1e/realtime-me"}}},
 		nil,
 		NewGitHubProjectsClient(""),
 		30,

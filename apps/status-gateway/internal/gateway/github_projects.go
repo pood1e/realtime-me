@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"sort"
 	"strings"
@@ -62,9 +63,9 @@ type GitHubRepositoryDetail struct {
 	CommitActivity []int32
 }
 
-// Repositories lists every repository the token can see, keyed by lowercase name.
-// The curated list names repositories, not owners, so the token's own account is
-// what a name is resolved against.
+// Repositories lists every repository the token can see, keyed by lowercase full
+// name ("owner/name"). The token reaches organizations as well as the owner's own
+// account, so a bare repository name does not identify one.
 func (github *GitHubProjectsClient) Repositories(ctx context.Context) (map[string]GitHubRepository, error) {
 	if strings.TrimSpace(github.token) == "" {
 		return nil, errors.New("GITHUB_PROJECTS_TOKEN is not set")
@@ -81,7 +82,7 @@ func (github *GitHubProjectsClient) Repositories(ctx context.Context) (map[strin
 			return nil, err
 		}
 		for _, repository := range batch {
-			repositories[strings.ToLower(repository.Name)] = repository
+			repositories[strings.ToLower(repository.FullName)] = repository
 		}
 		if len(batch) < gitHubPageSize {
 			break
@@ -90,25 +91,23 @@ func (github *GitHubProjectsClient) Repositories(ctx context.Context) (map[strin
 	return repositories, nil
 }
 
-// Detail reads the two things the listing withholds. Neither is worth failing a
-// refresh over: a repository whose language breakdown GitHub declines to compute
-// still belongs on the page, just without its bar.
-func (github *GitHubProjectsClient) Detail(ctx context.Context, repo GitHubRepository) (GitHubRepositoryDetail, error) {
-	languages, err := github.languages(ctx, repo.FullName)
-	if err != nil {
-		return GitHubRepositoryDetail{}, err
-	}
+// Detail reads the two things the listing withholds. Neither is worth losing a
+// project over: a repository whose language breakdown GitHub declines to serve still
+// belongs on the page, just without its bar. Both are decoration, and a decoration
+// that fails must not take the card with it.
+func (github *GitHubProjectsClient) Detail(ctx context.Context, repo GitHubRepository) GitHubRepositoryDetail {
 	return GitHubRepositoryDetail{
-		Languages:      languages,
+		Languages:      github.languages(ctx, repo.FullName),
 		CommitActivity: github.commitActivity(ctx, repo.FullName),
-	}, nil
+	}
 }
 
-func (github *GitHubProjectsClient) languages(ctx context.Context, fullName string) ([]*mev1.LanguageShare, error) {
+func (github *GitHubProjectsClient) languages(ctx context.Context, fullName string) []*mev1.LanguageShare {
 	var bytesByLanguage map[string]int64
 	url := fmt.Sprintf("%s/repos/%s/languages", gitHubAPIURL, fullName)
 	if err := github.get(ctx, url, &bytesByLanguage); err != nil {
-		return nil, err
+		slog.Warn("failed to read repository languages", "repo", fullName, "error", err)
+		return nil
 	}
 
 	shares := make([]*mev1.LanguageShare, 0, len(bytesByLanguage))
@@ -118,7 +117,7 @@ func (github *GitHubProjectsClient) languages(ctx context.Context, fullName stri
 	sort.SliceStable(shares, func(first int, second int) bool {
 		return shares[first].GetBytes() > shares[second].GetBytes()
 	})
-	return shares, nil
+	return shares
 }
 
 // commitActivity reads the weekly commit counts behind the sparkline. GitHub

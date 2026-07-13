@@ -36,7 +36,10 @@ type ProjectsConfig struct {
 // CuratedProject is one repository the owner has chosen to show, with the one
 // thing GitHub cannot give back.
 type CuratedProject struct {
-	// Repo is the repository name on GitHub, without the owner.
+	// Repo is the repository's full name on GitHub, "owner/name". The owner is
+	// spelled out because the token reaches organizations as well as the account,
+	// and a bare name would silently resolve to whichever organization happened to
+	// paginate last.
 	Repo string `json:"repo"`
 
 	// Summary is the owner's own blurb, shown in place of GitHub's description.
@@ -137,12 +140,9 @@ func (service *ProjectsService) refresh(ctx context.Context) {
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
-			detail, err := service.github.Detail(ctx, repo)
-			if err != nil {
-				slog.Warn("failed to read repository detail", "repo", repo.Name, "error", err)
-				return
-			}
-			built[index] = publicProject(repo, detail, summary)
+			// Detail cannot fail the project. What it reads is decoration, and one
+			// repository GitHub declines to describe must not cost the page a card.
+			built[index] = publicProject(repo, service.github.Detail(ctx, repo), summary)
 		}(index, repo, curated.Summary)
 	}
 	group.Wait()

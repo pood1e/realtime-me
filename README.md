@@ -216,13 +216,14 @@ leaves with it is not a failure anyone notices.
 ```
 
 `projects.json` *curates*, and does not describe. It names the repositories the page
-may show, and carries the one field GitHub cannot give back:
+may show — as `owner/name`, because the token reaches organizations too — and carries
+the one field GitHub cannot give back:
 
 ```json
 {
   "projects": [
-    { "repo": "realtime-me", "summary": "Optional. Stands in for GitHub's own description." },
-    { "repo": "some-other-repo" }
+    { "repo": "pood1e/realtime-me", "summary": "Optional. Stands in for GitHub's own description." },
+    { "repo": "some-org/some-other-repo" }
   ]
 }
 ```
