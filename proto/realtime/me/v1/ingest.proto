@@ -66,6 +66,9 @@ message ReportMobileStatusRequest {
 
   // watch is the latest paired-watch snapshot, reusing the Data Layer contract.
   WatchSnapshot watch = 5;
+
+  // switch_presence is the owner's Nintendo Switch play presence, if available.
+  SwitchPresence switch_presence = 6;
 }
 
 // ReportMobileStatusResponse is the acknowledgement of a mobile report.

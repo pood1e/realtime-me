@@ -3,6 +3,7 @@ syntax = "proto3";
 package realtime.me.v1;
 
 import "realtime/me/v1/watch.proto";
+import "google/protobuf/timestamp.proto";
 
 option java_multiple_files = true;
 option java_package = "me.realtime.protocol.v1";
@@ -113,6 +114,32 @@ message MediaStatus {
 
   // artist is the performing artist, if known.
   string artist = 2;
+}
+
+// SwitchPresence is the Nintendo Switch play presence reported by the owner's
+// Android device. It intentionally carries only public presence facts, never
+// Nintendo tokens or account identifiers.
+message SwitchPresence {
+  // state is whether the Switch presence is currently online.
+  OnlineState state = 1;
+
+  // game_name is the currently played title, if Nintendo reports one.
+  string game_name = 2;
+
+  // title_id is Nintendo's title identifier for the current game, if present.
+  string title_id = 3;
+
+  // image_uri is the title image Nintendo returns for the current game.
+  string image_uri = 4;
+
+  // presence_update_time is Nintendo's timestamp for the presence record.
+  google.protobuf.Timestamp presence_update_time = 5;
+
+  // logout_time is Nintendo's last logout timestamp, when reported.
+  google.protobuf.Timestamp logout_time = 6;
+
+  // fetch_time is when the reporting APK fetched this presence.
+  google.protobuf.Timestamp fetch_time = 7;
 }
 
 // MetricSample is one OpenTelemetry-named numeric sample reported by a host.

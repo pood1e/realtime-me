@@ -214,9 +214,11 @@ type ReportMobileStatusRequest struct {
 	// phone is the phone's own device state.
 	Phone *PhoneState `protobuf:"bytes,4,opt,name=phone,proto3" json:"phone,omitempty"`
 	// watch is the latest paired-watch snapshot, reusing the Data Layer contract.
-	Watch         *WatchSnapshot `protobuf:"bytes,5,opt,name=watch,proto3" json:"watch,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Watch *WatchSnapshot `protobuf:"bytes,5,opt,name=watch,proto3" json:"watch,omitempty"`
+	// switch_presence is the owner's Nintendo Switch play presence, if available.
+	SwitchPresence *SwitchPresence `protobuf:"bytes,6,opt,name=switch_presence,json=switchPresence,proto3" json:"switch_presence,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ReportMobileStatusRequest) Reset() {
@@ -280,6 +282,13 @@ func (x *ReportMobileStatusRequest) GetPhone() *PhoneState {
 func (x *ReportMobileStatusRequest) GetWatch() *WatchSnapshot {
 	if x != nil {
 		return x.Watch
+	}
+	return nil
+}
+
+func (x *ReportMobileStatusRequest) GetSwitchPresence() *SwitchPresence {
+	if x != nil {
+		return x.SwitchPresence
 	}
 	return nil
 }
@@ -484,14 +493,15 @@ const file_realtime_me_v1_ingest_proto_rawDesc = "" +
 	"\x05model\x18\x04 \x01(\tR\x05model\"5\n" +
 	"\x14EnrollDeviceResponse\x12\x1d\n" +
 	"\n" +
-	"device_uid\x18\x01 \x01(\tR\tdeviceUid\"\xda\x01\n" +
+	"device_uid\x18\x01 \x01(\tR\tdeviceUid\"\xa3\x02\n" +
 	"\x19ReportMobileStatusRequest\x12\x1d\n" +
 	"\n" +
 	"device_uid\x18\x01 \x01(\tR\tdeviceUid\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x14\n" +
 	"\x05model\x18\x03 \x01(\tR\x05model\x120\n" +
 	"\x05phone\x18\x04 \x01(\v2\x1a.realtime.me.v1.PhoneStateR\x05phone\x123\n" +
-	"\x05watch\x18\x05 \x01(\v2\x1d.realtime.me.v1.WatchSnapshotR\x05watch\"\x1c\n" +
+	"\x05watch\x18\x05 \x01(\v2\x1d.realtime.me.v1.WatchSnapshotR\x05watch\x12G\n" +
+	"\x0fswitch_presence\x18\x06 \x01(\v2\x1e.realtime.me.v1.SwitchPresenceR\x0eswitchPresence\"\x1c\n" +
 	"\x1aReportMobileStatusResponse\"u\n" +
 	"\x1cRegisterScrapeTargetsRequest\x126\n" +
 	"\atargets\x18\x01 \x03(\v2\x1c.realtime.me.v1.ScrapeTargetR\atargets\x12\x1d\n" +
@@ -542,25 +552,27 @@ var file_realtime_me_v1_ingest_proto_goTypes = []any{
 	(DeviceRole)(0),                       // 9: realtime.me.v1.DeviceRole
 	(*PhoneState)(nil),                    // 10: realtime.me.v1.PhoneState
 	(*WatchSnapshot)(nil),                 // 11: realtime.me.v1.WatchSnapshot
+	(*SwitchPresence)(nil),                // 12: realtime.me.v1.SwitchPresence
 }
 var file_realtime_me_v1_ingest_proto_depIdxs = []int32{
 	8,  // 0: realtime.me.v1.EnrollDeviceRequest.kind:type_name -> realtime.me.v1.DeviceKind
 	9,  // 1: realtime.me.v1.EnrollDeviceRequest.role:type_name -> realtime.me.v1.DeviceRole
 	10, // 2: realtime.me.v1.ReportMobileStatusRequest.phone:type_name -> realtime.me.v1.PhoneState
 	11, // 3: realtime.me.v1.ReportMobileStatusRequest.watch:type_name -> realtime.me.v1.WatchSnapshot
-	7,  // 4: realtime.me.v1.RegisterScrapeTargetsRequest.targets:type_name -> realtime.me.v1.ScrapeTarget
-	0,  // 5: realtime.me.v1.ScrapeTarget.job:type_name -> realtime.me.v1.ScrapeJob
-	1,  // 6: realtime.me.v1.EnrollmentService.EnrollDevice:input_type -> realtime.me.v1.EnrollDeviceRequest
-	3,  // 7: realtime.me.v1.IngestService.ReportMobileStatus:input_type -> realtime.me.v1.ReportMobileStatusRequest
-	5,  // 8: realtime.me.v1.IngestService.RegisterScrapeTargets:input_type -> realtime.me.v1.RegisterScrapeTargetsRequest
-	2,  // 9: realtime.me.v1.EnrollmentService.EnrollDevice:output_type -> realtime.me.v1.EnrollDeviceResponse
-	4,  // 10: realtime.me.v1.IngestService.ReportMobileStatus:output_type -> realtime.me.v1.ReportMobileStatusResponse
-	6,  // 11: realtime.me.v1.IngestService.RegisterScrapeTargets:output_type -> realtime.me.v1.RegisterScrapeTargetsResponse
-	9,  // [9:12] is the sub-list for method output_type
-	6,  // [6:9] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	12, // 4: realtime.me.v1.ReportMobileStatusRequest.switch_presence:type_name -> realtime.me.v1.SwitchPresence
+	7,  // 5: realtime.me.v1.RegisterScrapeTargetsRequest.targets:type_name -> realtime.me.v1.ScrapeTarget
+	0,  // 6: realtime.me.v1.ScrapeTarget.job:type_name -> realtime.me.v1.ScrapeJob
+	1,  // 7: realtime.me.v1.EnrollmentService.EnrollDevice:input_type -> realtime.me.v1.EnrollDeviceRequest
+	3,  // 8: realtime.me.v1.IngestService.ReportMobileStatus:input_type -> realtime.me.v1.ReportMobileStatusRequest
+	5,  // 9: realtime.me.v1.IngestService.RegisterScrapeTargets:input_type -> realtime.me.v1.RegisterScrapeTargetsRequest
+	2,  // 10: realtime.me.v1.EnrollmentService.EnrollDevice:output_type -> realtime.me.v1.EnrollDeviceResponse
+	4,  // 11: realtime.me.v1.IngestService.ReportMobileStatus:output_type -> realtime.me.v1.ReportMobileStatusResponse
+	6,  // 12: realtime.me.v1.IngestService.RegisterScrapeTargets:output_type -> realtime.me.v1.RegisterScrapeTargetsResponse
+	10, // [10:13] is the sub-list for method output_type
+	7,  // [7:10] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_realtime_me_v1_ingest_proto_init() }

@@ -390,9 +390,12 @@ type MobileState struct {
 	// watch is the latest paired-watch snapshot.
 	Watch *WatchSnapshot `protobuf:"bytes,5,opt,name=watch,proto3" json:"watch,omitempty"`
 	// update_time is when this status was last refreshed.
-	UpdateTime    *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	UpdateTime *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
+	// switch_presence is the owner's Nintendo Switch play presence, if the phone
+	// can read the local Nintendo Switch Online app state.
+	SwitchPresence *SwitchPresence `protobuf:"bytes,7,opt,name=switch_presence,json=switchPresence,proto3" json:"switch_presence,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *MobileState) Reset() {
@@ -463,6 +466,13 @@ func (x *MobileState) GetWatch() *WatchSnapshot {
 func (x *MobileState) GetUpdateTime() *timestamppb.Timestamp {
 	if x != nil {
 		return x.UpdateTime
+	}
+	return nil
+}
+
+func (x *MobileState) GetSwitchPresence() *SwitchPresence {
+	if x != nil {
+		return x.SwitchPresence
 	}
 	return nil
 }
@@ -1041,7 +1051,7 @@ const file_realtime_me_v1_status_proto_rawDesc = "" +
 	"\vaccessories\x18\t \x03(\v2\x19.realtime.me.v1.AccessoryR\vaccessories\x12;\n" +
 	"\vupdate_time\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"updateTimeJ\x04\b\n" +
-	"\x10\vR\bchildren\"\x89\x02\n" +
+	"\x10\vR\bchildren\"\xd2\x02\n" +
 	"\vMobileState\x12\x1d\n" +
 	"\n" +
 	"device_uid\x18\x01 \x01(\tR\tdeviceUid\x12!\n" +
@@ -1050,7 +1060,8 @@ const file_realtime_me_v1_status_proto_rawDesc = "" +
 	"\x05phone\x18\x04 \x01(\v2\x1a.realtime.me.v1.PhoneStateR\x05phone\x123\n" +
 	"\x05watch\x18\x05 \x01(\v2\x1d.realtime.me.v1.WatchSnapshotR\x05watch\x12;\n" +
 	"\vupdate_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"updateTime\" \n" +
+	"updateTime\x12G\n" +
+	"\x0fswitch_presence\x18\a \x01(\v2\x1e.realtime.me.v1.SwitchPresenceR\x0eswitchPresence\" \n" +
 	"\bSubagent\x12\x14\n" +
 	"\x05model\x18\x01 \x01(\tR\x05model\"\x9e\x03\n" +
 	"\x05Agent\x12\x10\n" +
@@ -1152,7 +1163,8 @@ var file_realtime_me_v1_status_proto_goTypes = []any{
 	(*timestamppb.Timestamp)(nil),     // 19: google.protobuf.Timestamp
 	(*PhoneState)(nil),                // 20: realtime.me.v1.PhoneState
 	(*WatchSnapshot)(nil),             // 21: realtime.me.v1.WatchSnapshot
-	(AgentState)(0),                   // 22: realtime.me.v1.AgentState
+	(*SwitchPresence)(nil),            // 22: realtime.me.v1.SwitchPresence
+	(AgentState)(0),                   // 23: realtime.me.v1.AgentState
 }
 var file_realtime_me_v1_status_proto_depIdxs = []int32{
 	11, // 0: realtime.me.v1.GetPublicStatusResponse.status:type_name -> realtime.me.v1.PublicStatus
@@ -1167,36 +1179,37 @@ var file_realtime_me_v1_status_proto_depIdxs = []int32{
 	20, // 9: realtime.me.v1.MobileState.phone:type_name -> realtime.me.v1.PhoneState
 	21, // 10: realtime.me.v1.MobileState.watch:type_name -> realtime.me.v1.WatchSnapshot
 	19, // 11: realtime.me.v1.MobileState.update_time:type_name -> google.protobuf.Timestamp
-	22, // 12: realtime.me.v1.Agent.state:type_name -> realtime.me.v1.AgentState
-	19, // 13: realtime.me.v1.Agent.update_time:type_name -> google.protobuf.Timestamp
-	7,  // 14: realtime.me.v1.Agent.subagents:type_name -> realtime.me.v1.Subagent
-	0,  // 15: realtime.me.v1.GithubStatus.state:type_name -> realtime.me.v1.GithubSyncState
-	19, // 16: realtime.me.v1.GithubStatus.update_time:type_name -> google.protobuf.Timestamp
-	0,  // 17: realtime.me.v1.GithubSyncDetail.state:type_name -> realtime.me.v1.GithubSyncState
-	19, // 18: realtime.me.v1.GithubSyncDetail.last_success_time:type_name -> google.protobuf.Timestamp
-	19, // 19: realtime.me.v1.GithubSyncDetail.last_error_time:type_name -> google.protobuf.Timestamp
-	19, // 20: realtime.me.v1.GithubSyncDetail.last_attempt_time:type_name -> google.protobuf.Timestamp
-	5,  // 21: realtime.me.v1.PublicStatus.server:type_name -> realtime.me.v1.DeviceState
-	6,  // 22: realtime.me.v1.PublicStatus.mobile:type_name -> realtime.me.v1.MobileState
-	5,  // 23: realtime.me.v1.PublicStatus.devices:type_name -> realtime.me.v1.DeviceState
-	8,  // 24: realtime.me.v1.PublicStatus.agents:type_name -> realtime.me.v1.Agent
-	9,  // 25: realtime.me.v1.PublicStatus.github:type_name -> realtime.me.v1.GithubStatus
-	19, // 26: realtime.me.v1.PublicStatus.update_time:type_name -> google.protobuf.Timestamp
-	5,  // 27: realtime.me.v1.InternalStatus.server:type_name -> realtime.me.v1.DeviceState
-	6,  // 28: realtime.me.v1.InternalStatus.mobile:type_name -> realtime.me.v1.MobileState
-	5,  // 29: realtime.me.v1.InternalStatus.devices:type_name -> realtime.me.v1.DeviceState
-	8,  // 30: realtime.me.v1.InternalStatus.agents:type_name -> realtime.me.v1.Agent
-	10, // 31: realtime.me.v1.InternalStatus.github:type_name -> realtime.me.v1.GithubSyncDetail
-	19, // 32: realtime.me.v1.InternalStatus.update_time:type_name -> google.protobuf.Timestamp
-	1,  // 33: realtime.me.v1.StatusService.GetPublicStatus:input_type -> realtime.me.v1.GetPublicStatusRequest
-	3,  // 34: realtime.me.v1.StatusService.GetInternalStatus:input_type -> realtime.me.v1.GetInternalStatusRequest
-	2,  // 35: realtime.me.v1.StatusService.GetPublicStatus:output_type -> realtime.me.v1.GetPublicStatusResponse
-	4,  // 36: realtime.me.v1.StatusService.GetInternalStatus:output_type -> realtime.me.v1.GetInternalStatusResponse
-	35, // [35:37] is the sub-list for method output_type
-	33, // [33:35] is the sub-list for method input_type
-	33, // [33:33] is the sub-list for extension type_name
-	33, // [33:33] is the sub-list for extension extendee
-	0,  // [0:33] is the sub-list for field type_name
+	22, // 12: realtime.me.v1.MobileState.switch_presence:type_name -> realtime.me.v1.SwitchPresence
+	23, // 13: realtime.me.v1.Agent.state:type_name -> realtime.me.v1.AgentState
+	19, // 14: realtime.me.v1.Agent.update_time:type_name -> google.protobuf.Timestamp
+	7,  // 15: realtime.me.v1.Agent.subagents:type_name -> realtime.me.v1.Subagent
+	0,  // 16: realtime.me.v1.GithubStatus.state:type_name -> realtime.me.v1.GithubSyncState
+	19, // 17: realtime.me.v1.GithubStatus.update_time:type_name -> google.protobuf.Timestamp
+	0,  // 18: realtime.me.v1.GithubSyncDetail.state:type_name -> realtime.me.v1.GithubSyncState
+	19, // 19: realtime.me.v1.GithubSyncDetail.last_success_time:type_name -> google.protobuf.Timestamp
+	19, // 20: realtime.me.v1.GithubSyncDetail.last_error_time:type_name -> google.protobuf.Timestamp
+	19, // 21: realtime.me.v1.GithubSyncDetail.last_attempt_time:type_name -> google.protobuf.Timestamp
+	5,  // 22: realtime.me.v1.PublicStatus.server:type_name -> realtime.me.v1.DeviceState
+	6,  // 23: realtime.me.v1.PublicStatus.mobile:type_name -> realtime.me.v1.MobileState
+	5,  // 24: realtime.me.v1.PublicStatus.devices:type_name -> realtime.me.v1.DeviceState
+	8,  // 25: realtime.me.v1.PublicStatus.agents:type_name -> realtime.me.v1.Agent
+	9,  // 26: realtime.me.v1.PublicStatus.github:type_name -> realtime.me.v1.GithubStatus
+	19, // 27: realtime.me.v1.PublicStatus.update_time:type_name -> google.protobuf.Timestamp
+	5,  // 28: realtime.me.v1.InternalStatus.server:type_name -> realtime.me.v1.DeviceState
+	6,  // 29: realtime.me.v1.InternalStatus.mobile:type_name -> realtime.me.v1.MobileState
+	5,  // 30: realtime.me.v1.InternalStatus.devices:type_name -> realtime.me.v1.DeviceState
+	8,  // 31: realtime.me.v1.InternalStatus.agents:type_name -> realtime.me.v1.Agent
+	10, // 32: realtime.me.v1.InternalStatus.github:type_name -> realtime.me.v1.GithubSyncDetail
+	19, // 33: realtime.me.v1.InternalStatus.update_time:type_name -> google.protobuf.Timestamp
+	1,  // 34: realtime.me.v1.StatusService.GetPublicStatus:input_type -> realtime.me.v1.GetPublicStatusRequest
+	3,  // 35: realtime.me.v1.StatusService.GetInternalStatus:input_type -> realtime.me.v1.GetInternalStatusRequest
+	2,  // 36: realtime.me.v1.StatusService.GetPublicStatus:output_type -> realtime.me.v1.GetPublicStatusResponse
+	4,  // 37: realtime.me.v1.StatusService.GetInternalStatus:output_type -> realtime.me.v1.GetInternalStatusResponse
+	36, // [36:38] is the sub-list for method output_type
+	34, // [34:36] is the sub-list for method input_type
+	34, // [34:34] is the sub-list for extension type_name
+	34, // [34:34] is the sub-list for extension extendee
+	0,  // [0:34] is the sub-list for field type_name
 }
 
 func init() { file_realtime_me_v1_status_proto_init() }

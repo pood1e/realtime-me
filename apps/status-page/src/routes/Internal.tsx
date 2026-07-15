@@ -15,7 +15,7 @@ import { GitHubDetails } from '@/components/GitHubDetails';
 import { githubStatusTitle } from '@/components/github';
 import { EmptyCard, LoadingCard, PageFooter, PageFrame, SiteLogo, StatusSection, SummaryCard } from '@/components/layout';
 import { MetricsExplorer } from '@/components/MetricsExplorer';
-import { PhoneCard, WatchCard } from '@/components/MobileCards';
+import { PhoneCard, SwitchCard, WatchCard } from '@/components/MobileCards';
 import { usePolling } from '@/hooks/usePolling';
 import { formatTime } from '@/lib/format';
 import { deviceCounts, hostDevices, isVirtualMachine } from '@/lib/status';
@@ -174,6 +174,7 @@ function InternalDevices({ status }: { status: InternalStatus }) {
       <StatusSection title="Personal devices" icon={<Watch className="size-4" />} columns="md:grid-cols-2 xl:grid-cols-3">
         <PhoneCard mobile={status.mobile ?? null} />
         <WatchCard mobile={status.mobile ?? null} githubState={status.github?.state} />
+        <SwitchCard mobile={status.mobile ?? null} />
       </StatusSection>
     </div>
   );

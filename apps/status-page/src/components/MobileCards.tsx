@@ -1,9 +1,10 @@
-import { Battery, BatteryCharging, CheckCircle2, Footprints, HeartPulse, Wifi } from 'lucide-react';
+import { Battery, BatteryCharging, CheckCircle2, Footprints, Gamepad2, HeartPulse, Wifi } from 'lucide-react';
 import { siAndroid, siWearos } from 'simple-icons/icons';
 import type { MobileState } from '@/gen/realtime/me/v1/status_pb';
 import type { GithubSyncState } from '@/gen/realtime/me/v1/status_pb';
 import type { WatchSnapshot } from '@/gen/realtime/me/v1/watch_pb';
 import { ChargeState } from '@/gen/realtime/me/v1/watch_pb';
+import { OnlineState } from '@/gen/realtime/me/v1/status_types_pb';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AccessoryBadges, MetricBadges, StatCell } from '@/components/badges';
@@ -75,12 +76,58 @@ export function WatchCard({ mobile, githubState }: { mobile: MobileState | null;
   );
 }
 
+export function SwitchCard({ mobile }: { mobile: MobileState | null }) {
+  const presence = mobile?.switchPresence;
+  const gameName = presence?.gameName;
+  const online = presence?.state === OnlineState.ONLINE;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><Gamepad2 className="size-4" />Nintendo Switch</CardTitle>
+        <CardAction className="flex items-center gap-2">
+          <InlineTime value={presence?.fetchTime ?? mobile?.updateTime} />
+          <SwitchStatusBadge mobile={mobile} />
+        </CardAction>
+      </CardHeader>
+      <CardContent className="flex h-full flex-col gap-4">
+        <div className="flex flex-wrap items-start justify-around gap-x-2 gap-y-3 py-1">
+          <StatCell icon={<Gamepad2 />} value={gameName || (online ? 'Online' : '—')} label={gameName ? 'Playing' : 'Presence'} />
+          <StatCell icon={<CheckCircle2 />} value={presence ? onlineStateLabel(presence.state) : '—'} label="State" />
+        </div>
+        {!!presence?.titleId && (
+          <MetricBadges>
+            <Badge variant="secondary" title={presence.titleId}>Title {presence.titleId}</Badge>
+          </MetricBadges>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function WatchStatusBadge({ watch }: { watch?: WatchSnapshot }) {
   if (!watch) return <Badge variant="outline" aria-label="No data">—</Badge>;
   return <Badge aria-label="Online"><CheckCircle2 /></Badge>;
 }
 
+function SwitchStatusBadge({ mobile }: { mobile: MobileState | null }) {
+  const presence = mobile?.switchPresence;
+  if (!presence) return <Badge variant="outline" aria-label="No data">—</Badge>;
+  if (presence.state === OnlineState.ONLINE) return <Badge aria-label="Online"><CheckCircle2 /></Badge>;
+  return <Badge variant="outline" aria-label="Offline">Offline</Badge>;
+}
+
 function formatSteps(watch: WatchSnapshot | undefined): string {
   if (!watch) return '—';
   return (watch.activityTotals?.steps ?? 0).toLocaleString();
+}
+
+function onlineStateLabel(state: OnlineState): string {
+  switch (state) {
+    case OnlineState.ONLINE:
+      return 'Online';
+    case OnlineState.OFFLINE:
+      return 'Offline';
+    default:
+      return '—';
+  }
 }

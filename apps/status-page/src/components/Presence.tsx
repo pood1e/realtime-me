@@ -1,4 +1,4 @@
-import { Footprints, HeartPulse, Music } from 'lucide-react';
+import { Footprints, Gamepad2, HeartPulse, Music } from 'lucide-react';
 import type { PublicStatus } from '@/gen/realtime/me/v1/status_pb';
 import type { MediaStatus } from '@/gen/realtime/me/v1/status_types_pb';
 
@@ -6,9 +6,10 @@ export function Presence({ status }: { status?: PublicStatus | null }) {
   const watch = status?.mobile?.watch;
   const heartRate = watch?.heartRate?.beatsPerMinute;
   const steps = watch?.activityTotals?.steps;
+  const game = status?.mobile?.switchPresence?.gameName;
   const media = nowPlaying(status);
 
-  if (!heartRate && !steps && !media) return null;
+  if (!heartRate && !steps && !game && !media) return null;
 
   return (
     <div className="hidden items-center gap-3.5 text-xs text-muted-foreground md:flex">
@@ -22,6 +23,12 @@ export function Presence({ status }: { status?: PublicStatus | null }) {
         <span className="flex items-center gap-1" title="Steps today">
           <Footprints className="size-3.5" />
           {steps.toLocaleString()}
+        </span>
+      )}
+      {!!game && (
+        <span className="flex max-w-[15rem] items-center gap-1.5" title={`Switch: ${game}`}>
+          <Gamepad2 className="size-3.5 text-primary" />
+          <span className="truncate">{game}</span>
         </span>
       )}
       {media && <NowPlaying media={media} />}

@@ -24,6 +24,10 @@ export function deviceCounts(status: InternalStatus): { online: number; total: n
     total += 1;
     online += 1;
   }
+  if (status.mobile?.switchPresence) {
+    total += 1;
+    if (status.mobile.switchPresence.state === OnlineState.ONLINE) online += 1;
+  }
   return { online, total };
 }
 

@@ -94,6 +94,10 @@ message MobileState {
 
   // update_time is when this status was last refreshed.
   google.protobuf.Timestamp update_time = 6;
+
+  // switch_presence is the owner's Nintendo Switch play presence, if the phone
+  // can read the local Nintendo Switch Online app state.
+  SwitchPresence switch_presence = 7;
 }
 
 // Subagent is one worker a coding agent has running right now. It carries the

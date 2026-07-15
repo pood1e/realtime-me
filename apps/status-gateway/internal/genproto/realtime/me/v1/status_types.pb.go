@@ -9,6 +9,7 @@ package mev1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -442,6 +443,108 @@ func (x *MediaStatus) GetArtist() string {
 	return ""
 }
 
+// SwitchPresence is the Nintendo Switch play presence reported by the owner's
+// Android device. It intentionally carries only public presence facts, never
+// Nintendo tokens or account identifiers.
+type SwitchPresence struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// state is whether the Switch presence is currently online.
+	State OnlineState `protobuf:"varint,1,opt,name=state,proto3,enum=realtime.me.v1.OnlineState" json:"state,omitempty"`
+	// game_name is the currently played title, if Nintendo reports one.
+	GameName string `protobuf:"bytes,2,opt,name=game_name,json=gameName,proto3" json:"game_name,omitempty"`
+	// title_id is Nintendo's title identifier for the current game, if present.
+	TitleId string `protobuf:"bytes,3,opt,name=title_id,json=titleId,proto3" json:"title_id,omitempty"`
+	// image_uri is the title image Nintendo returns for the current game.
+	ImageUri string `protobuf:"bytes,4,opt,name=image_uri,json=imageUri,proto3" json:"image_uri,omitempty"`
+	// presence_update_time is Nintendo's timestamp for the presence record.
+	PresenceUpdateTime *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=presence_update_time,json=presenceUpdateTime,proto3" json:"presence_update_time,omitempty"`
+	// logout_time is Nintendo's last logout timestamp, when reported.
+	LogoutTime *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=logout_time,json=logoutTime,proto3" json:"logout_time,omitempty"`
+	// fetch_time is when the reporting APK fetched this presence.
+	FetchTime     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=fetch_time,json=fetchTime,proto3" json:"fetch_time,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SwitchPresence) Reset() {
+	*x = SwitchPresence{}
+	mi := &file_realtime_me_v1_status_types_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SwitchPresence) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SwitchPresence) ProtoMessage() {}
+
+func (x *SwitchPresence) ProtoReflect() protoreflect.Message {
+	mi := &file_realtime_me_v1_status_types_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SwitchPresence.ProtoReflect.Descriptor instead.
+func (*SwitchPresence) Descriptor() ([]byte, []int) {
+	return file_realtime_me_v1_status_types_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *SwitchPresence) GetState() OnlineState {
+	if x != nil {
+		return x.State
+	}
+	return OnlineState_ONLINE_STATE_UNSPECIFIED
+}
+
+func (x *SwitchPresence) GetGameName() string {
+	if x != nil {
+		return x.GameName
+	}
+	return ""
+}
+
+func (x *SwitchPresence) GetTitleId() string {
+	if x != nil {
+		return x.TitleId
+	}
+	return ""
+}
+
+func (x *SwitchPresence) GetImageUri() string {
+	if x != nil {
+		return x.ImageUri
+	}
+	return ""
+}
+
+func (x *SwitchPresence) GetPresenceUpdateTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.PresenceUpdateTime
+	}
+	return nil
+}
+
+func (x *SwitchPresence) GetLogoutTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LogoutTime
+	}
+	return nil
+}
+
+func (x *SwitchPresence) GetFetchTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.FetchTime
+	}
+	return nil
+}
+
 // MetricSample is one OpenTelemetry-named numeric sample reported by a host.
 type MetricSample struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -459,7 +562,7 @@ type MetricSample struct {
 
 func (x *MetricSample) Reset() {
 	*x = MetricSample{}
-	mi := &file_realtime_me_v1_status_types_proto_msgTypes[2]
+	mi := &file_realtime_me_v1_status_types_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -471,7 +574,7 @@ func (x *MetricSample) String() string {
 func (*MetricSample) ProtoMessage() {}
 
 func (x *MetricSample) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_status_types_proto_msgTypes[2]
+	mi := &file_realtime_me_v1_status_types_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -484,7 +587,7 @@ func (x *MetricSample) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricSample.ProtoReflect.Descriptor instead.
 func (*MetricSample) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_status_types_proto_rawDescGZIP(), []int{2}
+	return file_realtime_me_v1_status_types_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *MetricSample) GetName() string {
@@ -532,7 +635,7 @@ type PhoneState struct {
 
 func (x *PhoneState) Reset() {
 	*x = PhoneState{}
-	mi := &file_realtime_me_v1_status_types_proto_msgTypes[3]
+	mi := &file_realtime_me_v1_status_types_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -544,7 +647,7 @@ func (x *PhoneState) String() string {
 func (*PhoneState) ProtoMessage() {}
 
 func (x *PhoneState) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_me_v1_status_types_proto_msgTypes[3]
+	mi := &file_realtime_me_v1_status_types_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -557,7 +660,7 @@ func (x *PhoneState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PhoneState.ProtoReflect.Descriptor instead.
 func (*PhoneState) Descriptor() ([]byte, []int) {
-	return file_realtime_me_v1_status_types_proto_rawDescGZIP(), []int{3}
+	return file_realtime_me_v1_status_types_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PhoneState) GetBatteryPercent() int32 {
@@ -592,7 +695,7 @@ var File_realtime_me_v1_status_types_proto protoreflect.FileDescriptor
 
 const file_realtime_me_v1_status_types_proto_rawDesc = "" +
 	"\n" +
-	"!realtime/me/v1/status_types.proto\x12\x0erealtime.me.v1\x1a\x1arealtime/me/v1/watch.proto\"\x9a\x01\n" +
+	"!realtime/me/v1/status_types.proto\x12\x0erealtime.me.v1\x1a\x1arealtime/me/v1/watch.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9a\x01\n" +
 	"\tAccessory\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x14\n" +
@@ -601,7 +704,17 @@ const file_realtime_me_v1_status_types_proto_rawDesc = "" +
 	"\x10_battery_percent\"L\n" +
 	"\vMediaStatus\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x16\n" +
-	"\x06artist\x18\x02 \x01(\tR\x06artistJ\x04\b\x03\x10\x04R\tcover_url\"\xd9\x01\n" +
+	"\x06artist\x18\x02 \x01(\tR\x06artistJ\x04\b\x03\x10\x04R\tcover_url\"\xde\x02\n" +
+	"\x0eSwitchPresence\x121\n" +
+	"\x05state\x18\x01 \x01(\x0e2\x1b.realtime.me.v1.OnlineStateR\x05state\x12\x1b\n" +
+	"\tgame_name\x18\x02 \x01(\tR\bgameName\x12\x19\n" +
+	"\btitle_id\x18\x03 \x01(\tR\atitleId\x12\x1b\n" +
+	"\timage_uri\x18\x04 \x01(\tR\bimageUri\x12L\n" +
+	"\x14presence_update_time\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x12presenceUpdateTime\x12;\n" +
+	"\vlogout_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"logoutTime\x129\n" +
+	"\n" +
+	"fetch_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tfetchTime\"\xd9\x01\n" +
 	"\fMetricSample\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04unit\x18\x02 \x01(\tR\x04unit\x12\x14\n" +
@@ -664,30 +777,36 @@ func file_realtime_me_v1_status_types_proto_rawDescGZIP() []byte {
 }
 
 var file_realtime_me_v1_status_types_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_realtime_me_v1_status_types_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_realtime_me_v1_status_types_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_realtime_me_v1_status_types_proto_goTypes = []any{
-	(DeviceKind)(0),      // 0: realtime.me.v1.DeviceKind
-	(DeviceRole)(0),      // 1: realtime.me.v1.DeviceRole
-	(OnlineState)(0),     // 2: realtime.me.v1.OnlineState
-	(NetworkState)(0),    // 3: realtime.me.v1.NetworkState
-	(AgentState)(0),      // 4: realtime.me.v1.AgentState
-	(*Accessory)(nil),    // 5: realtime.me.v1.Accessory
-	(*MediaStatus)(nil),  // 6: realtime.me.v1.MediaStatus
-	(*MetricSample)(nil), // 7: realtime.me.v1.MetricSample
-	(*PhoneState)(nil),   // 8: realtime.me.v1.PhoneState
-	nil,                  // 9: realtime.me.v1.MetricSample.AttributesEntry
-	(ChargeState)(0),     // 10: realtime.me.v1.ChargeState
+	(DeviceKind)(0),               // 0: realtime.me.v1.DeviceKind
+	(DeviceRole)(0),               // 1: realtime.me.v1.DeviceRole
+	(OnlineState)(0),              // 2: realtime.me.v1.OnlineState
+	(NetworkState)(0),             // 3: realtime.me.v1.NetworkState
+	(AgentState)(0),               // 4: realtime.me.v1.AgentState
+	(*Accessory)(nil),             // 5: realtime.me.v1.Accessory
+	(*MediaStatus)(nil),           // 6: realtime.me.v1.MediaStatus
+	(*SwitchPresence)(nil),        // 7: realtime.me.v1.SwitchPresence
+	(*MetricSample)(nil),          // 8: realtime.me.v1.MetricSample
+	(*PhoneState)(nil),            // 9: realtime.me.v1.PhoneState
+	nil,                           // 10: realtime.me.v1.MetricSample.AttributesEntry
+	(*timestamppb.Timestamp)(nil), // 11: google.protobuf.Timestamp
+	(ChargeState)(0),              // 12: realtime.me.v1.ChargeState
 }
 var file_realtime_me_v1_status_types_proto_depIdxs = []int32{
-	9,  // 0: realtime.me.v1.MetricSample.attributes:type_name -> realtime.me.v1.MetricSample.AttributesEntry
-	10, // 1: realtime.me.v1.PhoneState.charge_state:type_name -> realtime.me.v1.ChargeState
-	3,  // 2: realtime.me.v1.PhoneState.network:type_name -> realtime.me.v1.NetworkState
-	5,  // 3: realtime.me.v1.PhoneState.accessories:type_name -> realtime.me.v1.Accessory
-	4,  // [4:4] is the sub-list for method output_type
-	4,  // [4:4] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	2,  // 0: realtime.me.v1.SwitchPresence.state:type_name -> realtime.me.v1.OnlineState
+	11, // 1: realtime.me.v1.SwitchPresence.presence_update_time:type_name -> google.protobuf.Timestamp
+	11, // 2: realtime.me.v1.SwitchPresence.logout_time:type_name -> google.protobuf.Timestamp
+	11, // 3: realtime.me.v1.SwitchPresence.fetch_time:type_name -> google.protobuf.Timestamp
+	10, // 4: realtime.me.v1.MetricSample.attributes:type_name -> realtime.me.v1.MetricSample.AttributesEntry
+	12, // 5: realtime.me.v1.PhoneState.charge_state:type_name -> realtime.me.v1.ChargeState
+	3,  // 6: realtime.me.v1.PhoneState.network:type_name -> realtime.me.v1.NetworkState
+	5,  // 7: realtime.me.v1.PhoneState.accessories:type_name -> realtime.me.v1.Accessory
+	8,  // [8:8] is the sub-list for method output_type
+	8,  // [8:8] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_realtime_me_v1_status_types_proto_init() }
@@ -697,14 +816,14 @@ func file_realtime_me_v1_status_types_proto_init() {
 	}
 	file_realtime_me_v1_watch_proto_init()
 	file_realtime_me_v1_status_types_proto_msgTypes[0].OneofWrappers = []any{}
-	file_realtime_me_v1_status_types_proto_msgTypes[3].OneofWrappers = []any{}
+	file_realtime_me_v1_status_types_proto_msgTypes[4].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_realtime_me_v1_status_types_proto_rawDesc), len(file_realtime_me_v1_status_types_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

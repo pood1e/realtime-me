@@ -5,7 +5,7 @@ import { AgentState, DeviceRole } from '@/gen/realtime/me/v1/status_types_pb';
 import type { ShellContext } from '@/components/AppShell';
 import { DeviceCard } from '@/components/DeviceCard';
 import { ErrorCard, SkeletonCard } from '@/components/layout';
-import { PhoneCard, WatchCard } from '@/components/MobileCards';
+import { PhoneCard, SwitchCard, WatchCard } from '@/components/MobileCards';
 import { WorkingNow } from '@/components/WorkingNow';
 import { isVirtualMachine } from '@/lib/status';
 
@@ -52,6 +52,7 @@ function DeviceCards({ status }: { status: NonNullable<ShellContext['status']> }
       ))}
       <PhoneCard mobile={status.mobile ?? null} />
       <WatchCard mobile={status.mobile ?? null} githubState={status.github?.state} />
+      <SwitchCard mobile={status.mobile ?? null} />
     </>
   );
 }

@@ -12,6 +12,7 @@ import android.os.BatteryManager
 import android.os.Build
 import android.provider.Settings
 import me.realtime.mobile.state.StoredWatchSnapshot
+import me.realtime.mobile.nintendo.NintendoSwitchPresenceReader
 import me.realtime.protocol.v1.ChargeState
 import me.realtime.protocol.v1.DeviceKind
 import me.realtime.protocol.v1.EnrollDeviceRequest
@@ -22,6 +23,7 @@ import kotlin.math.roundToInt
 
 class StatusGatewayPayloadBuilder(private val context: Context) {
     private val accessoryReader = BluetoothAudioAccessoryReader(context)
+    private val switchPresenceReader = NintendoSwitchPresenceReader()
 
     /** The one-time enrollment request describing this phone to the gateway. */
     fun enrollRequest(): EnrollDeviceRequest = EnrollDeviceRequest.newBuilder()
@@ -39,6 +41,7 @@ class StatusGatewayPayloadBuilder(private val context: Context) {
         // Forward the watch snapshot verbatim; the Data Layer contract and the
         // gateway's ingest contract share the same WatchSnapshot message.
         storedWatchSnapshot?.let { builder.setWatch(it.snapshot) }
+        switchPresenceReader.read()?.let(builder::setSwitchPresence)
         return builder.build()
     }
 

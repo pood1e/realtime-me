@@ -6,13 +6,15 @@ import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2"
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { ChargeState, ChargeStateJson } from "./watch_pb";
 import { file_realtime_me_v1_watch } from "./watch_pb";
+import type { Timestamp, TimestampJson } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file realtime/me/v1/status_types.proto.
  */
 export const file_realtime_me_v1_status_types: GenFile = /*@__PURE__*/
-  fileDesc("CiFyZWFsdGltZS9tZS92MS9zdGF0dXNfdHlwZXMucHJvdG8SDnJlYWx0aW1lLm1lLnYxInAKCUFjY2Vzc29yeRIMCgRraW5kGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRINCgVtb2RlbBgDIAEoCRIcCg9iYXR0ZXJ5X3BlcmNlbnQYBCABKAVIAIgBAUISChBfYmF0dGVyeV9wZXJjZW50Ij0KC01lZGlhU3RhdHVzEg0KBXRpdGxlGAEgASgJEg4KBmFydGlzdBgCIAEoCUoECAMQBFIJY292ZXJfdXJsIq4BCgxNZXRyaWNTYW1wbGUSDAoEbmFtZRgBIAEoCRIMCgR1bml0GAIgASgJEg0KBXZhbHVlGAMgASgBEkAKCmF0dHJpYnV0ZXMYBCADKAsyLC5yZWFsdGltZS5tZS52MS5NZXRyaWNTYW1wbGUuQXR0cmlidXRlc0VudHJ5GjEKD0F0dHJpYnV0ZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBItABCgpQaG9uZVN0YXRlEhwKD2JhdHRlcnlfcGVyY2VudBgBIAEoBUgAiAEBEjEKDGNoYXJnZV9zdGF0ZRgCIAEoDjIbLnJlYWx0aW1lLm1lLnYxLkNoYXJnZVN0YXRlEi0KB25ldHdvcmsYAyABKA4yHC5yZWFsdGltZS5tZS52MS5OZXR3b3JrU3RhdGUSLgoLYWNjZXNzb3JpZXMYBCADKAsyGS5yZWFsdGltZS5tZS52MS5BY2Nlc3NvcnlCEgoQX2JhdHRlcnlfcGVyY2VudCqOAQoKRGV2aWNlS2luZBIbChdERVZJQ0VfS0lORF9VTlNQRUNJRklFRBAAEhQKEERFVklDRV9LSU5EX0hPU1QQARIfChtERVZJQ0VfS0lORF9WSVJUVUFMX01BQ0hJTkUQAhIVChFERVZJQ0VfS0lORF9QSE9ORRADEhUKEURFVklDRV9LSU5EX1dBVENIEAQqbgoKRGV2aWNlUm9sZRIbChdERVZJQ0VfUk9MRV9VTlNQRUNJRklFRBAAEhYKEkRFVklDRV9ST0xFX1NFUlZFUhABEhcKE0RFVklDRV9ST0xFX0RFU0tUT1AQAhISCg5ERVZJQ0VfUk9MRV9WTRADKl4KC09ubGluZVN0YXRlEhwKGE9OTElORV9TVEFURV9VTlNQRUNJRklFRBAAEhcKE09OTElORV9TVEFURV9PTkxJTkUQARIYChRPTkxJTkVfU1RBVEVfT0ZGTElORRACKq0BCgxOZXR3b3JrU3RhdGUSHQoZTkVUV09SS19TVEFURV9VTlNQRUNJRklFRBAAEhkKFU5FVFdPUktfU1RBVEVfT0ZGTElORRABEhYKEk5FVFdPUktfU1RBVEVfV0lGSRACEhoKFk5FVFdPUktfU1RBVEVfQ0VMTFVMQVIQAxIVChFORVRXT1JLX1NUQVRFX1ZQThAEEhgKFE5FVFdPUktfU1RBVEVfT05MSU5FEAUqcAoKQWdlbnRTdGF0ZRIbChdBR0VOVF9TVEFURV9VTlNQRUNJRklFRBAAEhQKEEFHRU5UX1NUQVRFX0lETEUQARIXChNBR0VOVF9TVEFURV9SVU5OSU5HEAISFgoSQUdFTlRfU1RBVEVfRkFJTEVEEANCxwEKEmNvbS5yZWFsdGltZS5tZS52MUIQU3RhdHVzVHlwZXNQcm90b1ABWkVyZWFsdGltZS1tZS9hcHBzL3N0YXR1cy1nYXRld2F5L2ludGVybmFsL2dlbnByb3RvL3JlYWx0aW1lL21lL3YxO21ldjGiAgNSTViqAg5SZWFsdGltZS5NZS5WMcoCDlJlYWx0aW1lXE1lXFYx4gIaUmVhbHRpbWVcTWVcVjFcR1BCTWV0YWRhdGHqAhBSZWFsdGltZTo6TWU6OlYxYgZwcm90bzM", [file_realtime_me_v1_watch]);
+  fileDesc("CiFyZWFsdGltZS9tZS92MS9zdGF0dXNfdHlwZXMucHJvdG8SDnJlYWx0aW1lLm1lLnYxInAKCUFjY2Vzc29yeRIMCgRraW5kGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRINCgVtb2RlbBgDIAEoCRIcCg9iYXR0ZXJ5X3BlcmNlbnQYBCABKAVIAIgBAUISChBfYmF0dGVyeV9wZXJjZW50Ij0KC01lZGlhU3RhdHVzEg0KBXRpdGxlGAEgASgJEg4KBmFydGlzdBgCIAEoCUoECAMQBFIJY292ZXJfdXJsIo8CCg5Td2l0Y2hQcmVzZW5jZRIqCgVzdGF0ZRgBIAEoDjIbLnJlYWx0aW1lLm1lLnYxLk9ubGluZVN0YXRlEhEKCWdhbWVfbmFtZRgCIAEoCRIQCgh0aXRsZV9pZBgDIAEoCRIRCglpbWFnZV91cmkYBCABKAkSOAoUcHJlc2VuY2VfdXBkYXRlX3RpbWUYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KC2xvZ291dF90aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpmZXRjaF90aW1lGAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKuAQoMTWV0cmljU2FtcGxlEgwKBG5hbWUYASABKAkSDAoEdW5pdBgCIAEoCRINCgV2YWx1ZRgDIAEoARJACgphdHRyaWJ1dGVzGAQgAygLMiwucmVhbHRpbWUubWUudjEuTWV0cmljU2FtcGxlLkF0dHJpYnV0ZXNFbnRyeRoxCg9BdHRyaWJ1dGVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASLQAQoKUGhvbmVTdGF0ZRIcCg9iYXR0ZXJ5X3BlcmNlbnQYASABKAVIAIgBARIxCgxjaGFyZ2Vfc3RhdGUYAiABKA4yGy5yZWFsdGltZS5tZS52MS5DaGFyZ2VTdGF0ZRItCgduZXR3b3JrGAMgASgOMhwucmVhbHRpbWUubWUudjEuTmV0d29ya1N0YXRlEi4KC2FjY2Vzc29yaWVzGAQgAygLMhkucmVhbHRpbWUubWUudjEuQWNjZXNzb3J5QhIKEF9iYXR0ZXJ5X3BlcmNlbnQqjgEKCkRldmljZUtpbmQSGwoXREVWSUNFX0tJTkRfVU5TUEVDSUZJRUQQABIUChBERVZJQ0VfS0lORF9IT1NUEAESHwobREVWSUNFX0tJTkRfVklSVFVBTF9NQUNISU5FEAISFQoRREVWSUNFX0tJTkRfUEhPTkUQAxIVChFERVZJQ0VfS0lORF9XQVRDSBAEKm4KCkRldmljZVJvbGUSGwoXREVWSUNFX1JPTEVfVU5TUEVDSUZJRUQQABIWChJERVZJQ0VfUk9MRV9TRVJWRVIQARIXChNERVZJQ0VfUk9MRV9ERVNLVE9QEAISEgoOREVWSUNFX1JPTEVfVk0QAypeCgtPbmxpbmVTdGF0ZRIcChhPTkxJTkVfU1RBVEVfVU5TUEVDSUZJRUQQABIXChNPTkxJTkVfU1RBVEVfT05MSU5FEAESGAoUT05MSU5FX1NUQVRFX09GRkxJTkUQAiqtAQoMTmV0d29ya1N0YXRlEh0KGU5FVFdPUktfU1RBVEVfVU5TUEVDSUZJRUQQABIZChVORVRXT1JLX1NUQVRFX09GRkxJTkUQARIWChJORVRXT1JLX1NUQVRFX1dJRkkQAhIaChZORVRXT1JLX1NUQVRFX0NFTExVTEFSEAMSFQoRTkVUV09SS19TVEFURV9WUE4QBBIYChRORVRXT1JLX1NUQVRFX09OTElORRAFKnAKCkFnZW50U3RhdGUSGwoXQUdFTlRfU1RBVEVfVU5TUEVDSUZJRUQQABIUChBBR0VOVF9TVEFURV9JRExFEAESFwoTQUdFTlRfU1RBVEVfUlVOTklORxACEhYKEkFHRU5UX1NUQVRFX0ZBSUxFRBADQscBChJjb20ucmVhbHRpbWUubWUudjFCEFN0YXR1c1R5cGVzUHJvdG9QAVpFcmVhbHRpbWUtbWUvYXBwcy9zdGF0dXMtZ2F0ZXdheS9pbnRlcm5hbC9nZW5wcm90by9yZWFsdGltZS9tZS92MTttZXYxogIDUk1YqgIOUmVhbHRpbWUuTWUuVjHKAg5SZWFsdGltZVxNZVxWMeICGlJlYWx0aW1lXE1lXFYxXEdQQk1ldGFkYXRh6gIQUmVhbHRpbWU6Ok1lOjpWMWIGcHJvdG8z", [file_realtime_me_v1_watch, file_google_protobuf_timestamp]);
 
 /**
  * Accessory is a connected peripheral, such as a Bluetooth audio device.
@@ -141,6 +143,129 @@ export const MediaStatusSchema: GenMessage<MediaStatus, {jsonType: MediaStatusJs
   messageDesc(file_realtime_me_v1_status_types, 1);
 
 /**
+ * SwitchPresence is the Nintendo Switch play presence reported by the owner's
+ * Android device. It intentionally carries only public presence facts, never
+ * Nintendo tokens or account identifiers.
+ *
+ * @generated from message realtime.me.v1.SwitchPresence
+ */
+export type SwitchPresence = Message<"realtime.me.v1.SwitchPresence"> & {
+  /**
+   * state is whether the Switch presence is currently online.
+   *
+   * @generated from field: realtime.me.v1.OnlineState state = 1;
+   */
+  state: OnlineState;
+
+  /**
+   * game_name is the currently played title, if Nintendo reports one.
+   *
+   * @generated from field: string game_name = 2;
+   */
+  gameName: string;
+
+  /**
+   * title_id is Nintendo's title identifier for the current game, if present.
+   *
+   * @generated from field: string title_id = 3;
+   */
+  titleId: string;
+
+  /**
+   * image_uri is the title image Nintendo returns for the current game.
+   *
+   * @generated from field: string image_uri = 4;
+   */
+  imageUri: string;
+
+  /**
+   * presence_update_time is Nintendo's timestamp for the presence record.
+   *
+   * @generated from field: google.protobuf.Timestamp presence_update_time = 5;
+   */
+  presenceUpdateTime?: Timestamp | undefined;
+
+  /**
+   * logout_time is Nintendo's last logout timestamp, when reported.
+   *
+   * @generated from field: google.protobuf.Timestamp logout_time = 6;
+   */
+  logoutTime?: Timestamp | undefined;
+
+  /**
+   * fetch_time is when the reporting APK fetched this presence.
+   *
+   * @generated from field: google.protobuf.Timestamp fetch_time = 7;
+   */
+  fetchTime?: Timestamp | undefined;
+};
+
+/**
+ * SwitchPresence is the Nintendo Switch play presence reported by the owner's
+ * Android device. It intentionally carries only public presence facts, never
+ * Nintendo tokens or account identifiers.
+ *
+ * @generated from message realtime.me.v1.SwitchPresence
+ */
+export type SwitchPresenceJson = {
+  /**
+   * state is whether the Switch presence is currently online.
+   *
+   * @generated from field: realtime.me.v1.OnlineState state = 1;
+   */
+  state?: OnlineStateJson;
+
+  /**
+   * game_name is the currently played title, if Nintendo reports one.
+   *
+   * @generated from field: string game_name = 2;
+   */
+  gameName?: string;
+
+  /**
+   * title_id is Nintendo's title identifier for the current game, if present.
+   *
+   * @generated from field: string title_id = 3;
+   */
+  titleId?: string;
+
+  /**
+   * image_uri is the title image Nintendo returns for the current game.
+   *
+   * @generated from field: string image_uri = 4;
+   */
+  imageUri?: string;
+
+  /**
+   * presence_update_time is Nintendo's timestamp for the presence record.
+   *
+   * @generated from field: google.protobuf.Timestamp presence_update_time = 5;
+   */
+  presenceUpdateTime?: TimestampJson;
+
+  /**
+   * logout_time is Nintendo's last logout timestamp, when reported.
+   *
+   * @generated from field: google.protobuf.Timestamp logout_time = 6;
+   */
+  logoutTime?: TimestampJson;
+
+  /**
+   * fetch_time is when the reporting APK fetched this presence.
+   *
+   * @generated from field: google.protobuf.Timestamp fetch_time = 7;
+   */
+  fetchTime?: TimestampJson;
+};
+
+/**
+ * Describes the message realtime.me.v1.SwitchPresence.
+ * Use `create(SwitchPresenceSchema)` to create a new message.
+ */
+export const SwitchPresenceSchema: GenMessage<SwitchPresence, {jsonType: SwitchPresenceJson}> = /*@__PURE__*/
+  messageDesc(file_realtime_me_v1_status_types, 2);
+
+/**
  * MetricSample is one OpenTelemetry-named numeric sample reported by a host.
  *
  * @generated from message realtime.me.v1.MetricSample
@@ -215,7 +340,7 @@ export type MetricSampleJson = {
  * Use `create(MetricSampleSchema)` to create a new message.
  */
 export const MetricSampleSchema: GenMessage<MetricSample, {jsonType: MetricSampleJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_status_types, 2);
+  messageDesc(file_realtime_me_v1_status_types, 3);
 
 /**
  * PhoneState is the phone's own device state, excluding the paired watch.
@@ -292,7 +417,7 @@ export type PhoneStateJson = {
  * Use `create(PhoneStateSchema)` to create a new message.
  */
 export const PhoneStateSchema: GenMessage<PhoneState, {jsonType: PhoneStateJson}> = /*@__PURE__*/
-  messageDesc(file_realtime_me_v1_status_types, 3);
+  messageDesc(file_realtime_me_v1_status_types, 4);
 
 /**
  * DeviceKind is the broad category of a reporting device.

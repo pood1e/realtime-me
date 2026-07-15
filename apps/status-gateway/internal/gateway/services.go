@@ -80,12 +80,13 @@ func (server *IngestServer) ReportMobileStatus(
 	}
 
 	mobile := &mev1.MobileState{
-		DeviceUid:   message.GetDeviceUid(),
-		DisplayName: firstString(strings.TrimSpace(message.GetDisplayName()), device.DisplayName),
-		Model:       firstString(strings.TrimSpace(message.GetModel()), device.Model),
-		Phone:       message.GetPhone(),
-		Watch:       message.GetWatch(),
-		UpdateTime:  timestamppb.New(time.Now().UTC()),
+		DeviceUid:      message.GetDeviceUid(),
+		DisplayName:    firstString(strings.TrimSpace(message.GetDisplayName()), device.DisplayName),
+		Model:          firstString(strings.TrimSpace(message.GetModel()), device.Model),
+		Phone:          message.GetPhone(),
+		Watch:          message.GetWatch(),
+		SwitchPresence: message.GetSwitchPresence(),
+		UpdateTime:     timestamppb.New(time.Now().UTC()),
 	}
 	server.store.UpdateMobile(mobile)
 	server.github.Enqueue(mobile)
