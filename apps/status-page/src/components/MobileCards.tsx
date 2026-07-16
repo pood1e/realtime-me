@@ -11,6 +11,7 @@ import { AccessoryBadges, MetricBadges, StatCell } from '@/components/badges';
 import { BrandIcon } from '@/components/brand';
 import { GitHubStatusBadge } from '@/components/github';
 import { InlineTime } from '@/components/layout';
+import { SwitchArtwork } from '@/components/SwitchArtwork';
 import { formatBattery } from '@/lib/format';
 import { networkLabel } from '@/lib/status';
 
@@ -78,8 +79,8 @@ export function WatchCard({ mobile, githubState }: { mobile: MobileState | null;
 
 export function SwitchCard({ mobile }: { mobile: MobileState | null }) {
   const presence = mobile?.switchPresence;
-  const gameName = presence?.gameName;
   const online = presence?.state === OnlineState.ONLINE;
+  const gameName = online ? presence?.gameName : undefined;
   return (
     <Card>
       <CardHeader>
@@ -90,11 +91,20 @@ export function SwitchCard({ mobile }: { mobile: MobileState | null }) {
         </CardAction>
       </CardHeader>
       <CardContent className="flex h-full flex-col gap-4">
+        {!!gameName && (
+          <div className="flex min-w-0 items-center gap-3">
+            <SwitchArtwork imageUri={presence?.imageUri} className="size-14 rounded-lg border border-border/70" />
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Playing now</p>
+              <p className="line-clamp-2 text-sm font-semibold leading-snug">{gameName}</p>
+            </div>
+          </div>
+        )}
         <div className="flex flex-wrap items-start justify-around gap-x-2 gap-y-3 py-1">
-          <StatCell icon={<Gamepad2 />} value={gameName || (online ? 'Online' : '—')} label={gameName ? 'Playing' : 'Presence'} />
+          {!gameName && <StatCell icon={<Gamepad2 />} value={online ? 'Online' : '—'} label="Presence" />}
           <StatCell icon={<CheckCircle2 />} value={presence ? onlineStateLabel(presence.state) : '—'} label="State" />
         </div>
-        {!!presence?.titleId && (
+        {!!gameName && !!presence?.titleId && (
           <MetricBadges>
             <Badge variant="secondary" title={presence.titleId}>Title {presence.titleId}</Badge>
           </MetricBadges>

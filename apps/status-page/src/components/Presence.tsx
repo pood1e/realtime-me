@@ -1,8 +1,9 @@
-import { Footprints, Gamepad2, HeartPulse, Music } from 'lucide-react';
+import { Footprints, HeartPulse, Music } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { PublicStatus } from '@/gen/realtime/me/v1/status_pb';
-import type { MediaStatus } from '@/gen/realtime/me/v1/status_types_pb';
+import type { MediaStatus, SwitchPresence } from '@/gen/realtime/me/v1/status_types_pb';
 import { OnlineState } from '@/gen/realtime/me/v1/status_types_pb';
+import { SwitchArtwork } from '@/components/SwitchArtwork';
 
 export function Presence({ status }: { status?: PublicStatus | null }) {
   const watch = status?.mobile?.watch;
@@ -29,9 +30,9 @@ export function Presence({ status }: { status?: PublicStatus | null }) {
       )}
       {!!game && (
         <PlayingIndicator
-          icon={<Gamepad2 className="size-3.5 text-primary" />}
-          text={game}
-          title={`Playing on Switch: ${game}`}
+          icon={<SwitchArtwork imageUri={game.imageUri} className="size-5" />}
+          text={game.gameName}
+          title={`Playing on Switch: ${game.gameName}`}
         />
       )}
       {media && <NowPlaying media={media} />}
@@ -53,10 +54,10 @@ function PlayingIndicator({ icon, text, title }: { icon: ReactNode; text: string
   );
 }
 
-function switchGame(status?: PublicStatus | null): string | null {
+function switchGame(status?: PublicStatus | null): SwitchPresence | null {
   const presence = status?.mobile?.switchPresence;
   if (presence?.state !== OnlineState.ONLINE) return null;
-  return presence.gameName || null;
+  return presence.gameName ? presence : null;
 }
 
 function nowPlaying(status?: PublicStatus | null): MediaStatus | null {
