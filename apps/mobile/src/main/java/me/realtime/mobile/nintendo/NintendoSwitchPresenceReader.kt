@@ -1,5 +1,6 @@
 package me.realtime.mobile.nintendo
 
+import android.os.SystemClock
 import android.util.Log
 import com.google.protobuf.Timestamp
 import me.realtime.protocol.v1.OnlineState
@@ -29,6 +30,7 @@ class NintendoSwitchPresenceReader {
             response = coralCall(token, SHOW_SELF_PATH, body)
         }
         parsePresence(response).also { presence ->
+            if (presence != null) clearRefreshBackoff()
             Log.i(TAG, "Switch presence parsed=${presence != null} state=${presence?.state} game=${presence?.gameName.orEmpty()}")
         }
     }.onFailure { throwable ->
@@ -87,31 +89,75 @@ class NintendoSwitchPresenceReader {
         coralToken()
             ?.takeIf { it.ttlSeconds > 0L && it.value != previousToken }
             ?.let { return@synchronized it.value }
-        val shouldRestorePreviousApp = requestNsoRefresh() ?: return@synchronized null
-        repeat(REFRESH_POLL_ATTEMPTS) {
-            Thread.sleep(REFRESH_POLL_INTERVAL_MS)
-            coralToken()
-                ?.takeIf { it.ttlSeconds > 0L && it.value != previousToken }
-                ?.let {
-                    restorePreviousApp(shouldRestorePreviousApp)
-                    return@synchronized it.value
-                }
+
+        refreshRetryDelaySeconds().takeIf { it > 0L }?.let { delaySeconds ->
+            Log.w(TAG, "Nintendo credential refresh deferred for ${delaySeconds}s")
+            return@synchronized null
         }
-        restorePreviousApp(shouldRestorePreviousApp)
+
+        val shouldRestorePreviousApp = requestNsoRefresh() ?: run {
+            recordRefreshFailure()
+            return@synchronized null
+        }
+        try {
+            repeat(REFRESH_POLL_ATTEMPTS) {
+                Thread.sleep(REFRESH_POLL_INTERVAL_MS)
+                coralToken()
+                    ?.takeIf { it.ttlSeconds > 0L && it.value != previousToken }
+                    ?.let {
+                        clearRefreshBackoff()
+                        return@synchronized it.value
+                    }
+            }
+        } finally {
+            restorePreviousApp(shouldRestorePreviousApp)
+        }
+        recordRefreshFailure()
         null
     }
 
     private fun requestNsoRefresh(): Boolean? {
-        val previousAppWasNso = rootCommand(TOP_ACTIVITY_COMMAND)
-            ?.toString(Charsets.UTF_8)
-            ?.contains(" $NSO_PACKAGE/") == true
-        if (rootCommand(START_NSO_COMMAND) == null) return null
+        val previousAppWasNso = isNsoResumed()
+        val result = rootCommand(START_NSO_COMMAND)?.toString(Charsets.UTF_8) ?: return null
+        if (result.contains("Error:")) {
+            Log.w(TAG, "Nintendo credential refresh activity failed")
+            return null
+        }
         Log.i(TAG, "Started Nintendo Switch Online credential refresh")
         return !previousAppWasNso
     }
 
     private fun restorePreviousApp(shouldRestore: Boolean) {
-        if (shouldRestore) rootCommand(RESTORE_PREVIOUS_APP_COMMAND)
+        if (!shouldRestore) return
+        repeat(RESTORE_BACK_ATTEMPTS) {
+            if (!isNsoResumed()) return
+            rootCommand(BACK_COMMAND)
+            Thread.sleep(RESTORE_BACK_DELAY_MS)
+        }
+    }
+
+    private fun isNsoResumed(): Boolean = rootCommand(RESUMED_ACTIVITY_COMMAND)
+        ?.toString(Charsets.UTF_8)
+        ?.contains(" $NSO_PACKAGE/") == true
+
+    private fun refreshRetryDelaySeconds(): Long {
+        val remainingMs = nextRefreshAttemptAtMs - SystemClock.elapsedRealtime()
+        return if (remainingMs > 0L) (remainingMs + 999L) / 1_000L else 0L
+    }
+
+    private fun recordRefreshFailure() {
+        val multiplier = 1L shl refreshFailureCount.coerceAtMost(MAX_BACKOFF_EXPONENT)
+        val delayMs = (REFRESH_INITIAL_BACKOFF_MS * multiplier).coerceAtMost(REFRESH_MAX_BACKOFF_MS)
+        refreshFailureCount++
+        nextRefreshAttemptAtMs = SystemClock.elapsedRealtime() + delayMs
+        Log.w(TAG, "Nintendo credential refresh failed; retrying in ${delayMs / 60_000L}m")
+    }
+
+    private fun clearRefreshBackoff() {
+        synchronized(REFRESH_LOCK) {
+            refreshFailureCount = 0
+            nextRefreshAttemptAtMs = 0L
+        }
     }
 
     private fun coralToken(): CoralToken? {
@@ -196,14 +242,21 @@ class NintendoSwitchPresenceReader {
         const val LOGIN_USER_PATH = "/data/data/com.nintendo.znca/files/datastore/login_user.pb"
         const val TIMEOUT_MS = 10_000
         const val SU_TIMEOUT_SECONDS = 5L
-        const val REFRESH_POLL_ATTEMPTS = 60
+        const val REFRESH_POLL_ATTEMPTS = 30
         const val REFRESH_POLL_INTERVAL_MS = 1_000L
-        const val TOP_ACTIVITY_COMMAND = "dumpsys activity top | grep -m1 '^  ACTIVITY'"
+        const val RESTORE_BACK_ATTEMPTS = 2
+        const val RESTORE_BACK_DELAY_MS = 1_000L
+        const val REFRESH_INITIAL_BACKOFF_MS = 5 * 60_000L
+        const val REFRESH_MAX_BACKOFF_MS = 60 * 60_000L
+        const val MAX_BACKOFF_EXPONENT = 4
+        const val RESUMED_ACTIVITY_COMMAND =
+            "dumpsys activity activities | grep -m1 'mResumedActivity:'"
         const val START_NSO_COMMAND =
-            "am start --activity-no-animation -n $NSO_PACKAGE/$NSO_BOOT_ACTIVITY >/dev/null"
-        const val RESTORE_PREVIOUS_APP_COMMAND =
-            "$TOP_ACTIVITY_COMMAND | grep -q ' $NSO_PACKAGE/' && input keyevent KEYCODE_BACK || true"
+            "am start --activity-no-animation -n $NSO_PACKAGE/$NSO_BOOT_ACTIVITY 2>&1"
+        const val BACK_COMMAND = "input keyevent KEYCODE_BACK"
         val REFRESH_LOCK = Any()
         val TOKEN_PATTERN = Regex("[A-Za-z0-9_\\-.]{80,}")
+        var refreshFailureCount = 0
+        var nextRefreshAttemptAtMs = 0L
     }
 }
