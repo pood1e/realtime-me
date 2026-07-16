@@ -135,7 +135,20 @@ func freshMobile(mobile *mev1.MobileState, now time.Time) *mev1.MobileState {
 	if now.Sub(updateTime.AsTime()) > mobileStaleAfter {
 		return nil
 	}
-	return mobile
+
+	fresh := cloneMobile(mobile)
+	if !freshSwitchPresence(fresh.GetSwitchPresence(), now) {
+		fresh.SwitchPresence = nil
+	}
+	return fresh
+}
+
+// A fresh phone heartbeat must not keep an abandoned Switch reading alive.
+// Switch presence has its own fetch timestamp because it may come from a
+// different Android device than the phone and watch snapshot.
+func freshSwitchPresence(presence *mev1.SwitchPresence, now time.Time) bool {
+	fetchTime := presence.GetFetchTime()
+	return fetchTime != nil && now.Sub(fetchTime.AsTime()) <= mobileStaleAfter
 }
 
 // namedServer gives the always-on server a label when node_exporter supplies no

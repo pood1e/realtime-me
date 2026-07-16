@@ -90,10 +90,28 @@ func (store *StatusStore) Load() error {
 	return nil
 }
 
-func (store *StatusStore) UpdateMobile(mobile *mev1.MobileState) {
+// UpdateMobile replaces the phone snapshot while retaining optional capabilities
+// collected by another enrolled Android device. This lets a dedicated Nintendo
+// collector and the owner's primary phone report independently without erasing
+// each other's watch or Switch state.
+func (store *StatusStore) UpdateMobile(mobile *mev1.MobileState) *mev1.MobileState {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
-	store.mobile = mobile
+
+	next := cloneMobile(mobile)
+	if current := cloneMobile(store.mobile); current != nil {
+		if next.Phone == nil {
+			next.Phone = current.Phone
+		}
+		if next.Watch == nil {
+			next.Watch = current.Watch
+		}
+		if next.SwitchPresence == nil {
+			next.SwitchPresence = current.SwitchPresence
+		}
+	}
+	store.mobile = next
+	return cloneMobile(next)
 }
 
 // SetTargets replaces the device's entire target set. An empty set deregisters
@@ -168,7 +186,7 @@ func (store *StatusStore) Snapshot() StatusSnapshot {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
 	return StatusSnapshot{
-		Mobile: store.mobile,
+		Mobile: cloneMobile(store.mobile),
 		GitHub: cloneGithub(store.github),
 	}
 }
@@ -257,4 +275,11 @@ func cloneGithub(github *mev1.GithubSyncDetail) *mev1.GithubSyncDetail {
 		return nil
 	}
 	return proto.Clone(github).(*mev1.GithubSyncDetail)
+}
+
+func cloneMobile(mobile *mev1.MobileState) *mev1.MobileState {
+	if mobile == nil {
+		return nil
+	}
+	return proto.Clone(mobile).(*mev1.MobileState)
 }
