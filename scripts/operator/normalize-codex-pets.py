@@ -33,6 +33,7 @@ from pathlib import Path
 from PIL import Image
 
 CDN_BASE_URL = "https://persistent.oaistatic.com/codex/pets/v1"
+DOWNLOAD_USER_AGENT = "realtime-me-codex-pet-builder/1.0"
 PETS = ["codex", "dewey", "fireball", "rocky", "seedy", "stacky", "bsod", "null-signal"]
 
 FRAME_WIDTH = 192
@@ -61,7 +62,7 @@ TRANSPARENT_INDEX = 255
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Write the Codex pet clips the status page discovers at build time.")
-    parser.add_argument("target", type=Path, help="directory to write <pet>.webp and <pet>.png into")
+    parser.add_argument("target", type=Path, help="directory to write <pet>.gif and <pet>.png into")
     parser.add_argument("--spritesheets", type=Path, help="directory holding <pet>.webp sheets; downloaded when absent")
     args = parser.parse_args()
 
@@ -106,7 +107,8 @@ def load_spritesheet(pet: str, source: Path) -> Image.Image:
     path = source / f"{pet}.webp"
     if not path.exists():
         url = f"{CDN_BASE_URL}/{pet}-spritesheet-v4.webp"
-        with urllib.request.urlopen(url, timeout=60) as response:
+        request = urllib.request.Request(url, headers={"User-Agent": DOWNLOAD_USER_AGENT})
+        with urllib.request.urlopen(request, timeout=60) as response:
             path.write_bytes(response.read())
     sheet = Image.open(path).convert("RGBA")
     expected = (FRAME_WIDTH * FRAME_COLUMNS, FRAME_HEIGHT * 9)
