@@ -1,12 +1,14 @@
 import { Footprints, Gamepad2, HeartPulse, Music } from 'lucide-react';
+import type { ReactNode } from 'react';
 import type { PublicStatus } from '@/gen/realtime/me/v1/status_pb';
 import type { MediaStatus } from '@/gen/realtime/me/v1/status_types_pb';
+import { OnlineState } from '@/gen/realtime/me/v1/status_types_pb';
 
 export function Presence({ status }: { status?: PublicStatus | null }) {
   const watch = status?.mobile?.watch;
   const heartRate = watch?.heartRate?.beatsPerMinute;
   const steps = watch?.activityTotals?.steps;
-  const game = status?.mobile?.switchPresence?.gameName;
+  const game = switchGame(status);
   const media = nowPlaying(status);
 
   if (!heartRate && !steps && !game && !media) return null;
@@ -26,10 +28,11 @@ export function Presence({ status }: { status?: PublicStatus | null }) {
         </span>
       )}
       {!!game && (
-        <span className="flex max-w-[15rem] items-center gap-1.5" title={`Switch: ${game}`}>
-          <Gamepad2 className="size-3.5 text-primary" />
-          <span className="truncate">{game}</span>
-        </span>
+        <PlayingIndicator
+          icon={<Gamepad2 className="size-3.5 text-primary" />}
+          text={game}
+          title={`Playing on Switch: ${game}`}
+        />
       )}
       {media && <NowPlaying media={media} />}
     </div>
@@ -38,12 +41,22 @@ export function Presence({ status }: { status?: PublicStatus | null }) {
 
 function NowPlaying({ media }: { media: MediaStatus }) {
   const text = media.artist ? `${media.title} · ${media.artist}` : media.title;
+  return <PlayingIndicator icon={<Music className="size-3.5 text-primary" />} text={text} title={`Now playing: ${text}`} />;
+}
+
+function PlayingIndicator({ icon, text, title }: { icon: ReactNode; text: string; title: string }) {
   return (
-    <span className="flex max-w-[15rem] items-center gap-1.5" title={`Now playing: ${text}`}>
-      <Music className="size-3.5 text-primary" />
+    <span className="flex max-w-[15rem] items-center gap-1.5" title={title}>
+      {icon}
       <span className="truncate">{text}</span>
     </span>
   );
+}
+
+function switchGame(status?: PublicStatus | null): string | null {
+  const presence = status?.mobile?.switchPresence;
+  if (presence?.state !== OnlineState.ONLINE) return null;
+  return presence.gameName || null;
 }
 
 function nowPlaying(status?: PublicStatus | null): MediaStatus | null {
