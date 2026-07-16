@@ -37,13 +37,13 @@ func TestNamedServerLabelsAnUnnamedServer(t *testing.T) {
 	}
 }
 
-// Only the phone pushes. If a future change reintroduces a pushed host or agent
+// Only phones push. If a future change reintroduces a pushed host or agent
 // store, this fails: StatusSnapshot must carry no such field.
 func TestStatusSnapshotCarriesOnlyPushedState(t *testing.T) {
 	snapshot := StatusSnapshot{}
 	// Compile-time proof the fields are gone; the assertions keep the intent
 	// legible if someone adds them back.
-	if snapshot.Mobile != nil {
+	if snapshot.Mobiles != nil {
 		t.Error("a zero snapshot must have no mobile state")
 	}
 	if snapshot.GitHub != nil {

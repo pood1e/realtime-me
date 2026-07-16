@@ -211,11 +211,11 @@ message GithubSyncDetail {
 
 // PublicStatus is the unauthenticated status document.
 message PublicStatus {
+  reserved 2;
+  reserved "mobile";
+
   // server is the always-on server's status.
   DeviceState server = 1;
-
-  // mobile is the phone-and-watch pair's status.
-  MobileState mobile = 2;
 
   // devices are the non-server devices' statuses.
   repeated DeviceState devices = 3;
@@ -228,15 +228,18 @@ message PublicStatus {
 
   // update_time is when this document was assembled.
   google.protobuf.Timestamp update_time = 6;
+
+  // mobiles are the independently reporting phone-and-watch pairs.
+  repeated MobileState mobiles = 7;
 }
 
 // InternalStatus is the authenticated status document with sync diagnostics.
 message InternalStatus {
+  reserved 2;
+  reserved "mobile";
+
   // server is the always-on server's status.
   DeviceState server = 1;
-
-  // mobile is the phone-and-watch pair's status.
-  MobileState mobile = 2;
 
   // devices are the non-server devices' statuses.
   repeated DeviceState devices = 3;
@@ -249,4 +252,7 @@ message InternalStatus {
 
   // update_time is when this document was assembled.
   google.protobuf.Timestamp update_time = 6;
+
+  // mobiles are the independently reporting phone-and-watch pairs.
+  repeated MobileState mobiles = 7;
 }

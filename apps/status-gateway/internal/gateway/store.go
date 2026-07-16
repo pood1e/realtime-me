@@ -21,15 +21,15 @@ type PrometheusHTTPDiscoveryGroup struct {
 }
 
 // StatusStore holds the gateway's live status plus the durable scrape targets
-// and GitHub sync state. The phone's pushed status is kept in memory only: it is
-// re-pushed within seconds, so it is not persisted and never shown stale after a
-// restart. Hosts and agents are never pushed — Prometheus scrapes their
+// and GitHub sync state. Phone statuses are kept in memory only: they are
+// re-pushed within minutes, so they are not persisted and never shown stale after
+// a restart. Hosts and agents are never pushed — Prometheus scrapes their
 // exporters — so the store holds no copy of them.
 type StatusStore struct {
 	stateFile string
 	mutex     sync.Mutex
 
-	mobile  *mev1.MobileState
+	mobiles map[string]*mev1.MobileState
 	targets map[string][]*mev1.ScrapeTarget
 	github  *mev1.GithubSyncDetail
 }
@@ -37,6 +37,7 @@ type StatusStore struct {
 func NewStatusStore(stateFile string) *StatusStore {
 	return &StatusStore{
 		stateFile: stateFile,
+		mobiles:   map[string]*mev1.MobileState{},
 		targets:   map[string][]*mev1.ScrapeTarget{},
 		github: &mev1.GithubSyncDetail{
 			Configured: false,
@@ -90,28 +91,12 @@ func (store *StatusStore) Load() error {
 	return nil
 }
 
-// UpdateMobile replaces the phone snapshot while retaining optional capabilities
-// collected by another enrolled Android device. This lets a dedicated Nintendo
-// collector and the owner's primary phone report independently without erasing
-// each other's watch or Switch state.
-func (store *StatusStore) UpdateMobile(mobile *mev1.MobileState) *mev1.MobileState {
+// UpdateMobile replaces one enrolled phone's snapshot without affecting any
+// other reporting phone.
+func (store *StatusStore) UpdateMobile(mobile *mev1.MobileState) {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
-
-	next := cloneMobile(mobile)
-	if current := cloneMobile(store.mobile); current != nil {
-		if next.Phone == nil {
-			next.Phone = current.Phone
-		}
-		if next.Watch == nil {
-			next.Watch = current.Watch
-		}
-		if next.SwitchPresence == nil {
-			next.SwitchPresence = current.SwitchPresence
-		}
-	}
-	store.mobile = next
-	return cloneMobile(next)
+	store.mobiles[mobile.GetDeviceUid()] = cloneMobile(mobile)
 }
 
 // SetTargets replaces the device's entire target set. An empty set deregisters
@@ -178,16 +163,16 @@ func (store *StatusStore) GitHubSnapshot() *mev1.GithubSyncDetail {
 
 // StatusSnapshot is a consistent read of the live pushed status.
 type StatusSnapshot struct {
-	Mobile *mev1.MobileState
-	GitHub *mev1.GithubSyncDetail
+	Mobiles []*mev1.MobileState
+	GitHub  *mev1.GithubSyncDetail
 }
 
 func (store *StatusStore) Snapshot() StatusSnapshot {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
 	return StatusSnapshot{
-		Mobile: cloneMobile(store.mobile),
-		GitHub: cloneGithub(store.github),
+		Mobiles: cloneMobiles(store.mobiles),
+		GitHub:  cloneGithub(store.github),
 	}
 }
 
@@ -282,4 +267,18 @@ func cloneMobile(mobile *mev1.MobileState) *mev1.MobileState {
 		return nil
 	}
 	return proto.Clone(mobile).(*mev1.MobileState)
+}
+
+func cloneMobiles(mobiles map[string]*mev1.MobileState) []*mev1.MobileState {
+	deviceUIDs := make([]string, 0, len(mobiles))
+	for deviceUID := range mobiles {
+		deviceUIDs = append(deviceUIDs, deviceUID)
+	}
+	sort.Strings(deviceUIDs)
+
+	snapshot := make([]*mev1.MobileState, 0, len(deviceUIDs))
+	for _, deviceUID := range deviceUIDs {
+		snapshot = append(snapshot, cloneMobile(mobiles[deviceUID]))
+	}
+	return snapshot
 }

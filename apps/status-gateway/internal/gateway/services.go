@@ -88,7 +88,10 @@ func (server *IngestServer) ReportMobileStatus(
 		SwitchPresence: message.GetSwitchPresence(),
 		UpdateTime:     timestamppb.New(time.Now().UTC()),
 	}
-	server.github.Enqueue(server.store.UpdateMobile(mobile))
+	server.store.UpdateMobile(mobile)
+	if mobile.GetWatch() != nil {
+		server.github.Enqueue(mobile)
+	}
 	return connect.NewResponse(&mev1.ReportMobileStatusResponse{}), nil
 }
 

@@ -160,8 +160,8 @@ function chartDefinitions(status: InternalStatus): ChartDefinition[] {
   for (const device of hostDevices(status)) {
     definitions.push(...hostChartDefinitions(device));
   }
-  if (status.mobile) {
-    definitions.push(...mobileChartDefinitions(status.mobile));
+  for (const mobile of status.mobiles) {
+    definitions.push(...mobileChartDefinitions(mobile));
   }
   for (const agent of status.agents) {
     if (agent.budgetRemainingPercent !== undefined) definitions.push(agentBudgetChart(agent));

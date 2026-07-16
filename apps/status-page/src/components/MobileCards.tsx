@@ -1,7 +1,6 @@
 import { Battery, BatteryCharging, CheckCircle2, Footprints, Gamepad2, HeartPulse, Wifi } from 'lucide-react';
 import { siAndroid, siWearos } from 'simple-icons/icons';
-import type { MobileState } from '@/gen/realtime/me/v1/status_pb';
-import type { GithubSyncState } from '@/gen/realtime/me/v1/status_pb';
+import type { GithubSyncState, MobileState } from '@/gen/realtime/me/v1/status_pb';
 import type { WatchSnapshot } from '@/gen/realtime/me/v1/watch_pb';
 import { ChargeState } from '@/gen/realtime/me/v1/watch_pb';
 import { OnlineState } from '@/gen/realtime/me/v1/status_types_pb';
@@ -13,7 +12,21 @@ import { GitHubStatusBadge } from '@/components/github';
 import { InlineTime } from '@/components/layout';
 import { SwitchArtwork } from '@/components/SwitchArtwork';
 import { formatBattery } from '@/lib/format';
-import { networkLabel } from '@/lib/status';
+import { isPlayingOnSwitch, networkLabel } from '@/lib/status';
+
+export function MobileDeviceCards({ mobiles, githubState }: { mobiles: MobileState[]; githubState?: GithubSyncState }) {
+  return (
+    <>
+      {mobiles.map((mobile) => <PhoneCard key={`phone:${mobile.deviceUid}`} mobile={mobile} />)}
+      {mobiles.filter((mobile) => mobile.watch).map((mobile) => (
+        <WatchCard key={`watch:${mobile.deviceUid}`} mobile={mobile} githubState={githubState} />
+      ))}
+      {mobiles.filter(isPlayingOnSwitch).map((mobile) => (
+        <SwitchCard key={`switch:${mobile.deviceUid}`} mobile={mobile} />
+      ))}
+    </>
+  );
+}
 
 export function PhoneCard({ mobile }: { mobile: MobileState | null }) {
   const phone = mobile?.phone;

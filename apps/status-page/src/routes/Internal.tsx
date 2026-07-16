@@ -15,7 +15,7 @@ import { GitHubDetails } from '@/components/GitHubDetails';
 import { githubStatusTitle } from '@/components/github';
 import { EmptyCard, LoadingCard, PageFooter, PageFrame, SiteLogo, StatusSection, SummaryCard } from '@/components/layout';
 import { MetricsExplorer } from '@/components/MetricsExplorer';
-import { PhoneCard, SwitchCard, WatchCard } from '@/components/MobileCards';
+import { MobileDeviceCards } from '@/components/MobileCards';
 import { usePolling } from '@/hooks/usePolling';
 import { formatTime } from '@/lib/format';
 import { deviceCounts, hostDevices, isVirtualMachine } from '@/lib/status';
@@ -147,13 +147,13 @@ function InternalDashboard({ status, token }: { status: InternalStatus; token: s
 
 function InternalOverview({ status }: { status: InternalStatus }) {
   const { online, total } = deviceCounts(status);
-  const watch = status.mobile?.watch;
+  const watchMobile = status.mobiles.find((mobile) => mobile.watch);
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <SummaryCard icon={<Server />} title="Devices" value={`${online}/${total}`} detail="online" />
       <SummaryCard icon={<Bot />} title="Agents" value={`${status.agents.length}`} detail="working" />
       <SummaryCard icon={<BrandIcon icon={siGithub} />} title="GitHub" value={githubStatusTitle(status.github?.state)} detail={formatTime(status.github?.lastSuccessTime)} />
-      <SummaryCard icon={<Watch />} title="Watch" value={watch ? 'live' : '—'} detail={status.mobile ? formatTime(status.mobile.updateTime) : 'waiting'} />
+      <SummaryCard icon={<Watch />} title="Watch" value={watchMobile ? 'live' : '—'} detail={watchMobile ? formatTime(watchMobile.updateTime) : 'waiting'} />
     </div>
   );
 }
@@ -172,9 +172,7 @@ function InternalDevices({ status }: { status: InternalStatus }) {
         {virtualMachines.length === 0 ? <EmptyCard text="No VM metrics" /> : virtualMachines.map((device) => <InternalDeviceCard key={device.deviceUid} device={device} icon={<Box className="size-4" />} />)}
       </StatusSection>
       <StatusSection title="Personal devices" icon={<Watch className="size-4" />} columns="md:grid-cols-2 xl:grid-cols-3">
-        <PhoneCard mobile={status.mobile ?? null} />
-        <WatchCard mobile={status.mobile ?? null} githubState={status.github?.state} />
-        <SwitchCard mobile={status.mobile ?? null} />
+        <MobileDeviceCards mobiles={status.mobiles} githubState={status.github?.state} />
       </StatusSection>
     </div>
   );

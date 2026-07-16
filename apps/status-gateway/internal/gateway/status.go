@@ -44,7 +44,7 @@ type prometheusCache struct {
 
 // buildPublicStatus assembles the unauthenticated status document. Hosts, VMs,
 // and agents come from Prometheus, which scrapes their exporters. Only the
-// phone is pushed, because it cannot be scraped.
+// phones are pushed, because they cannot be scraped.
 func (server *StatusServer) buildPublicStatus(ctx context.Context) *mev1.PublicStatus {
 	snapshot := server.store.Snapshot()
 	now := time.Now().UTC()
@@ -52,7 +52,7 @@ func (server *StatusServer) buildPublicStatus(ctx context.Context) *mev1.PublicS
 
 	return &mev1.PublicStatus{
 		Server:     derived.server,
-		Mobile:     freshMobile(snapshot.Mobile, now),
+		Mobiles:    freshMobiles(snapshot.Mobiles, now),
 		Devices:    derived.devices,
 		Agents:     derived.agents,
 		Github:     publicGithubStatus(snapshot.GitHub, server.config.GitHubToken),
@@ -103,7 +103,7 @@ func (server *StatusServer) buildInternalStatus(ctx context.Context) *mev1.Inter
 	github := internalGithubDetail(server.store.GitHubSnapshot(), server.config.GitHubToken)
 	return &mev1.InternalStatus{
 		Server:     public.GetServer(),
-		Mobile:     public.GetMobile(),
+		Mobiles:    public.GetMobiles(),
 		Devices:    public.GetDevices(),
 		Agents:     public.GetAgents(),
 		Github:     github,
@@ -126,7 +126,17 @@ func (server *StatusServer) visibleAgents(ctx context.Context, now time.Time) []
 	return agents
 }
 
-// freshMobile drops a phone report the phone has stopped refreshing.
+// freshMobiles drops each phone independently when it stops refreshing.
+func freshMobiles(mobiles []*mev1.MobileState, now time.Time) []*mev1.MobileState {
+	fresh := make([]*mev1.MobileState, 0, len(mobiles))
+	for _, mobile := range mobiles {
+		if mobile = freshMobile(mobile, now); mobile != nil {
+			fresh = append(fresh, mobile)
+		}
+	}
+	return fresh
+}
+
 func freshMobile(mobile *mev1.MobileState, now time.Time) *mev1.MobileState {
 	updateTime := mobile.GetUpdateTime()
 	if updateTime == nil {
@@ -135,20 +145,7 @@ func freshMobile(mobile *mev1.MobileState, now time.Time) *mev1.MobileState {
 	if now.Sub(updateTime.AsTime()) > mobileStaleAfter {
 		return nil
 	}
-
-	fresh := cloneMobile(mobile)
-	if !freshSwitchPresence(fresh.GetSwitchPresence(), now) {
-		fresh.SwitchPresence = nil
-	}
-	return fresh
-}
-
-// A fresh phone heartbeat must not keep an abandoned Switch reading alive.
-// Switch presence has its own fetch timestamp because it may come from a
-// different Android device than the phone and watch snapshot.
-func freshSwitchPresence(presence *mev1.SwitchPresence, now time.Time) bool {
-	fetchTime := presence.GetFetchTime()
-	return fetchTime != nil && now.Sub(fetchTime.AsTime()) <= mobileStaleAfter
+	return mobile
 }
 
 // namedServer gives the always-on server a label when node_exporter supplies no

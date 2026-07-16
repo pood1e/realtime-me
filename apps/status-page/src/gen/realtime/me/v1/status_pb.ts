@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file realtime/me/v1/status.proto.
  */
 export const file_realtime_me_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("ChtyZWFsdGltZS9tZS92MS9zdGF0dXMucHJvdG8SDnJlYWx0aW1lLm1lLnYxIhgKFkdldFB1YmxpY1N0YXR1c1JlcXVlc3QiRwoXR2V0UHVibGljU3RhdHVzUmVzcG9uc2USLAoGc3RhdHVzGAEgASgLMhwucmVhbHRpbWUubWUudjEuUHVibGljU3RhdHVzIhoKGEdldEludGVybmFsU3RhdHVzUmVxdWVzdCJLChlHZXRJbnRlcm5hbFN0YXR1c1Jlc3BvbnNlEi4KBnN0YXR1cxgBIAEoCzIeLnJlYWx0aW1lLm1lLnYxLkludGVybmFsU3RhdHVzIpIDCgtEZXZpY2VTdGF0ZRISCgpkZXZpY2VfdWlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRINCgVtb2RlbBgDIAEoCRIoCgRraW5kGAQgASgOMhoucmVhbHRpbWUubWUudjEuRGV2aWNlS2luZBIoCgRyb2xlGAUgASgOMhoucmVhbHRpbWUubWUudjEuRGV2aWNlUm9sZRIqCgVzdGF0ZRgGIAEoDjIbLnJlYWx0aW1lLm1lLnYxLk9ubGluZVN0YXRlEi0KB21ldHJpY3MYByADKAsyHC5yZWFsdGltZS5tZS52MS5NZXRyaWNTYW1wbGUSKgoFbWVkaWEYCCABKAsyGy5yZWFsdGltZS5tZS52MS5NZWRpYVN0YXR1cxIuCgthY2Nlc3NvcmllcxgJIAMoCzIZLnJlYWx0aW1lLm1lLnYxLkFjY2Vzc29yeRIvCgt1cGRhdGVfdGltZRgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBKBAgKEAtSCGNoaWxkcmVuIokCCgtNb2JpbGVTdGF0ZRISCgpkZXZpY2VfdWlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRINCgVtb2RlbBgDIAEoCRIpCgVwaG9uZRgEIAEoCzIaLnJlYWx0aW1lLm1lLnYxLlBob25lU3RhdGUSLAoFd2F0Y2gYBSABKAsyHS5yZWFsdGltZS5tZS52MS5XYXRjaFNuYXBzaG90Ei8KC3VwZGF0ZV90aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI3Cg9zd2l0Y2hfcHJlc2VuY2UYByABKAsyHi5yZWFsdGltZS5tZS52MS5Td2l0Y2hQcmVzZW5jZSIZCghTdWJhZ2VudBINCgVtb2RlbBgBIAEoCSK+AgoFQWdlbnQSCwoDdWlkGAEgASgJEgwKBGtpbmQYAiABKAkSEgoKZGV2aWNlX3VpZBgDIAEoCRIUCgxkaXNwbGF5X25hbWUYBCABKAkSKQoFc3RhdGUYBSABKA4yGi5yZWFsdGltZS5tZS52MS5BZ2VudFN0YXRlEiUKGGJ1ZGdldF9yZW1haW5pbmdfcGVyY2VudBgGIAEoBUgAiAEBEi8KC3VwZGF0ZV90aW1lGAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVtb2RlbBgIIAEoCRIrCglzdWJhZ2VudHMYCiADKAsyGC5yZWFsdGltZS5tZS52MS5TdWJhZ2VudEIbChlfYnVkZ2V0X3JlbWFpbmluZ19wZXJjZW50SgQICRAKUg5zdWJhZ2VudF9jb3VudCKgAQoMR2l0aHViU3RhdHVzEg8KB2VuYWJsZWQYASABKAgSLgoFc3RhdGUYAiABKA4yHy5yZWFsdGltZS5tZS52MS5HaXRodWJTeW5jU3RhdGUSDQoFZW1vamkYAyABKAkSDwoHbWVzc2FnZRgEIAEoCRIvCgt1cGRhdGVfdGltZRgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAixQIKEEdpdGh1YlN5bmNEZXRhaWwSEgoKY29uZmlndXJlZBgBIAEoCBIuCgVzdGF0ZRgCIAEoDjIfLnJlYWx0aW1lLm1lLnYxLkdpdGh1YlN5bmNTdGF0ZRINCgVlbW9qaRgDIAEoCRIPCgdtZXNzYWdlGAQgASgJEjUKEWxhc3Rfc3VjY2Vzc190aW1lGAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIzCg9sYXN0X2Vycm9yX3RpbWUYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmxhc3RfZXJyb3IYByABKAkSNQoRbGFzdF9hdHRlbXB0X3RpbWUYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhYKDmxhc3Rfc2lnbmF0dXJlGAkgASgJIpwCCgxQdWJsaWNTdGF0dXMSKwoGc2VydmVyGAEgASgLMhsucmVhbHRpbWUubWUudjEuRGV2aWNlU3RhdGUSKwoGbW9iaWxlGAIgASgLMhsucmVhbHRpbWUubWUudjEuTW9iaWxlU3RhdGUSLAoHZGV2aWNlcxgDIAMoCzIbLnJlYWx0aW1lLm1lLnYxLkRldmljZVN0YXRlEiUKBmFnZW50cxgEIAMoCzIVLnJlYWx0aW1lLm1lLnYxLkFnZW50EiwKBmdpdGh1YhgFIAEoCzIcLnJlYWx0aW1lLm1lLnYxLkdpdGh1YlN0YXR1cxIvCgt1cGRhdGVfdGltZRgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiogIKDkludGVybmFsU3RhdHVzEisKBnNlcnZlchgBIAEoCzIbLnJlYWx0aW1lLm1lLnYxLkRldmljZVN0YXRlEisKBm1vYmlsZRgCIAEoCzIbLnJlYWx0aW1lLm1lLnYxLk1vYmlsZVN0YXRlEiwKB2RldmljZXMYAyADKAsyGy5yZWFsdGltZS5tZS52MS5EZXZpY2VTdGF0ZRIlCgZhZ2VudHMYBCADKAsyFS5yZWFsdGltZS5tZS52MS5BZ2VudBIwCgZnaXRodWIYBSABKAsyIC5yZWFsdGltZS5tZS52MS5HaXRodWJTeW5jRGV0YWlsEi8KC3VwZGF0ZV90aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCqqAQoPR2l0aHViU3luY1N0YXRlEiEKHUdJVEhVQl9TWU5DX1NUQVRFX1VOU1BFQ0lGSUVEEAASHgoaR0lUSFVCX1NZTkNfU1RBVEVfRElTQUJMRUQQARIdChlHSVRIVUJfU1lOQ19TVEFURV9QRU5ESU5HEAISGAoUR0lUSFVCX1NZTkNfU1RBVEVfT0sQAxIbChdHSVRIVUJfU1lOQ19TVEFURV9FUlJPUhAEMt0BCg1TdGF0dXNTZXJ2aWNlEmIKD0dldFB1YmxpY1N0YXR1cxImLnJlYWx0aW1lLm1lLnYxLkdldFB1YmxpY1N0YXR1c1JlcXVlc3QaJy5yZWFsdGltZS5tZS52MS5HZXRQdWJsaWNTdGF0dXNSZXNwb25zZRJoChFHZXRJbnRlcm5hbFN0YXR1cxIoLnJlYWx0aW1lLm1lLnYxLkdldEludGVybmFsU3RhdHVzUmVxdWVzdBopLnJlYWx0aW1lLm1lLnYxLkdldEludGVybmFsU3RhdHVzUmVzcG9uc2VCwgEKEmNvbS5yZWFsdGltZS5tZS52MUILU3RhdHVzUHJvdG9QAVpFcmVhbHRpbWUtbWUvYXBwcy9zdGF0dXMtZ2F0ZXdheS9pbnRlcm5hbC9nZW5wcm90by9yZWFsdGltZS9tZS92MTttZXYxogIDUk1YqgIOUmVhbHRpbWUuTWUuVjHKAg5SZWFsdGltZVxNZVxWMeICGlJlYWx0aW1lXE1lXFYxXEdQQk1ldGFkYXRh6gIQUmVhbHRpbWU6Ok1lOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp, file_realtime_me_v1_status_types, file_realtime_me_v1_watch]);
+  fileDesc("ChtyZWFsdGltZS9tZS92MS9zdGF0dXMucHJvdG8SDnJlYWx0aW1lLm1lLnYxIhgKFkdldFB1YmxpY1N0YXR1c1JlcXVlc3QiRwoXR2V0UHVibGljU3RhdHVzUmVzcG9uc2USLAoGc3RhdHVzGAEgASgLMhwucmVhbHRpbWUubWUudjEuUHVibGljU3RhdHVzIhoKGEdldEludGVybmFsU3RhdHVzUmVxdWVzdCJLChlHZXRJbnRlcm5hbFN0YXR1c1Jlc3BvbnNlEi4KBnN0YXR1cxgBIAEoCzIeLnJlYWx0aW1lLm1lLnYxLkludGVybmFsU3RhdHVzIpIDCgtEZXZpY2VTdGF0ZRISCgpkZXZpY2VfdWlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRINCgVtb2RlbBgDIAEoCRIoCgRraW5kGAQgASgOMhoucmVhbHRpbWUubWUudjEuRGV2aWNlS2luZBIoCgRyb2xlGAUgASgOMhoucmVhbHRpbWUubWUudjEuRGV2aWNlUm9sZRIqCgVzdGF0ZRgGIAEoDjIbLnJlYWx0aW1lLm1lLnYxLk9ubGluZVN0YXRlEi0KB21ldHJpY3MYByADKAsyHC5yZWFsdGltZS5tZS52MS5NZXRyaWNTYW1wbGUSKgoFbWVkaWEYCCABKAsyGy5yZWFsdGltZS5tZS52MS5NZWRpYVN0YXR1cxIuCgthY2Nlc3NvcmllcxgJIAMoCzIZLnJlYWx0aW1lLm1lLnYxLkFjY2Vzc29yeRIvCgt1cGRhdGVfdGltZRgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBKBAgKEAtSCGNoaWxkcmVuIokCCgtNb2JpbGVTdGF0ZRISCgpkZXZpY2VfdWlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRINCgVtb2RlbBgDIAEoCRIpCgVwaG9uZRgEIAEoCzIaLnJlYWx0aW1lLm1lLnYxLlBob25lU3RhdGUSLAoFd2F0Y2gYBSABKAsyHS5yZWFsdGltZS5tZS52MS5XYXRjaFNuYXBzaG90Ei8KC3VwZGF0ZV90aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI3Cg9zd2l0Y2hfcHJlc2VuY2UYByABKAsyHi5yZWFsdGltZS5tZS52MS5Td2l0Y2hQcmVzZW5jZSIZCghTdWJhZ2VudBINCgVtb2RlbBgBIAEoCSK+AgoFQWdlbnQSCwoDdWlkGAEgASgJEgwKBGtpbmQYAiABKAkSEgoKZGV2aWNlX3VpZBgDIAEoCRIUCgxkaXNwbGF5X25hbWUYBCABKAkSKQoFc3RhdGUYBSABKA4yGi5yZWFsdGltZS5tZS52MS5BZ2VudFN0YXRlEiUKGGJ1ZGdldF9yZW1haW5pbmdfcGVyY2VudBgGIAEoBUgAiAEBEi8KC3VwZGF0ZV90aW1lGAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVtb2RlbBgIIAEoCRIrCglzdWJhZ2VudHMYCiADKAsyGC5yZWFsdGltZS5tZS52MS5TdWJhZ2VudEIbChlfYnVkZ2V0X3JlbWFpbmluZ19wZXJjZW50SgQICRAKUg5zdWJhZ2VudF9jb3VudCKgAQoMR2l0aHViU3RhdHVzEg8KB2VuYWJsZWQYASABKAgSLgoFc3RhdGUYAiABKA4yHy5yZWFsdGltZS5tZS52MS5HaXRodWJTeW5jU3RhdGUSDQoFZW1vamkYAyABKAkSDwoHbWVzc2FnZRgEIAEoCRIvCgt1cGRhdGVfdGltZRgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAixQIKEEdpdGh1YlN5bmNEZXRhaWwSEgoKY29uZmlndXJlZBgBIAEoCBIuCgVzdGF0ZRgCIAEoDjIfLnJlYWx0aW1lLm1lLnYxLkdpdGh1YlN5bmNTdGF0ZRINCgVlbW9qaRgDIAEoCRIPCgdtZXNzYWdlGAQgASgJEjUKEWxhc3Rfc3VjY2Vzc190aW1lGAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIzCg9sYXN0X2Vycm9yX3RpbWUYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmxhc3RfZXJyb3IYByABKAkSNQoRbGFzdF9hdHRlbXB0X3RpbWUYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhYKDmxhc3Rfc2lnbmF0dXJlGAkgASgJIqsCCgxQdWJsaWNTdGF0dXMSKwoGc2VydmVyGAEgASgLMhsucmVhbHRpbWUubWUudjEuRGV2aWNlU3RhdGUSLAoHZGV2aWNlcxgDIAMoCzIbLnJlYWx0aW1lLm1lLnYxLkRldmljZVN0YXRlEiUKBmFnZW50cxgEIAMoCzIVLnJlYWx0aW1lLm1lLnYxLkFnZW50EiwKBmdpdGh1YhgFIAEoCzIcLnJlYWx0aW1lLm1lLnYxLkdpdGh1YlN0YXR1cxIvCgt1cGRhdGVfdGltZRgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLAoHbW9iaWxlcxgHIAMoCzIbLnJlYWx0aW1lLm1lLnYxLk1vYmlsZVN0YXRlSgQIAhADUgZtb2JpbGUisQIKDkludGVybmFsU3RhdHVzEisKBnNlcnZlchgBIAEoCzIbLnJlYWx0aW1lLm1lLnYxLkRldmljZVN0YXRlEiwKB2RldmljZXMYAyADKAsyGy5yZWFsdGltZS5tZS52MS5EZXZpY2VTdGF0ZRIlCgZhZ2VudHMYBCADKAsyFS5yZWFsdGltZS5tZS52MS5BZ2VudBIwCgZnaXRodWIYBSABKAsyIC5yZWFsdGltZS5tZS52MS5HaXRodWJTeW5jRGV0YWlsEi8KC3VwZGF0ZV90aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIsCgdtb2JpbGVzGAcgAygLMhsucmVhbHRpbWUubWUudjEuTW9iaWxlU3RhdGVKBAgCEANSBm1vYmlsZSqqAQoPR2l0aHViU3luY1N0YXRlEiEKHUdJVEhVQl9TWU5DX1NUQVRFX1VOU1BFQ0lGSUVEEAASHgoaR0lUSFVCX1NZTkNfU1RBVEVfRElTQUJMRUQQARIdChlHSVRIVUJfU1lOQ19TVEFURV9QRU5ESU5HEAISGAoUR0lUSFVCX1NZTkNfU1RBVEVfT0sQAxIbChdHSVRIVUJfU1lOQ19TVEFURV9FUlJPUhAEMt0BCg1TdGF0dXNTZXJ2aWNlEmIKD0dldFB1YmxpY1N0YXR1cxImLnJlYWx0aW1lLm1lLnYxLkdldFB1YmxpY1N0YXR1c1JlcXVlc3QaJy5yZWFsdGltZS5tZS52MS5HZXRQdWJsaWNTdGF0dXNSZXNwb25zZRJoChFHZXRJbnRlcm5hbFN0YXR1cxIoLnJlYWx0aW1lLm1lLnYxLkdldEludGVybmFsU3RhdHVzUmVxdWVzdBopLnJlYWx0aW1lLm1lLnYxLkdldEludGVybmFsU3RhdHVzUmVzcG9uc2VCwgEKEmNvbS5yZWFsdGltZS5tZS52MUILU3RhdHVzUHJvdG9QAVpFcmVhbHRpbWUtbWUvYXBwcy9zdGF0dXMtZ2F0ZXdheS9pbnRlcm5hbC9nZW5wcm90by9yZWFsdGltZS9tZS92MTttZXYxogIDUk1YqgIOUmVhbHRpbWUuTWUuVjHKAg5SZWFsdGltZVxNZVxWMeICGlJlYWx0aW1lXE1lXFYxXEdQQk1ldGFkYXRh6gIQUmVhbHRpbWU6Ok1lOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp, file_realtime_me_v1_status_types, file_realtime_me_v1_watch]);
 
 /**
  * GetPublicStatusRequest is the request for the public status document.
@@ -858,13 +858,6 @@ export type PublicStatus = Message<"realtime.me.v1.PublicStatus"> & {
   server?: DeviceState | undefined;
 
   /**
-   * mobile is the phone-and-watch pair's status.
-   *
-   * @generated from field: realtime.me.v1.MobileState mobile = 2;
-   */
-  mobile?: MobileState | undefined;
-
-  /**
    * devices are the non-server devices' statuses.
    *
    * @generated from field: repeated realtime.me.v1.DeviceState devices = 3;
@@ -891,6 +884,13 @@ export type PublicStatus = Message<"realtime.me.v1.PublicStatus"> & {
    * @generated from field: google.protobuf.Timestamp update_time = 6;
    */
   updateTime?: Timestamp | undefined;
+
+  /**
+   * mobiles are the independently reporting phone-and-watch pairs.
+   *
+   * @generated from field: repeated realtime.me.v1.MobileState mobiles = 7;
+   */
+  mobiles: MobileState[];
 };
 
 /**
@@ -905,13 +905,6 @@ export type PublicStatusJson = {
    * @generated from field: realtime.me.v1.DeviceState server = 1;
    */
   server?: DeviceStateJson;
-
-  /**
-   * mobile is the phone-and-watch pair's status.
-   *
-   * @generated from field: realtime.me.v1.MobileState mobile = 2;
-   */
-  mobile?: MobileStateJson;
 
   /**
    * devices are the non-server devices' statuses.
@@ -940,6 +933,13 @@ export type PublicStatusJson = {
    * @generated from field: google.protobuf.Timestamp update_time = 6;
    */
   updateTime?: TimestampJson;
+
+  /**
+   * mobiles are the independently reporting phone-and-watch pairs.
+   *
+   * @generated from field: repeated realtime.me.v1.MobileState mobiles = 7;
+   */
+  mobiles?: MobileStateJson[];
 };
 
 /**
@@ -961,13 +961,6 @@ export type InternalStatus = Message<"realtime.me.v1.InternalStatus"> & {
    * @generated from field: realtime.me.v1.DeviceState server = 1;
    */
   server?: DeviceState | undefined;
-
-  /**
-   * mobile is the phone-and-watch pair's status.
-   *
-   * @generated from field: realtime.me.v1.MobileState mobile = 2;
-   */
-  mobile?: MobileState | undefined;
 
   /**
    * devices are the non-server devices' statuses.
@@ -996,6 +989,13 @@ export type InternalStatus = Message<"realtime.me.v1.InternalStatus"> & {
    * @generated from field: google.protobuf.Timestamp update_time = 6;
    */
   updateTime?: Timestamp | undefined;
+
+  /**
+   * mobiles are the independently reporting phone-and-watch pairs.
+   *
+   * @generated from field: repeated realtime.me.v1.MobileState mobiles = 7;
+   */
+  mobiles: MobileState[];
 };
 
 /**
@@ -1010,13 +1010,6 @@ export type InternalStatusJson = {
    * @generated from field: realtime.me.v1.DeviceState server = 1;
    */
   server?: DeviceStateJson;
-
-  /**
-   * mobile is the phone-and-watch pair's status.
-   *
-   * @generated from field: realtime.me.v1.MobileState mobile = 2;
-   */
-  mobile?: MobileStateJson;
 
   /**
    * devices are the non-server devices' statuses.
@@ -1045,6 +1038,13 @@ export type InternalStatusJson = {
    * @generated from field: google.protobuf.Timestamp update_time = 6;
    */
   updateTime?: TimestampJson;
+
+  /**
+   * mobiles are the independently reporting phone-and-watch pairs.
+   *
+   * @generated from field: repeated realtime.me.v1.MobileState mobiles = 7;
+   */
+  mobiles?: MobileStateJson[];
 };
 
 /**

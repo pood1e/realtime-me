@@ -1,4 +1,4 @@
-import type { Agent, DeviceState, InternalStatus, Subagent } from '@/gen/realtime/me/v1/status_pb';
+import type { Agent, DeviceState, InternalStatus, MobileState, Subagent } from '@/gen/realtime/me/v1/status_pb';
 import { DeviceKind, DeviceRole, NetworkState, OnlineState } from '@/gen/realtime/me/v1/status_types_pb';
 
 export function isVirtualMachine(device: DeviceState): boolean {
@@ -11,24 +11,29 @@ export function hostDevices(status: InternalStatus): DeviceState[] {
 }
 
 // deviceCounts reports how many devices are online against the total, counting the
-// phone and watch as always-online personal devices when present.
+// phones and watches as always-online personal devices when present.
 export function deviceCounts(status: InternalStatus): { online: number; total: number } {
   const hosts = hostDevices(status);
   let total = hosts.length;
   let online = hosts.filter((device) => device.state === OnlineState.ONLINE).length;
-  if (status.mobile) {
+
+  for (const mobile of status.mobiles) {
     total += 1;
     online += 1;
-  }
-  if (status.mobile?.watch) {
-    total += 1;
-    online += 1;
-  }
-  if (status.mobile?.switchPresence) {
-    total += 1;
-    if (status.mobile.switchPresence.state === OnlineState.ONLINE) online += 1;
+    if (mobile.watch) {
+      total += 1;
+      online += 1;
+    }
+    if (mobile.switchPresence) {
+      total += 1;
+      if (mobile.switchPresence.state === OnlineState.ONLINE) online += 1;
+    }
   }
   return { online, total };
+}
+
+export function isPlayingOnSwitch(mobile: MobileState): boolean {
+  return mobile.switchPresence?.state === OnlineState.ONLINE && Boolean(mobile.switchPresence.gameName);
 }
 
 export function deviceDisplayName(device: DeviceState | null | undefined, fallback: string): string {

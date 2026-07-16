@@ -93,12 +93,12 @@ func (exporter *MetricsExporter) Handler() http.Handler {
 	return exporter.handler
 }
 
-// observe exports only what the gateway itself owns: the phone's pushed status
+// observe exports only what the gateway itself owns: the phones' pushed status
 // and the GitHub sync state. Host, VM, and agent series come from their own
 // exporters, which Prometheus scrapes directly.
 func (exporter *MetricsExporter) observe(_ context.Context, observer otelmetric.Observer) error {
 	snapshot := exporter.store.Snapshot()
-	if mobile := freshMobile(snapshot.Mobile, time.Now().UTC()); mobile != nil {
+	for _, mobile := range freshMobiles(snapshot.Mobiles, time.Now().UTC()) {
 		exporter.observeMobile(observer, mobile)
 	}
 	exporter.observeGitHub(observer, snapshot.GitHub)

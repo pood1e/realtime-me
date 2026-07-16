@@ -6,7 +6,7 @@ import { OnlineState } from '@/gen/realtime/me/v1/status_types_pb';
 import { SwitchArtwork } from '@/components/SwitchArtwork';
 
 export function Presence({ status }: { status?: PublicStatus | null }) {
-  const watch = status?.mobile?.watch;
+  const watch = status?.mobiles.find((mobile) => mobile.watch)?.watch;
   const heartRate = watch?.heartRate?.beatsPerMinute;
   const steps = watch?.activityTotals?.steps;
   const game = switchGame(status);
@@ -55,9 +55,11 @@ function PlayingIndicator({ icon, text, title }: { icon: ReactNode; text: string
 }
 
 function switchGame(status?: PublicStatus | null): SwitchPresence | null {
-  const presence = status?.mobile?.switchPresence;
-  if (presence?.state !== OnlineState.ONLINE) return null;
-  return presence.gameName ? presence : null;
+  for (const mobile of status?.mobiles ?? []) {
+    const presence = mobile.switchPresence;
+    if (presence?.state === OnlineState.ONLINE && presence.gameName) return presence;
+  }
+  return null;
 }
 
 function nowPlaying(status?: PublicStatus | null): MediaStatus | null {
