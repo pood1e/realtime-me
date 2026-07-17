@@ -11,6 +11,8 @@ app/.flutter-plugins-dependencies
 app/build/
 app/android/.gradle/
 app/android/local.properties
+packages/ag_ui/.dart_tool/
+packages/ag_ui/pubspec.lock
 coverage/
 *.log
 *.pem
