@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "smctl": "dist/cli.js"
+  },
   "engines": {
     "node": ">=24.18.0 <25"
   },
@@ -10,6 +13,7 @@
     "build": "tsc -p tsconfig.build.json",
     "check": "biome check src tools && tsc --noEmit",
     "dev": "tsx watch src/main.ts",
+    "generate:codex": "tsx tools/generate-codex-protocol.ts",
     "probe:claude": "tsx tools/claude-stdio-probe.ts",
     "probe:codex": "tsx tools/codex-app-server-probe.ts",
     "start": "node dist/main.js"

@@ -1,7 +1,13 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.4/schema.json",
   "files": {
-    "includes": ["**", "!server/src/gen/**", "!server/src/adapters/codex/gen/**", "!app/lib/gen/**"]
+    "includes": [
+      "**",
+      "!server/src/gen/**",
+      "!server/src/adapters/codex/gen/**",
+      "!server/src/adapters/codex/schema/**",
+      "!app/lib/gen/**"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -12,7 +18,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "preset": "recommended"
     }
   },
   "javascript": {
