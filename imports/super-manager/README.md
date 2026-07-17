@@ -1,0 +1,65 @@
+# Super Manager
+
+单用户、自托管的 Codex 与 Claude Code 远程控制器。Linux 工作机运行服务和已登录的 CLI，Flutter Android 客户端通过住宅公网 DDNS 直连；不调用模型 API，不经过 VPS/公共 relay。
+
+## 数据面
+
+- **Agent UI**：AG-UI over SSE，支持持久重放、工具/活动、结构化 Ask、cancel 和 Codex steer。
+- **控制面**：Protobuf + ConnectRPC 管理 workspace、thread、runtime、terminal 与设备。
+- **终端**：二进制 Protobuf WebSocket + node-pty + tmux，不解析 ANSI 来推断 Agent 语义。
+
+公网入口由同机 Caddy 提供：443 使用设备 mTLS 与 bearer，8443 仅在配对时开放。DDNS 不能解决 CGNAT，网络门禁见 [`deploy/README.md`](deploy/README.md)。
+
+## 仓库
+
+```text
+proto/          控制面与终端唯一契约
+server/         TypeScript Linux 服务、CLI adapter、SQLite、SSE/WS
+app/            Flutter Android 客户端
+packages/ag_ui/ 固定的 AG-UI Dart 最小协议 fork
+deploy/         Caddy、systemd、ddns-go 与部署说明
+docs/research/  公开实现与复用决策
+```
+
+## 固定基线
+
+- Node.js 24.18.0、pnpm 11.10.0
+- Codex CLI 0.144.5
+- Claude Code CLI 2.1.195
+- Flutter 3.44.6 / Dart 3.12.2
+- Linux 服务端；Android 是当前 MVP 客户端目标
+
+Claude 的结构化 Ask 依赖固定 CLI 版本的私有 stdio control wire。版本或订阅认证不符合预期时服务端会关闭该 runtime，而不是尝试不受支持的兼容路径。
+
+## 开发检查
+
+```bash
+corepack enable
+pnpm install --frozen-lockfile
+pnpm generate
+pnpm check
+pnpm build
+
+cd app
+flutter pub get
+flutter analyze
+flutter build apk --debug
+```
+
+`pnpm generate` 是 Protobuf 生成的唯一入口；不要手改 `server/src/gen` 或 `app/lib/gen`。
+升级固定 Codex CLI 时，使用
+`pnpm --filter @super-manager/server generate:codex` 从该精确版本重新生成并规范化 app-server 契约；不要手改 adapter 的 `gen`/`schema` 目录。
+
+## 本地服务
+
+开发环境仍需要 OpenSSL；没有安装/登录 provider CLI 时服务可以启动，但相应 runtime 会显示不可用。
+
+```bash
+export SM_ALLOWED_WORKSPACE_ROOTS="$HOME/workspace"
+export SM_PUBLIC_URL="https://manager.example.com"
+export SM_CODEX_PATH=/absolute/path/to/codex
+export SM_CLAUDE_PATH=/absolute/path/to/claude
+pnpm --filter @super-manager/server dev
+```
+
+生产部署、PKI、Caddy、路由器和 DDNS 步骤见 [`deploy/README.md`](deploy/README.md)，完整约束见 [`PLAN.md`](PLAN.md)。

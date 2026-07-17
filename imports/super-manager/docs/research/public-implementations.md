@@ -1,6 +1,6 @@
 # 公开实现扫描与复用决策
 
-> 快照日期：2026-07-17。该领域和 CLI 私有协议变化很快，进入实现前必须在目标 Linux 上重新验证固定版本。
+> 快照日期：2026-07-18。该领域和 CLI 私有协议变化很快，发布前必须在目标 Linux 上重新验证固定版本。
 
 ## 1. 结论
 
@@ -87,19 +87,19 @@ Codex 官方 [`app-server`](https://github.com/openai/codex/blob/main/codex-rs/a
 
 - Claude 固定版本的公开 headless/私有 stdio control 单选 adapter；
 - Codex/Claude 原生事件到 AG-UI 的严格映射；
-- AG-UI Interrupt 与 provider continuation 的持久恢复；
+- AG-UI Interrupt 的持久记录与 provider callback 的进程内 continuation；
 - 单用户控制面、事件存储、sequence replay 和 capability 投影；
 - Flutter 的聚焦 Agent timeline 与独立 terminal 页面。
 
-## 5. 开工前 kill switch
+## 5. 目标 Linux 发布 kill switch
 
-在写 Flutter 业务代码前，在目标 Linux 上完成一次 HAPI 黑盒基准：
+当前薄型核心和 Flutter MVP 已实现，但 Claude 私有协议仍必须先在目标 Linux 完成 HAPI 黑盒对照：
 
 1. 使用既有 Claude subscription OAuth 和 Codex 登录启动真实 session。
 2. 验证 bypass、`AskUserQuestion`、cancel/resume、后台运行、terminal 和断线恢复。
 3. 记录它满足/不满足每个硬约束的结果。
-4. 若最终可以接受 Web/PWA、AGPL 和 HAPI 自定义协议，则直接采用 HAPI并终止本项目的自研实现。
-5. 若 Flutter、AG-UI 和许可边界仍不可变，则只保留录制的行为 fixtures/验收结论，进入薄型自建。
+4. 若最终可以接受 Web/PWA、AGPL 和 HAPI 自定义协议，则仍可直接采用 HAPI 并停止本项目发布。
+5. 若 Flutter、AG-UI 和许可边界不变，则只保留行为 fixtures/验收结论；固定版本动态验收失败的 runtime 必须关闭，不能带风险发布。
 
 ## 6. 许可治理
 
