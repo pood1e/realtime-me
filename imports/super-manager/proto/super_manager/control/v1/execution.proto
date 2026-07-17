@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+package super_manager.control.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// ExecutionState describes the native provider process lifecycle.
+enum ExecutionState {
+  // The execution state was not specified.
+  EXECUTION_STATE_UNSPECIFIED = 0;
+  // The provider execution is running.
+  EXECUTION_STATE_RUNNING = 1;
+  // The provider execution is waiting for structured input.
+  EXECUTION_STATE_INPUT_REQUIRED = 2;
+  // The provider execution completed successfully.
+  EXECUTION_STATE_SUCCEEDED = 3;
+  // The provider execution failed.
+  EXECUTION_STATE_FAILED = 4;
+  // The user canceled the provider execution.
+  EXECUTION_STATE_CANCELED = 5;
+  // The provider process disappeared and cannot be resumed in memory.
+  EXECUTION_STATE_LOST = 6;
+}
+
+// Execution is one native provider invocation owned by a thread.
+message Execution {
+  // uid is the server-assigned UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+  // thread_uid identifies the owning thread.
+  string thread_uid = 2 [(buf.validate.field).string.uuid = true];
+  // run_id is the caller-supplied AG-UI idempotency key.
+  string run_id = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+  // state is the current native provider execution state.
+  ExecutionState state = 4 [(buf.validate.field).enum.defined_only = true];
+  // start_time is the provider execution start time.
+  google.protobuf.Timestamp start_time = 5;
+  // end_time is the terminal time when the execution has finished.
+  google.protobuf.Timestamp end_time = 6;
+}
+
+// GetExecutionRequest requests one execution.
+message GetExecutionRequest {
+  // uid is the execution UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+}
+
+// GetExecutionResponse returns one execution.
+message GetExecutionResponse {
+  // execution is the requested execution.
+  Execution execution = 1 [(buf.validate.field).required = true];
+}
+
+// ListExecutionsRequest requests recent executions in one thread.
+message ListExecutionsRequest {
+  // thread_uid scopes the list to one thread.
+  string thread_uid = 1 [(buf.validate.field).string.uuid = true];
+  // page_size is the maximum number of executions to return.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 100
+  }];
+  // page_token is an opaque continuation token returned by the server.
+  string page_token = 3 [(buf.validate.field).string.max_len = 256];
+}
+
+// ListExecutionsResponse returns recent executions in one thread.
+message ListExecutionsResponse {
+  // executions contains the current page.
+  repeated Execution executions = 1;
+  // next_page_token requests the next page and is empty on the last page.
+  string next_page_token = 2;
+}
+
+// CancelExecutionRequest cancels one active provider execution.
+message CancelExecutionRequest {
+  // uid is the execution UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+}
+
+// CancelExecutionResponse returns the projected canceled execution.
+message CancelExecutionResponse {
+  // execution is the execution after the cancel request was accepted.
+  Execution execution = 1 [(buf.validate.field).required = true];
+}
+
+// SteerExecutionRequest submits an instruction to a steer-capable active execution.
+message SteerExecutionRequest {
+  // uid is the execution UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+  // instruction is the bounded steering text.
+  string instruction = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_bytes: 131072
+  }];
+}
+
+// SteerExecutionResponse confirms that the instruction was accepted.
+message SteerExecutionResponse {
+  // execution is the still-active execution.
+  Execution execution = 1 [(buf.validate.field).required = true];
+}
+
+// ExecutionService observes and controls native provider executions.
+service ExecutionService {
+  // GetExecution returns one provider execution.
+  rpc GetExecution(GetExecutionRequest) returns (GetExecutionResponse);
+  // ListExecutions returns recent executions in one thread.
+  rpc ListExecutions(ListExecutionsRequest) returns (ListExecutionsResponse);
+  // CancelExecution cancels one active execution.
+  rpc CancelExecution(CancelExecutionRequest) returns (CancelExecutionResponse);
+  // SteerExecution submits an instruction when the runtime declares support.
+  rpc SteerExecution(SteerExecutionRequest) returns (SteerExecutionResponse);
+}
