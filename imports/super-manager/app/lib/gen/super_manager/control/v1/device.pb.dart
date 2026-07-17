@@ -8,15 +8,14 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: non_constant_identifier_names
 
 import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
-import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart'
-    as $0;
 
+import '../../../google/protobuf/timestamp.pb.dart' as $0;
 import 'device.pbenum.dart';
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
@@ -59,7 +58,9 @@ class Device extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'uid')
     ..aOS(2, _omitFieldNames ? '' : 'displayName')
-    ..aE<DeviceStatus>(3, _omitFieldNames ? '' : 'status',
+    ..e<DeviceStatus>(3, _omitFieldNames ? '' : 'status', $pb.PbFieldType.OE,
+        defaultOrMaker: DeviceStatus.DEVICE_STATUS_UNSPECIFIED,
+        valueOf: DeviceStatus.valueOf,
         enumValues: DeviceStatus.values)
     ..aOS(4, _omitFieldNames ? '' : 'certificateSerial')
     ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'createTime',
@@ -69,7 +70,7 @@ class Device extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  Device clone() => deepCopy();
+  Device clone() => Device()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   Device copyWith(void Function(Device) updates) =>
       super.copyWith((message) => updates(message as Device)) as Device;
@@ -81,6 +82,7 @@ class Device extends $pb.GeneratedMessage {
   static Device create() => Device._();
   @$core.override
   Device createEmptyInstance() => create();
+  static $pb.PbList<Device> createRepeated() => $pb.PbList<Device>();
   @$core.pragma('dart2js:noInline')
   static Device getDefault() =>
       _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Device>(create);
@@ -183,7 +185,7 @@ class PairDeviceRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PairDeviceRequest clone() => deepCopy();
+  PairDeviceRequest clone() => PairDeviceRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   PairDeviceRequest copyWith(void Function(PairDeviceRequest) updates) =>
       super.copyWith((message) => updates(message as PairDeviceRequest))
@@ -196,6 +198,8 @@ class PairDeviceRequest extends $pb.GeneratedMessage {
   static PairDeviceRequest create() => PairDeviceRequest._();
   @$core.override
   PairDeviceRequest createEmptyInstance() => create();
+  static $pb.PbList<PairDeviceRequest> createRepeated() =>
+      $pb.PbList<PairDeviceRequest>();
   @$core.pragma('dart2js:noInline')
   static PairDeviceRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<PairDeviceRequest>(create);
@@ -264,7 +268,7 @@ class PairDeviceResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PairDeviceResponse clone() => deepCopy();
+  PairDeviceResponse clone() => PairDeviceResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   PairDeviceResponse copyWith(void Function(PairDeviceResponse) updates) =>
       super.copyWith((message) => updates(message as PairDeviceResponse))
@@ -277,6 +281,8 @@ class PairDeviceResponse extends $pb.GeneratedMessage {
   static PairDeviceResponse create() => PairDeviceResponse._();
   @$core.override
   PairDeviceResponse createEmptyInstance() => create();
+  static $pb.PbList<PairDeviceResponse> createRepeated() =>
+      $pb.PbList<PairDeviceResponse>();
   @$core.pragma('dart2js:noInline')
   static PairDeviceResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<PairDeviceResponse>(create);
@@ -324,7 +330,7 @@ class PairDeviceResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   void clearDeviceToken() => $_clearField(4);
 
-  /// ca_certificate_pem is the private CA certificate used to validate the relay IP endpoint.
+  /// ca_certificate_pem is the private CA certificate used to validate the public service endpoint.
   @$pb.TagNumber(5)
   $core.List<$core.int> get caCertificatePem => $_getN(4);
   @$pb.TagNumber(5)
@@ -356,7 +362,7 @@ class ListDevicesRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ListDevicesRequest clone() => deepCopy();
+  ListDevicesRequest clone() => ListDevicesRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ListDevicesRequest copyWith(void Function(ListDevicesRequest) updates) =>
       super.copyWith((message) => updates(message as ListDevicesRequest))
@@ -369,6 +375,8 @@ class ListDevicesRequest extends $pb.GeneratedMessage {
   static ListDevicesRequest create() => ListDevicesRequest._();
   @$core.override
   ListDevicesRequest createEmptyInstance() => create();
+  static $pb.PbList<ListDevicesRequest> createRepeated() =>
+      $pb.PbList<ListDevicesRequest>();
   @$core.pragma('dart2js:noInline')
   static ListDevicesRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ListDevicesRequest>(create);
@@ -399,12 +407,12 @@ class ListDevicesResponse extends $pb.GeneratedMessage {
       package: const $pb.PackageName(
           _omitMessageNames ? '' : 'super_manager.control.v1'),
       createEmptyInstance: create)
-    ..pPM<Device>(1, _omitFieldNames ? '' : 'devices',
+    ..pc<Device>(1, _omitFieldNames ? '' : 'devices', $pb.PbFieldType.PM,
         subBuilder: Device.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ListDevicesResponse clone() => deepCopy();
+  ListDevicesResponse clone() => ListDevicesResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ListDevicesResponse copyWith(void Function(ListDevicesResponse) updates) =>
       super.copyWith((message) => updates(message as ListDevicesResponse))
@@ -417,6 +425,8 @@ class ListDevicesResponse extends $pb.GeneratedMessage {
   static ListDevicesResponse create() => ListDevicesResponse._();
   @$core.override
   ListDevicesResponse createEmptyInstance() => create();
+  static $pb.PbList<ListDevicesResponse> createRepeated() =>
+      $pb.PbList<ListDevicesResponse>();
   @$core.pragma('dart2js:noInline')
   static ListDevicesResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ListDevicesResponse>(create);
@@ -455,7 +465,7 @@ class DeleteDeviceRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  DeleteDeviceRequest clone() => deepCopy();
+  DeleteDeviceRequest clone() => DeleteDeviceRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   DeleteDeviceRequest copyWith(void Function(DeleteDeviceRequest) updates) =>
       super.copyWith((message) => updates(message as DeleteDeviceRequest))
@@ -468,6 +478,8 @@ class DeleteDeviceRequest extends $pb.GeneratedMessage {
   static DeleteDeviceRequest create() => DeleteDeviceRequest._();
   @$core.override
   DeleteDeviceRequest createEmptyInstance() => create();
+  static $pb.PbList<DeleteDeviceRequest> createRepeated() =>
+      $pb.PbList<DeleteDeviceRequest>();
   @$core.pragma('dart2js:noInline')
   static DeleteDeviceRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<DeleteDeviceRequest>(create);
@@ -505,7 +517,8 @@ class DeleteDeviceResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  DeleteDeviceResponse clone() => deepCopy();
+  DeleteDeviceResponse clone() =>
+      DeleteDeviceResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   DeleteDeviceResponse copyWith(void Function(DeleteDeviceResponse) updates) =>
       super.copyWith((message) => updates(message as DeleteDeviceResponse))
@@ -518,6 +531,8 @@ class DeleteDeviceResponse extends $pb.GeneratedMessage {
   static DeleteDeviceResponse create() => DeleteDeviceResponse._();
   @$core.override
   DeleteDeviceResponse createEmptyInstance() => create();
+  static $pb.PbList<DeleteDeviceResponse> createRepeated() =>
+      $pb.PbList<DeleteDeviceResponse>();
   @$core.pragma('dart2js:noInline')
   static DeleteDeviceResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<DeleteDeviceResponse>(create);

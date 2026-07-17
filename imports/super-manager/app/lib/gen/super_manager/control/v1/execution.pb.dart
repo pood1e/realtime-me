@@ -8,15 +8,14 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: non_constant_identifier_names
 
 import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
-import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart'
-    as $0;
 
+import '../../../google/protobuf/timestamp.pb.dart' as $0;
 import 'execution.pbenum.dart';
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
@@ -60,7 +59,9 @@ class Execution extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'uid')
     ..aOS(2, _omitFieldNames ? '' : 'threadUid')
     ..aOS(3, _omitFieldNames ? '' : 'runId')
-    ..aE<ExecutionState>(4, _omitFieldNames ? '' : 'state',
+    ..e<ExecutionState>(4, _omitFieldNames ? '' : 'state', $pb.PbFieldType.OE,
+        defaultOrMaker: ExecutionState.EXECUTION_STATE_UNSPECIFIED,
+        valueOf: ExecutionState.valueOf,
         enumValues: ExecutionState.values)
     ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'startTime',
         subBuilder: $0.Timestamp.create)
@@ -69,7 +70,7 @@ class Execution extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  Execution clone() => deepCopy();
+  Execution clone() => Execution()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   Execution copyWith(void Function(Execution) updates) =>
       super.copyWith((message) => updates(message as Execution)) as Execution;
@@ -81,6 +82,7 @@ class Execution extends $pb.GeneratedMessage {
   static Execution create() => Execution._();
   @$core.override
   Execution createEmptyInstance() => create();
+  static $pb.PbList<Execution> createRepeated() => $pb.PbList<Execution>();
   @$core.pragma('dart2js:noInline')
   static Execution getDefault() =>
       _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Execution>(create);
@@ -179,7 +181,7 @@ class GetExecutionRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetExecutionRequest clone() => deepCopy();
+  GetExecutionRequest clone() => GetExecutionRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetExecutionRequest copyWith(void Function(GetExecutionRequest) updates) =>
       super.copyWith((message) => updates(message as GetExecutionRequest))
@@ -192,6 +194,8 @@ class GetExecutionRequest extends $pb.GeneratedMessage {
   static GetExecutionRequest create() => GetExecutionRequest._();
   @$core.override
   GetExecutionRequest createEmptyInstance() => create();
+  static $pb.PbList<GetExecutionRequest> createRepeated() =>
+      $pb.PbList<GetExecutionRequest>();
   @$core.pragma('dart2js:noInline')
   static GetExecutionRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetExecutionRequest>(create);
@@ -237,7 +241,8 @@ class GetExecutionResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetExecutionResponse clone() => deepCopy();
+  GetExecutionResponse clone() =>
+      GetExecutionResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetExecutionResponse copyWith(void Function(GetExecutionResponse) updates) =>
       super.copyWith((message) => updates(message as GetExecutionResponse))
@@ -250,6 +255,8 @@ class GetExecutionResponse extends $pb.GeneratedMessage {
   static GetExecutionResponse create() => GetExecutionResponse._();
   @$core.override
   GetExecutionResponse createEmptyInstance() => create();
+  static $pb.PbList<GetExecutionResponse> createRepeated() =>
+      $pb.PbList<GetExecutionResponse>();
   @$core.pragma('dart2js:noInline')
   static GetExecutionResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetExecutionResponse>(create);
@@ -297,12 +304,13 @@ class ListExecutionsRequest extends $pb.GeneratedMessage {
           _omitMessageNames ? '' : 'super_manager.control.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'threadUid')
-    ..aI(2, _omitFieldNames ? '' : 'pageSize')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'pageSize', $pb.PbFieldType.O3)
     ..aOS(3, _omitFieldNames ? '' : 'pageToken')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ListExecutionsRequest clone() => deepCopy();
+  ListExecutionsRequest clone() =>
+      ListExecutionsRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ListExecutionsRequest copyWith(
           void Function(ListExecutionsRequest) updates) =>
@@ -316,6 +324,8 @@ class ListExecutionsRequest extends $pb.GeneratedMessage {
   static ListExecutionsRequest create() => ListExecutionsRequest._();
   @$core.override
   ListExecutionsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListExecutionsRequest> createRepeated() =>
+      $pb.PbList<ListExecutionsRequest>();
   @$core.pragma('dart2js:noInline')
   static ListExecutionsRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ListExecutionsRequest>(create);
@@ -378,13 +388,14 @@ class ListExecutionsResponse extends $pb.GeneratedMessage {
       package: const $pb.PackageName(
           _omitMessageNames ? '' : 'super_manager.control.v1'),
       createEmptyInstance: create)
-    ..pPM<Execution>(1, _omitFieldNames ? '' : 'executions',
+    ..pc<Execution>(1, _omitFieldNames ? '' : 'executions', $pb.PbFieldType.PM,
         subBuilder: Execution.create)
     ..aOS(2, _omitFieldNames ? '' : 'nextPageToken')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ListExecutionsResponse clone() => deepCopy();
+  ListExecutionsResponse clone() =>
+      ListExecutionsResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ListExecutionsResponse copyWith(
           void Function(ListExecutionsResponse) updates) =>
@@ -398,6 +409,8 @@ class ListExecutionsResponse extends $pb.GeneratedMessage {
   static ListExecutionsResponse create() => ListExecutionsResponse._();
   @$core.override
   ListExecutionsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListExecutionsResponse> createRepeated() =>
+      $pb.PbList<ListExecutionsResponse>();
   @$core.pragma('dart2js:noInline')
   static ListExecutionsResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ListExecutionsResponse>(create);
@@ -446,7 +459,8 @@ class CancelExecutionRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CancelExecutionRequest clone() => deepCopy();
+  CancelExecutionRequest clone() =>
+      CancelExecutionRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CancelExecutionRequest copyWith(
           void Function(CancelExecutionRequest) updates) =>
@@ -460,6 +474,8 @@ class CancelExecutionRequest extends $pb.GeneratedMessage {
   static CancelExecutionRequest create() => CancelExecutionRequest._();
   @$core.override
   CancelExecutionRequest createEmptyInstance() => create();
+  static $pb.PbList<CancelExecutionRequest> createRepeated() =>
+      $pb.PbList<CancelExecutionRequest>();
   @$core.pragma('dart2js:noInline')
   static CancelExecutionRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CancelExecutionRequest>(create);
@@ -505,7 +521,8 @@ class CancelExecutionResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CancelExecutionResponse clone() => deepCopy();
+  CancelExecutionResponse clone() =>
+      CancelExecutionResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CancelExecutionResponse copyWith(
           void Function(CancelExecutionResponse) updates) =>
@@ -519,6 +536,8 @@ class CancelExecutionResponse extends $pb.GeneratedMessage {
   static CancelExecutionResponse create() => CancelExecutionResponse._();
   @$core.override
   CancelExecutionResponse createEmptyInstance() => create();
+  static $pb.PbList<CancelExecutionResponse> createRepeated() =>
+      $pb.PbList<CancelExecutionResponse>();
   @$core.pragma('dart2js:noInline')
   static CancelExecutionResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CancelExecutionResponse>(create);
@@ -568,7 +587,8 @@ class SteerExecutionRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SteerExecutionRequest clone() => deepCopy();
+  SteerExecutionRequest clone() =>
+      SteerExecutionRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SteerExecutionRequest copyWith(
           void Function(SteerExecutionRequest) updates) =>
@@ -582,6 +602,8 @@ class SteerExecutionRequest extends $pb.GeneratedMessage {
   static SteerExecutionRequest create() => SteerExecutionRequest._();
   @$core.override
   SteerExecutionRequest createEmptyInstance() => create();
+  static $pb.PbList<SteerExecutionRequest> createRepeated() =>
+      $pb.PbList<SteerExecutionRequest>();
   @$core.pragma('dart2js:noInline')
   static SteerExecutionRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SteerExecutionRequest>(create);
@@ -637,7 +659,8 @@ class SteerExecutionResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SteerExecutionResponse clone() => deepCopy();
+  SteerExecutionResponse clone() =>
+      SteerExecutionResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SteerExecutionResponse copyWith(
           void Function(SteerExecutionResponse) updates) =>
@@ -651,6 +674,8 @@ class SteerExecutionResponse extends $pb.GeneratedMessage {
   static SteerExecutionResponse create() => SteerExecutionResponse._();
   @$core.override
   SteerExecutionResponse createEmptyInstance() => create();
+  static $pb.PbList<SteerExecutionResponse> createRepeated() =>
+      $pb.PbList<SteerExecutionResponse>();
   @$core.pragma('dart2js:noInline')
   static SteerExecutionResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SteerExecutionResponse>(create);

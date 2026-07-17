@@ -8,15 +8,14 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: non_constant_identifier_names
 
 import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
-import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart'
-    as $0;
 
+import '../../../google/protobuf/timestamp.pb.dart' as $0;
 import 'thread.pbenum.dart';
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
@@ -63,7 +62,9 @@ class Thread extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'workspaceUid')
     ..aOS(3, _omitFieldNames ? '' : 'runtimeUid')
     ..aOS(4, _omitFieldNames ? '' : 'displayName')
-    ..aE<ThreadState>(5, _omitFieldNames ? '' : 'state',
+    ..e<ThreadState>(5, _omitFieldNames ? '' : 'state', $pb.PbFieldType.OE,
+        defaultOrMaker: ThreadState.THREAD_STATE_UNSPECIFIED,
+        valueOf: ThreadState.valueOf,
         enumValues: ThreadState.values)
     ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'createTime',
         subBuilder: $0.Timestamp.create)
@@ -72,7 +73,7 @@ class Thread extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  Thread clone() => deepCopy();
+  Thread clone() => Thread()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   Thread copyWith(void Function(Thread) updates) =>
       super.copyWith((message) => updates(message as Thread)) as Thread;
@@ -84,6 +85,7 @@ class Thread extends $pb.GeneratedMessage {
   static Thread create() => Thread._();
   @$core.override
   Thread createEmptyInstance() => create();
+  static $pb.PbList<Thread> createRepeated() => $pb.PbList<Thread>();
   @$core.pragma('dart2js:noInline')
   static Thread getDefault() =>
       _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Thread>(create);
@@ -198,7 +200,7 @@ class CreateThreadRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CreateThreadRequest clone() => deepCopy();
+  CreateThreadRequest clone() => CreateThreadRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CreateThreadRequest copyWith(void Function(CreateThreadRequest) updates) =>
       super.copyWith((message) => updates(message as CreateThreadRequest))
@@ -211,6 +213,8 @@ class CreateThreadRequest extends $pb.GeneratedMessage {
   static CreateThreadRequest create() => CreateThreadRequest._();
   @$core.override
   CreateThreadRequest createEmptyInstance() => create();
+  static $pb.PbList<CreateThreadRequest> createRepeated() =>
+      $pb.PbList<CreateThreadRequest>();
   @$core.pragma('dart2js:noInline')
   static CreateThreadRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CreateThreadRequest>(create);
@@ -275,7 +279,8 @@ class CreateThreadResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CreateThreadResponse clone() => deepCopy();
+  CreateThreadResponse clone() =>
+      CreateThreadResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CreateThreadResponse copyWith(void Function(CreateThreadResponse) updates) =>
       super.copyWith((message) => updates(message as CreateThreadResponse))
@@ -288,6 +293,8 @@ class CreateThreadResponse extends $pb.GeneratedMessage {
   static CreateThreadResponse create() => CreateThreadResponse._();
   @$core.override
   CreateThreadResponse createEmptyInstance() => create();
+  static $pb.PbList<CreateThreadResponse> createRepeated() =>
+      $pb.PbList<CreateThreadResponse>();
   @$core.pragma('dart2js:noInline')
   static CreateThreadResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CreateThreadResponse>(create);
@@ -334,7 +341,7 @@ class GetThreadRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetThreadRequest clone() => deepCopy();
+  GetThreadRequest clone() => GetThreadRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetThreadRequest copyWith(void Function(GetThreadRequest) updates) =>
       super.copyWith((message) => updates(message as GetThreadRequest))
@@ -347,6 +354,8 @@ class GetThreadRequest extends $pb.GeneratedMessage {
   static GetThreadRequest create() => GetThreadRequest._();
   @$core.override
   GetThreadRequest createEmptyInstance() => create();
+  static $pb.PbList<GetThreadRequest> createRepeated() =>
+      $pb.PbList<GetThreadRequest>();
   @$core.pragma('dart2js:noInline')
   static GetThreadRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetThreadRequest>(create);
@@ -391,7 +400,7 @@ class GetThreadResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetThreadResponse clone() => deepCopy();
+  GetThreadResponse clone() => GetThreadResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetThreadResponse copyWith(void Function(GetThreadResponse) updates) =>
       super.copyWith((message) => updates(message as GetThreadResponse))
@@ -404,6 +413,8 @@ class GetThreadResponse extends $pb.GeneratedMessage {
   static GetThreadResponse create() => GetThreadResponse._();
   @$core.override
   GetThreadResponse createEmptyInstance() => create();
+  static $pb.PbList<GetThreadResponse> createRepeated() =>
+      $pb.PbList<GetThreadResponse>();
   @$core.pragma('dart2js:noInline')
   static GetThreadResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetThreadResponse>(create);
@@ -451,12 +462,12 @@ class ListThreadsRequest extends $pb.GeneratedMessage {
           _omitMessageNames ? '' : 'super_manager.control.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'workspaceUid')
-    ..aI(2, _omitFieldNames ? '' : 'pageSize')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'pageSize', $pb.PbFieldType.O3)
     ..aOS(3, _omitFieldNames ? '' : 'pageToken')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ListThreadsRequest clone() => deepCopy();
+  ListThreadsRequest clone() => ListThreadsRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ListThreadsRequest copyWith(void Function(ListThreadsRequest) updates) =>
       super.copyWith((message) => updates(message as ListThreadsRequest))
@@ -469,6 +480,8 @@ class ListThreadsRequest extends $pb.GeneratedMessage {
   static ListThreadsRequest create() => ListThreadsRequest._();
   @$core.override
   ListThreadsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListThreadsRequest> createRepeated() =>
+      $pb.PbList<ListThreadsRequest>();
   @$core.pragma('dart2js:noInline')
   static ListThreadsRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ListThreadsRequest>(create);
@@ -531,13 +544,13 @@ class ListThreadsResponse extends $pb.GeneratedMessage {
       package: const $pb.PackageName(
           _omitMessageNames ? '' : 'super_manager.control.v1'),
       createEmptyInstance: create)
-    ..pPM<Thread>(1, _omitFieldNames ? '' : 'threads',
+    ..pc<Thread>(1, _omitFieldNames ? '' : 'threads', $pb.PbFieldType.PM,
         subBuilder: Thread.create)
     ..aOS(2, _omitFieldNames ? '' : 'nextPageToken')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ListThreadsResponse clone() => deepCopy();
+  ListThreadsResponse clone() => ListThreadsResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ListThreadsResponse copyWith(void Function(ListThreadsResponse) updates) =>
       super.copyWith((message) => updates(message as ListThreadsResponse))
@@ -550,6 +563,8 @@ class ListThreadsResponse extends $pb.GeneratedMessage {
   static ListThreadsResponse create() => ListThreadsResponse._();
   @$core.override
   ListThreadsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListThreadsResponse> createRepeated() =>
+      $pb.PbList<ListThreadsResponse>();
   @$core.pragma('dart2js:noInline')
   static ListThreadsResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ListThreadsResponse>(create);
@@ -598,7 +613,7 @@ class DeleteThreadRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  DeleteThreadRequest clone() => deepCopy();
+  DeleteThreadRequest clone() => DeleteThreadRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   DeleteThreadRequest copyWith(void Function(DeleteThreadRequest) updates) =>
       super.copyWith((message) => updates(message as DeleteThreadRequest))
@@ -611,6 +626,8 @@ class DeleteThreadRequest extends $pb.GeneratedMessage {
   static DeleteThreadRequest create() => DeleteThreadRequest._();
   @$core.override
   DeleteThreadRequest createEmptyInstance() => create();
+  static $pb.PbList<DeleteThreadRequest> createRepeated() =>
+      $pb.PbList<DeleteThreadRequest>();
   @$core.pragma('dart2js:noInline')
   static DeleteThreadRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<DeleteThreadRequest>(create);
@@ -648,7 +665,8 @@ class DeleteThreadResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  DeleteThreadResponse clone() => deepCopy();
+  DeleteThreadResponse clone() =>
+      DeleteThreadResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   DeleteThreadResponse copyWith(void Function(DeleteThreadResponse) updates) =>
       super.copyWith((message) => updates(message as DeleteThreadResponse))
@@ -661,6 +679,8 @@ class DeleteThreadResponse extends $pb.GeneratedMessage {
   static DeleteThreadResponse create() => DeleteThreadResponse._();
   @$core.override
   DeleteThreadResponse createEmptyInstance() => create();
+  static $pb.PbList<DeleteThreadResponse> createRepeated() =>
+      $pb.PbList<DeleteThreadResponse>();
   @$core.pragma('dart2js:noInline')
   static DeleteThreadResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<DeleteThreadResponse>(create);

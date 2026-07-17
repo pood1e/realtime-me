@@ -9,7 +9,7 @@
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package
 // ignore_for_file: implementation_imports, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: non_constant_identifier_names
 
 import 'dart:core' as $core;
 
@@ -240,12 +240,13 @@ class FieldMask extends $pb.GeneratedMessage with $mixin.FieldMaskMixin {
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'google.protobuf'),
       createEmptyInstance: create,
-      wellKnownType: $mixin.WellKnownType.fieldMask)
+      toProto3Json: $mixin.FieldMaskMixin.toProto3JsonHelper,
+      fromProto3Json: $mixin.FieldMaskMixin.fromProto3JsonHelper)
     ..pPS(1, _omitFieldNames ? '' : 'paths')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  FieldMask clone() => deepCopy();
+  FieldMask clone() => FieldMask()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   FieldMask copyWith(void Function(FieldMask) updates) =>
       super.copyWith((message) => updates(message as FieldMask)) as FieldMask;
@@ -257,6 +258,7 @@ class FieldMask extends $pb.GeneratedMessage with $mixin.FieldMaskMixin {
   static FieldMask create() => FieldMask._();
   @$core.override
   FieldMask createEmptyInstance() => create();
+  static $pb.PbList<FieldMask> createRepeated() => $pb.PbList<FieldMask>();
   @$core.pragma('dart2js:noInline')
   static FieldMask getDefault() =>
       _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FieldMask>(create);

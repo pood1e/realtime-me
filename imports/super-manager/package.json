@@ -18,7 +18,7 @@
     "build": "pnpm --filter @super-manager/server build",
     "check": "pnpm lint:proto && pnpm --filter @super-manager/server check",
     "format": "biome format --write . && buf format -w",
-    "generate": "buf generate",
+    "generate": "buf generate && node tools/normalize-dart-generated.mjs",
     "lint:proto": "buf lint"
   },
   "devDependencies": {

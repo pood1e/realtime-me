@@ -55,7 +55,7 @@ message PairDeviceResponse {
   string pkcs12_password = 3 [(buf.validate.field).string.min_len = 16];
   // device_token is the revocable inner bearer credential.
   string device_token = 4 [(buf.validate.field).string.min_len = 32];
-  // ca_certificate_pem is the private CA certificate used to validate the relay IP endpoint.
+  // ca_certificate_pem is the private CA certificate used to validate the public service endpoint.
   bytes ca_certificate_pem = 5 [(buf.validate.field).bytes.min_len = 1];
 }
 

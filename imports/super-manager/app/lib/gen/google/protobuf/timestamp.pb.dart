@@ -9,7 +9,7 @@
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package
 // ignore_for_file: implementation_imports, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: non_constant_identifier_names
 
 import 'dart:core' as $core;
 
@@ -133,13 +133,14 @@ class Timestamp extends $pb.GeneratedMessage with $mixin.TimestampMixin {
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'google.protobuf'),
       createEmptyInstance: create,
-      wellKnownType: $mixin.WellKnownType.timestamp)
+      toProto3Json: $mixin.TimestampMixin.toProto3JsonHelper,
+      fromProto3Json: $mixin.TimestampMixin.fromProto3JsonHelper)
     ..aInt64(1, _omitFieldNames ? '' : 'seconds')
-    ..aI(2, _omitFieldNames ? '' : 'nanos')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'nanos', $pb.PbFieldType.O3)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  Timestamp clone() => deepCopy();
+  Timestamp clone() => Timestamp()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   Timestamp copyWith(void Function(Timestamp) updates) =>
       super.copyWith((message) => updates(message as Timestamp)) as Timestamp;
@@ -151,6 +152,7 @@ class Timestamp extends $pb.GeneratedMessage with $mixin.TimestampMixin {
   static Timestamp create() => Timestamp._();
   @$core.override
   Timestamp createEmptyInstance() => create();
+  static $pb.PbList<Timestamp> createRepeated() => $pb.PbList<Timestamp>();
   @$core.pragma('dart2js:noInline')
   static Timestamp getDefault() =>
       _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Timestamp>(create);

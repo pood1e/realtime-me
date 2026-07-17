@@ -134,7 +134,7 @@ export type PairDeviceResponse = Message<"super_manager.control.v1.PairDeviceRes
   deviceToken: string;
 
   /**
-   * ca_certificate_pem is the private CA certificate used to validate the relay IP endpoint.
+   * ca_certificate_pem is the private CA certificate used to validate the public service endpoint.
    *
    * @generated from field: bytes ca_certificate_pem = 5;
    */

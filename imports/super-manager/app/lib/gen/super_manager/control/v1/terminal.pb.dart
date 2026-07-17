@@ -8,15 +8,14 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: non_constant_identifier_names
 
 import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
-import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart'
-    as $0;
 
+import '../../../google/protobuf/timestamp.pb.dart' as $0;
 import 'terminal.pbenum.dart';
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
@@ -61,14 +60,17 @@ class TerminalSession extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'workspaceUid')
     ..aOS(3, _omitFieldNames ? '' : 'displayName')
     ..aOS(4, _omitFieldNames ? '' : 'cwd')
-    ..aE<TerminalSessionState>(5, _omitFieldNames ? '' : 'state',
+    ..e<TerminalSessionState>(
+        5, _omitFieldNames ? '' : 'state', $pb.PbFieldType.OE,
+        defaultOrMaker: TerminalSessionState.TERMINAL_SESSION_STATE_UNSPECIFIED,
+        valueOf: TerminalSessionState.valueOf,
         enumValues: TerminalSessionState.values)
     ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'createTime',
         subBuilder: $0.Timestamp.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  TerminalSession clone() => deepCopy();
+  TerminalSession clone() => TerminalSession()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TerminalSession copyWith(void Function(TerminalSession) updates) =>
       super.copyWith((message) => updates(message as TerminalSession))
@@ -81,6 +83,8 @@ class TerminalSession extends $pb.GeneratedMessage {
   static TerminalSession create() => TerminalSession._();
   @$core.override
   TerminalSession createEmptyInstance() => create();
+  static $pb.PbList<TerminalSession> createRepeated() =>
+      $pb.PbList<TerminalSession>();
   @$core.pragma('dart2js:noInline')
   static TerminalSession getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<TerminalSession>(create);
@@ -181,12 +185,13 @@ class CreateTerminalSessionRequest extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'workspaceUid')
     ..aOS(2, _omitFieldNames ? '' : 'displayName')
-    ..aI(3, _omitFieldNames ? '' : 'columns', fieldType: $pb.PbFieldType.OU3)
-    ..aI(4, _omitFieldNames ? '' : 'rows', fieldType: $pb.PbFieldType.OU3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'columns', $pb.PbFieldType.OU3)
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'rows', $pb.PbFieldType.OU3)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CreateTerminalSessionRequest clone() => deepCopy();
+  CreateTerminalSessionRequest clone() =>
+      CreateTerminalSessionRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CreateTerminalSessionRequest copyWith(
           void Function(CreateTerminalSessionRequest) updates) =>
@@ -202,6 +207,8 @@ class CreateTerminalSessionRequest extends $pb.GeneratedMessage {
       CreateTerminalSessionRequest._();
   @$core.override
   CreateTerminalSessionRequest createEmptyInstance() => create();
+  static $pb.PbList<CreateTerminalSessionRequest> createRepeated() =>
+      $pb.PbList<CreateTerminalSessionRequest>();
   @$core.pragma('dart2js:noInline')
   static CreateTerminalSessionRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CreateTerminalSessionRequest>(create);
@@ -277,7 +284,8 @@ class CreateTerminalSessionResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CreateTerminalSessionResponse clone() => deepCopy();
+  CreateTerminalSessionResponse clone() =>
+      CreateTerminalSessionResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CreateTerminalSessionResponse copyWith(
           void Function(CreateTerminalSessionResponse) updates) =>
@@ -293,6 +301,8 @@ class CreateTerminalSessionResponse extends $pb.GeneratedMessage {
       CreateTerminalSessionResponse._();
   @$core.override
   CreateTerminalSessionResponse createEmptyInstance() => create();
+  static $pb.PbList<CreateTerminalSessionResponse> createRepeated() =>
+      $pb.PbList<CreateTerminalSessionResponse>();
   @$core.pragma('dart2js:noInline')
   static CreateTerminalSessionResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CreateTerminalSessionResponse>(create);
@@ -339,7 +349,8 @@ class GetTerminalSessionRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetTerminalSessionRequest clone() => deepCopy();
+  GetTerminalSessionRequest clone() =>
+      GetTerminalSessionRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetTerminalSessionRequest copyWith(
           void Function(GetTerminalSessionRequest) updates) =>
@@ -353,6 +364,8 @@ class GetTerminalSessionRequest extends $pb.GeneratedMessage {
   static GetTerminalSessionRequest create() => GetTerminalSessionRequest._();
   @$core.override
   GetTerminalSessionRequest createEmptyInstance() => create();
+  static $pb.PbList<GetTerminalSessionRequest> createRepeated() =>
+      $pb.PbList<GetTerminalSessionRequest>();
   @$core.pragma('dart2js:noInline')
   static GetTerminalSessionRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetTerminalSessionRequest>(create);
@@ -398,7 +411,8 @@ class GetTerminalSessionResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetTerminalSessionResponse clone() => deepCopy();
+  GetTerminalSessionResponse clone() =>
+      GetTerminalSessionResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetTerminalSessionResponse copyWith(
           void Function(GetTerminalSessionResponse) updates) =>
@@ -413,6 +427,8 @@ class GetTerminalSessionResponse extends $pb.GeneratedMessage {
   static GetTerminalSessionResponse create() => GetTerminalSessionResponse._();
   @$core.override
   GetTerminalSessionResponse createEmptyInstance() => create();
+  static $pb.PbList<GetTerminalSessionResponse> createRepeated() =>
+      $pb.PbList<GetTerminalSessionResponse>();
   @$core.pragma('dart2js:noInline')
   static GetTerminalSessionResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetTerminalSessionResponse>(create);
@@ -459,7 +475,8 @@ class ListTerminalSessionsRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ListTerminalSessionsRequest clone() => deepCopy();
+  ListTerminalSessionsRequest clone() =>
+      ListTerminalSessionsRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ListTerminalSessionsRequest copyWith(
           void Function(ListTerminalSessionsRequest) updates) =>
@@ -475,6 +492,8 @@ class ListTerminalSessionsRequest extends $pb.GeneratedMessage {
       ListTerminalSessionsRequest._();
   @$core.override
   ListTerminalSessionsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListTerminalSessionsRequest> createRepeated() =>
+      $pb.PbList<ListTerminalSessionsRequest>();
   @$core.pragma('dart2js:noInline')
   static ListTerminalSessionsRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ListTerminalSessionsRequest>(create);
@@ -516,12 +535,14 @@ class ListTerminalSessionsResponse extends $pb.GeneratedMessage {
       package: const $pb.PackageName(
           _omitMessageNames ? '' : 'super_manager.control.v1'),
       createEmptyInstance: create)
-    ..pPM<TerminalSession>(1, _omitFieldNames ? '' : 'terminalSessions',
+    ..pc<TerminalSession>(
+        1, _omitFieldNames ? '' : 'terminalSessions', $pb.PbFieldType.PM,
         subBuilder: TerminalSession.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ListTerminalSessionsResponse clone() => deepCopy();
+  ListTerminalSessionsResponse clone() =>
+      ListTerminalSessionsResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ListTerminalSessionsResponse copyWith(
           void Function(ListTerminalSessionsResponse) updates) =>
@@ -537,6 +558,8 @@ class ListTerminalSessionsResponse extends $pb.GeneratedMessage {
       ListTerminalSessionsResponse._();
   @$core.override
   ListTerminalSessionsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListTerminalSessionsResponse> createRepeated() =>
+      $pb.PbList<ListTerminalSessionsResponse>();
   @$core.pragma('dart2js:noInline')
   static ListTerminalSessionsResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ListTerminalSessionsResponse>(create);
@@ -575,7 +598,8 @@ class DeleteTerminalSessionRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  DeleteTerminalSessionRequest clone() => deepCopy();
+  DeleteTerminalSessionRequest clone() =>
+      DeleteTerminalSessionRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   DeleteTerminalSessionRequest copyWith(
           void Function(DeleteTerminalSessionRequest) updates) =>
@@ -591,6 +615,8 @@ class DeleteTerminalSessionRequest extends $pb.GeneratedMessage {
       DeleteTerminalSessionRequest._();
   @$core.override
   DeleteTerminalSessionRequest createEmptyInstance() => create();
+  static $pb.PbList<DeleteTerminalSessionRequest> createRepeated() =>
+      $pb.PbList<DeleteTerminalSessionRequest>();
   @$core.pragma('dart2js:noInline')
   static DeleteTerminalSessionRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<DeleteTerminalSessionRequest>(create);
@@ -628,7 +654,8 @@ class DeleteTerminalSessionResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  DeleteTerminalSessionResponse clone() => deepCopy();
+  DeleteTerminalSessionResponse clone() =>
+      DeleteTerminalSessionResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   DeleteTerminalSessionResponse copyWith(
           void Function(DeleteTerminalSessionResponse) updates) =>
@@ -644,6 +671,8 @@ class DeleteTerminalSessionResponse extends $pb.GeneratedMessage {
       DeleteTerminalSessionResponse._();
   @$core.override
   DeleteTerminalSessionResponse createEmptyInstance() => create();
+  static $pb.PbList<DeleteTerminalSessionResponse> createRepeated() =>
+      $pb.PbList<DeleteTerminalSessionResponse>();
   @$core.pragma('dart2js:noInline')
   static DeleteTerminalSessionResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<DeleteTerminalSessionResponse>(create);

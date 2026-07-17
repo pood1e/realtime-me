@@ -8,15 +8,14 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: non_constant_identifier_names
 
 import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
-import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart'
-    as $0;
 
+import '../../../google/protobuf/timestamp.pb.dart' as $0;
 import 'runtime.pbenum.dart';
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
@@ -62,11 +61,16 @@ class Runtime extends $pb.GeneratedMessage {
           _omitMessageNames ? '' : 'super_manager.control.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'uid')
-    ..aE<RuntimeKind>(2, _omitFieldNames ? '' : 'kind',
+    ..e<RuntimeKind>(2, _omitFieldNames ? '' : 'kind', $pb.PbFieldType.OE,
+        defaultOrMaker: RuntimeKind.RUNTIME_KIND_UNSPECIFIED,
+        valueOf: RuntimeKind.valueOf,
         enumValues: RuntimeKind.values)
     ..aOS(3, _omitFieldNames ? '' : 'displayName')
     ..aOS(4, _omitFieldNames ? '' : 'version')
-    ..aE<RuntimeAvailability>(5, _omitFieldNames ? '' : 'availability',
+    ..e<RuntimeAvailability>(
+        5, _omitFieldNames ? '' : 'availability', $pb.PbFieldType.OE,
+        defaultOrMaker: RuntimeAvailability.RUNTIME_AVAILABILITY_UNSPECIFIED,
+        valueOf: RuntimeAvailability.valueOf,
         enumValues: RuntimeAvailability.values)
     ..pc<RuntimeCapability>(
         6, _omitFieldNames ? '' : 'capabilities', $pb.PbFieldType.KE,
@@ -79,7 +83,7 @@ class Runtime extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  Runtime clone() => deepCopy();
+  Runtime clone() => Runtime()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   Runtime copyWith(void Function(Runtime) updates) =>
       super.copyWith((message) => updates(message as Runtime)) as Runtime;
@@ -91,6 +95,7 @@ class Runtime extends $pb.GeneratedMessage {
   static Runtime create() => Runtime._();
   @$core.override
   Runtime createEmptyInstance() => create();
+  static $pb.PbList<Runtime> createRepeated() => $pb.PbList<Runtime>();
   @$core.pragma('dart2js:noInline')
   static Runtime getDefault() =>
       _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Runtime>(create);
@@ -208,9 +213,12 @@ class QuotaSnapshot extends $pb.GeneratedMessage {
           _omitMessageNames ? '' : 'super_manager.control.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'runtimeUid')
-    ..aE<QuotaFreshness>(2, _omitFieldNames ? '' : 'freshness',
+    ..e<QuotaFreshness>(
+        2, _omitFieldNames ? '' : 'freshness', $pb.PbFieldType.OE,
+        defaultOrMaker: QuotaFreshness.QUOTA_FRESHNESS_UNSPECIFIED,
+        valueOf: QuotaFreshness.valueOf,
         enumValues: QuotaFreshness.values)
-    ..aD(3, _omitFieldNames ? '' : 'usedRatio')
+    ..a<$core.double>(3, _omitFieldNames ? '' : 'usedRatio', $pb.PbFieldType.OD)
     ..aOM<$0.Timestamp>(4, _omitFieldNames ? '' : 'resetTime',
         subBuilder: $0.Timestamp.create)
     ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'observeTime',
@@ -219,7 +227,7 @@ class QuotaSnapshot extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  QuotaSnapshot clone() => deepCopy();
+  QuotaSnapshot clone() => QuotaSnapshot()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   QuotaSnapshot copyWith(void Function(QuotaSnapshot) updates) =>
       super.copyWith((message) => updates(message as QuotaSnapshot))
@@ -232,6 +240,8 @@ class QuotaSnapshot extends $pb.GeneratedMessage {
   static QuotaSnapshot create() => QuotaSnapshot._();
   @$core.override
   QuotaSnapshot createEmptyInstance() => create();
+  static $pb.PbList<QuotaSnapshot> createRepeated() =>
+      $pb.PbList<QuotaSnapshot>();
   @$core.pragma('dart2js:noInline')
   static QuotaSnapshot getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<QuotaSnapshot>(create);
@@ -330,7 +340,7 @@ class GetRuntimeRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetRuntimeRequest clone() => deepCopy();
+  GetRuntimeRequest clone() => GetRuntimeRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetRuntimeRequest copyWith(void Function(GetRuntimeRequest) updates) =>
       super.copyWith((message) => updates(message as GetRuntimeRequest))
@@ -343,6 +353,8 @@ class GetRuntimeRequest extends $pb.GeneratedMessage {
   static GetRuntimeRequest create() => GetRuntimeRequest._();
   @$core.override
   GetRuntimeRequest createEmptyInstance() => create();
+  static $pb.PbList<GetRuntimeRequest> createRepeated() =>
+      $pb.PbList<GetRuntimeRequest>();
   @$core.pragma('dart2js:noInline')
   static GetRuntimeRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetRuntimeRequest>(create);
@@ -388,7 +400,7 @@ class GetRuntimeResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetRuntimeResponse clone() => deepCopy();
+  GetRuntimeResponse clone() => GetRuntimeResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetRuntimeResponse copyWith(void Function(GetRuntimeResponse) updates) =>
       super.copyWith((message) => updates(message as GetRuntimeResponse))
@@ -401,6 +413,8 @@ class GetRuntimeResponse extends $pb.GeneratedMessage {
   static GetRuntimeResponse create() => GetRuntimeResponse._();
   @$core.override
   GetRuntimeResponse createEmptyInstance() => create();
+  static $pb.PbList<GetRuntimeResponse> createRepeated() =>
+      $pb.PbList<GetRuntimeResponse>();
   @$core.pragma('dart2js:noInline')
   static GetRuntimeResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetRuntimeResponse>(create);
@@ -440,7 +454,7 @@ class ListRuntimesRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ListRuntimesRequest clone() => deepCopy();
+  ListRuntimesRequest clone() => ListRuntimesRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ListRuntimesRequest copyWith(void Function(ListRuntimesRequest) updates) =>
       super.copyWith((message) => updates(message as ListRuntimesRequest))
@@ -453,6 +467,8 @@ class ListRuntimesRequest extends $pb.GeneratedMessage {
   static ListRuntimesRequest create() => ListRuntimesRequest._();
   @$core.override
   ListRuntimesRequest createEmptyInstance() => create();
+  static $pb.PbList<ListRuntimesRequest> createRepeated() =>
+      $pb.PbList<ListRuntimesRequest>();
   @$core.pragma('dart2js:noInline')
   static ListRuntimesRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ListRuntimesRequest>(create);
@@ -483,12 +499,13 @@ class ListRuntimesResponse extends $pb.GeneratedMessage {
       package: const $pb.PackageName(
           _omitMessageNames ? '' : 'super_manager.control.v1'),
       createEmptyInstance: create)
-    ..pPM<Runtime>(1, _omitFieldNames ? '' : 'runtimes',
+    ..pc<Runtime>(1, _omitFieldNames ? '' : 'runtimes', $pb.PbFieldType.PM,
         subBuilder: Runtime.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ListRuntimesResponse clone() => deepCopy();
+  ListRuntimesResponse clone() =>
+      ListRuntimesResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ListRuntimesResponse copyWith(void Function(ListRuntimesResponse) updates) =>
       super.copyWith((message) => updates(message as ListRuntimesResponse))
@@ -501,6 +518,8 @@ class ListRuntimesResponse extends $pb.GeneratedMessage {
   static ListRuntimesResponse create() => ListRuntimesResponse._();
   @$core.override
   ListRuntimesResponse createEmptyInstance() => create();
+  static $pb.PbList<ListRuntimesResponse> createRepeated() =>
+      $pb.PbList<ListRuntimesResponse>();
   @$core.pragma('dart2js:noInline')
   static ListRuntimesResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ListRuntimesResponse>(create);
@@ -539,7 +558,8 @@ class GetRuntimeQuotaRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetRuntimeQuotaRequest clone() => deepCopy();
+  GetRuntimeQuotaRequest clone() =>
+      GetRuntimeQuotaRequest()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetRuntimeQuotaRequest copyWith(
           void Function(GetRuntimeQuotaRequest) updates) =>
@@ -553,6 +573,8 @@ class GetRuntimeQuotaRequest extends $pb.GeneratedMessage {
   static GetRuntimeQuotaRequest create() => GetRuntimeQuotaRequest._();
   @$core.override
   GetRuntimeQuotaRequest createEmptyInstance() => create();
+  static $pb.PbList<GetRuntimeQuotaRequest> createRepeated() =>
+      $pb.PbList<GetRuntimeQuotaRequest>();
   @$core.pragma('dart2js:noInline')
   static GetRuntimeQuotaRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetRuntimeQuotaRequest>(create);
@@ -598,7 +620,8 @@ class GetRuntimeQuotaResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetRuntimeQuotaResponse clone() => deepCopy();
+  GetRuntimeQuotaResponse clone() =>
+      GetRuntimeQuotaResponse()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetRuntimeQuotaResponse copyWith(
           void Function(GetRuntimeQuotaResponse) updates) =>
@@ -612,6 +635,8 @@ class GetRuntimeQuotaResponse extends $pb.GeneratedMessage {
   static GetRuntimeQuotaResponse create() => GetRuntimeQuotaResponse._();
   @$core.override
   GetRuntimeQuotaResponse createEmptyInstance() => create();
+  static $pb.PbList<GetRuntimeQuotaResponse> createRepeated() =>
+      $pb.PbList<GetRuntimeQuotaResponse>();
   @$core.pragma('dart2js:noInline')
   static GetRuntimeQuotaResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetRuntimeQuotaResponse>(create);

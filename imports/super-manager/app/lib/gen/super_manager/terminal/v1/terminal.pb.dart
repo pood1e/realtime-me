@@ -8,7 +8,7 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: non_constant_identifier_names
 
 import 'dart:core' as $core;
 
@@ -46,7 +46,7 @@ class TerminalAttach extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  TerminalAttach clone() => deepCopy();
+  TerminalAttach clone() => TerminalAttach()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TerminalAttach copyWith(void Function(TerminalAttach) updates) =>
       super.copyWith((message) => updates(message as TerminalAttach))
@@ -59,6 +59,8 @@ class TerminalAttach extends $pb.GeneratedMessage {
   static TerminalAttach create() => TerminalAttach._();
   @$core.override
   TerminalAttach createEmptyInstance() => create();
+  static $pb.PbList<TerminalAttach> createRepeated() =>
+      $pb.PbList<TerminalAttach>();
   @$core.pragma('dart2js:noInline')
   static TerminalAttach getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<TerminalAttach>(create);
@@ -104,7 +106,7 @@ class TerminalInput extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  TerminalInput clone() => deepCopy();
+  TerminalInput clone() => TerminalInput()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TerminalInput copyWith(void Function(TerminalInput) updates) =>
       super.copyWith((message) => updates(message as TerminalInput))
@@ -117,6 +119,8 @@ class TerminalInput extends $pb.GeneratedMessage {
   static TerminalInput create() => TerminalInput._();
   @$core.override
   TerminalInput createEmptyInstance() => create();
+  static $pb.PbList<TerminalInput> createRepeated() =>
+      $pb.PbList<TerminalInput>();
   @$core.pragma('dart2js:noInline')
   static TerminalInput getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<TerminalInput>(create);
@@ -159,12 +163,12 @@ class TerminalResize extends $pb.GeneratedMessage {
       package: const $pb.PackageName(
           _omitMessageNames ? '' : 'super_manager.terminal.v1'),
       createEmptyInstance: create)
-    ..aI(1, _omitFieldNames ? '' : 'columns', fieldType: $pb.PbFieldType.OU3)
-    ..aI(2, _omitFieldNames ? '' : 'rows', fieldType: $pb.PbFieldType.OU3)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'columns', $pb.PbFieldType.OU3)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'rows', $pb.PbFieldType.OU3)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  TerminalResize clone() => deepCopy();
+  TerminalResize clone() => TerminalResize()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TerminalResize copyWith(void Function(TerminalResize) updates) =>
       super.copyWith((message) => updates(message as TerminalResize))
@@ -177,6 +181,8 @@ class TerminalResize extends $pb.GeneratedMessage {
   static TerminalResize create() => TerminalResize._();
   @$core.override
   TerminalResize createEmptyInstance() => create();
+  static $pb.PbList<TerminalResize> createRepeated() =>
+      $pb.PbList<TerminalResize>();
   @$core.pragma('dart2js:noInline')
   static TerminalResize getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<TerminalResize>(create);
@@ -224,7 +230,7 @@ class TerminalDetach extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  TerminalDetach clone() => deepCopy();
+  TerminalDetach clone() => TerminalDetach()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TerminalDetach copyWith(void Function(TerminalDetach) updates) =>
       super.copyWith((message) => updates(message as TerminalDetach))
@@ -237,6 +243,8 @@ class TerminalDetach extends $pb.GeneratedMessage {
   static TerminalDetach create() => TerminalDetach._();
   @$core.override
   TerminalDetach createEmptyInstance() => create();
+  static $pb.PbList<TerminalDetach> createRepeated() =>
+      $pb.PbList<TerminalDetach>();
   @$core.pragma('dart2js:noInline')
   static TerminalDetach getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<TerminalDetach>(create);
@@ -264,7 +272,7 @@ class TerminalClose extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  TerminalClose clone() => deepCopy();
+  TerminalClose clone() => TerminalClose()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TerminalClose copyWith(void Function(TerminalClose) updates) =>
       super.copyWith((message) => updates(message as TerminalClose))
@@ -277,6 +285,8 @@ class TerminalClose extends $pb.GeneratedMessage {
   static TerminalClose create() => TerminalClose._();
   @$core.override
   TerminalClose createEmptyInstance() => create();
+  static $pb.PbList<TerminalClose> createRepeated() =>
+      $pb.PbList<TerminalClose>();
   @$core.pragma('dart2js:noInline')
   static TerminalClose getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<TerminalClose>(create);
@@ -312,7 +322,7 @@ class TerminalPing extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  TerminalPing clone() => deepCopy();
+  TerminalPing clone() => TerminalPing()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TerminalPing copyWith(void Function(TerminalPing) updates) =>
       super.copyWith((message) => updates(message as TerminalPing))
@@ -325,6 +335,8 @@ class TerminalPing extends $pb.GeneratedMessage {
   static TerminalPing create() => TerminalPing._();
   @$core.override
   TerminalPing createEmptyInstance() => create();
+  static $pb.PbList<TerminalPing> createRepeated() =>
+      $pb.PbList<TerminalPing>();
   @$core.pragma('dart2js:noInline')
   static TerminalPing getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<TerminalPing>(create);
@@ -411,7 +423,7 @@ class TerminalClientFrame extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  TerminalClientFrame clone() => deepCopy();
+  TerminalClientFrame clone() => TerminalClientFrame()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TerminalClientFrame copyWith(void Function(TerminalClientFrame) updates) =>
       super.copyWith((message) => updates(message as TerminalClientFrame))
@@ -424,25 +436,15 @@ class TerminalClientFrame extends $pb.GeneratedMessage {
   static TerminalClientFrame create() => TerminalClientFrame._();
   @$core.override
   TerminalClientFrame createEmptyInstance() => create();
+  static $pb.PbList<TerminalClientFrame> createRepeated() =>
+      $pb.PbList<TerminalClientFrame>();
   @$core.pragma('dart2js:noInline')
   static TerminalClientFrame getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<TerminalClientFrame>(create);
   static TerminalClientFrame? _defaultInstance;
 
-  @$pb.TagNumber(1)
-  @$pb.TagNumber(2)
-  @$pb.TagNumber(3)
-  @$pb.TagNumber(4)
-  @$pb.TagNumber(5)
-  @$pb.TagNumber(6)
   TerminalClientFrame_Payload whichPayload() =>
       _TerminalClientFrame_PayloadByTag[$_whichOneof(0)]!;
-  @$pb.TagNumber(1)
-  @$pb.TagNumber(2)
-  @$pb.TagNumber(3)
-  @$pb.TagNumber(4)
-  @$pb.TagNumber(5)
-  @$pb.TagNumber(6)
   void clearPayload() => $_clearField($_whichOneof(0));
 
   /// attach must be the first frame on a new WebSocket.
@@ -548,12 +550,12 @@ class TerminalAttached extends $pb.GeneratedMessage {
           _omitMessageNames ? '' : 'super_manager.terminal.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'terminalSessionUid')
-    ..aI(2, _omitFieldNames ? '' : 'columns', fieldType: $pb.PbFieldType.OU3)
-    ..aI(3, _omitFieldNames ? '' : 'rows', fieldType: $pb.PbFieldType.OU3)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'columns', $pb.PbFieldType.OU3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'rows', $pb.PbFieldType.OU3)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  TerminalAttached clone() => deepCopy();
+  TerminalAttached clone() => TerminalAttached()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TerminalAttached copyWith(void Function(TerminalAttached) updates) =>
       super.copyWith((message) => updates(message as TerminalAttached))
@@ -566,6 +568,8 @@ class TerminalAttached extends $pb.GeneratedMessage {
   static TerminalAttached create() => TerminalAttached._();
   @$core.override
   TerminalAttached createEmptyInstance() => create();
+  static $pb.PbList<TerminalAttached> createRepeated() =>
+      $pb.PbList<TerminalAttached>();
   @$core.pragma('dart2js:noInline')
   static TerminalAttached getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<TerminalAttached>(create);
@@ -631,7 +635,7 @@ class TerminalOutput extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  TerminalOutput clone() => deepCopy();
+  TerminalOutput clone() => TerminalOutput()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TerminalOutput copyWith(void Function(TerminalOutput) updates) =>
       super.copyWith((message) => updates(message as TerminalOutput))
@@ -644,6 +648,8 @@ class TerminalOutput extends $pb.GeneratedMessage {
   static TerminalOutput create() => TerminalOutput._();
   @$core.override
   TerminalOutput createEmptyInstance() => create();
+  static $pb.PbList<TerminalOutput> createRepeated() =>
+      $pb.PbList<TerminalOutput>();
   @$core.pragma('dart2js:noInline')
   static TerminalOutput getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<TerminalOutput>(create);
@@ -686,12 +692,12 @@ class TerminalExited extends $pb.GeneratedMessage {
       package: const $pb.PackageName(
           _omitMessageNames ? '' : 'super_manager.terminal.v1'),
       createEmptyInstance: create)
-    ..aI(1, _omitFieldNames ? '' : 'exitCode')
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'exitCode', $pb.PbFieldType.O3)
     ..aOS(2, _omitFieldNames ? '' : 'signal')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  TerminalExited clone() => deepCopy();
+  TerminalExited clone() => TerminalExited()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TerminalExited copyWith(void Function(TerminalExited) updates) =>
       super.copyWith((message) => updates(message as TerminalExited))
@@ -704,6 +710,8 @@ class TerminalExited extends $pb.GeneratedMessage {
   static TerminalExited create() => TerminalExited._();
   @$core.override
   TerminalExited createEmptyInstance() => create();
+  static $pb.PbList<TerminalExited> createRepeated() =>
+      $pb.PbList<TerminalExited>();
   @$core.pragma('dart2js:noInline')
   static TerminalExited getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<TerminalExited>(create);
@@ -761,7 +769,7 @@ class TerminalError extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  TerminalError clone() => deepCopy();
+  TerminalError clone() => TerminalError()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TerminalError copyWith(void Function(TerminalError) updates) =>
       super.copyWith((message) => updates(message as TerminalError))
@@ -774,6 +782,8 @@ class TerminalError extends $pb.GeneratedMessage {
   static TerminalError create() => TerminalError._();
   @$core.override
   TerminalError createEmptyInstance() => create();
+  static $pb.PbList<TerminalError> createRepeated() =>
+      $pb.PbList<TerminalError>();
   @$core.pragma('dart2js:noInline')
   static TerminalError getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<TerminalError>(create);
@@ -829,7 +839,7 @@ class TerminalPong extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  TerminalPong clone() => deepCopy();
+  TerminalPong clone() => TerminalPong()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TerminalPong copyWith(void Function(TerminalPong) updates) =>
       super.copyWith((message) => updates(message as TerminalPong))
@@ -842,6 +852,8 @@ class TerminalPong extends $pb.GeneratedMessage {
   static TerminalPong create() => TerminalPong._();
   @$core.override
   TerminalPong createEmptyInstance() => create();
+  static $pb.PbList<TerminalPong> createRepeated() =>
+      $pb.PbList<TerminalPong>();
   @$core.pragma('dart2js:noInline')
   static TerminalPong getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<TerminalPong>(create);
@@ -922,7 +934,7 @@ class TerminalServerFrame extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  TerminalServerFrame clone() => deepCopy();
+  TerminalServerFrame clone() => TerminalServerFrame()..mergeFromMessage(this);
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TerminalServerFrame copyWith(void Function(TerminalServerFrame) updates) =>
       super.copyWith((message) => updates(message as TerminalServerFrame))
@@ -935,23 +947,15 @@ class TerminalServerFrame extends $pb.GeneratedMessage {
   static TerminalServerFrame create() => TerminalServerFrame._();
   @$core.override
   TerminalServerFrame createEmptyInstance() => create();
+  static $pb.PbList<TerminalServerFrame> createRepeated() =>
+      $pb.PbList<TerminalServerFrame>();
   @$core.pragma('dart2js:noInline')
   static TerminalServerFrame getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<TerminalServerFrame>(create);
   static TerminalServerFrame? _defaultInstance;
 
-  @$pb.TagNumber(1)
-  @$pb.TagNumber(2)
-  @$pb.TagNumber(3)
-  @$pb.TagNumber(4)
-  @$pb.TagNumber(5)
   TerminalServerFrame_Payload whichPayload() =>
       _TerminalServerFrame_PayloadByTag[$_whichOneof(0)]!;
-  @$pb.TagNumber(1)
-  @$pb.TagNumber(2)
-  @$pb.TagNumber(3)
-  @$pb.TagNumber(4)
-  @$pb.TagNumber(5)
   void clearPayload() => $_clearField($_whichOneof(0));
 
   /// attached confirms a successful attachment.
