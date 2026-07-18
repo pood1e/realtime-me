@@ -1,0 +1,18 @@
+packages:
+  - apps/web/status
+  - apps/web/library/*
+  - packages/library-*
+  - services/manager
+engineStrict: true
+saveExact: true
+allowBuilds:
+  better-sqlite3: true
+  core-js: false
+  es5-ext: false
+  esbuild: true
+  node-pty: true
+  sharp: true
+  workerd: true
+minimumReleaseAgeExclude:
+  - miniflare@4.20260708.1
+  - wrangler@4.110.0

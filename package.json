@@ -1,18 +1,30 @@
 {
   "name": "realtime-me",
+  "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "apps/status-page"
-  ],
-  "scripts": {
-    "proto:lint": "buf lint",
-    "proto:gen": "buf generate",
-    "build:gateway": "cd apps/status-gateway && go build ./...",
-    "check:gateway": "cd apps/status-gateway && go vet ./... && go test ./...",
-    "build:status": "npm run build:gateway && npm run build --workspace apps/status-page",
-    "check:status": "npm run check:gateway && npm run check --workspace apps/status-page"
-  },
+  "type": "module",
+  "packageManager": "pnpm@11.10.0",
   "engines": {
-    "node": ">=22"
+    "node": ">=24.18.0 <27"
+  },
+  "scripts": {
+    "build": "pnpm build:status && pnpm build:library && pnpm build:manager",
+    "build:status": "pnpm build:status-service && pnpm --filter @realtime-me/status-web build",
+    "build:status-service": "cd services/status && go build ./...",
+    "build:library": "cd services/library && go build ./... && pnpm --filter './apps/web/library/**' --if-present build",
+    "build:manager": "pnpm --filter @realtime-me/manager build",
+    "check": "pnpm check:proto && pnpm check:status && pnpm check:library && pnpm check:manager",
+    "check:proto": "buf lint",
+    "check:status": "cd services/status && go vet ./... && go build ./... && cd ../.. && pnpm --filter @realtime-me/status-web check",
+    "check:library": "cd services/library && go vet ./... && go build ./... && cd ../.. && pnpm --filter './apps/web/library/**' --filter './packages/library-*' --if-present typecheck",
+    "check:manager": "pnpm --filter @realtime-me/manager check",
+    "format": "biome format --write services/manager tools && prettier --write 'apps/web/**/*.{ts,tsx,css,json,html}' 'packages/library-web/**/*.{ts,tsx,css,json}' 'apps/web/build/**/*.ts' && buf format -w",
+    "generate": "buf generate && node tools/normalize-dart-generated.mjs",
+    "proto:lint": "buf lint"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.4",
+    "@bufbuild/protoc-gen-es": "2.12.1",
+    "prettier": "3.9.5"
   }
 }

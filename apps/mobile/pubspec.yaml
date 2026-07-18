@@ -1,0 +1,31 @@
+name: realtime_me
+description: Realtime status and remote workspace control.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  ag_ui:
+    path: ../../packages/ag-ui-dart
+  connectrpc: ^1.0.0
+  crypto: ^3.0.7
+  fixnum: ^1.1.1
+  flutter:
+    sdk: flutter
+  flutter_markdown_plus: ^1.0.12
+  flutter_riverpod: ^3.3.2
+  flutter_secure_storage: ^10.3.1
+  go_router: ^17.3.0
+  mobile_scanner: ^7.3.0
+  protobuf: ^4.2.0
+  uuid: ^4.6.0
+  web_socket_channel: ^3.0.3
+  xterm: ^4.0.0
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

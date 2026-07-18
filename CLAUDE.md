@@ -9,12 +9,12 @@ Linux/macOS hosts. Protobuf is the single contract across all four languages.
 | Path | Contents |
 | --- | --- |
 | `proto/realtime/me/v1` | Canonical `.proto` contracts. Single source of truth. |
-| `apps/status-gateway` | Go ConnectRPC gateway; queries Prometheus, serves the API. |
-| `apps/status-page` | React SPA + Cloudflare Worker (`src/worker.ts`) that proxies the API. |
+| `services/status` | Go ConnectRPC gateway; queries Prometheus, serves the API. |
+| `apps/web/status` | React SPA + Cloudflare Worker (`src/worker.ts`) that proxies the API. |
 | `apps/mobile` | Android phone app (`me.realtime.mobile`). |
 | `apps/watch` | Wear OS app (`me.realtime.watch`). |
-| `libs/protocol` | Kotlin/Android library sharing the protos and the Wear data-layer contract. |
-| `infra/status-stack` | Docker Compose: Prometheus, node-exporter, cAdvisor, gateway, cloudflared. |
+| `packages/status-protocol-android` | Kotlin/Android library sharing the protos and the Wear data-layer contract. |
+| `deploy/status` | Docker Compose: Prometheus, node-exporter, cAdvisor, gateway, cloudflared. |
 | `scripts/probe` | Exporter payload downloaded onto probe hosts, plus the shared `status_common`. |
 | `scripts/operator` | Tools you run from a clone against the gateway. |
 | `scripts/*.sh` | Host installers, curled directly by URL. |
@@ -36,13 +36,13 @@ npm run build:status          # go build, then vite build
 ## Invariants
 
 **`proto/` is the only place a contract is defined.** `buf` generates the Go
-(`apps/status-gateway/internal/genproto`) and TypeScript
-(`apps/status-page/src/gen`) trees; both are committed, so run `npm run proto:gen`
+(`services/status/internal/genproto`) and TypeScript
+(`apps/web/status/src/gen`) trees; both are committed, so run `npm run proto:gen`
 and commit the output alongside any `.proto` change. Kotlin is generated at build
 time by Gradle and is not committed. Never hand-edit generated code.
 
 **Kotlin reads the protos through a symlink**, not a copy:
-`libs/protocol/src/main/proto/realtime` → `proto/realtime`. The Gradle protobuf
+`packages/status-protocol-android/src/main/proto/realtime` → `proto/realtime`. The Gradle protobuf
 plugin compiles them as javalite, so Kotlin protos are absent from `buf.gen.yaml`
 by design. Don't replace the symlink with copied files.
 
@@ -215,7 +215,7 @@ run an arbitrary query. Don't reintroduce a `query=` parameter.
 
 - `gradle.properties` pins `org.gradle.java.home` to a macOS Homebrew JDK 17
   path. On Linux, override it rather than committing a new path.
-- `infra/status-stack/prometheus/file_sd/cadvisor.yml` is intentionally an empty
+- `deploy/status/prometheus/file_sd/cadvisor.yml` is intentionally an empty
   `[]`. cAdvisor sits behind the `containers` Compose profile, so an empty
   file_sd list is the opt-in switch; `cadvisor.yml.example` shows the contents.
   A `static_configs` entry would leave a permanently-down target.
@@ -241,5 +241,5 @@ run an arbitrary query. Don't reintroduce a `query=` parameter.
 - `STATUS_INGEST_TOKEN` (write) and `STATUS_QUERY_TOKEN` (read) are separate
   secrets and the gateway refuses to start without both. The read token reaches
   the internal dashboard, `MetricsService`, and scrape discovery; Prometheus
-  presents it from `infra/status-stack/prometheus/query_token`, which is
+  presents it from `deploy/status/prometheus/query_token`, which is
   gitignored and must exist before the first `docker compose up`.

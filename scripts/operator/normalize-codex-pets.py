@@ -5,7 +5,7 @@ The pets are not shipped with the Codex CLI: it downloads one spritesheet per
 pet from OpenAI's CDN and slices it at runtime. They are OpenAI's artwork, not
 covered by that repository's Apache-2.0 licence, so like Anthropic's Claw'd
 clips they are never committed here — see
-apps/status-page/src/assets/agents/NOTICE.md.
+apps/web/status/src/assets/agents/NOTICE.md.
 
 Each sheet is a static 8x9 grid of 192x208 frames. Row 7 is the "running"
 animation, which is the one that means the agent is working; its six frames run

@@ -21,7 +21,7 @@ android {
 }
 
 dependencies {
-    implementation(dependencies.project(mapOf("path" to ":libs:protocol")))
+    implementation(dependencies.project(mapOf("path" to ":packages:status-protocol-android")))
     implementation(libs.coroutines.android)
     implementation(libs.play.services.wearable)
     implementation(libs.work.runtime.ktx)

@@ -16,16 +16,16 @@ The watch does not need internet access. It collects local health/device data an
   - Stores only the self-hosted gateway ingest token with Android Keystore-backed AES/GCM encrypted shared preferences.
   - Pushes phone/watch status to configured gateway endpoints; private LAN/public URLs are build properties, not committed values.
   - Keeps a foreground sync service active after token setup; WorkManager is only a 15-minute OS-managed recovery fallback.
-- `apps/status-gateway`: Go gateway for mobile ingestion, Prometheus HTTP service discovery, GitHub `changeUserStatus`, public status JSON, and internal metrics charts.
-- `apps/status-page`: Vite/React status page using shadcn/ui, Radix, Lucide, Tailwind, and a Cloudflare Worker custom domain.
-- `infra/status-stack`: Prometheus, node-exporter, cAdvisor, status-gateway, and optional cloudflared service definitions.
-- `libs/protocol` and `proto/realtime/me/v1/watch.proto`: shared protobuf contract for the Data Layer payload.
+- `services/status`: Go gateway for mobile ingestion, Prometheus HTTP service discovery, GitHub `changeUserStatus`, public status JSON, and internal metrics charts.
+- `apps/web/status`: Vite/React status page using shadcn/ui, Radix, Lucide, Tailwind, and a Cloudflare Worker custom domain.
+- `deploy/status`: Prometheus, node-exporter, cAdvisor, status-gateway, and optional cloudflared service definitions.
+- `packages/status-protocol-android` and `proto/realtime/me/v1/watch.proto`: shared protobuf contract for the Data Layer payload.
 
 Wear OS Data Layer requires the phone and watch APKs to use the same package name and signing certificate. Both APKs therefore use application ID `me.realtime`, while keeping separate source namespaces for mobile and watch code.
 
 ## GitHub status
 
-GitHub is updated by `apps/status-gateway`, not by the phone. Put a classic personal access token in `github.status_token` in the gateway's `gateway.yaml`:
+GitHub is updated by `services/status`, not by the phone. Put a classic personal access token in `github.status_token` in the gateway's `gateway.yaml`:
 
 - Scope: `user`.
 - Repository permissions: none.
@@ -112,12 +112,12 @@ The debug receiver exists only in debug builds and stores the token through the 
 
 The status stack stores raw time-series data in Prometheus on your own host. Cloudflare only needs to expose the public API/page through a Tunnel or Worker custom domain. Linux host and VM metrics are scraped by Prometheus through node-exporter and HTTP service discovery. Extra device signals, such as the currently playing media title and connected Bluetooth audio accessory battery on macOS/Linux, are scraped from `status-device-reporter.py`.
 
-Every setting the gateway reads lives in one file, `infra/status-stack/gateway.yaml`:
+Every setting the gateway reads lives in one file, `deploy/status/gateway.yaml`:
 the two bearer tokens, the two kinds of GitHub credential, and the owner's profile.
 An unknown key in it is a startup error, never a setting that quietly does nothing.
 
 ```sh
-cd infra/status-stack
+cd deploy/status
 cp gateway.example.yaml gateway.yaml   # tokens, GitHub credentials, profile
 cp projects.example.json projects.json # which repositories the page may show
 cp .env.example .env                   # only what Compose itself interpolates
@@ -187,13 +187,13 @@ The gateway mints the device's uid and serves it to Prometheus as a service-disc
 
 ## Public status page
 
-`apps/status-page/wrangler.jsonc` deploys the page directly to the Worker custom domain `me.pood1e.space`; no Pages project or `pages.dev` deployment is required.
+`apps/web/status/wrangler.jsonc` deploys the page directly to the Worker custom domain `me.pood1e.space`; no Pages project or `pages.dev` deployment is required.
 
 Build the static assets, then deploy with the public gateway URL as a runtime variable:
 
 ```sh
-npm run build --workspace apps/status-page
-npx wrangler deploy --config apps/status-page/wrangler.jsonc \
+npm run build --workspace apps/web/status
+npx wrangler deploy --config apps/web/status/wrangler.jsonc \
   --var STATUS_API_BASE_URL:https://api-status.example.com
 ```
 
@@ -277,7 +277,7 @@ it cannot load, rather than rendering an empty life as though nobody had written
 
 ## Runtime setup
 
-1. Deploy `infra/status-stack`. Fill in `gateway.yaml` (tokens, GitHub credentials, profile) and `projects.json` (the curated repositories), each copied from the `.example` beside it.
+1. Deploy `deploy/status`. Fill in `gateway.yaml` (tokens, GitHub credentials, profile) and `projects.json` (the curated repositories), each copied from the `.example` beside it.
 2. Build/install `apps/mobile` with gateway endpoint build properties and save the gateway token once.
 3. Install `apps/watch` on the Pixel Watch.
 4. Open the watch app once and grant the requested sensor/background permissions. The watch activity exits after starting the foreground collection service.

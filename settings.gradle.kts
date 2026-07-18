@@ -15,6 +15,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "realtime-me"
-include(":libs:protocol")
+include(":packages:status-protocol-android")
 include(":apps:watch")
-include(":apps:mobile")

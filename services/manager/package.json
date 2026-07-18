@@ -1,0 +1,41 @@
+{
+  "name": "@realtime-me/manager",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "smctl": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "biome check src tools && tsc --noEmit",
+    "dev": "tsx watch src/main.ts",
+    "generate:codex": "tsx tools/generate-codex-protocol.ts",
+    "probe:claude": "tsx tools/claude-stdio-probe.ts",
+    "probe:codex": "tsx tools/codex-app-server-probe.ts",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@ag-ui/core": "0.0.57",
+    "@bufbuild/protobuf": "2.12.1",
+    "@connectrpc/connect": "2.1.2",
+    "@connectrpc/connect-fastify": "2.1.2",
+    "@connectrpc/connect-node": "2.1.2",
+    "@connectrpc/validate": "0.2.0",
+    "@fastify/rate-limit": "11.1.0",
+    "@fastify/websocket": "11.3.0",
+    "better-sqlite3": "12.11.1",
+    "fastify": "5.10.0",
+    "node-pty": "1.1.0",
+    "pino": "10.3.1",
+    "ws": "8.21.1",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "7.6.13",
+    "@types/node": "24.13.3",
+    "@types/ws": "8.18.1",
+    "tsx": "4.23.1",
+    "typescript": "7.0.2"
+  }
+}
