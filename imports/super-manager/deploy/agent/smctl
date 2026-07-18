@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eu
+
+config=/etc/super-manager/agent.env
+if [ ! -r "$config" ]; then
+  printf 'Cannot read %s\n' "$config" >&2
+  exit 1
+fi
+
+while IFS='=' read -r name value || [ -n "$name$value" ]; do
+  case "$name" in
+    ''|'#'*) ;;
+    [0-9]*|*[!A-Z0-9_]*)
+      printf 'Invalid environment name in %s: %s\n' "$config" "$name" >&2
+      exit 1
+      ;;
+    *) export "$name=$value" ;;
+  esac
+done <"$config"
+
+PATH=/opt/super-manager/node/bin:/opt/super-manager/providers/node_modules/.bin:/usr/local/bin:/usr/bin:/bin
+export PATH
+exec /opt/super-manager/node/bin/node /opt/super-manager/source/server/dist/cli.js "$@"

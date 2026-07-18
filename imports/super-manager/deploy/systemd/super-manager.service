@@ -1,0 +1,32 @@
+[Unit]
+Description=Super Manager agent control service
+After=network-online.target super-manager-terminal.service
+Requires=super-manager-terminal.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=super-manager
+Group=super-manager
+WorkingDirectory=/opt/super-manager/source
+EnvironmentFile=/etc/super-manager/agent.env
+Environment=PATH=/opt/super-manager/node/bin:/opt/super-manager/providers/node_modules/.bin:/usr/local/bin:/usr/bin:/bin
+UMask=0077
+ExecStart=/opt/super-manager/node/bin/node /opt/super-manager/source/server/dist/main.js
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=30s
+KillSignal=SIGTERM
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/super-manager /srv/workspaces
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

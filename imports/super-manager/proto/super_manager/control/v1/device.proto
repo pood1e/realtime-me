@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package super_manager.control.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// DeviceStatus describes whether a paired client may authenticate.
+enum DeviceStatus {
+  // The device status was not specified.
+  DEVICE_STATUS_UNSPECIFIED = 0;
+  // The device credentials are active.
+  DEVICE_STATUS_ACTIVE = 1;
+  // The device has been revoked.
+  DEVICE_STATUS_REVOKED = 2;
+}
+
+// Device is one paired Flutter client.
+message Device {
+  // uid is the server-assigned UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+  // display_name is the human-readable client label.
+  string display_name = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+  // status controls whether the inner bearer token remains valid.
+  DeviceStatus status = 3 [(buf.validate.field).enum.defined_only = true];
+  // certificate_serial is the non-secret X.509 serial used for audit correlation.
+  string certificate_serial = 4 [(buf.validate.field).string.max_len = 128];
+  // create_time is the pairing time.
+  google.protobuf.Timestamp create_time = 5;
+  // expire_time is the credential expiry time.
+  google.protobuf.Timestamp expire_time = 6;
+}
+
+// PairDeviceRequest redeems one locally created, single-use pairing secret.
+message PairDeviceRequest {
+  // pairing_secret is the 32-byte secret encoded in the local QR payload.
+  bytes pairing_secret = 1 [(buf.validate.field).bytes.len = 32];
+  // display_name is the human-readable Android device label.
+  string display_name = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+}
+
+// PairDeviceResponse returns credentials exactly once to the paired device.
+message PairDeviceResponse {
+  // device is the newly paired client record.
+  Device device = 1 [(buf.validate.field).required = true];
+  // device_pkcs12 contains the device certificate and private key.
+  bytes device_pkcs12 = 2 [(buf.validate.field).bytes.min_len = 1];
+  // pkcs12_password decrypts device_pkcs12 and must be stored in secure storage.
+  string pkcs12_password = 3 [(buf.validate.field).string.min_len = 16];
+  // device_token is the revocable inner bearer credential.
+  string device_token = 4 [(buf.validate.field).string.min_len = 32];
+  // ca_certificate_pem is the private CA certificate used to validate the public service endpoint.
+  bytes ca_certificate_pem = 5 [(buf.validate.field).bytes.min_len = 1];
+}
+
+// ListDevicesRequest requests paired devices.
+message ListDevicesRequest {}
+
+// ListDevicesResponse returns paired devices without credentials.
+message ListDevicesResponse {
+  // devices contains all paired client records.
+  repeated Device devices = 1;
+}
+
+// DeleteDeviceRequest revokes one paired device.
+message DeleteDeviceRequest {
+  // uid is the device UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+}
+
+// DeleteDeviceResponse confirms that the device was revoked.
+message DeleteDeviceResponse {}
+
+// PairingService exposes the only API available without an existing device certificate.
+service PairingService {
+  // PairDevice atomically redeems a locally generated one-time secret.
+  rpc PairDevice(PairDeviceRequest) returns (PairDeviceResponse);
+}
+
+// DeviceService manages paired device revocation.
+service DeviceService {
+  // ListDevices returns paired devices without credentials.
+  rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse);
+  // DeleteDevice revokes a device immediately through the inner token layer.
+  rpc DeleteDevice(DeleteDeviceRequest) returns (DeleteDeviceResponse);
+}
