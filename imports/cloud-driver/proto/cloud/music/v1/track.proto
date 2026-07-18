@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package cloud.music.v1;
+
+import "cloud/content/v1/processing.proto";
+import "cloud/music/v1/provider.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "example.com/cloud-drive/api/gen/cloud/music/v1;musicv1";
+
+// Track is one owner-managed audio recording.
+message Track {
+  string uid = 1;
+  string title = 2;
+  repeated string artists = 3;
+  string album = 4;
+  string album_artist = 5;
+  int32 track_number = 6;
+  int32 disc_number = 7;
+  int32 year = 8;
+  google.protobuf.Duration duration = 9;
+  string original_file_name = 10;
+  string content_type = 11;
+  int64 size_bytes = 12;
+  string artwork_url = 13;
+  string content_url = 14;
+  bool favorite = 15;
+  cloud.content.v1.ProcessingStatus processing_status = 16;
+  google.protobuf.Timestamp create_time = 17;
+  google.protobuf.Timestamp update_time = 18;
+  google.protobuf.Timestamp delete_time = 19;
+}
+
+// PlaybackEntry records one meaningful playback event.
+message PlaybackEntry {
+  string uid = 1;
+  PlayableTrack track = 2;
+  google.protobuf.Timestamp play_time = 3;
+}

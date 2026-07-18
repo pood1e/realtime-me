@@ -1,0 +1,161 @@
+syntax = "proto3";
+
+package cloud.music.v1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "example.com/cloud-drive/api/gen/cloud/music/v1;musicv1";
+
+// ProviderConnectionStatus describes whether a provider account can be used.
+enum ProviderConnectionStatus {
+  PROVIDER_CONNECTION_STATUS_UNSPECIFIED = 0;
+  PROVIDER_CONNECTION_STATUS_DISCONNECTED = 1;
+  PROVIDER_CONNECTION_STATUS_CONNECTED = 2;
+  PROVIDER_CONNECTION_STATUS_RECONNECT_REQUIRED = 3;
+  PROVIDER_CONNECTION_STATUS_UNAVAILABLE = 4;
+  PROVIDER_CONNECTION_STATUS_NOT_CONFIGURED = 5;
+}
+
+// ProviderConnectionAttemptStatus describes an interactive login attempt.
+enum ProviderConnectionAttemptStatus {
+  PROVIDER_CONNECTION_ATTEMPT_STATUS_UNSPECIFIED = 0;
+  PROVIDER_CONNECTION_ATTEMPT_STATUS_WAITING = 1;
+  PROVIDER_CONNECTION_ATTEMPT_STATUS_SCANNED = 2;
+  PROVIDER_CONNECTION_ATTEMPT_STATUS_CONNECTED = 3;
+  PROVIDER_CONNECTION_ATTEMPT_STATUS_EXPIRED = 4;
+  PROVIDER_CONNECTION_ATTEMPT_STATUS_REFUSED = 5;
+  PROVIDER_CONNECTION_ATTEMPT_STATUS_FAILED = 6;
+}
+
+// ProviderSearchStatus describes one independently loaded search group.
+enum ProviderSearchStatus {
+  PROVIDER_SEARCH_STATUS_UNSPECIFIED = 0;
+  PROVIDER_SEARCH_STATUS_READY = 1;
+  PROVIDER_SEARCH_STATUS_NOT_CONNECTED = 2;
+  PROVIDER_SEARCH_STATUS_UNAVAILABLE = 3;
+  PROVIDER_SEARCH_STATUS_RECONNECT_REQUIRED = 4;
+}
+
+// PlaybackQuality selects a browser-compatible direct audio tier.
+enum PlaybackQuality {
+  PLAYBACK_QUALITY_UNSPECIFIED = 0;
+  PLAYBACK_QUALITY_BEST_COMPATIBLE = 1;
+  PLAYBACK_QUALITY_HIGH = 2;
+  PLAYBACK_QUALITY_STANDARD = 3;
+}
+
+// MusicProviderCapability describes an optional plugin contract.
+enum MusicProviderCapability {
+  MUSIC_PROVIDER_CAPABILITY_UNSPECIFIED = 0;
+  MUSIC_PROVIDER_CAPABILITY_ACCOUNT_CONNECTION = 1;
+  MUSIC_PROVIDER_CAPABILITY_CATALOG_SEARCH = 2;
+  MUSIC_PROVIDER_CAPABILITY_PLAYBACK = 3;
+  MUSIC_PROVIDER_CAPABILITY_LYRICS = 4;
+  MUSIC_PROVIDER_CAPABILITY_BROWSER_TOKEN = 5;
+  MUSIC_PROVIDER_CAPABILITY_PLAYLIST_IMPORT = 6;
+  MUSIC_PROVIDER_CAPABILITY_LOCAL_DOWNLOAD = 7;
+}
+
+// ProviderDescriptor exposes one registered plugin without fixing IDs in the contract.
+message ProviderDescriptor {
+  string id = 1;
+  string display_name = 2;
+  repeated MusicProviderCapability capabilities = 3;
+  bool configured = 4;
+}
+
+// PlayableTrack is the normalized read model shared by search and history.
+message PlayableTrack {
+  string provider_id = 1;
+  string track_id = 2;
+  string title = 3;
+  repeated string artists = 4;
+  string album = 5;
+  google.protobuf.Duration duration = 6;
+  string artwork_url = 7;
+  string provider_url = 8;
+  bool playable = 9;
+  bool lyrics_available = 10;
+}
+
+// ProviderConnection contains public account state and never contains credentials.
+message ProviderConnection {
+  string provider_id = 1;
+  ProviderConnectionStatus status = 2;
+  string account_id = 3;
+  string display_name = 4;
+  string avatar_url = 5;
+  string membership = 6;
+  google.protobuf.Timestamp membership_expire_time = 7;
+  google.protobuf.Timestamp update_time = 8;
+  repeated MusicProviderCapability capabilities = 9;
+}
+
+// ProviderQrChallenge contains one short-lived login image.
+message ProviderQrChallenge {
+  bytes image = 1;
+  string content_type = 2;
+  string payload = 3;
+}
+
+// ProviderRedirectChallenge contains one trusted provider authorization URL.
+message ProviderRedirectChallenge {
+  string authorization_url = 1;
+}
+
+// ProviderConnectionAttempt is one bounded interactive login operation.
+message ProviderConnectionAttempt {
+  string uid = 1;
+  string provider_id = 2;
+  ProviderConnectionAttemptStatus status = 3;
+  google.protobuf.Timestamp expire_time = 4;
+  oneof challenge {
+    ProviderQrChallenge qr = 5;
+    ProviderRedirectChallenge redirect = 6;
+  }
+}
+
+// ProviderSearchCursor requests the first or a subsequent page for one source.
+message ProviderSearchCursor {
+  string provider_id = 1;
+  string page_token = 2;
+}
+
+// ProviderSearchGroup is one source's independent search result.
+message ProviderSearchGroup {
+  string provider_id = 1;
+  ProviderSearchStatus status = 2;
+  repeated PlayableTrack tracks = 3;
+  string next_page_token = 4;
+}
+
+// DirectAudioPlayback is a short-lived browser-compatible audio URL.
+message DirectAudioPlayback {
+  string url = 1;
+  string content_type = 2;
+  PlaybackQuality quality = 3;
+}
+
+// ProviderSdkPlayback identifies content played through a provider browser SDK.
+message ProviderSdkPlayback {
+  string sdk_id = 1;
+  string resource_uri = 2;
+}
+
+// PlaybackDescriptor selects the source-specific playback implementation.
+message PlaybackDescriptor {
+  string provider_id = 1;
+  google.protobuf.Timestamp expire_time = 2;
+  oneof playback {
+    DirectAudioPlayback direct_audio = 3;
+    ProviderSdkPlayback provider_sdk = 4;
+  }
+}
+
+// Lyric contains provider-supplied text without cross-provider substitution.
+message Lyric {
+  string plain_text = 1;
+  string synced_text = 2;
+  string translated_text = 3;
+}

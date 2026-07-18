@@ -1,0 +1,159 @@
+name: cloud-drive
+
+x-app-image: &app-image
+  build:
+    context: .
+    dockerfile: api/Dockerfile
+  image: "${CLOUD_DRIVE_IMAGE:-cloud-drive:local}"
+
+services:
+  postgres:
+    image: "${POSTGRES_IMAGE:-postgres:18.4-alpine}"
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:?POSTGRES_DB is required}"
+      POSTGRES_USER: "${POSTGRES_USER:?POSTGRES_USER is required}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+      PGDATA: /var/lib/postgresql/18/docker
+    volumes:
+      - type: bind
+        source: "${CLOUD_DRIVE_POSTGRES_DIR:?CLOUD_DRIVE_POSTGRES_DIR is required}"
+        target: /var/lib/postgresql
+        bind:
+          create_host_path: false
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - backend
+
+  migrate:
+    <<: *app-image
+    command: ["/usr/local/bin/cloud-drive-migrate"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgres://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}?sslmode=disable"
+      DATA_ROOT: /var/lib/cloud-drive
+    volumes:
+      - type: bind
+        source: "${CLOUD_DRIVE_DATA_DIR:?CLOUD_DRIVE_DATA_DIR is required}"
+        target: /var/lib/cloud-drive
+        bind:
+          create_host_path: false
+    networks:
+      - backend
+
+  api:
+    <<: *app-image
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: "postgres://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}?sslmode=disable"
+      DATA_ROOT: /var/lib/cloud-drive
+      RESERVED_FREE_BYTES: "${RESERVED_FREE_BYTES:-21474836480}"
+      LISTEN_ADDR: ":8080"
+      PASSWORD_HASH_BASE64: "${PASSWORD_HASH_BASE64:?PASSWORD_HASH_BASE64 is required}"
+      SESSION_SECRET: "${SESSION_SECRET:?SESSION_SECRET is required}"
+      MUSIC_PROVIDER_CREDENTIAL_KEY: "${MUSIC_PROVIDER_CREDENTIAL_KEY:?MUSIC_PROVIDER_CREDENTIAL_KEY is required}"
+      PRIVATE_APP_ORIGINS: "${PRIVATE_APP_ORIGINS:?PRIVATE_APP_ORIGINS is required}"
+      PUBLIC_APP_ORIGINS: "${PUBLIC_APP_ORIGINS:?PUBLIC_APP_ORIGINS is required}"
+      SHARE_APP_ORIGIN: "${SHARE_APP_ORIGIN:?SHARE_APP_ORIGIN is required}"
+      MUSIC_APP_ORIGIN: "${MUSIC_APP_ORIGIN:?MUSIC_APP_ORIGIN is required}"
+      PRIVATE_API_HOST: "${PRIVATE_API_HOST:?PRIVATE_API_HOST is required}"
+      PUBLIC_API_HOST: "${PUBLIC_API_HOST:?PUBLIC_API_HOST is required}"
+      SPOTIFY_CLIENT_ID: "${SPOTIFY_CLIENT_ID:-}"
+      SPOTIFY_CLIENT_SECRET: "${SPOTIFY_CLIENT_SECRET:-}"
+    volumes:
+      - type: bind
+        source: "${CLOUD_DRIVE_DATA_DIR:?CLOUD_DRIVE_DATA_DIR is required}"
+        target: /var/lib/cloud-drive
+        bind:
+          create_host_path: false
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    networks:
+      - backend
+      - edge
+
+  worker:
+    <<: *app-image
+    command: ["/usr/local/bin/cloud-drive-worker"]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: "postgres://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}?sslmode=disable"
+      DATA_ROOT: /var/lib/cloud-drive
+      MUSIC_PROVIDER_CREDENTIAL_KEY: "${MUSIC_PROVIDER_CREDENTIAL_KEY:?MUSIC_PROVIDER_CREDENTIAL_KEY is required}"
+      RESERVED_FREE_BYTES: "${RESERVED_FREE_BYTES:-21474836480}"
+      PRIVATE_API_HOST: "${PRIVATE_API_HOST:?PRIVATE_API_HOST is required}"
+      SPOTIFY_CLIENT_ID: "${SPOTIFY_CLIENT_ID:-}"
+      SPOTIFY_CLIENT_SECRET: "${SPOTIFY_CLIENT_SECRET:-}"
+    volumes:
+      - type: bind
+        source: "${CLOUD_DRIVE_DATA_DIR:?CLOUD_DRIVE_DATA_DIR is required}"
+        target: /var/lib/cloud-drive
+        bind:
+          create_host_path: false
+    networks:
+      - backend
+      - provider-egress
+
+  cloudflared:
+    image: "${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.6.0}"
+    command:
+      - tunnel
+      - --metrics
+      - 127.0.0.1:2000
+      - run
+    environment:
+      TUNNEL_TOKEN_FILE: /run/secrets/cloudflare_tunnel_token
+    secrets:
+      - source: cloudflare_tunnel_token
+        target: cloudflare_tunnel_token
+        uid: "65532"
+        gid: "65532"
+        mode: 0o400
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "127.0.0.1:2000", "ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 15s
+    networks:
+      - edge
+
+networks:
+  backend:
+    internal: true
+  edge:
+  provider-egress:
+
+secrets:
+  cloudflare_tunnel_token:
+    environment: TUNNEL_TOKEN

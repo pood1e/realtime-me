@@ -1,0 +1,35 @@
+{
+  "name": "@cloud-drive/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.12.1",
+    "@cloud-drive/contracts": "workspace:*",
+    "@connectrpc/connect": "^2.1.2",
+    "@connectrpc/connect-web": "^2.1.2",
+    "@tanstack/react-query": "^5.101.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.22.0",
+    "radix-ui": "^1.6.2",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.4.0"
+  },
+  "peerDependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3"
+  }
+}

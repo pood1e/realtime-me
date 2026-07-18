@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package cloud.content.v1;
+
+import "cloud/content/v1/upload.proto";
+
+option go_package = "example.com/cloud-drive/api/gen/cloud/content/v1;contentv1";
+
+// ContentUploadService manages application-neutral resumable uploads.
+service ContentUploadService {
+  // StartUpload creates an active upload session.
+  rpc StartUpload(StartUploadRequest) returns (StartUploadResponse);
+  // GetUpload returns upload state and acknowledged ranges.
+  rpc GetUpload(GetUploadRequest) returns (GetUploadResponse);
+  // FinalizeUpload queues hashing and publication after every byte is present.
+  rpc FinalizeUpload(FinalizeUploadRequest) returns (FinalizeUploadResponse);
+  // AbandonUpload removes an unclaimed upload.
+  rpc AbandonUpload(AbandonUploadRequest) returns (AbandonUploadResponse);
+}
+
+// StartUploadRequest describes a browser-selected file.
+message StartUploadRequest {
+  // file_name is the original basename.
+  string file_name = 1;
+  // content_type is a media type hint and is not trusted for authorization.
+  string content_type = 2;
+  // total_size_bytes is the exact expected size.
+  int64 total_size_bytes = 3;
+}
+
+// StartUploadResponse returns the active upload and raw chunk endpoint.
+message StartUploadResponse {
+  // upload is the created session.
+  Upload upload = 1;
+  // chunk_url is the relative raw-byte endpoint.
+  string chunk_url = 2;
+}
+
+// GetUploadRequest identifies an upload session.
+message GetUploadRequest {
+  // upload_uid is the opaque upload identifier.
+  string upload_uid = 1;
+}
+
+// GetUploadResponse returns current upload state.
+message GetUploadResponse {
+  // upload is the current session.
+  Upload upload = 1;
+}
+
+// FinalizeUploadRequest identifies one complete active upload.
+message FinalizeUploadRequest {
+  string upload_uid = 1;
+}
+
+// FinalizeUploadResponse returns the queued finalization state.
+message FinalizeUploadResponse {
+  Upload upload = 1;
+}
+
+// WriteUploadChunkResponse is the raw chunk endpoint's JSON response.
+message WriteUploadChunkResponse {
+  // upload is the session after acknowledgement.
+  Upload upload = 1;
+}
+
+// AbandonUploadRequest identifies an active upload to remove.
+message AbandonUploadRequest {
+  // upload_uid identifies the upload.
+  string upload_uid = 1;
+}
+
+// AbandonUploadResponse confirms removal.
+message AbandonUploadResponse {}

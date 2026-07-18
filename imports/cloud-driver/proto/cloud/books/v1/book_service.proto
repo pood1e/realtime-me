@@ -1,0 +1,145 @@
+syntax = "proto3";
+
+package cloud.books.v1;
+
+import "cloud/books/v1/book.proto";
+
+option go_package = "example.com/cloud-drive/api/gen/cloud/books/v1;booksv1";
+
+// BookService manages the private publication catalog and reading state.
+service BookService {
+  // GetBook returns one visible book.
+  rpc GetBook(GetBookRequest) returns (GetBookResponse);
+  // ListBooks lists visible or trashed books.
+  rpc ListBooks(ListBooksRequest) returns (ListBooksResponse);
+  // ImportBook claims an upload as a PDF or EPUB publication.
+  rpc ImportBook(ImportBookRequest) returns (ImportBookResponse);
+  // UpdateBook replaces owner-editable metadata.
+  rpc UpdateBook(UpdateBookRequest) returns (UpdateBookResponse);
+  // DeleteBook moves a book to the trash.
+  rpc DeleteBook(DeleteBookRequest) returns (DeleteBookResponse);
+  // RestoreBook restores a trashed book.
+  rpc RestoreBook(RestoreBookRequest) returns (RestoreBookResponse);
+  // PurgeBook permanently removes a trashed book.
+  rpc PurgeBook(PurgeBookRequest) returns (PurgeBookResponse);
+  // EmptyBookTrash permanently removes every trashed book.
+  rpc EmptyBookTrash(EmptyBookTrashRequest) returns (EmptyBookTrashResponse);
+  // RetryBookProcessing requeues failed metadata extraction.
+  rpc RetryBookProcessing(RetryBookProcessingRequest) returns (RetryBookProcessingResponse);
+  // GetReadingProgress returns the latest reader position.
+  rpc GetReadingProgress(GetReadingProgressRequest) returns (GetReadingProgressResponse);
+  // UpdateReadingProgress stores the latest reader position.
+  rpc UpdateReadingProgress(UpdateReadingProgressRequest) returns (UpdateReadingProgressResponse);
+  // ListShelves lists named collections.
+  rpc ListShelves(ListShelvesRequest) returns (ListShelvesResponse);
+  // CreateShelf creates a named collection.
+  rpc CreateShelf(CreateShelfRequest) returns (CreateShelfResponse);
+  // DeleteShelf deletes a collection without deleting books.
+  rpc DeleteShelf(DeleteShelfRequest) returns (DeleteShelfResponse);
+  // AddBookToShelf adds one membership.
+  rpc AddBookToShelf(AddBookToShelfRequest) returns (AddBookToShelfResponse);
+  // RemoveBookFromShelf removes one membership.
+  rpc RemoveBookFromShelf(RemoveBookFromShelfRequest) returns (RemoveBookFromShelfResponse);
+}
+
+message GetBookRequest {
+  string book_uid = 1;
+}
+message GetBookResponse {
+  Book book = 1;
+}
+
+message ListBooksRequest {
+  string query = 1;
+  string shelf_uid = 2;
+  BookFormat format = 3;
+  bool trashed = 4;
+  int32 page_size = 5;
+  string page_token = 6;
+}
+message ListBooksResponse {
+  repeated Book books = 1;
+  string next_page_token = 2;
+}
+
+message ImportBookRequest {
+  string upload_uid = 1;
+}
+message ImportBookResponse {
+  Book book = 1;
+}
+
+message UpdateBookRequest {
+  string book_uid = 1;
+  string title = 2;
+  repeated string authors = 3;
+  string series = 4;
+  string series_number = 5;
+  string description = 6;
+}
+message UpdateBookResponse {
+  Book book = 1;
+}
+
+message DeleteBookRequest {
+  string book_uid = 1;
+}
+message DeleteBookResponse {
+  Book book = 1;
+}
+message RestoreBookRequest {
+  string book_uid = 1;
+}
+message RestoreBookResponse {
+  Book book = 1;
+}
+message PurgeBookRequest {
+  string book_uid = 1;
+}
+message PurgeBookResponse {}
+message EmptyBookTrashRequest {}
+message EmptyBookTrashResponse {}
+message RetryBookProcessingRequest {
+  string book_uid = 1;
+}
+message RetryBookProcessingResponse {
+  Book book = 1;
+}
+
+message GetReadingProgressRequest {
+  string book_uid = 1;
+}
+message GetReadingProgressResponse {
+  ReadingProgress reading_progress = 1;
+}
+message UpdateReadingProgressRequest {
+  ReadingProgress reading_progress = 1;
+}
+message UpdateReadingProgressResponse {
+  ReadingProgress reading_progress = 1;
+}
+
+message ListShelvesRequest {}
+message ListShelvesResponse {
+  repeated Shelf shelves = 1;
+}
+message CreateShelfRequest {
+  string display_name = 1;
+}
+message CreateShelfResponse {
+  Shelf shelf = 1;
+}
+message DeleteShelfRequest {
+  string shelf_uid = 1;
+}
+message DeleteShelfResponse {}
+message AddBookToShelfRequest {
+  string shelf_uid = 1;
+  string book_uid = 2;
+}
+message AddBookToShelfResponse {}
+message RemoveBookFromShelfRequest {
+  string shelf_uid = 1;
+  string book_uid = 2;
+}
+message RemoveBookFromShelfResponse {}

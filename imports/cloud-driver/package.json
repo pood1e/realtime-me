@@ -1,0 +1,23 @@
+{
+  "name": "cloud-drive",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.10.0",
+  "scripts": {
+    "build:web": "pnpm --recursive --if-present build",
+    "typecheck:web": "pnpm --recursive --if-present typecheck",
+    "dev:auth": "pnpm --filter @cloud-drive/auth dev",
+    "dev:drive": "pnpm --filter @cloud-drive/drive dev",
+    "dev:books": "pnpm --filter @cloud-drive/books dev",
+    "dev:music": "pnpm --filter @cloud-drive/music dev",
+    "dev:images": "pnpm --filter @cloud-drive/images dev",
+    "dev:wallpapers": "pnpm --filter @cloud-drive/wallpapers dev",
+    "dev:share": "pnpm --filter @cloud-drive/share dev",
+    "format:web": "prettier --write 'web/apps/**/*.{ts,tsx,css,json,html}' 'web/packages/shared/**/*.{ts,tsx,css,json}' 'web/build/**/*.ts'"
+  },
+  "devDependencies": {
+    "prettier": "3.9.5",
+    "vite": "8.1.3",
+    "wrangler": "^4.110.0"
+  }
+}

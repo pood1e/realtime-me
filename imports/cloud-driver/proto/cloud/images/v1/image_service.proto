@@ -1,0 +1,115 @@
+syntax = "proto3";
+
+package cloud.images.v1;
+
+import "cloud/images/v1/image.proto";
+
+option go_package = "example.com/cloud-drive/api/gen/cloud/images/v1;imagesv1";
+
+// ImageService manages private images, albums, and anonymous links.
+service ImageService {
+  rpc GetImage(GetImageRequest) returns (GetImageResponse);
+  rpc ListImages(ListImagesRequest) returns (ListImagesResponse);
+  rpc ImportImage(ImportImageRequest) returns (ImportImageResponse);
+  rpc UpdateImage(UpdateImageRequest) returns (UpdateImageResponse);
+  rpc DeleteImage(DeleteImageRequest) returns (DeleteImageResponse);
+  rpc RestoreImage(RestoreImageRequest) returns (RestoreImageResponse);
+  rpc PurgeImage(PurgeImageRequest) returns (PurgeImageResponse);
+  rpc EmptyImageTrash(EmptyImageTrashRequest) returns (EmptyImageTrashResponse);
+  rpc RetryImageProcessing(RetryImageProcessingRequest) returns (RetryImageProcessingResponse);
+  rpc ListImageAlbums(ListImageAlbumsRequest) returns (ListImageAlbumsResponse);
+  rpc CreateImageAlbum(CreateImageAlbumRequest) returns (CreateImageAlbumResponse);
+  rpc DeleteImageAlbum(DeleteImageAlbumRequest) returns (DeleteImageAlbumResponse);
+  rpc ListImageLinks(ListImageLinksRequest) returns (ListImageLinksResponse);
+  rpc CreateImageLink(CreateImageLinkRequest) returns (CreateImageLinkResponse);
+  rpc RevokeImageLink(RevokeImageLinkRequest) returns (RevokeImageLinkResponse);
+}
+
+message GetImageRequest {
+  string image_uid = 1;
+}
+message GetImageResponse {
+  Image image = 1;
+}
+message ListImagesRequest {
+  string query = 1;
+  string album_uid = 2;
+  bool trashed = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+message ListImagesResponse {
+  repeated Image images = 1;
+  string next_page_token = 2;
+}
+message ImportImageRequest {
+  string upload_uid = 1;
+  string album_uid = 2;
+}
+message ImportImageResponse {
+  Image image = 1;
+}
+message UpdateImageRequest {
+  string image_uid = 1;
+  string display_name = 2;
+  string album_uid = 3;
+}
+message UpdateImageResponse {
+  Image image = 1;
+}
+message DeleteImageRequest {
+  string image_uid = 1;
+}
+message DeleteImageResponse {
+  Image image = 1;
+}
+message RestoreImageRequest {
+  string image_uid = 1;
+}
+message RestoreImageResponse {
+  Image image = 1;
+}
+message PurgeImageRequest {
+  string image_uid = 1;
+}
+message PurgeImageResponse {}
+message EmptyImageTrashRequest {}
+message EmptyImageTrashResponse {}
+message RetryImageProcessingRequest {
+  string image_uid = 1;
+}
+message RetryImageProcessingResponse {
+  Image image = 1;
+}
+message ListImageAlbumsRequest {}
+message ListImageAlbumsResponse {
+  repeated ImageAlbum albums = 1;
+}
+message CreateImageAlbumRequest {
+  string display_name = 1;
+}
+message CreateImageAlbumResponse {
+  ImageAlbum album = 1;
+}
+message DeleteImageAlbumRequest {
+  string album_uid = 1;
+}
+message DeleteImageAlbumResponse {}
+message ListImageLinksRequest {
+  string image_uid = 1;
+}
+message ListImageLinksResponse {
+  repeated ImageLink image_links = 1;
+}
+message CreateImageLinkRequest {
+  string image_uid = 1;
+}
+message CreateImageLinkResponse {
+  ImageLink image_link = 1;
+}
+message RevokeImageLinkRequest {
+  string image_link_uid = 1;
+}
+message RevokeImageLinkResponse {
+  ImageLink image_link = 1;
+}

@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package cloud.auth.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "example.com/cloud-drive/api/gen/cloud/auth/v1;authv1";
+
+// SessionService authenticates the single owner and manages the shared browser session.
+service SessionService {
+  // Login verifies the owner password and starts a shared session.
+  rpc Login(LoginRequest) returns (LoginResponse);
+  // Logout ends the shared browser session.
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  // GetSession returns the current authenticated session.
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+}
+
+// LoginRequest carries the owner password and optional validated return URL.
+message LoginRequest {
+  // password is never persisted or returned.
+  string password = 1;
+  // return_url is an absolute URL below an allowed private application origin.
+  string return_url = 2;
+}
+
+// LoginResponse confirms authentication and returns the validated destination.
+message LoginResponse {
+  // return_url is empty when the request did not include a destination.
+  string return_url = 1;
+}
+
+// LogoutRequest ends the session carried by the request cookie.
+message LogoutRequest {}
+
+// LogoutResponse confirms that the session cookie was cleared.
+message LogoutResponse {}
+
+// GetSessionRequest reads the session carried by the request cookie.
+message GetSessionRequest {}
+
+// GetSessionResponse describes the verified session lifetime.
+message GetSessionResponse {
+  // expire_time is when the current session stops being valid.
+  google.protobuf.Timestamp expire_time = 1;
+}
