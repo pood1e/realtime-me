@@ -23,18 +23,36 @@ const ScrapeJob$json = {
   '1': 'ScrapeJob',
   '2': [
     {'1': 'SCRAPE_JOB_UNSPECIFIED', '2': 0},
-    {'1': 'SCRAPE_JOB_NODE_EXPORTER', '2': 1},
-    {'1': 'SCRAPE_JOB_VM_NODE_EXPORTER', '2': 2},
-    {'1': 'SCRAPE_JOB_DEVICE_EXPORTER', '2': 3},
-    {'1': 'SCRAPE_JOB_AGENT_EXPORTER', '2': 4},
+    {
+      '1': 'SCRAPE_JOB_NODE_EXPORTER',
+      '2': 1,
+      '3': {'1': true},
+    },
+    {
+      '1': 'SCRAPE_JOB_VM_NODE_EXPORTER',
+      '2': 2,
+      '3': {'1': true},
+    },
+    {
+      '1': 'SCRAPE_JOB_DEVICE_EXPORTER',
+      '2': 3,
+      '3': {'1': true},
+    },
+    {
+      '1': 'SCRAPE_JOB_AGENT_EXPORTER',
+      '2': 4,
+      '3': {'1': true},
+    },
+    {'1': 'SCRAPE_JOB_PROBE', '2': 5},
   ],
 };
 
 /// Descriptor for `ScrapeJob`. Decode as a `google.protobuf.EnumDescriptorProto`.
 final $typed_data.Uint8List scrapeJobDescriptor = $convert.base64Decode(
-    'CglTY3JhcGVKb2ISGgoWU0NSQVBFX0pPQl9VTlNQRUNJRklFRBAAEhwKGFNDUkFQRV9KT0JfTk'
-    '9ERV9FWFBPUlRFUhABEh8KG1NDUkFQRV9KT0JfVk1fTk9ERV9FWFBPUlRFUhACEh4KGlNDUkFQ'
-    'RV9KT0JfREVWSUNFX0VYUE9SVEVSEAMSHQoZU0NSQVBFX0pPQl9BR0VOVF9FWFBPUlRFUhAE');
+    'CglTY3JhcGVKb2ISGgoWU0NSQVBFX0pPQl9VTlNQRUNJRklFRBAAEiAKGFNDUkFQRV9KT0JfTk'
+    '9ERV9FWFBPUlRFUhABGgIIARIjChtTQ1JBUEVfSk9CX1ZNX05PREVfRVhQT1JURVIQAhoCCAES'
+    'IgoaU0NSQVBFX0pPQl9ERVZJQ0VfRVhQT1JURVIQAxoCCAESIQoZU0NSQVBFX0pPQl9BR0VOVF'
+    '9FWFBPUlRFUhAEGgIIARIUChBTQ1JBUEVfSk9CX1BST0JFEAU=');
 
 @$core.Deprecated('Use enrollDeviceRequestDescriptor instead')
 const EnrollDeviceRequest$json = {

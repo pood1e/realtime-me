@@ -118,18 +118,10 @@ func githubStateString(state mev1.GithubSyncState) string {
 }
 
 func parseScrapeJob(value string) (mev1.ScrapeJob, bool) {
-	switch value {
-	case "node-exporter":
-		return mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER, true
-	case "vm-node-exporter":
-		return mev1.ScrapeJob_SCRAPE_JOB_VM_NODE_EXPORTER, true
-	case "device-exporter":
-		return mev1.ScrapeJob_SCRAPE_JOB_DEVICE_EXPORTER, true
-	case "agent-exporter":
-		return mev1.ScrapeJob_SCRAPE_JOB_AGENT_EXPORTER, true
-	default:
-		return mev1.ScrapeJob_SCRAPE_JOB_UNSPECIFIED, false
+	if value == probeScrapeJobName {
+		return mev1.ScrapeJob_SCRAPE_JOB_PROBE, true
 	}
+	return mev1.ScrapeJob_SCRAPE_JOB_UNSPECIFIED, false
 }
 
 func firstString(primary string, fallback string) string {

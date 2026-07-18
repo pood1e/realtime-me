@@ -20,21 +20,29 @@ class ScrapeJob extends $pb.ProtobufEnum {
   static const ScrapeJob SCRAPE_JOB_UNSPECIFIED =
       ScrapeJob._(0, _omitEnumNames ? '' : 'SCRAPE_JOB_UNSPECIFIED');
 
-  /// Linux node-exporter on a physical host.
+  /// Retired multi-exporter node job.
+  @$core.Deprecated('This enum value is deprecated')
   static const ScrapeJob SCRAPE_JOB_NODE_EXPORTER =
       ScrapeJob._(1, _omitEnumNames ? '' : 'SCRAPE_JOB_NODE_EXPORTER');
 
-  /// Linux node-exporter on a virtual machine.
+  /// Retired multi-exporter virtual-machine job.
+  @$core.Deprecated('This enum value is deprecated')
   static const ScrapeJob SCRAPE_JOB_VM_NODE_EXPORTER =
       ScrapeJob._(2, _omitEnumNames ? '' : 'SCRAPE_JOB_VM_NODE_EXPORTER');
 
-  /// Device exporter for media and accessory signals.
+  /// Retired media and accessory job.
+  @$core.Deprecated('This enum value is deprecated')
   static const ScrapeJob SCRAPE_JOB_DEVICE_EXPORTER =
       ScrapeJob._(3, _omitEnumNames ? '' : 'SCRAPE_JOB_DEVICE_EXPORTER');
 
-  /// Coding-agent exporter.
+  /// Retired coding-agent job.
+  @$core.Deprecated('This enum value is deprecated')
   static const ScrapeJob SCRAPE_JOB_AGENT_EXPORTER =
       ScrapeJob._(4, _omitEnumNames ? '' : 'SCRAPE_JOB_AGENT_EXPORTER');
+
+  /// Unified Linux, macOS, and Windows probe.
+  static const ScrapeJob SCRAPE_JOB_PROBE =
+      ScrapeJob._(5, _omitEnumNames ? '' : 'SCRAPE_JOB_PROBE');
 
   static const $core.List<ScrapeJob> values = <ScrapeJob>[
     SCRAPE_JOB_UNSPECIFIED,
@@ -42,10 +50,11 @@ class ScrapeJob extends $pb.ProtobufEnum {
     SCRAPE_JOB_VM_NODE_EXPORTER,
     SCRAPE_JOB_DEVICE_EXPORTER,
     SCRAPE_JOB_AGENT_EXPORTER,
+    SCRAPE_JOB_PROBE,
   ];
 
   static final $core.List<ScrapeJob?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 4);
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
   static ScrapeJob? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

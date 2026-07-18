@@ -580,9 +580,9 @@ class EnrollmentServiceApi {
 }
 
 /// IngestService accepts the phone's push and the operator's scrape-target
-/// registration. Hosts, virtual machines, and coding agents are never pushed:
-/// they run read-only exporters that Prometheus discovers and scrapes. Only the
-/// phone pushes, because it cannot be scraped.
+/// registration. Hosts and virtual machines are never pushed: each runs one
+/// read-only, cross-platform probe that Prometheus discovers and scrapes. Only
+/// the phone pushes, because it cannot be scraped.
 class IngestServiceApi {
   final $pb.RpcClient _client;
 

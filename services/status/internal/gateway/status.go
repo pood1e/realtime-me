@@ -43,7 +43,7 @@ type prometheusCache struct {
 }
 
 // buildPublicStatus assembles the unauthenticated status document. Hosts, VMs,
-// and agents come from Prometheus, which scrapes their exporters. Only the
+// and agents come from Prometheus, which scrapes each host's unified probe. Only the
 // phones are pushed, because they cannot be scraped.
 func (server *StatusServer) buildPublicStatus(ctx context.Context) *mev1.PublicStatus {
 	snapshot := server.store.Snapshot()
@@ -84,7 +84,7 @@ func (server *StatusServer) derivedStatus(ctx context.Context, now time.Time) de
 	var fresh derivedStatus
 	parallel(
 		func() { fresh.server = namedServer(server.prometheus.ServerStatus(queryCtx, media, accessories)) },
-		func() { fresh.devices = server.prometheus.NodeExporterStatuses(queryCtx, media, accessories) },
+		func() { fresh.devices = server.prometheus.ProbeStatuses(queryCtx, media, accessories) },
 		func() { fresh.agents = server.visibleAgents(queryCtx, now) },
 	)
 
@@ -148,7 +148,7 @@ func freshMobile(mobile *mev1.MobileState, now time.Time) *mev1.MobileState {
 	return mobile
 }
 
-// namedServer gives the always-on server a label when node_exporter supplies no
+// namedServer gives the always-on server a label when node-exporter supplies no
 // hostname, so the card never renders untitled.
 func namedServer(server *mev1.DeviceState) *mev1.DeviceState {
 	if server != nil && server.GetDisplayName() == "" {

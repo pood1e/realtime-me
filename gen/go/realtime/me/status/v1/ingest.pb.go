@@ -27,14 +27,24 @@ type ScrapeJob int32
 const (
 	// Job is not known.
 	ScrapeJob_SCRAPE_JOB_UNSPECIFIED ScrapeJob = 0
-	// Linux node-exporter on a physical host.
+	// Retired multi-exporter node job.
+	//
+	// Deprecated: Marked as deprecated in realtime/me/status/v1/ingest.proto.
 	ScrapeJob_SCRAPE_JOB_NODE_EXPORTER ScrapeJob = 1
-	// Linux node-exporter on a virtual machine.
+	// Retired multi-exporter virtual-machine job.
+	//
+	// Deprecated: Marked as deprecated in realtime/me/status/v1/ingest.proto.
 	ScrapeJob_SCRAPE_JOB_VM_NODE_EXPORTER ScrapeJob = 2
-	// Device exporter for media and accessory signals.
+	// Retired media and accessory job.
+	//
+	// Deprecated: Marked as deprecated in realtime/me/status/v1/ingest.proto.
 	ScrapeJob_SCRAPE_JOB_DEVICE_EXPORTER ScrapeJob = 3
-	// Coding-agent exporter.
+	// Retired coding-agent job.
+	//
+	// Deprecated: Marked as deprecated in realtime/me/status/v1/ingest.proto.
 	ScrapeJob_SCRAPE_JOB_AGENT_EXPORTER ScrapeJob = 4
+	// Unified Linux, macOS, and Windows probe.
+	ScrapeJob_SCRAPE_JOB_PROBE ScrapeJob = 5
 )
 
 // Enum value maps for ScrapeJob.
@@ -45,6 +55,7 @@ var (
 		2: "SCRAPE_JOB_VM_NODE_EXPORTER",
 		3: "SCRAPE_JOB_DEVICE_EXPORTER",
 		4: "SCRAPE_JOB_AGENT_EXPORTER",
+		5: "SCRAPE_JOB_PROBE",
 	}
 	ScrapeJob_value = map[string]int32{
 		"SCRAPE_JOB_UNSPECIFIED":      0,
@@ -52,6 +63,7 @@ var (
 		"SCRAPE_JOB_VM_NODE_EXPORTER": 2,
 		"SCRAPE_JOB_DEVICE_EXPORTER":  3,
 		"SCRAPE_JOB_AGENT_EXPORTER":   4,
+		"SCRAPE_JOB_PROBE":            5,
 	}
 )
 
@@ -511,13 +523,14 @@ const file_realtime_me_status_v1_ingest_proto_rawDesc = "" +
 	"\fScrapeTarget\x122\n" +
 	"\x03job\x18\x01 \x01(\x0e2 .realtime.me.status.v1.ScrapeJobR\x03job\x12\x16\n" +
 	"\x06target\x18\x02 \x01(\tR\x06targetJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bR\n" +
-	"device_uidR\fdisplay_nameR\x05modelR\x04kindR\x04role*\xa5\x01\n" +
+	"device_uidR\fdisplay_nameR\x05modelR\x04kindR\x04role*\xcb\x01\n" +
 	"\tScrapeJob\x12\x1a\n" +
-	"\x16SCRAPE_JOB_UNSPECIFIED\x10\x00\x12\x1c\n" +
-	"\x18SCRAPE_JOB_NODE_EXPORTER\x10\x01\x12\x1f\n" +
-	"\x1bSCRAPE_JOB_VM_NODE_EXPORTER\x10\x02\x12\x1e\n" +
-	"\x1aSCRAPE_JOB_DEVICE_EXPORTER\x10\x03\x12\x1d\n" +
-	"\x19SCRAPE_JOB_AGENT_EXPORTER\x10\x042|\n" +
+	"\x16SCRAPE_JOB_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x18SCRAPE_JOB_NODE_EXPORTER\x10\x01\x1a\x02\b\x01\x12#\n" +
+	"\x1bSCRAPE_JOB_VM_NODE_EXPORTER\x10\x02\x1a\x02\b\x01\x12\"\n" +
+	"\x1aSCRAPE_JOB_DEVICE_EXPORTER\x10\x03\x1a\x02\b\x01\x12!\n" +
+	"\x19SCRAPE_JOB_AGENT_EXPORTER\x10\x04\x1a\x02\b\x01\x12\x14\n" +
+	"\x10SCRAPE_JOB_PROBE\x10\x052|\n" +
 	"\x11EnrollmentService\x12g\n" +
 	"\fEnrollDevice\x12*.realtime.me.status.v1.EnrollDeviceRequest\x1a+.realtime.me.status.v1.EnrollDeviceResponse2\x8f\x02\n" +
 	"\rIngestService\x12y\n" +

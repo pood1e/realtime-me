@@ -39,8 +39,8 @@ message GetInternalStatusResponse {
 
 // DeviceState is a device's current status on a read surface.
 message DeviceState {
-  // Virtual machines are reported as top-level devices, discovered through the
-  // vm-node-exporter scrape job, so a host never nests its guests.
+  // Virtual machines are reported as top-level devices through their own probe
+  // enrollment, so a host never nests its guests.
   reserved 10;
   reserved "children";
 

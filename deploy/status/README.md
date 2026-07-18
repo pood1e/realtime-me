@@ -59,14 +59,14 @@ curl -X POST -H 'Content-Type: application/json' \
 curl http://127.0.0.1:19090/-/ready
 
 # Scrape discovery requires the read token; without it this must return 401.
-curl -o /dev/null -w '%{http_code}\n' "$GATEWAY/api/prometheus/http-sd/node-exporter"
+curl -o /dev/null -w '%{http_code}\n' "$GATEWAY/api/prometheus/http-sd/probe-agent"
 ```
 
-Install an additional Linux probe on that device; register its scrape targets centrally through the gateway API:
+Install the unified probe on a Linux, macOS, or Windows device; register its one scrape target centrally through the gateway API:
 
 ```sh
-curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-linux-probe.sh \
-  | sudo env STATUS_EXPORTER_HOST=<device-lan-ip> bash
+curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-probe.py \
+  | sudo env REALTIME_PROBE_HOST=<device-lan-ip> python3 -
 ```
 
 Open `http://<STATUS_GATEWAY_BIND>:18080/internal` on the LAN for detailed device, metric, GitHub sync, and active-agent status. The page stores the internal access token only in browser local storage.

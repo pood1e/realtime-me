@@ -120,8 +120,8 @@ func (server *IngestServer) RegisterScrapeTargets(
 // validateScrapeTarget refuses anything that is not a bare host:port. Prometheus
 // would otherwise scrape whatever an ingest-token holder wrote here.
 func validateScrapeTarget(target *mev1.ScrapeTarget) error {
-	if target.GetJob() == mev1.ScrapeJob_SCRAPE_JOB_UNSPECIFIED {
-		return errors.New("scrape target job is required")
+	if target.GetJob() != mev1.ScrapeJob_SCRAPE_JOB_PROBE {
+		return errors.New("scrape target job must be SCRAPE_JOB_PROBE")
 	}
 	host, port, err := net.SplitHostPort(target.GetTarget())
 	if err != nil {

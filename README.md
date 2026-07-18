@@ -126,7 +126,7 @@ The debug receiver exists only in debug builds and stores the token through the 
 
 ## Self-hosted status stack
 
-The status stack stores raw time-series data in Prometheus on your own host. Cloudflare only needs to expose the public API/page through a Tunnel or Worker custom domain. Linux host and VM metrics are scraped by Prometheus through node-exporter and HTTP service discovery. Extra device signals, such as the currently playing media title and connected Bluetooth audio accessory battery on macOS/Linux, are scraped from `status-device-reporter.py`.
+The status stack stores raw time-series data in Prometheus on your own host. Cloudflare only needs to expose the public API/page through a Tunnel or Worker custom domain. Linux, macOS, and Windows hosts run one read-only probe that exposes canonical system, device, and coding-agent metrics through HTTP service discovery. The stack's own server continues to use its container-local node-exporter.
 
 Every setting the gateway reads lives in one file, `deploy/status/gateway.yaml`:
 the two bearer tokens, the two kinds of GitHub credential, and the owner's profile.
@@ -186,24 +186,29 @@ IngestService/ReportMobileStatus    # Bearer <STATUS_INGEST_TOKEN> — phone pus
 IngestService/RegisterScrapeTargets # Bearer <STATUS_INGEST_TOKEN> — central device registration
 ```
 
-Probe hosts run only Prometheus exporters and stay unaware of the gateway. Prometheus discovers and pulls them through the gateway's HTTP service discovery, so the probe host needs no gateway URL or ingest token. Install the exporters on the host:
+Probe hosts stay unaware of the gateway. Prometheus discovers and pulls one endpoint through the gateway's HTTP service discovery, so the host needs no gateway URL or ingest token. Python 3.10+ with `pip` is required. Install the same probe on every desktop OS:
 
 ```sh
 # Linux (systemd)
-curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-linux-probe.sh | sudo bash
+curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-probe.py | sudo python3 -
 
 # macOS (run as your login user, not sudo — LaunchAgents and media access are per-user)
-curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-macos-probe.sh | bash
+curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-probe.py | python3 -
+
+# Windows PowerShell (runs as the logged-in user through Task Scheduler)
+irm https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-probe.py | py -3 -
 ```
 
-Then register the host once, from anywhere that can reach the gateway (the installer prints this line with the host and ports filled in):
+Then register the single probe target once, from anywhere that can reach the gateway (the installer prints this line with the host and port filled in):
 
 ```sh
 STATUS_INGEST_TOKEN=... python3 scripts/operator/register-device.py \
   --url http://<gateway-host>:18080 --host <device-lan-ip> --name "<name>" --kind host
 ```
 
-The gateway mints the device's uid and serves it to Prometheus as a service-discovery target label, so the exporters carry no identity of their own. Use `INSTALL_AGENT=1` (installer) plus `--install-agent` (register) when the device should also expose Codex/Claude active-agent state, and `--kind virtual_machine --role vm` (register) for VMs. Media title collection on Linux uses `playerctl` when available, Bluetooth audio accessory discovery uses BlueZ `bluetoothctl`, and on macOS both come from the logged-in user's session. Exporters bind `0.0.0.0` so the gateway can scrape them across the LAN; set `STATUS_EXPORTER_BIND`/`STATUS_EXPORTER_HOST` to override. Only the phone pushes, since it cannot be scraped.
+After upgrading a host from the retired multi-exporter installation, run registration again so its complete target set is replaced by `SCRAPE_JOB_PROBE`.
+
+The gateway mints the device uid and applies it as a service-discovery label, so the probe carries no identity or credential. System and Codex/Claude collection use the same `psutil`-backed implementation on Linux, macOS, and Windows. Linux media uses `playerctl`, Linux Bluetooth uses BlueZ `bluetoothctl`, and macOS reads both from the logged-in session; Windows currently exposes system and coding-agent signals only because it has no stable command-line contract for global media and Bluetooth battery state. Use `--kind virtual_machine --role vm` for VMs. The installer binds `0.0.0.0`; override discovery and listening with `REALTIME_PROBE_HOST` and `REALTIME_PROBE_BIND`. Only the phone pushes, since it cannot be scraped.
 
 
 ## Public status page

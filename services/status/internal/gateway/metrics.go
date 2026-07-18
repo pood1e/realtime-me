@@ -20,8 +20,6 @@ const (
 
 	minMetricRangeStep = time.Second
 	maxMetricRange     = 32 * 24 * time.Hour
-
-	nodeExporterJobs = `job=~"node-exporter|vm-node-exporter"`
 )
 
 // MetricsServer implements the Connect MetricsService. It is the only place a
@@ -90,34 +88,13 @@ func metricRangeWindow(request *mev1.GetMetricRangeRequest) (time.Time, time.Tim
 func metricSeriesQuery(request *mev1.GetMetricRangeRequest) (string, error) {
 	switch request.GetSeries() {
 	case mev1.MetricSeries_METRIC_SERIES_HOST_CPU_UTILIZATION:
-		selector, err := hostSelector(request.GetDeviceUid())
-		if err != nil {
-			return "", err
-		}
-		return fmt.Sprintf(`100 * (1 - avg(rate(node_cpu_seconds_total{%s,mode="idle"}[2m])))`, selector), nil
+		return hostCPUQuery(request.GetDeviceUid())
 
 	case mev1.MetricSeries_METRIC_SERIES_HOST_MEMORY_USAGE:
-		selector, err := hostSelector(request.GetDeviceUid())
-		if err != nil {
-			return "", err
-		}
-		// Linux node_exporter reads /proc/meminfo; the darwin build publishes its
-		// own names and has no MemAvailable, so total and available each fall back
-		// to the darwin equivalents. Without this a Mac's memory chart is empty.
-		total := fmt.Sprintf(`(node_memory_MemTotal_bytes{%s} or node_memory_total_bytes{%s})`, selector, selector)
-		available := fmt.Sprintf(
-			`(node_memory_MemAvailable_bytes{%s} or (node_memory_free_bytes{%s} + ignoring(__name__) node_memory_inactive_bytes{%s}))`,
-			selector, selector, selector,
-		)
-		return total + " - " + available, nil
+		return hostMemoryQuery(request.GetDeviceUid())
 
 	case mev1.MetricSeries_METRIC_SERIES_HOST_FILESYSTEM_UTILIZATION:
-		selector, err := hostSelector(request.GetDeviceUid())
-		if err != nil {
-			return "", err
-		}
-		disk := selector + `,mountpoint="/",fstype!~"tmpfs|overlay|squashfs"`
-		return fmt.Sprintf(`100 * (1 - node_filesystem_avail_bytes{%s} / node_filesystem_size_bytes{%s})`, disk, disk), nil
+		return hostFilesystemQuery(request.GetDeviceUid())
 
 	case mev1.MetricSeries_METRIC_SERIES_PHONE_BATTERY_LEVEL:
 		return deviceBatteryQuery(request.GetDeviceUid(), "phone")
@@ -158,14 +135,54 @@ func metricSeriesQuery(request *mev1.GetMetricRangeRequest) (string, error) {
 	}
 }
 
-// hostSelector targets a host's node_exporter series. Discovery sets `instance`
-// to the device uid; the static server target uses a fixed instance instead.
-func hostSelector(deviceUID string) (string, error) {
+func hostCPUQuery(deviceUID string) (string, error) {
 	instance := strings.TrimSpace(deviceUID)
 	if instance == "" {
 		return "", errors.New("device_uid is required")
 	}
-	return nodeExporterJobs + ",instance=" + promLabelValue(instance), nil
+	if instance == "server" {
+		return `100 * (1 - avg(rate(node_cpu_seconds_total{job="node-exporter",instance="server",mode="idle"}[2m])))`, nil
+	}
+	selector := probeHostSelector(instance)
+	return fmt.Sprintf(`realtime_system_cpu_utilization_ratio{%s} * 100`, selector), nil
+}
+
+func hostMemoryQuery(deviceUID string) (string, error) {
+	instance := strings.TrimSpace(deviceUID)
+	if instance == "" {
+		return "", errors.New("device_uid is required")
+	}
+	if instance == "server" {
+		selector := `job="node-exporter",instance="server"`
+		return fmt.Sprintf(`node_memory_MemTotal_bytes{%s} - node_memory_MemAvailable_bytes{%s}`, selector, selector), nil
+	}
+	selector := probeHostSelector(instance)
+	return fmt.Sprintf(
+		`realtime_system_memory_total_bytes{%s} - realtime_system_memory_available_bytes{%s}`,
+		selector,
+		selector,
+	), nil
+}
+
+func hostFilesystemQuery(deviceUID string) (string, error) {
+	instance := strings.TrimSpace(deviceUID)
+	if instance == "" {
+		return "", errors.New("device_uid is required")
+	}
+	if instance == "server" {
+		selector := `job="node-exporter",instance="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"`
+		return fmt.Sprintf(`100 * (1 - node_filesystem_avail_bytes{%s} / node_filesystem_size_bytes{%s})`, selector, selector), nil
+	}
+	selector := probeHostSelector(instance)
+	return fmt.Sprintf(
+		`100 * (1 - realtime_system_filesystem_available_bytes{%s} / realtime_system_filesystem_total_bytes{%s})`,
+		selector,
+		selector,
+	), nil
+}
+
+func probeHostSelector(instance string) string {
+	return probeJobSelector + `,instance=` + promLabelValue(instance)
 }
 
 func deviceBatteryQuery(deviceUID string, deviceType string) (string, error) {

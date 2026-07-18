@@ -29,14 +29,16 @@ const (
 	metricSystemFilesystemLimit    = "system.filesystem.limit"
 	metricSystemFilesystemUsagePct = "system.filesystem.utilization"
 	maxPrometheusResponseSize      = 4 * 1024 * 1024
+	probeScrapeJobName             = "probe-agent"
+	probeJobSelector               = `job="` + probeScrapeJobName + `"`
 
 	// maxConcurrentPrometheusQueries sizes the idle-connection pool to the widest
 	// concurrent fan-out a single status assembly performs.
 	maxConcurrentPrometheusQueries = 10
 
-	// maxAgentsPerSample bounds how many agents one exporter sample may claim to
+	// maxAgentsPerSample bounds how many agents one probe sample may claim to
 	// be running. The count decides how many messages the unauthenticated status
-	// assembly allocates, and the exporter that supplies it is a process on a
+	// assembly allocates, and the probe that supplies it is a process on a
 	// probe host rather than something this gateway controls.
 	maxAgentsPerSample = 64
 )
@@ -125,43 +127,37 @@ func (client *PrometheusClient) ServerStatus(ctx context.Context, media map[stri
 	}
 }
 
-func (client *PrometheusClient) NodeExporterStatuses(ctx context.Context, media map[string]*mev1.MediaStatus, accessories map[string][]*mev1.Accessory) []*mev1.DeviceState {
-	up := client.queryVector(ctx, `up{job=~"node-exporter|vm-node-exporter",instance!="server"}`)
+func (client *PrometheusClient) ProbeStatuses(ctx context.Context, media map[string]*mev1.MediaStatus, accessories map[string][]*mev1.Accessory) []*mev1.DeviceState {
+	up := client.queryVector(ctx, `up{`+probeJobSelector+`}`)
 	if len(up) == 0 {
 		return nil
 	}
 	var cpuUsage, cpuCores, memoryTotal, memoryAvailable, diskTotal, diskAvailable map[string]*float64
-	var osInfo, unameInfo []prometheusSample
+	var systemInfo []prometheusSample
 	parallel(
 		func() {
-			cpuUsage = samplesByInstance(client.queryVector(ctx, `1 - avg by (instance) (rate(node_cpu_seconds_total{job=~"node-exporter|vm-node-exporter",instance!="server",mode="idle"}[2m]))`))
+			cpuUsage = samplesByInstance(client.queryVector(ctx, `realtime_system_cpu_utilization_ratio{`+probeJobSelector+`}`))
 		},
 		func() {
-			cpuCores = samplesByInstance(client.queryVector(ctx, `count by (instance) (count by (instance, cpu) (node_cpu_seconds_total{job=~"node-exporter|vm-node-exporter",instance!="server",mode="idle"}))`))
-		},
-		// Linux node_exporter names come from /proc/meminfo; the darwin build uses
-		// its own metric names, so fall back to those for macOS nodes. MemAvailable
-		// has no darwin equivalent, so approximate it from reclaimable memory.
-		func() {
-			memoryTotal = samplesByInstance(client.queryVector(ctx, `node_memory_MemTotal_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"} or node_memory_total_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"}`))
+			cpuCores = samplesByInstance(client.queryVector(ctx, `realtime_system_cpu_logical_count{`+probeJobSelector+`}`))
 		},
 		func() {
-			memoryAvailable = samplesByInstance(client.queryVector(ctx, `node_memory_MemAvailable_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"} or (node_memory_free_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"} + ignoring(__name__) node_memory_inactive_bytes{job=~"node-exporter|vm-node-exporter",instance!="server"})`))
+			memoryTotal = samplesByInstance(client.queryVector(ctx, `realtime_system_memory_total_bytes{`+probeJobSelector+`}`))
 		},
 		func() {
-			diskTotal = samplesByInstance(client.queryVector(ctx, `node_filesystem_size_bytes{job=~"node-exporter|vm-node-exporter",instance!="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`))
+			memoryAvailable = samplesByInstance(client.queryVector(ctx, `realtime_system_memory_available_bytes{`+probeJobSelector+`}`))
 		},
 		func() {
-			diskAvailable = samplesByInstance(client.queryVector(ctx, `node_filesystem_avail_bytes{job=~"node-exporter|vm-node-exporter",instance!="server",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}`))
+			diskTotal = samplesByInstance(client.queryVector(ctx, `realtime_system_filesystem_total_bytes{`+probeJobSelector+`}`))
 		},
 		func() {
-			osInfo = client.queryVector(ctx, `node_os_info{job=~"node-exporter|vm-node-exporter",instance!="server"}`)
+			diskAvailable = samplesByInstance(client.queryVector(ctx, `realtime_system_filesystem_available_bytes{`+probeJobSelector+`}`))
 		},
 		func() {
-			unameInfo = client.queryVector(ctx, `node_uname_info{job=~"node-exporter|vm-node-exporter",instance!="server"}`)
+			systemInfo = client.queryVector(ctx, `realtime_system_info{`+probeJobSelector+`}`)
 		},
 	)
-	models := nodeModels(osInfo, unameInfo)
+	models := probeModels(systemInfo)
 
 	devices := make([]*mev1.DeviceState, 0, len(up))
 	for _, sample := range up {
@@ -175,10 +171,6 @@ func (client *PrometheusClient) NodeExporterStatuses(ctx context.Context, media 
 		}
 		kind := parseDeviceKind(firstNonEmpty(sample.Metric["device_kind"], "host"))
 		role := parseDeviceRole(firstNonEmpty(sample.Metric["device_role"], "desktop"))
-		if sample.Metric["job"] == "vm-node-exporter" {
-			kind = parseDeviceKind(firstNonEmpty(sample.Metric["device_kind"], "virtual_machine"))
-			role = parseDeviceRole(firstNonEmpty(sample.Metric["device_role"], "vm"))
-		}
 		devices = append(devices, &mev1.DeviceState{
 			DeviceUid:   deviceUID,
 			DisplayName: deviceName,
@@ -206,7 +198,7 @@ func (client *PrometheusClient) NodeExporterStatuses(ctx context.Context, media 
 }
 
 func (client *PrometheusClient) DeviceMediaStatuses(ctx context.Context) map[string]*mev1.MediaStatus {
-	samples := client.queryVector(ctx, `realtime_device_media_playing{job="device-exporter"} == 1`)
+	samples := client.queryVector(ctx, `realtime_device_media_playing{`+probeJobSelector+`} == 1`)
 	statuses := make(map[string]*mev1.MediaStatus, len(samples))
 	for _, sample := range samples {
 		title := sample.Metric["title"]
@@ -226,8 +218,8 @@ func (client *PrometheusClient) DeviceMediaStatuses(ctx context.Context) map[str
 }
 
 func (client *PrometheusClient) DeviceAccessoryStatuses(ctx context.Context) map[string][]*mev1.Accessory {
-	connected := client.queryVector(ctx, `realtime_device_accessory_connected{job="device-exporter"} == 1`)
-	batteries := client.queryVector(ctx, `realtime_device_accessory_battery_level_ratio{job="device-exporter"}`)
+	connected := client.queryVector(ctx, `realtime_device_accessory_connected{`+probeJobSelector+`} == 1`)
+	batteries := client.queryVector(ctx, `realtime_device_accessory_battery_level_ratio{`+probeJobSelector+`}`)
 	statuses := make(map[string][]*mev1.Accessory, len(connected))
 	byKey := make(map[string]*mev1.Accessory, len(connected)+len(batteries))
 
@@ -265,22 +257,22 @@ func (client *PrometheusClient) DeviceAccessoryStatuses(ctx context.Context) map
 	return statuses
 }
 
-// AgentStatuses expands the exporter's per-model counts into one Agent per agent
+// AgentStatuses expands the probe's per-model counts into one Agent per agent
 // working right now. A host can drive several agents of one kind at once, and
-// each is its own card: the exporter counts them, and the gateway names them.
+// each is its own card: the probe counts them, and the gateway names them.
 // The budget and the sub-agents are reported for the kind rather than for one
 // agent among several, so they are carried by the first agent of that kind.
 func (client *PrometheusClient) AgentStatuses(ctx context.Context) []*mev1.Agent {
 	var runningCounts, budgetSamples, subagentSamples []prometheusSample
 	parallel(
 		func() {
-			runningCounts = client.queryVector(ctx, `realtime_agent_running_count{job="agent-exporter"} > 0`)
+			runningCounts = client.queryVector(ctx, `realtime_agent_running_count{`+probeJobSelector+`} > 0`)
 		},
 		func() {
-			budgetSamples = client.queryVector(ctx, `realtime_agent_budget_remaining_ratio{job="agent-exporter"}`)
+			budgetSamples = client.queryVector(ctx, `realtime_agent_budget_remaining_ratio{`+probeJobSelector+`}`)
 		},
 		func() {
-			subagentSamples = client.queryVector(ctx, `realtime_agent_subagents_running{job="agent-exporter"}`)
+			subagentSamples = client.queryVector(ctx, `realtime_agent_subagents_running{`+probeJobSelector+`}`)
 		},
 	)
 	if len(runningCounts) == 0 {
@@ -325,7 +317,7 @@ func (client *PrometheusClient) AgentStatuses(ctx context.Context) []*mev1.Agent
 	})
 
 	// Once sorted, the first agent of a kind is the one that carries what the
-	// exporter could only report for the kind as a whole.
+	// probe could only report for the kind as a whole.
 	seen := make(map[string]struct{}, len(agents))
 	for _, agent := range agents {
 		key := agent.GetDeviceUid() + "/" + agent.GetKind()
@@ -559,7 +551,7 @@ func samplesByInstance(samples []prometheusSample) map[string]*float64 {
 
 // agentSubagents expands the per-model counts into one Subagent per worker, so a
 // caller can render a sub-agent without knowing how the count was labelled. The
-// exporter emits one series per model, and a zero keeps the series alive rather
+// probe emits one series per model, and a zero keeps the series alive rather
 // than describing a worker.
 func agentSubagents(samples []prometheusSample) map[string][]*mev1.Subagent {
 	subagents := make(map[string][]*mev1.Subagent, len(samples))
@@ -610,6 +602,21 @@ func nodeModels(osInfo []prometheusSample, unameInfo []prometheusSample) map[str
 			continue
 		}
 		models[instance] = firstNonEmpty(sample.Metric["pretty_name"], sample.Metric["name"], models[instance])
+	}
+	return models
+}
+
+func probeModels(systemInfo []prometheusSample) map[string]string {
+	models := make(map[string]string, len(systemInfo))
+	for _, sample := range systemInfo {
+		instance := sample.Metric["instance"]
+		if instance == "" {
+			continue
+		}
+		models[instance] = firstNonEmpty(
+			sample.Metric["model"],
+			joinNonEmpty(" ", sample.Metric["os"], sample.Metric["os_version"], sample.Metric["architecture"]),
+		)
 	}
 	return models
 }

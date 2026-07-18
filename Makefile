@@ -49,5 +49,7 @@ verify-mobile:
 verify-ops:
 	find deploy scripts -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
 	find deploy scripts -type f -name '*.sh' -print0 | xargs -0 shellcheck --severity=warning
+	python3 -m compileall -q scripts
+	cd scripts/probe && diff -u <(find realtime_probe -type f -name '*.py' | LC_ALL=C sort) <(LC_ALL=C sort manifest.txt)
 	PYTHONPATH=deploy/library/operator python3 -B -c 'import compose_expected, compose_policy, compose_rendered_policy, compose_source_policy'
 	python3 -B deploy/library/operator/validate-compose.py source deploy/library/compose.yaml

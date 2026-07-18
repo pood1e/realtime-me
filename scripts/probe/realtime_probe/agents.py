@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""Read-only coding-agent exporter for Prometheus.
+"""Read-only coding-agent collector.
 
 This host is unaware of the gateway. It exposes each agent's run state, model,
 remaining budget and live sub-agent count on /metrics; Prometheus discovers it
@@ -12,9 +11,9 @@ they already write. Task titles, prompts, objectives and sub-agent descriptions
 are never collected -- nothing consumes them, and they are the most sensitive
 thing this host can see.
 """
+
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import re
@@ -27,19 +26,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from status_common import (
-    decode_json,
-    json_response,
-    label_set,
-    run,
-    cached,
-    run_server,
-    text_response,
+from .metrics import MetricFamily, Sample
+from .processes import ProcessSnapshot, open_files, running_processes
+
+UUID_PATTERN = re.compile(
+    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.IGNORECASE
 )
-
-UUID_PATTERN = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.IGNORECASE)
-PROCESS_LINE_PATTERN = re.compile(r"\s*(\d+)\s+(.+)$")
-
 CODEX_FAILED_GOAL_STATES = {"blocked", "usage_limited", "budget_limited"}
 # Codex brackets every turn with a start record and an end record, and persists
 # both whatever else the thread's history mode keeps. It still serialises them
@@ -124,47 +116,28 @@ class ClaudeSession:
     written_at_seconds: float
 
 
-def main() -> int:
-    args = parse_args()
-    routes = {
-        "/healthz": lambda: json_response({"ok": True}),
-        "/metrics": cached(lambda: text_response(render_prometheus_metrics(build_snapshots(args)))),
-    }
-    return run_server(args.bind, args.port, routes)
+class AgentCollector:
+    name = "agents"
 
+    def __init__(
+        self, codex_homes: list[Path], claude_home: Path, active_window_seconds: int
+    ) -> None:
+        self._codex_homes = codex_homes
+        self._claude_home = claude_home
+        self._active_window_seconds = active_window_seconds
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Serve local Claude Code and Codex agent state for Prometheus.")
-    parser.add_argument("--active-window-seconds", type=int, default=int(os.getenv("STATUS_AGENT_ACTIVE_WINDOW_SECONDS", "300")))
-    parser.add_argument("--codex-homes", default=os.getenv("STATUS_CODEX_HOMES", "~/.codex-api:~/.codex"))
-    parser.add_argument("--claude-home", default=os.getenv("STATUS_CLAUDE_HOME", "~/.claude"))
-    parser.add_argument("--bind", default=os.getenv("STATUS_AGENT_EXPORTER_BIND", "127.0.0.1"))
-    parser.add_argument("--port", type=int, default=int(os.getenv("STATUS_AGENT_EXPORTER_PORT", "18082")))
-    return parser.parse_args()
-
-
-def build_snapshots(args: argparse.Namespace) -> list[AgentSnapshot]:
-    now = time.time()
-    processes = running_processes()
-    codex_homes = [expand_path(value) for value in re.split(r"[:;,]", args.codex_homes) if value.strip()]
-    return [
-        codex_snapshot(codex_homes, processes, now, args.active_window_seconds),
-        claude_snapshot(expand_path(args.claude_home), processes, now, args.active_window_seconds),
-    ]
-
-
-def running_processes() -> dict[int, str]:
-    """Map every visible process id to its lowercased command line."""
-    processes = {}
-    for line in run(["ps", "ax", "-o", "pid=,args="]).splitlines():
-        match = PROCESS_LINE_PATTERN.match(line)
-        if not match:
-            continue
-        args = match.group(2).lower()
-        if "agent-status-reporter" in args:
-            continue
-        processes[int(match.group(1))] = args
-    return processes
+    def collect(self) -> tuple[MetricFamily, ...]:
+        now = time.time()
+        processes = running_processes()
+        snapshots = (
+            codex_snapshot(
+                self._codex_homes, processes, now, self._active_window_seconds
+            ),
+            claude_snapshot(
+                self._claude_home, processes, now, self._active_window_seconds
+            ),
+        )
+        return agent_metric_families(snapshots)
 
 
 # --- Codex ------------------------------------------------------------------
@@ -176,7 +149,12 @@ def running_processes() -> dict[int, str]:
 # themselves.
 
 
-def codex_snapshot(homes: list[Path], processes: dict[int, str], now: float, active_window_seconds: int) -> AgentSnapshot:
+def codex_snapshot(
+    homes: list[Path],
+    processes: dict[int, ProcessSnapshot],
+    now: float,
+    active_window_seconds: int,
+) -> AgentSnapshot:
     open_threads = codex_open_threads(homes, processes)
     subagent_ids = codex_subagent_ids(open_threads)
     candidates = codex_candidates(homes, open_threads, now, active_window_seconds)
@@ -184,14 +162,22 @@ def codex_snapshot(homes: list[Path], processes: dict[int, str], now: float, act
     if not agents:
         return AgentSnapshot(kind=CODEX_KIND, state="idle")
 
-    agents.sort(key=lambda item: (item.state != "idle", item.updated_at_seconds), reverse=True)
+    agents.sort(
+        key=lambda item: (item.state != "idle", item.updated_at_seconds), reverse=True
+    )
     top = agents[0]
     return AgentSnapshot(
         kind=CODEX_KIND,
         state=top.state,
         model=top.model,
         agent_models=tuple(sorted(working_models(agents))),
-        subagent_models=tuple(sorted(working_models(item for item in candidates if item.thread_id in subagent_ids))),
+        subagent_models=tuple(
+            sorted(
+                working_models(
+                    item for item in candidates if item.thread_id in subagent_ids
+                )
+            )
+        ),
         budget_remaining_percent=top.budget_remaining_percent,
     )
 
@@ -226,7 +212,9 @@ def codex_rollout_model(rollout: Path) -> str:
             record = decode_json(line)
             if record.get("type") != "turn_context":
                 continue
-            payload = record.get("payload") if isinstance(record.get("payload"), dict) else {}
+            payload = record.get("payload")
+            if not isinstance(payload, dict):
+                return ""
             return str(payload.get("model") or "")
         if size >= file_size(rollout):
             break
@@ -262,14 +250,20 @@ def codex_candidates(
         thread = threads.get(thread_id)
         goal = goals.get(thread_id)
         working, updated_at = codex_activity(rollout, now, active_window_seconds)
-        updated_at = max(thread.updated_at_seconds if thread else 0, goal.updated_at_seconds if goal else 0, updated_at)
+        updated_at = max(
+            thread.updated_at_seconds if thread else 0,
+            goal.updated_at_seconds if goal else 0,
+            updated_at,
+        )
         candidates.append(
             CodexCandidate(
                 thread_id=thread_id,
                 state=codex_state(goal.status if goal else "", working),
                 model=codex_model(thread, rollout),
                 updated_at_seconds=updated_at,
-                budget_remaining_percent=goal.budget_remaining_percent if goal else None,
+                budget_remaining_percent=goal.budget_remaining_percent
+                if goal
+                else None,
             )
         )
     return candidates
@@ -287,13 +281,19 @@ def codex_state(goal_status: str, working: bool) -> str:
 def read_codex_threads(database: Path) -> dict[str, CodexThread]:
     # `model` arrived in a later schema than `threads` itself, and selecting a
     # column that is not there would drop every thread rather than its model.
-    rows = query_sqlite(database, "select id, model, updated_at from threads order by updated_at desc limit 50")
+    rows = query_sqlite(
+        database,
+        "select id, model, updated_at from threads order by updated_at desc limit 50",
+    )
     if not rows:
-        rows = query_sqlite(database, "select id, updated_at from threads order by updated_at desc limit 50")
+        rows = query_sqlite(
+            database,
+            "select id, updated_at from threads order by updated_at desc limit 50",
+        )
     return {
         str(row["id"]).lower(): CodexThread(
             thread_id=str(row["id"]).lower(),
-            model=str(row["model"] or "") if "model" in row.keys() else "",
+            model=str(row["model"] or "") if "model" in row else "",
             updated_at_seconds=epoch_seconds(row["updated_at"]),
         )
         for row in rows
@@ -303,14 +303,17 @@ def read_codex_threads(database: Path) -> dict[str, CodexThread]:
 def read_codex_goals(database: Path) -> dict[str, CodexGoal]:
     rows = query_sqlite(
         database,
-        "select thread_id, status, token_budget, tokens_used, updated_at_ms from thread_goals order by updated_at_ms desc limit 50",
+        "select thread_id, status, token_budget, tokens_used, updated_at_ms "
+        "from thread_goals order by updated_at_ms desc limit 50",
     )
     return {
         str(row["thread_id"]).lower(): CodexGoal(
             thread_id=str(row["thread_id"]).lower(),
             status=str(row["status"] or ""),
             updated_at_seconds=epoch_seconds(row["updated_at_ms"]),
-            budget_remaining_percent=budget_remaining(row["token_budget"], row["tokens_used"]),
+            budget_remaining_percent=budget_remaining(
+                row["token_budget"], row["tokens_used"]
+            ),
         )
         for row in rows
     }
@@ -327,7 +330,11 @@ def codex_subagent_ids(open_threads: dict[str, Path]) -> set[str]:
     seen. Only the parent's id is read: a sub-agent's nickname, its role, and
     what it was asked to do stay on the host.
     """
-    return {thread_id for thread_id, rollout in open_threads.items() if codex_rollout_parent(rollout)}
+    return {
+        thread_id
+        for thread_id, rollout in open_threads.items()
+        if codex_rollout_parent(rollout)
+    }
 
 
 def codex_rollout_parent(rollout: Path) -> str:
@@ -336,14 +343,18 @@ def codex_rollout_parent(rollout: Path) -> str:
     if record.get("type") != "session_meta":
         return ""
     payload = record.get("payload") if isinstance(record.get("payload"), dict) else {}
-    return str(payload.get("parent_thread_id") or "") if isinstance(payload, dict) else ""
+    return (
+        str(payload.get("parent_thread_id") or "") if isinstance(payload, dict) else ""
+    )
 
 
-def codex_open_threads(homes: list[Path], processes: dict[int, str]) -> dict[str, Path]:
+def codex_open_threads(
+    homes: list[Path], processes: dict[int, ProcessSnapshot]
+) -> dict[str, Path]:
     """Map each live Codex thread id to the rollout its process holds open."""
     threads = {}
-    for process_id, args in processes.items():
-        if "codex" not in args:
+    for process_id, process in processes.items():
+        if "codex" not in process.command_line:
             continue
         for path in open_files(process_id):
             if path.suffix != ".jsonl" or "/sessions/" not in path.as_posix():
@@ -357,7 +368,9 @@ def codex_open_threads(homes: list[Path], processes: dict[int, str]) -> dict[str
     return threads
 
 
-def codex_activity(rollout: Path, now: float, active_window_seconds: int) -> tuple[bool, float]:
+def codex_activity(
+    rollout: Path, now: float, active_window_seconds: int
+) -> tuple[bool, float]:
     """Whether this thread is mid-turn, and when it last wrote.
 
     The newest bracket decides: a turn whose start has no end after it is still
@@ -370,7 +383,9 @@ def codex_activity(rollout: Path, now: float, active_window_seconds: int) -> tup
     thread that wedges on a tool call stops writing, and the window retires it.
     """
     written_at = modified_at(rollout)
-    events = [event for event in map(decode_json, reversed(tail_lines(rollout))) if event]
+    events = [
+        event for event in map(decode_json, reversed(tail_lines(rollout))) if event
+    ]
     if events:
         written_at = parse_event_timestamp(events[0].get("timestamp"), written_at)
     for event in events:
@@ -387,14 +402,6 @@ def event_payload_type(event: dict[str, Any]) -> str:
     return str(payload.get("type") or "") if isinstance(payload, dict) else ""
 
 
-def open_files(process_id: int) -> list[Path]:
-    paths = []
-    for line in run(["lsof", "-Fn", "-p", str(process_id)]).splitlines():
-        if line.startswith("n/"):
-            paths.append(Path(line[1:]))
-    return paths
-
-
 # --- Claude Code ------------------------------------------------------------
 #
 # Claude Code appends to its transcripts and closes them again, so no file is
@@ -408,19 +415,30 @@ def open_files(process_id: int) -> list[Path]:
 # separate records, so the tail holds no tool call long before it is done.
 
 
-def claude_snapshot(home: Path, processes: dict[int, str], now: float, active_window_seconds: int) -> AgentSnapshot:
+def claude_snapshot(
+    home: Path,
+    processes: dict[int, ProcessSnapshot],
+    now: float,
+    active_window_seconds: int,
+) -> AgentSnapshot:
     sessions = claude_live_sessions(home, processes)
     if not sessions:
         return AgentSnapshot(kind=CLAUDE_KIND, state="idle")
 
-    subagents = tuple(model for session in sessions for model in claude_subagent_models(session, now))
+    subagents = tuple(
+        model for session in sessions for model in claude_subagent_models(session, now)
+    )
     # `busy` is what a session claims; its transcript is what it did. A background
     # session goes on claiming `busy` while it waits for its next instruction, so
     # the claim alone lights the mascot for as long as the job lives. A turn writes
     # its thinking, its prose and every tool call as it goes, so a session silent
     # for the whole window is not computing -- the window that retires a Codex turn
     # wedged on a tool call retires this one too, and for the same reason.
-    working = [session for session in sessions if session.busy and now - session.written_at_seconds <= active_window_seconds]
+    working = [
+        session
+        for session in sessions
+        if session.busy and now - session.written_at_seconds <= active_window_seconds
+    ]
     newest = max(working or sessions, key=lambda session: session.written_at_seconds)
     state = "running" if working or subagents else "idle"
     model = last_model(newest.transcript)
@@ -439,7 +457,9 @@ def claude_snapshot(home: Path, processes: dict[int, str], now: float, active_wi
     )
 
 
-def claude_live_sessions(home: Path, processes: dict[int, str]) -> list[ClaudeSession]:
+def claude_live_sessions(
+    home: Path, processes: dict[int, ProcessSnapshot]
+) -> list[ClaudeSession]:
     sessions_dir = home / "sessions"
     if not sessions_dir.exists():
         return []
@@ -447,11 +467,14 @@ def claude_live_sessions(home: Path, processes: dict[int, str]) -> list[ClaudeSe
     for path in sessions_dir.glob("*.json"):
         data = read_json_object(path)
         process_id = read_int(data.get("pid"))
-        if "claude" not in processes.get(process_id, ""):
+        process = processes.get(process_id)
+        if process is None or "claude" not in process.command_line:
             continue  # the session file outlives the CLI that wrote it
         if not started_the_process(process_id, str(data.get("procStart") or "")):
             continue  # the pid is live, but the kernel has since handed it to someone else
-        transcript = claude_transcript(home, str(data.get("cwd") or ""), str(data.get("sessionId") or ""))
+        transcript = claude_transcript(
+            home, str(data.get("cwd") or ""), str(data.get("sessionId") or "")
+        )
         if not transcript or not transcript.exists():
             continue
         sessions.append(
@@ -478,7 +501,9 @@ def started_the_process(process_id: int, started_at_ticks: str) -> bool:
     if not started_at_ticks:
         return True
     try:
-        fields = Path(f"/proc/{process_id}/stat").read_text().rpartition(") ")[2].split()
+        fields = (
+            Path(f"/proc/{process_id}/stat").read_text().rpartition(") ")[2].split()
+        )
     except OSError:
         return True
     if len(fields) <= CLAUDE_PROC_STAT_START_TIME_INDEX:
@@ -507,7 +532,9 @@ def claude_subagent_models(session: ClaudeSession, now: float) -> list[str]:
     """
     if not session.subagents_dir.exists():
         return []
-    working = claude_working_task_subagents(session, now) + claude_working_workflow_subagents(session, now)
+    working = claude_working_task_subagents(
+        session, now
+    ) + claude_working_workflow_subagents(session, now)
     return [last_model(transcript) for transcript in sorted(working)]
 
 
@@ -517,7 +544,11 @@ def claude_working_task_subagents(session: ClaudeSession, now: float) -> list[Pa
     if not candidates:
         return []
     stopped_at = claude_stopped_subagents(session.transcript)
-    return [transcript for transcript in candidates if not claude_subagent_finished(transcript, stopped_at)]
+    return [
+        transcript
+        for transcript in candidates
+        if not claude_subagent_finished(transcript, stopped_at)
+    ]
 
 
 def claude_working_workflow_subagents(session: ClaudeSession, now: float) -> list[Path]:
@@ -538,7 +569,11 @@ def claude_working_workflow_subagents(session: ClaudeSession, now: float) -> lis
         if not run.is_dir():
             continue
         returned = claude_returned_workflow_agents(run / CLAUDE_WORKFLOW_JOURNAL)
-        working += [t for t in fresh_subagent_transcripts(run, now) if subagent_id(t) not in returned]
+        working += [
+            t
+            for t in fresh_subagent_transcripts(run, now)
+            if subagent_id(t) not in returned
+        ]
     return working
 
 
@@ -588,7 +623,9 @@ def claude_stopped_subagents(transcript: Path) -> dict[str, float]:
                     continue
                 record = decode_json(raw.decode(errors="ignore"))
                 announced_at = parse_event_timestamp(record.get("timestamp"), 0)
-                for task_id in CLAUDE_TASK_ID_PATTERN.findall(raw.decode(errors="ignore")):
+                for task_id in CLAUDE_TASK_ID_PATTERN.findall(
+                    raw.decode(errors="ignore")
+                ):
                     stopped[task_id] = max(stopped.get(task_id, 0), announced_at)
     except OSError:
         return {}
@@ -599,24 +636,36 @@ def claude_subagent_finished(transcript: Path, stopped_at: dict[str, float]) -> 
     announced_at = stopped_at.get(subagent_id(transcript))
     if announced_at:
         # A write after the announcement means the sub-agent was resumed.
-        return modified_at(transcript) <= announced_at + CLAUDE_SUBAGENT_RESUME_EPSILON_SECONDS
+        return (
+            modified_at(transcript)
+            <= announced_at + CLAUDE_SUBAGENT_RESUME_EPSILON_SECONDS
+        )
     record = last_record(transcript)
-    return record.get("type") == "assistant" and (record.get("message") or {}).get("stop_reason") == "end_turn"
+    return (
+        record.get("type") == "assistant"
+        and (record.get("message") or {}).get("stop_reason") == "end_turn"
+    )
 
 
 def last_model(transcript: Path) -> str:
-    models = re.findall(r'"model":"([^"]+)"', tail_text(transcript, CLAUDE_MODEL_TAIL_BYTES))
+    models = re.findall(
+        r'"model":"([^"]+)"', tail_text(transcript, CLAUDE_MODEL_TAIL_BYTES)
+    )
     return models[-1] if models else ""
 
 
 # --- shared -----------------------------------------------------------------
 
 
-def query_sqlite(database: Path, statement: str, parameters: tuple[object, ...] = ()) -> list[sqlite3.Row]:
+def query_sqlite(
+    database: Path, statement: str, parameters: tuple[object, ...] = ()
+) -> list[sqlite3.Row]:
     if not database.exists():
         return []
     try:
-        connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True, timeout=0.5)
+        connection = sqlite3.connect(
+            f"{database.resolve().as_uri()}?mode=ro", uri=True, timeout=0.5
+        )
         connection.row_factory = sqlite3.Row
         connection.execute("pragma busy_timeout=500")
         try:
@@ -631,6 +680,14 @@ def read_json_object(path: Path) -> dict[str, Any]:
     try:
         data = json.loads(path.read_text(errors="ignore"))
     except (OSError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def decode_json(text: str) -> dict[str, Any]:
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
         return {}
     return data if isinstance(data, dict) else {}
 
@@ -693,46 +750,73 @@ def modified_at(path: Path) -> float:
         return 0
 
 
-def render_prometheus_metrics(snapshots: list[AgentSnapshot]) -> str:
-    lines = [
-        "# HELP realtime_agent_state Agent state labelled by state. OpenTelemetry name: realtime.agent.state.",
-        "# TYPE realtime_agent_state gauge",
-        "# UNIT realtime_agent_state 1",
-        "# HELP realtime_agent_info Agent metadata as labels, always 1. OpenTelemetry name: realtime.agent.info.",
-        "# TYPE realtime_agent_info gauge",
-        "# UNIT realtime_agent_info 1",
-        "# HELP realtime_agent_running_count Top-level agents of this kind working right now, by the model each runs. OpenTelemetry name: realtime.agent.running.count.",
-        "# TYPE realtime_agent_running_count gauge",
-        "# UNIT realtime_agent_running_count 1",
-        "# HELP realtime_agent_subagents_running Sub-agents the agent has working right now, by the model each runs. OpenTelemetry name: realtime.agent.subagents.running.",
-        "# TYPE realtime_agent_subagents_running gauge",
-        "# UNIT realtime_agent_subagents_running 1",
-        "# HELP realtime_agent_budget_remaining_ratio Agent budget remaining as a fraction. OpenTelemetry name: realtime.agent.budget.remaining.",
-        "# TYPE realtime_agent_budget_remaining_ratio gauge",
-        "# UNIT realtime_agent_budget_remaining_ratio 1",
-    ]
+def agent_metric_families(
+    snapshots: Iterable[AgentSnapshot],
+) -> tuple[MetricFamily, ...]:
+    state_samples: list[Sample] = []
+    info_samples: list[Sample] = []
+    running_samples: list[Sample] = []
+    subagent_samples: list[Sample] = []
+    budget_samples: list[Sample] = []
     for snapshot in snapshots:
         labels = {"agent_kind": snapshot.kind}
-        for state in ("idle", "running", "failed"):
-            lines.append(f"realtime_agent_state{label_set({**labels, 'state': state})} {1 if snapshot.state == state else 0}")
+        state_samples.extend(
+            Sample(int(snapshot.state == state), {**labels, "state": state})
+            for state in ("idle", "running", "failed")
+        )
         if snapshot.model:
-            lines.append(f"realtime_agent_info{label_set({**labels, 'model': snapshot.model})} 1")
+            info_samples.append(Sample(1, {**labels, "model": snapshot.model}))
         # One series per model, so a sub-agent running a different model than the
         # agent that spawned it is still counted under its own name. With none
         # working the bare series still reports zero, which clears the last scrape.
         # Agents of one kind are counted the same way: a host can have several out
         # at once, and each is drawn on the page.
-        for name, models in (("running_count", snapshot.agent_models), ("subagents_running", snapshot.subagent_models)):
+        for samples, models in (
+            (running_samples, snapshot.agent_models),
+            (subagent_samples, snapshot.subagent_models),
+        ):
             counts = Counter(models)
             for model in sorted(counts) or [""]:
-                lines.append(f"realtime_agent_{name}{label_set({**labels, 'model': model})} {counts[model]}")
+                samples.append(Sample(counts[model], {**labels, "model": model}))
         if snapshot.budget_remaining_percent is not None:
-            lines.append(
-                f"realtime_agent_budget_remaining_ratio{label_set(labels)} "
-                f"{max(0, min(100, snapshot.budget_remaining_percent)) / 100}"
+            budget_samples.append(
+                Sample(
+                    max(0, min(100, snapshot.budget_remaining_percent)) / 100, labels
+                )
             )
-    lines.append("")
-    return "\n".join(lines)
+    return (
+        MetricFamily(
+            "realtime_agent_state",
+            "Agent state labelled by state. OpenTelemetry name: realtime.agent.state.",
+            state_samples,
+            unit="1",
+        ),
+        MetricFamily(
+            "realtime_agent_info",
+            "Agent metadata as labels, always 1. OpenTelemetry name: realtime.agent.info.",
+            info_samples,
+            unit="1",
+        ),
+        MetricFamily(
+            "realtime_agent_running_count",
+            "Top-level agents working now, grouped by kind and model. "
+            "OpenTelemetry name: realtime.agent.running.count.",
+            running_samples,
+            unit="1",
+        ),
+        MetricFamily(
+            "realtime_agent_subagents_running",
+            "Sub-agents working now, grouped by kind and model. OpenTelemetry name: realtime.agent.subagents.running.",
+            subagent_samples,
+            unit="1",
+        ),
+        MetricFamily(
+            "realtime_agent_budget_remaining_ratio",
+            "Agent budget remaining as a fraction. OpenTelemetry name: realtime.agent.budget.remaining.",
+            budget_samples,
+            unit="1",
+        ),
+    )
 
 
 def budget_remaining(token_budget: Any, tokens_used: Any) -> int | None:
@@ -774,7 +858,3 @@ def is_relative_to(path: Path, parent: Path) -> bool:
         return True
     except ValueError:
         return False
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

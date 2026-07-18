@@ -38,9 +38,9 @@ message EnrollDeviceResponse {
 }
 
 // IngestService accepts the phone's push and the operator's scrape-target
-// registration. Hosts, virtual machines, and coding agents are never pushed:
-// they run read-only exporters that Prometheus discovers and scrapes. Only the
-// phone pushes, because it cannot be scraped.
+// registration. Hosts and virtual machines are never pushed: each runs one
+// read-only, cross-platform probe that Prometheus discovers and scrapes. Only
+// the phone pushes, because it cannot be scraped.
 service IngestService {
   // ReportMobileStatus records the latest phone-and-watch status.
   rpc ReportMobileStatus(ReportMobileStatusRequest) returns (ReportMobileStatusResponse);
@@ -107,15 +107,18 @@ enum ScrapeJob {
   // Job is not known.
   SCRAPE_JOB_UNSPECIFIED = 0;
 
-  // Linux node-exporter on a physical host.
-  SCRAPE_JOB_NODE_EXPORTER = 1;
+  // Retired multi-exporter node job.
+  SCRAPE_JOB_NODE_EXPORTER = 1 [deprecated = true];
 
-  // Linux node-exporter on a virtual machine.
-  SCRAPE_JOB_VM_NODE_EXPORTER = 2;
+  // Retired multi-exporter virtual-machine job.
+  SCRAPE_JOB_VM_NODE_EXPORTER = 2 [deprecated = true];
 
-  // Device exporter for media and accessory signals.
-  SCRAPE_JOB_DEVICE_EXPORTER = 3;
+  // Retired media and accessory job.
+  SCRAPE_JOB_DEVICE_EXPORTER = 3 [deprecated = true];
 
-  // Coding-agent exporter.
-  SCRAPE_JOB_AGENT_EXPORTER = 4;
+  // Retired coding-agent job.
+  SCRAPE_JOB_AGENT_EXPORTER = 4 [deprecated = true];
+
+  // Unified Linux, macOS, and Windows probe.
+  SCRAPE_JOB_PROBE = 5;
 }

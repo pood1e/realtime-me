@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file realtime/me/status/v1/ingest.proto.
  */
 export const file_realtime_me_status_v1_ingest: GenFile = /*@__PURE__*/
-  fileDesc("CiJyZWFsdGltZS9tZS9zdGF0dXMvdjEvaW5nZXN0LnByb3RvEhVyZWFsdGltZS5tZS5zdGF0dXMudjEinAEKE0Vucm9sbERldmljZVJlcXVlc3QSLwoEa2luZBgBIAEoDjIhLnJlYWx0aW1lLm1lLnN0YXR1cy52MS5EZXZpY2VLaW5kEi8KBHJvbGUYAiABKA4yIS5yZWFsdGltZS5tZS5zdGF0dXMudjEuRGV2aWNlUm9sZRIUCgxkaXNwbGF5X25hbWUYAyABKAkSDQoFbW9kZWwYBCABKAkiKgoURW5yb2xsRGV2aWNlUmVzcG9uc2USEgoKZGV2aWNlX3VpZBgBIAEoCSL7AQoZUmVwb3J0TW9iaWxlU3RhdHVzUmVxdWVzdBISCgpkZXZpY2VfdWlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRINCgVtb2RlbBgDIAEoCRIwCgVwaG9uZRgEIAEoCzIhLnJlYWx0aW1lLm1lLnN0YXR1cy52MS5QaG9uZVN0YXRlEjMKBXdhdGNoGAUgASgLMiQucmVhbHRpbWUubWUuc3RhdHVzLnYxLldhdGNoU25hcHNob3QSPgoPc3dpdGNoX3ByZXNlbmNlGAYgASgLMiUucmVhbHRpbWUubWUuc3RhdHVzLnYxLlN3aXRjaFByZXNlbmNlIhwKGlJlcG9ydE1vYmlsZVN0YXR1c1Jlc3BvbnNlImgKHFJlZ2lzdGVyU2NyYXBlVGFyZ2V0c1JlcXVlc3QSNAoHdGFyZ2V0cxgBIAMoCzIjLnJlYWx0aW1lLm1lLnN0YXR1cy52MS5TY3JhcGVUYXJnZXQSEgoKZGV2aWNlX3VpZBgCIAEoCSIfCh1SZWdpc3RlclNjcmFwZVRhcmdldHNSZXNwb25zZSKYAQoMU2NyYXBlVGFyZ2V0Ei0KA2pvYhgBIAEoDjIgLnJlYWx0aW1lLm1lLnN0YXR1cy52MS5TY3JhcGVKb2ISDgoGdGFyZ2V0GAIgASgJSgQIAxAESgQIBBAFSgQIBRAGSgQIBhAHSgQIBxAIUgpkZXZpY2VfdWlkUgxkaXNwbGF5X25hbWVSBW1vZGVsUgRraW5kUgRyb2xlKqUBCglTY3JhcGVKb2ISGgoWU0NSQVBFX0pPQl9VTlNQRUNJRklFRBAAEhwKGFNDUkFQRV9KT0JfTk9ERV9FWFBPUlRFUhABEh8KG1NDUkFQRV9KT0JfVk1fTk9ERV9FWFBPUlRFUhACEh4KGlNDUkFQRV9KT0JfREVWSUNFX0VYUE9SVEVSEAMSHQoZU0NSQVBFX0pPQl9BR0VOVF9FWFBPUlRFUhAEMnwKEUVucm9sbG1lbnRTZXJ2aWNlEmcKDEVucm9sbERldmljZRIqLnJlYWx0aW1lLm1lLnN0YXR1cy52MS5FbnJvbGxEZXZpY2VSZXF1ZXN0GisucmVhbHRpbWUubWUuc3RhdHVzLnYxLkVucm9sbERldmljZVJlc3BvbnNlMo8CCg1Jbmdlc3RTZXJ2aWNlEnkKElJlcG9ydE1vYmlsZVN0YXR1cxIwLnJlYWx0aW1lLm1lLnN0YXR1cy52MS5SZXBvcnRNb2JpbGVTdGF0dXNSZXF1ZXN0GjEucmVhbHRpbWUubWUuc3RhdHVzLnYxLlJlcG9ydE1vYmlsZVN0YXR1c1Jlc3BvbnNlEoIBChVSZWdpc3RlclNjcmFwZVRhcmdldHMSMy5yZWFsdGltZS5tZS5zdGF0dXMudjEuUmVnaXN0ZXJTY3JhcGVUYXJnZXRzUmVxdWVzdBo0LnJlYWx0aW1lLm1lLnN0YXR1cy52MS5SZWdpc3RlclNjcmFwZVRhcmdldHNSZXNwb25zZUIZChVtZS5yZWFsdGltZS5zdGF0dXMudjFQAWIGcHJvdG8z", [file_realtime_me_status_v1_status_types, file_realtime_me_status_v1_watch]);
+  fileDesc("CiJyZWFsdGltZS9tZS9zdGF0dXMvdjEvaW5nZXN0LnByb3RvEhVyZWFsdGltZS5tZS5zdGF0dXMudjEinAEKE0Vucm9sbERldmljZVJlcXVlc3QSLwoEa2luZBgBIAEoDjIhLnJlYWx0aW1lLm1lLnN0YXR1cy52MS5EZXZpY2VLaW5kEi8KBHJvbGUYAiABKA4yIS5yZWFsdGltZS5tZS5zdGF0dXMudjEuRGV2aWNlUm9sZRIUCgxkaXNwbGF5X25hbWUYAyABKAkSDQoFbW9kZWwYBCABKAkiKgoURW5yb2xsRGV2aWNlUmVzcG9uc2USEgoKZGV2aWNlX3VpZBgBIAEoCSL7AQoZUmVwb3J0TW9iaWxlU3RhdHVzUmVxdWVzdBISCgpkZXZpY2VfdWlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRINCgVtb2RlbBgDIAEoCRIwCgVwaG9uZRgEIAEoCzIhLnJlYWx0aW1lLm1lLnN0YXR1cy52MS5QaG9uZVN0YXRlEjMKBXdhdGNoGAUgASgLMiQucmVhbHRpbWUubWUuc3RhdHVzLnYxLldhdGNoU25hcHNob3QSPgoPc3dpdGNoX3ByZXNlbmNlGAYgASgLMiUucmVhbHRpbWUubWUuc3RhdHVzLnYxLlN3aXRjaFByZXNlbmNlIhwKGlJlcG9ydE1vYmlsZVN0YXR1c1Jlc3BvbnNlImgKHFJlZ2lzdGVyU2NyYXBlVGFyZ2V0c1JlcXVlc3QSNAoHdGFyZ2V0cxgBIAMoCzIjLnJlYWx0aW1lLm1lLnN0YXR1cy52MS5TY3JhcGVUYXJnZXQSEgoKZGV2aWNlX3VpZBgCIAEoCSIfCh1SZWdpc3RlclNjcmFwZVRhcmdldHNSZXNwb25zZSKYAQoMU2NyYXBlVGFyZ2V0Ei0KA2pvYhgBIAEoDjIgLnJlYWx0aW1lLm1lLnN0YXR1cy52MS5TY3JhcGVKb2ISDgoGdGFyZ2V0GAIgASgJSgQIAxAESgQIBBAFSgQIBRAGSgQIBhAHSgQIBxAIUgpkZXZpY2VfdWlkUgxkaXNwbGF5X25hbWVSBW1vZGVsUgRraW5kUgRyb2xlKssBCglTY3JhcGVKb2ISGgoWU0NSQVBFX0pPQl9VTlNQRUNJRklFRBAAEiAKGFNDUkFQRV9KT0JfTk9ERV9FWFBPUlRFUhABGgIIARIjChtTQ1JBUEVfSk9CX1ZNX05PREVfRVhQT1JURVIQAhoCCAESIgoaU0NSQVBFX0pPQl9ERVZJQ0VfRVhQT1JURVIQAxoCCAESIQoZU0NSQVBFX0pPQl9BR0VOVF9FWFBPUlRFUhAEGgIIARIUChBTQ1JBUEVfSk9CX1BST0JFEAUyfAoRRW5yb2xsbWVudFNlcnZpY2USZwoMRW5yb2xsRGV2aWNlEioucmVhbHRpbWUubWUuc3RhdHVzLnYxLkVucm9sbERldmljZVJlcXVlc3QaKy5yZWFsdGltZS5tZS5zdGF0dXMudjEuRW5yb2xsRGV2aWNlUmVzcG9uc2UyjwIKDUluZ2VzdFNlcnZpY2USeQoSUmVwb3J0TW9iaWxlU3RhdHVzEjAucmVhbHRpbWUubWUuc3RhdHVzLnYxLlJlcG9ydE1vYmlsZVN0YXR1c1JlcXVlc3QaMS5yZWFsdGltZS5tZS5zdGF0dXMudjEuUmVwb3J0TW9iaWxlU3RhdHVzUmVzcG9uc2USggEKFVJlZ2lzdGVyU2NyYXBlVGFyZ2V0cxIzLnJlYWx0aW1lLm1lLnN0YXR1cy52MS5SZWdpc3RlclNjcmFwZVRhcmdldHNSZXF1ZXN0GjQucmVhbHRpbWUubWUuc3RhdHVzLnYxLlJlZ2lzdGVyU2NyYXBlVGFyZ2V0c1Jlc3BvbnNlQhkKFW1lLnJlYWx0aW1lLnN0YXR1cy52MVABYgZwcm90bzM", [file_realtime_me_status_v1_status_types, file_realtime_me_status_v1_watch]);
 
 /**
  * EnrollDeviceRequest describes the device seeking a gateway identity.
@@ -401,32 +401,43 @@ export enum ScrapeJob {
   UNSPECIFIED = 0,
 
   /**
-   * Linux node-exporter on a physical host.
+   * Retired multi-exporter node job.
    *
-   * @generated from enum value: SCRAPE_JOB_NODE_EXPORTER = 1;
+   * @generated from enum value: SCRAPE_JOB_NODE_EXPORTER = 1 [deprecated = true];
+   * @deprecated
    */
   NODE_EXPORTER = 1,
 
   /**
-   * Linux node-exporter on a virtual machine.
+   * Retired multi-exporter virtual-machine job.
    *
-   * @generated from enum value: SCRAPE_JOB_VM_NODE_EXPORTER = 2;
+   * @generated from enum value: SCRAPE_JOB_VM_NODE_EXPORTER = 2 [deprecated = true];
+   * @deprecated
    */
   VM_NODE_EXPORTER = 2,
 
   /**
-   * Device exporter for media and accessory signals.
+   * Retired media and accessory job.
    *
-   * @generated from enum value: SCRAPE_JOB_DEVICE_EXPORTER = 3;
+   * @generated from enum value: SCRAPE_JOB_DEVICE_EXPORTER = 3 [deprecated = true];
+   * @deprecated
    */
   DEVICE_EXPORTER = 3,
 
   /**
-   * Coding-agent exporter.
+   * Retired coding-agent job.
    *
-   * @generated from enum value: SCRAPE_JOB_AGENT_EXPORTER = 4;
+   * @generated from enum value: SCRAPE_JOB_AGENT_EXPORTER = 4 [deprecated = true];
+   * @deprecated
    */
   AGENT_EXPORTER = 4,
+
+  /**
+   * Unified Linux, macOS, and Windows probe.
+   *
+   * @generated from enum value: SCRAPE_JOB_PROBE = 5;
+   */
+  PROBE = 5,
 }
 
 /**
@@ -434,7 +445,7 @@ export enum ScrapeJob {
  *
  * @generated from enum realtime.me.status.v1.ScrapeJob
  */
-export type ScrapeJobJson = "SCRAPE_JOB_UNSPECIFIED" | "SCRAPE_JOB_NODE_EXPORTER" | "SCRAPE_JOB_VM_NODE_EXPORTER" | "SCRAPE_JOB_DEVICE_EXPORTER" | "SCRAPE_JOB_AGENT_EXPORTER";
+export type ScrapeJobJson = "SCRAPE_JOB_UNSPECIFIED" | "SCRAPE_JOB_NODE_EXPORTER" | "SCRAPE_JOB_VM_NODE_EXPORTER" | "SCRAPE_JOB_DEVICE_EXPORTER" | "SCRAPE_JOB_AGENT_EXPORTER" | "SCRAPE_JOB_PROBE";
 
 /**
  * Describes the enum realtime.me.status.v1.ScrapeJob.
@@ -465,9 +476,9 @@ export const EnrollmentService: GenService<{
 
 /**
  * IngestService accepts the phone's push and the operator's scrape-target
- * registration. Hosts, virtual machines, and coding agents are never pushed:
- * they run read-only exporters that Prometheus discovers and scrapes. Only the
- * phone pushes, because it cannot be scraped.
+ * registration. Hosts and virtual machines are never pushed: each runs one
+ * read-only, cross-platform probe that Prometheus discovers and scrapes. Only
+ * the phone pushes, because it cannot be scraped.
  *
  * @generated from service realtime.me.status.v1.IngestService
  */

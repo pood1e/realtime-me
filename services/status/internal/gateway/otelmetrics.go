@@ -27,8 +27,8 @@ type metricDefinition struct {
 
 // metricDefinitions covers only what the gateway itself observes: the phone and
 // watch it accepts pushes from, and its own GitHub sync state. Host, VM, and
-// agent series are exported by node_exporter and the probe exporters, which
-// Prometheus scrapes directly; re-publishing them here would duplicate series.
+// agent series are exported by the server's node-exporter or each host's unified
+// probe, which Prometheus scrapes directly; re-publishing them would duplicate series.
 var metricDefinitions = []metricDefinition{
 	{Name: "realtime_device_last_update_time_seconds", Unit: "s", Description: "Unix timestamp of the latest accepted device update."},
 	{Name: "realtime_device_battery_level_ratio", Unit: "1", Description: "Device battery level as a fraction of total capacity."},
@@ -94,8 +94,8 @@ func (exporter *MetricsExporter) Handler() http.Handler {
 }
 
 // observe exports only what the gateway itself owns: the phones' pushed status
-// and the GitHub sync state. Host, VM, and agent series come from their own
-// exporters, which Prometheus scrapes directly.
+// and the GitHub sync state. Host, VM, and agent series come from the unified
+// host probes, which Prometheus scrapes directly.
 func (exporter *MetricsExporter) observe(_ context.Context, observer otelmetric.Observer) error {
 	snapshot := exporter.store.Snapshot()
 	for _, mobile := range freshMobiles(snapshot.Mobiles, time.Now().UTC()) {

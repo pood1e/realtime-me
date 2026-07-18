@@ -23,8 +23,8 @@ type PrometheusHTTPDiscoveryGroup struct {
 // StatusStore holds the gateway's live status plus the durable scrape targets
 // and GitHub sync state. Phone statuses are kept in memory only: they are
 // re-pushed within minutes, so they are not persisted and never shown stale after
-// a restart. Hosts and agents are never pushed — Prometheus scrapes their
-// exporters — so the store holds no copy of them.
+// a restart. Hosts and agents are never pushed — Prometheus scrapes their probes
+// — so the store holds no copy of them.
 type StatusStore struct {
 	stateFile string
 	mutex     sync.Mutex

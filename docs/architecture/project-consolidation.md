@@ -146,7 +146,7 @@ realtime-me/
 │   ├── library/                        # PostgreSQL/API/worker/migrate 独立发布单元
 │   ├── manager/                        # Caddy/systemd/ddns-go
 │   └── web/                            # Worker/Pages 项目与 Origin 配置
-├── scripts/                            # 保持现有公开下载路径不变
+├── scripts/                            # 跨平台 probe 与运维工具
 ├── go.mod
 ├── package.json
 ├── pnpm-lock.yaml
@@ -156,7 +156,7 @@ realtime-me/
 └── settings.gradle.kts
 ```
 
-`scripts/install-linux-probe.sh`、`scripts/install-macos-probe.sh`、`scripts/probe/*` 和 `scripts/operator/*` 已有公开 URL 契约，整合时不得移动或改为另一套下载路径。
+采集侧已一次性迁移到 `scripts/install-probe.py` 与 `scripts/probe/realtime_probe/*`：Linux 使用 systemd、macOS 使用 LaunchAgent、Windows 使用 Task Scheduler，但三者运行同一采集核心、暴露同一指标契约和端口。旧的多 exporter 下载路径不再保留。
 
 ## 5. 契约治理
 
