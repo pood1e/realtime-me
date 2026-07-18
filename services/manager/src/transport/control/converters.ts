@@ -12,12 +12,12 @@ import {
   type Device,
   DeviceSchema,
   DeviceStatus,
-} from "../../gen/super_manager/control/v1/device_pb.js";
+} from "../../gen/realtime/me/manager/control/v1/device_pb.js";
 import {
   type Execution,
   ExecutionSchema,
   ExecutionState,
-} from "../../gen/super_manager/control/v1/execution_pb.js";
+} from "../../gen/realtime/me/manager/control/v1/execution_pb.js";
 import {
   QuotaFreshness,
   type QuotaSnapshot,
@@ -27,21 +27,21 @@ import {
   RuntimeCapability,
   RuntimeKind,
   RuntimeSchema,
-} from "../../gen/super_manager/control/v1/runtime_pb.js";
+} from "../../gen/realtime/me/manager/control/v1/runtime_pb.js";
 import {
   type TerminalSession,
   TerminalSessionSchema,
   TerminalSessionState,
-} from "../../gen/super_manager/control/v1/terminal_pb.js";
+} from "../../gen/realtime/me/manager/control/v1/terminal_pb.js";
 import {
   type Thread,
   ThreadSchema,
   ThreadState,
-} from "../../gen/super_manager/control/v1/thread_pb.js";
+} from "../../gen/realtime/me/manager/control/v1/thread_pb.js";
 import {
   type Workspace,
   WorkspaceSchema,
-} from "../../gen/super_manager/control/v1/workspace_pb.js";
+} from "../../gen/realtime/me/manager/control/v1/workspace_pb.js";
 import type { QuotaRecord } from "../../infrastructure/resource-store.js";
 
 export function toWorkspace(record: WorkspaceRecord): Workspace {

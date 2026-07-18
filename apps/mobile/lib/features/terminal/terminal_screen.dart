@@ -9,7 +9,7 @@ import 'package:xterm/xterm.dart';
 import '../../core/network/remote_session.dart';
 import '../../core/network/terminal_socket.dart';
 import '../../core/state/app_session.dart';
-import '../../gen/super_manager/control/v1/terminal.pb.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/terminal.pb.dart';
 import '../../ui/common.dart';
 
 const _maxReconnectAttempts = 8;

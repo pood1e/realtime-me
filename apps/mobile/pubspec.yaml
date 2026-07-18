@@ -20,12 +20,17 @@ dependencies:
   go_router: ^17.3.0
   mobile_scanner: ^7.3.0
   protobuf: ^4.2.0
+  realtime_me_manager_contracts:
+    path: ../../packages/manager-contracts-dart
+  realtime_me_status_contracts:
+    path: ../../packages/status-contracts-dart
   uuid: ^4.6.0
   web_socket_channel: ^3.0.3
   xterm: ^4.0.0
 
 dev_dependencies:
   flutter_lints: ^6.0.0
+  protoc_plugin: 22.5.0
 
 flutter:
   uses-material-design: true

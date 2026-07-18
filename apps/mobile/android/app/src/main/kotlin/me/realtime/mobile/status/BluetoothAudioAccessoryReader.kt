@@ -9,7 +9,7 @@ import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import me.realtime.protocol.v1.Accessory
+import me.realtime.status.v1.Accessory
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 

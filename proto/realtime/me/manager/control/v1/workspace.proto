@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package realtime.me.manager.control.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// Workspace is an approved project directory on the agent host.
+message Workspace {
+  // uid is the server-assigned UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+  // display_name is the human-readable project label.
+  string display_name = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+  // path is the canonical absolute path within an allowed workspace root.
+  string path = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 4096
+    pattern: "^/"
+  }];
+  // active_execution_uid is set while this workspace holds a structured writer lease.
+  string active_execution_uid = 4 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).string.uuid = true
+  ];
+  // create_time is the registration time.
+  google.protobuf.Timestamp create_time = 5;
+}
+
+// CreateWorkspaceRequest registers an approved server-local project directory.
+message CreateWorkspaceRequest {
+  // display_name is the human-readable project label.
+  string display_name = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+  // path is an absolute path contained by a configured allowed root.
+  string path = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 4096
+    pattern: "^/"
+  }];
+}
+
+// CreateWorkspaceResponse returns the registered workspace.
+message CreateWorkspaceResponse {
+  // workspace is the newly registered workspace.
+  Workspace workspace = 1 [(buf.validate.field).required = true];
+}
+
+// GetWorkspaceRequest requests one registered workspace.
+message GetWorkspaceRequest {
+  // uid is the workspace UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+}
+
+// GetWorkspaceResponse returns one registered workspace.
+message GetWorkspaceResponse {
+  // workspace is the requested workspace.
+  Workspace workspace = 1 [(buf.validate.field).required = true];
+}
+
+// ListWorkspacesRequest requests registered workspaces.
+message ListWorkspacesRequest {
+  // page_size is the maximum number of workspaces to return.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 100
+  }];
+  // page_token is an opaque continuation token returned by the server.
+  string page_token = 2 [(buf.validate.field).string.max_len = 256];
+}
+
+// ListWorkspacesResponse returns registered workspaces.
+message ListWorkspacesResponse {
+  // workspaces contains the current page.
+  repeated Workspace workspaces = 1;
+  // next_page_token requests the next page and is empty on the last page.
+  string next_page_token = 2;
+}
+
+// DeleteWorkspaceRequest deletes one registered workspace record without deleting files.
+message DeleteWorkspaceRequest {
+  // uid is the workspace UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+}
+
+// DeleteWorkspaceResponse confirms that the workspace record was deleted.
+message DeleteWorkspaceResponse {}
+
+// WorkspaceService manages approved server-local project directories.
+service WorkspaceService {
+  // CreateWorkspace registers a path contained by an allowed workspace root.
+  rpc CreateWorkspace(CreateWorkspaceRequest) returns (CreateWorkspaceResponse);
+  // GetWorkspace returns one registered workspace.
+  rpc GetWorkspace(GetWorkspaceRequest) returns (GetWorkspaceResponse);
+  // ListWorkspaces returns registered workspaces.
+  rpc ListWorkspaces(ListWorkspacesRequest) returns (ListWorkspacesResponse);
+  // DeleteWorkspace removes only the registration record.
+  rpc DeleteWorkspace(DeleteWorkspaceRequest) returns (DeleteWorkspaceResponse);
+}

@@ -13,7 +13,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	mev1 "github.com/pood1e/realtime-me/services/status/internal/genproto/realtime/me/v1"
+	sitev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/site/v1"
 )
 
 // projectFetchConcurrency bounds the fan-out of a refresh. Two calls per project
@@ -67,7 +67,7 @@ type ProjectsService struct {
 	interval  time.Duration
 
 	mutex    sync.RWMutex
-	projects []*mev1.Project
+	projects []*sitev1.Project
 	fetched  bool
 }
 
@@ -99,7 +99,7 @@ func (service *ProjectsService) Run(ctx context.Context) {
 // List returns the projects last read from GitHub. It reports a fault rather than
 // an empty list: a page with nothing on it reads as a life with nothing built in
 // it, which is how a broken projects feed goes unnoticed.
-func (service *ProjectsService) List() ([]*mev1.Project, error) {
+func (service *ProjectsService) List() ([]*sitev1.Project, error) {
 	if service.configErr != nil {
 		return nil, service.configErr
 	}
@@ -115,7 +115,7 @@ func (service *ProjectsService) List() ([]*mev1.Project, error) {
 // repository that cannot be read costs its own card and no other: a page is not
 // worth emptying over a repository that was renamed, deleted, or blocked.
 func (service *ProjectsService) refresh(ctx context.Context) {
-	built := make([]*mev1.Project, len(service.curated))
+	built := make([]*sitev1.Project, len(service.curated))
 	semaphore := make(chan struct{}, projectFetchConcurrency)
 	var group sync.WaitGroup
 
@@ -139,7 +139,7 @@ func (service *ProjectsService) refresh(ctx context.Context) {
 	}
 	group.Wait()
 
-	projects := make([]*mev1.Project, 0, len(built))
+	projects := make([]*sitev1.Project, 0, len(built))
 	for _, project := range built {
 		if project != nil {
 			projects = append(projects, project)
@@ -166,8 +166,8 @@ func (service *ProjectsService) refresh(ctx context.Context) {
 	slog.Info("refreshed GitHub projects", "count", len(projects))
 }
 
-func publicProject(repo GitHubRepository, detail GitHubRepositoryDetail, summary string) *mev1.Project {
-	return &mev1.Project{
+func publicProject(repo GitHubRepository, detail GitHubRepositoryDetail, summary string) *sitev1.Project {
+	return &sitev1.Project{
 		Uid:             projectUID(repo),
 		DisplayName:     repo.Name,
 		Description:     repo.Description,
@@ -186,11 +186,11 @@ func publicProject(repo GitHubRepository, detail GitHubRepositoryDetail, summary
 	}
 }
 
-func projectVisibility(private bool) mev1.ProjectVisibility {
+func projectVisibility(private bool) sitev1.ProjectVisibility {
 	if private {
-		return mev1.ProjectVisibility_PROJECT_VISIBILITY_PRIVATE
+		return sitev1.ProjectVisibility_PROJECT_VISIBILITY_PRIVATE
 	}
-	return mev1.ProjectVisibility_PROJECT_VISIBILITY_PUBLIC
+	return sitev1.ProjectVisibility_PROJECT_VISIBILITY_PUBLIC
 }
 
 // publicRepositoryURL withholds the GitHub link for private repositories so the

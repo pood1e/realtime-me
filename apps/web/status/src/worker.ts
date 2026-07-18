@@ -14,10 +14,10 @@ type Env = {
 // Nothing under /api/ is proxied either: those are the gateway's control-plane
 // routes, such as Prometheus scrape discovery.
 const PROXY_PREFIXES = [
-  '/realtime.me.v1.StatusService/',
-  '/realtime.me.v1.ProfileService/',
-  '/realtime.me.v1.ProjectsService/',
-  '/realtime.me.v1.MetricsService/',
+  '/realtime.me.status.v1.StatusService/',
+  '/realtime.me.site.v1.ProfileService/',
+  '/realtime.me.site.v1.ProjectsService/',
+  '/realtime.me.status.v1.MetricsService/',
 ];
 
 export default {

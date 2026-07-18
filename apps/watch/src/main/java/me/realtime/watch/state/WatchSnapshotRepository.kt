@@ -3,9 +3,9 @@ package me.realtime.watch.state
 import android.content.Context
 import me.realtime.protocol.toJavaInstant
 import me.realtime.protocol.toProtoTimestamp
-import me.realtime.protocol.v1.ActivityTotals
-import me.realtime.protocol.v1.HeartRateSample
-import me.realtime.protocol.v1.WatchSnapshot
+import me.realtime.status.v1.ActivityTotals
+import me.realtime.status.v1.HeartRateSample
+import me.realtime.status.v1.WatchSnapshot
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId

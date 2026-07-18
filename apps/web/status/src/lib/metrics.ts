@@ -1,4 +1,4 @@
-import type { DeviceState } from '@/gen/realtime/me/v1/status_pb';
+import type { DeviceState } from '@realtime-me/status-contracts';
 import { formatBytes, formatPercent } from '@/lib/format';
 
 export const CPU_CORES = 'system.cpu.logical.count';

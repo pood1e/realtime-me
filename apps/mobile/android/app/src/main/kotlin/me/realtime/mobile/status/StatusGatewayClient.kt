@@ -2,9 +2,9 @@ package me.realtime.mobile.status
 
 import android.util.Log
 import me.realtime.mobile.BuildConfig
-import me.realtime.protocol.v1.EnrollDeviceRequest
-import me.realtime.protocol.v1.EnrollDeviceResponse
-import me.realtime.protocol.v1.ReportMobileStatusRequest
+import me.realtime.status.v1.EnrollDeviceRequest
+import me.realtime.status.v1.EnrollDeviceResponse
+import me.realtime.status.v1.ReportMobileStatusRequest
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection

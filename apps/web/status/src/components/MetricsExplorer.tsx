@@ -2,10 +2,10 @@ import { AlertTriangle, Battery, Cpu, Footprints, HardDrive, Headphones, HeartPu
 import { lazy, Suspense, useEffect, useState, type ReactElement } from 'react';
 import { create } from '@bufbuild/protobuf';
 import { timestampFromDate } from '@bufbuild/protobuf/wkt';
-import { GetMetricRangeRequestSchema, MetricSeries } from '@/gen/realtime/me/v1/metrics_pb';
-import type { GetMetricRangeRequest } from '@/gen/realtime/me/v1/metrics_pb';
-import type { Agent, DeviceState, InternalStatus, MobileState } from '@/gen/realtime/me/v1/status_pb';
-import type { Accessory } from '@/gen/realtime/me/v1/status_types_pb';
+import { GetMetricRangeRequestSchema, MetricSeries } from '@realtime-me/status-contracts';
+import type { GetMetricRangeRequest } from '@realtime-me/status-contracts';
+import type { Agent, DeviceState, InternalStatus, MobileState } from '@realtime-me/status-contracts';
+import type { Accessory } from '@realtime-me/status-contracts';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

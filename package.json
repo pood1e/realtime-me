@@ -11,15 +11,15 @@
     "build": "pnpm build:status && pnpm build:library && pnpm build:manager",
     "build:status": "pnpm build:status-service && pnpm --filter @realtime-me/status-web build",
     "build:status-service": "cd services/status && go build ./...",
-    "build:library": "cd services/library && go build ./... && pnpm --filter './apps/web/library/**' --if-present build",
+    "build:library": "cd services/library && go build ./... && pnpm --filter '@realtime-me/library-*' --if-present build",
     "build:manager": "pnpm --filter @realtime-me/manager build",
     "check": "pnpm check:proto && pnpm check:status && pnpm check:library && pnpm check:manager",
     "check:proto": "buf lint",
     "check:status": "cd services/status && go vet ./... && go build ./... && cd ../.. && pnpm --filter @realtime-me/status-web check",
-    "check:library": "cd services/library && go vet ./... && go build ./... && cd ../.. && pnpm --filter './apps/web/library/**' --filter './packages/library-*' --if-present typecheck",
+    "check:library": "cd services/library && go vet ./... && go build ./... && cd ../.. && pnpm --filter '@realtime-me/library-*' --if-present typecheck",
     "check:manager": "pnpm --filter @realtime-me/manager check",
     "format": "biome format --write services/manager tools && prettier --write 'apps/web/**/*.{ts,tsx,css,json,html}' 'packages/library-web/**/*.{ts,tsx,css,json}' 'apps/web/build/**/*.ts' && buf format -w",
-    "generate": "buf generate && node tools/normalize-dart-generated.mjs",
+    "generate": "buf generate --template buf.gen.go.yaml --path proto/realtime/me/status --path proto/realtime/me/site --path proto/realtime/me/library && buf generate --template buf.gen.status.yaml --path proto/realtime/me/status --path proto/realtime/me/site && buf generate --template buf.gen.library.yaml --path proto/realtime/me/library && buf generate --template buf.gen.manager.yaml --path proto/realtime/me/manager && node tools/normalize-generated.mjs",
     "proto:lint": "buf lint"
   },
   "devDependencies": {

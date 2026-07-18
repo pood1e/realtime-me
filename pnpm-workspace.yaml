@@ -2,6 +2,7 @@ packages:
   - apps/web/status
   - apps/web/library/*
   - packages/library-*
+  - packages/status-contracts-web
   - services/manager
 engineStrict: true
 saveExact: true

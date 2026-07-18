@@ -3,8 +3,8 @@ package me.realtime.mobile.nintendo
 import android.os.SystemClock
 import android.util.Log
 import com.google.protobuf.Timestamp
-import me.realtime.protocol.v1.OnlineState
-import me.realtime.protocol.v1.SwitchPresence
+import me.realtime.status.v1.OnlineState
+import me.realtime.status.v1.SwitchPresence
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL

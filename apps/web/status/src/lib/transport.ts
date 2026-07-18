@@ -1,9 +1,9 @@
 import { Code, ConnectError, createClient } from '@connectrpc/connect';
 import { createConnectTransport } from '@connectrpc/connect-web';
-import { MetricsService } from '@/gen/realtime/me/v1/metrics_pb';
-import { ProfileService } from '@/gen/realtime/me/v1/profile_pb';
-import { ProjectsService } from '@/gen/realtime/me/v1/projects_pb';
-import { StatusService } from '@/gen/realtime/me/v1/status_pb';
+import { MetricsService } from '@realtime-me/status-contracts';
+import { ProfileService } from '@realtime-me/status-contracts';
+import { ProjectsService } from '@realtime-me/status-contracts';
+import { StatusService } from '@realtime-me/status-contracts';
 
 // POLL_INTERVAL_MS is the cadence for the public and internal status loops.
 export const POLL_INTERVAL_MS = 10_000;

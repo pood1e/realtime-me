@@ -120,6 +120,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.7"
+  dart_style:
+    dependency: transitive
+    description:
+      name: dart_style
+      sha256: a4c1ccfee44c7e75ed80484071a5c142a385345e658fd8bd7c4b5c97e7198f98
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.8"
   equatable:
     dependency: transitive
     description:
@@ -535,6 +543,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.2.0"
+  protoc_plugin:
+    dependency: "direct dev"
+    description:
+      name: protoc_plugin
+      sha256: "5bf4289e0fa9eec4b0ee4e77111fa47fa2e6b54b2a7b9c2e83ec87a971542f01"
+      url: "https://pub.dev"
+    source: hosted
+    version: "22.5.0"
   pub_semver:
     dependency: transitive
     description:
@@ -551,6 +567,20 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.2.2"
+  realtime_me_manager_contracts:
+    dependency: "direct main"
+    description:
+      path: "../../packages/manager-contracts-dart"
+      relative: true
+    source: path
+    version: "0.1.0"
+  realtime_me_status_contracts:
+    dependency: "direct main"
+    description:
+      path: "../../packages/status-contracts-dart"
+      relative: true
+    source: path
+    version: "0.1.0"
   record_use:
     dependency: transitive
     description:

@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
-	authv1 "github.com/pood1e/realtime-me/services/library/gen/cloud/auth/v1"
-	contentv1 "github.com/pood1e/realtime-me/services/library/gen/cloud/content/v1"
+	authv1 "github.com/pood1e/realtime-me/gen/go/realtime/me/library/auth/v1"
+	contentv1 "github.com/pood1e/realtime-me/gen/go/realtime/me/library/content/v1"
 	"github.com/pood1e/realtime-me/services/library/internal/app"
 	"github.com/pood1e/realtime-me/services/library/internal/auth"
 	"github.com/pood1e/realtime-me/services/library/internal/domain"

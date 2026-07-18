@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+
+repository=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+cd "$repository/apps/mobile"
+exec dart run connectrpc:protoc-gen-connect-dart "$@"

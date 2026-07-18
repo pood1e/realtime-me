@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
-	booksv1 "github.com/pood1e/realtime-me/services/library/gen/cloud/books/v1"
+	booksv1 "github.com/pood1e/realtime-me/gen/go/realtime/me/library/books/v1"
 	"github.com/pood1e/realtime-me/services/library/internal/app"
 	"github.com/pood1e/realtime-me/services/library/internal/domain"
 )

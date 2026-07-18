@@ -1,5 +1,5 @@
-import type { Agent, DeviceState, InternalStatus, MobileState, Subagent } from '@/gen/realtime/me/v1/status_pb';
-import { DeviceKind, DeviceRole, NetworkState, OnlineState } from '@/gen/realtime/me/v1/status_types_pb';
+import type { Agent, DeviceState, InternalStatus, MobileState, Subagent } from '@realtime-me/status-contracts';
+import { DeviceKind, DeviceRole, NetworkState, OnlineState } from '@realtime-me/status-contracts';
 
 export function isVirtualMachine(device: DeviceState): boolean {
   return device.kind === DeviceKind.VIRTUAL_MACHINE || device.role === DeviceRole.VM;

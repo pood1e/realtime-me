@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package realtime.me.library.content.v1;
+
+// ProcessingStatus is the shared readiness state for derived metadata.
+enum ProcessingStatus {
+  // PROCESSING_STATUS_UNSPECIFIED is not persisted.
+  PROCESSING_STATUS_UNSPECIFIED = 0;
+  // PROCESSING_STATUS_PENDING is queued or running.
+  PROCESSING_STATUS_PENDING = 1;
+  // PROCESSING_STATUS_READY has usable derived metadata.
+  PROCESSING_STATUS_READY = 2;
+  // PROCESSING_STATUS_FAILED requires an explicit retry.
+  PROCESSING_STATUS_FAILED = 3;
+}

@@ -13,7 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	mev1 "github.com/pood1e/realtime-me/services/status/internal/genproto/realtime/me/v1"
+	statusv1 "github.com/pood1e/realtime-me/gen/go/realtime/me/status/v1"
 )
 
 // cloneGithub once copied field by field and silently dropped last_signature and
@@ -21,9 +21,9 @@ import (
 // skip: every report reached GitHub. Copy the whole message or not at all.
 func TestCloneGithubPreservesEveryField(t *testing.T) {
 	now := timestamppb.New(time.Unix(1_700_000_000, 0).UTC())
-	original := &mev1.GithubSyncDetail{
+	original := &statusv1.GithubSyncDetail{
 		Configured:      true,
-		State:           mev1.GithubSyncState_GITHUB_SYNC_STATE_OK,
+		State:           statusv1.GithubSyncState_GITHUB_SYNC_STATE_OK,
 		Emoji:           ":rocket:",
 		Message:         "❤️72",
 		LastSuccessTime: now,
@@ -69,7 +69,7 @@ func TestWaitUntilStale(t *testing.T) {
 // A report inside the rate-limit window must ask to be retried, not be dropped.
 func TestPublishOnceDefersRatherThanDropping(t *testing.T) {
 	store := newTestStore(t)
-	if err := store.UpdateGitHub(func(sync *mev1.GithubSyncDetail) {
+	if err := store.UpdateGitHub(func(sync *statusv1.GithubSyncDetail) {
 		sync.LastAttemptTime = timestamppb.New(time.Now().UTC())
 	}); err != nil {
 		t.Fatalf("UpdateGitHub: %v", err)
@@ -148,7 +148,7 @@ func TestPublishOnceWithoutTokenIsDisabled(t *testing.T) {
 	if err != nil || wait != 0 {
 		t.Fatalf("publishOnce = (%v, %v), want (0, nil)", wait, err)
 	}
-	if state := store.GitHubSnapshot().GetState(); state != mev1.GithubSyncState_GITHUB_SYNC_STATE_DISABLED {
+	if state := store.GitHubSnapshot().GetState(); state != statusv1.GithubSyncState_GITHUB_SYNC_STATE_DISABLED {
 		t.Errorf("state = %v, want DISABLED", state)
 	}
 }
@@ -158,10 +158,10 @@ func newTestStore(t *testing.T) *StatusStore {
 	return NewStatusStore(filepath.Join(t.TempDir(), "state.json"))
 }
 
-func mobileWithHeartRate(beats int32) *mev1.MobileState {
-	return &mev1.MobileState{
-		Watch: &mev1.WatchSnapshot{
-			HeartRate: &mev1.HeartRateSample{BeatsPerMinute: beats},
+func mobileWithHeartRate(beats int32) *statusv1.MobileState {
+	return &statusv1.MobileState{
+		Watch: &statusv1.WatchSnapshot{
+			HeartRate: &statusv1.HeartRateSample{BeatsPerMinute: beats},
 		},
 	}
 }

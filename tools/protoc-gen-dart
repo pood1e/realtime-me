@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+
+repository=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+cd "$repository/apps/mobile"
+exec dart run protoc_plugin:protoc_plugin "$@"

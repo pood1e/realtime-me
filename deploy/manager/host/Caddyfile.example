@@ -11,7 +11,7 @@ https://manager.example.com {
 		}
 	}
 
-	@pairing path /super_manager.control.v1.PairingService/PairDevice
+	@pairing path /realtime.me.manager.control.v1.PairingService/PairDevice
 	respond @pairing 404
 
 	reverse_proxy 127.0.0.1:3080 {
@@ -25,7 +25,7 @@ https://manager.example.com:8443 {
 
 	@pairing {
 		method POST
-		path /super_manager.control.v1.PairingService/PairDevice
+		path /realtime.me.manager.control.v1.PairingService/PairDevice
 	}
 	handle @pairing {
 		reverse_proxy 127.0.0.1:3080 {

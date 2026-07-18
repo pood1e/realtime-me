@@ -3,7 +3,7 @@ import { LOCAL_PROVIDER_ID } from "@realtime-me/library-web";
 
 export function localPlayableTrack(track: Track): PlayableTrack {
   return {
-    $typeName: "cloud.music.v1.PlayableTrack",
+    $typeName: "realtime.me.library.music.v1.PlayableTrack",
     providerId: LOCAL_PROVIDER_ID,
     trackId: track.uid,
     title: track.title || track.originalFileName,

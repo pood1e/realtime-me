@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2, Headphones, Music } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
-import type { Accessory, MediaStatus } from '@/gen/realtime/me/v1/status_types_pb';
-import { OnlineState } from '@/gen/realtime/me/v1/status_types_pb';
+import type { Accessory, MediaStatus } from '@realtime-me/status-contracts';
+import { OnlineState } from '@realtime-me/status-contracts';
 import { Badge } from '@/components/ui/badge';
 import { CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';

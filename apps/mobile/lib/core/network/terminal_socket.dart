@@ -6,7 +6,7 @@ import 'dart:typed_data';
 import 'package:fixnum/fixnum.dart';
 import 'package:web_socket_channel/io.dart';
 
-import '../../gen/super_manager/terminal/v1/terminal.pb.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/terminal/v1/terminal.pb.dart';
 
 final class TerminalSocket {
   final IOWebSocketChannel _channel;

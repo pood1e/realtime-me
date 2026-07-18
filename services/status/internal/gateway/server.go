@@ -10,7 +10,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/gin-gonic/gin"
 
-	"github.com/pood1e/realtime-me/services/status/internal/genproto/realtime/me/v1/mev1connect"
+	sitev1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/site/v1/sitev1connect"
+	statusv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/status/v1/statusv1connect"
 )
 
 type Server struct {
@@ -66,26 +67,26 @@ func (server *Server) mountConnectServices(router *gin.Engine) {
 		router.Any(path+"*any", gin.WrapH(handler))
 	}
 
-	mount(mev1connect.NewEnrollmentServiceHandler(
+	mount(statusv1connect.NewEnrollmentServiceHandler(
 		NewEnrollmentServer(server.identity),
 		connect.WithInterceptors(NewAuthInterceptor(server.config.IngestTokens)),
 	))
-	mount(mev1connect.NewIngestServiceHandler(
+	mount(statusv1connect.NewIngestServiceHandler(
 		NewIngestServer(server.store, server.identity, server.github),
 		connect.WithInterceptors(NewAuthInterceptor(server.config.IngestTokens)),
 	))
-	mount(mev1connect.NewStatusServiceHandler(
+	mount(statusv1connect.NewStatusServiceHandler(
 		NewStatusServer(server.store, server.prometheus, server.config),
-		connect.WithInterceptors(NewAuthInterceptor(server.config.QueryTokens, mev1connect.StatusServiceGetPublicStatusProcedure)),
+		connect.WithInterceptors(NewAuthInterceptor(server.config.QueryTokens, statusv1connect.StatusServiceGetPublicStatusProcedure)),
 	))
-	mount(mev1connect.NewMetricsServiceHandler(
+	mount(statusv1connect.NewMetricsServiceHandler(
 		NewMetricsServer(server.prometheus),
 		connect.WithInterceptors(NewAuthInterceptor(server.config.QueryTokens)),
 	))
-	mount(mev1connect.NewProfileServiceHandler(
+	mount(sitev1connect.NewProfileServiceHandler(
 		NewProfileServer(server.profile),
 	))
-	mount(mev1connect.NewProjectsServiceHandler(
+	mount(sitev1connect.NewProjectsServiceHandler(
 		NewProjectsServer(server.projects),
 	))
 }

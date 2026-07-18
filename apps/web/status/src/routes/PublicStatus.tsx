@@ -1,7 +1,7 @@
 import { Box, Laptop, Server } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
-import type { Agent } from '@/gen/realtime/me/v1/status_pb';
-import { AgentState, DeviceRole } from '@/gen/realtime/me/v1/status_types_pb';
+import type { Agent } from '@realtime-me/status-contracts';
+import { AgentState, DeviceRole } from '@realtime-me/status-contracts';
 import type { ShellContext } from '@/components/AppShell';
 import { DeviceCard } from '@/components/DeviceCard';
 import { ErrorCard, SkeletonCard } from '@/components/layout';

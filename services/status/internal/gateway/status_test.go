@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	mev1 "github.com/pood1e/realtime-me/services/status/internal/genproto/realtime/me/v1"
+	mev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/status/v1"
 )
 
 // The gateway exports only what it owns. Host, VM, and agent series come from

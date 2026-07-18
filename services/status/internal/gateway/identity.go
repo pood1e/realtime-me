@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	mev1 "github.com/pood1e/realtime-me/services/status/internal/genproto/realtime/me/v1"
+	mev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/status/v1"
 )
 
 // EnrolledDevice is the gateway-owned identity minted for a device. The uid is

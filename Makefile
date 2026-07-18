@@ -8,7 +8,7 @@ generate:
 verify: verify-generated verify-proto verify-status verify-library verify-manager verify-ops
 
 verify-generated: generate
-	git diff --exit-code -- services/status/internal/genproto apps/web/status/src/gen services/library/gen packages/library-contracts-web/src/gen services/manager/src/gen apps/mobile/lib/gen
+	git diff --exit-code -- gen/go packages/status-contracts-web/src/gen packages/status-contracts-dart/lib/gen packages/library-contracts-web/src/gen services/manager/src/gen packages/manager-contracts-dart/lib/gen
 
 verify-proto:
 	pnpm check:proto
@@ -21,8 +21,8 @@ verify-status:
 verify-library:
 	test -z "$$(find services/library -path services/library/vendor -prune -o -type f -name '*.go' -print0 | xargs -0 gofmt -l)"
 	cd services/library && go vet ./... && go build ./...
-	pnpm --filter './apps/web/library/**' --filter './packages/library-*' --if-present typecheck
-	pnpm --filter './apps/web/library/**' --if-present build
+	pnpm --filter '@realtime-me/library-*' --if-present typecheck
+	pnpm --filter '@realtime-me/library-*' --if-present build
 
 verify-manager:
 	pnpm --filter @realtime-me/manager check

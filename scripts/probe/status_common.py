@@ -72,7 +72,7 @@ def connect_post(base: str, service: str, method: str, token: str, message: dict
     OSError on a transport failure, so callers can surface a clean status
     without leaking gateway internals.
     """
-    endpoint = f"{base.rstrip('/')}/realtime.me.v1.{service}/{method}"
+    endpoint = f"{base.rstrip('/')}/realtime.me.status.v1.{service}/{method}"
     request = urllib.request.Request(
         endpoint,
         data=json.dumps(message).encode(),

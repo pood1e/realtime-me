@@ -3,8 +3,8 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 
-import '../../gen/super_manager/control/v1/device.connect.client.dart';
-import '../../gen/super_manager/control/v1/device.pb.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/device.connect.client.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/device.pb.dart';
 import '../security/device_credentials.dart';
 import 'secure_client.dart';
 

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	mev1 "github.com/pood1e/realtime-me/services/status/internal/genproto/realtime/me/v1"
+	sitev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/site/v1"
 )
 
 // ConfiguredProfile holds the owner's login and the ways to reach them that GitHub
@@ -41,27 +41,27 @@ func NewProfileService(profile ConfiguredProfile) *ProfileService {
 // A profile with no login is a fault, not an anonymous page: every visible piece of
 // the topbar is read from it, so without it there is nothing to draw and nothing true
 // to say.
-func (service *ProfileService) Profile() (*mev1.Profile, error) {
+func (service *ProfileService) Profile() (*sitev1.Profile, error) {
 	login := strings.TrimSpace(service.profile.GitHubLogin)
 	if login == "" {
 		return nil, errors.New("profile.github_login is not configured")
 	}
 
-	links := make([]*mev1.ProfileLink, 0, len(service.profile.Links)+1)
-	links = append(links, &mev1.ProfileLink{
+	links := make([]*sitev1.ProfileLink, 0, len(service.profile.Links)+1)
+	links = append(links, &sitev1.ProfileLink{
 		Label:    "GitHub",
 		Uri:      gitHubProfileURL(login),
 		Platform: "github",
 	})
 	for _, link := range service.profile.Links {
-		links = append(links, &mev1.ProfileLink{
+		links = append(links, &sitev1.ProfileLink{
 			Label:    link.Label,
 			Uri:      link.URI,
 			Platform: link.Platform,
 		})
 	}
 
-	return &mev1.Profile{
+	return &sitev1.Profile{
 		DisplayName: login,
 		AvatarUrl:   gitHubAvatarURL(login),
 		GithubLogin: login,

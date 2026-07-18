@@ -7,7 +7,7 @@ import {
   TerminalClientFrameSchema,
   type TerminalServerFrame,
   TerminalServerFrameSchema,
-} from "../gen/super_manager/terminal/v1/terminal_pb.js";
+} from "../gen/realtime/me/manager/terminal/v1/terminal_pb.js";
 
 const ATTACH_TIMEOUT_MS = 5_000;
 const MAX_BUFFERED_BYTES = 4 * 1024 * 1024;

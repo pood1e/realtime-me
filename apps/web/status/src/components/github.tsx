@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2, CircleOff, LoaderCircle } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { siGithub } from 'simple-icons/icons';
-import { GithubSyncState } from '@/gen/realtime/me/v1/status_pb';
+import { GithubSyncState } from '@realtime-me/status-contracts';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { BrandIcon } from '@/components/brand';

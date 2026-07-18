@@ -13,7 +13,8 @@ import (
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	mev1 "github.com/pood1e/realtime-me/services/status/internal/genproto/realtime/me/v1"
+	sitev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/site/v1"
+	mev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/status/v1"
 )
 
 // EnrollmentServer implements the Connect EnrollmentService. It mints the
@@ -185,13 +186,13 @@ func NewProfileServer(profile *ProfileService) *ProfileServer {
 // visitor's, so it stays in the log the gateway already wrote at startup.
 func (server *ProfileServer) GetProfile(
 	_ context.Context,
-	_ *connect.Request[mev1.GetProfileRequest],
-) (*connect.Response[mev1.GetProfileResponse], error) {
+	_ *connect.Request[sitev1.GetProfileRequest],
+) (*connect.Response[sitev1.GetProfileResponse], error) {
 	profile, err := server.profile.Profile()
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("profile is unavailable"))
 	}
-	return connect.NewResponse(&mev1.GetProfileResponse{Profile: profile}), nil
+	return connect.NewResponse(&sitev1.GetProfileResponse{Profile: profile}), nil
 }
 
 // ProjectsServer implements the Connect ProjectsService.
@@ -207,13 +208,13 @@ func NewProjectsServer(projects *ProjectsService) *ProjectsServer {
 // unavailable, for the same reason GetProfile does.
 func (server *ProjectsServer) ListProjects(
 	_ context.Context,
-	_ *connect.Request[mev1.ListProjectsRequest],
-) (*connect.Response[mev1.ListProjectsResponse], error) {
+	_ *connect.Request[sitev1.ListProjectsRequest],
+) (*connect.Response[sitev1.ListProjectsResponse], error) {
 	projects, err := server.projects.List()
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("projects are unavailable"))
 	}
-	return connect.NewResponse(&mev1.ListProjectsResponse{Projects: projects}), nil
+	return connect.NewResponse(&sitev1.ListProjectsResponse{Projects: projects}), nil
 }
 
 // NewAuthInterceptor rejects unauthenticated server-side calls whose bearer

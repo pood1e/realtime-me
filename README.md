@@ -152,7 +152,8 @@ think about them.
 docker compose up -d --build
 ```
 
-The gateway speaks ConnectRPC (`POST /realtime.me.v1.<Service>/<Method>`, JSON or binary protobuf). The main procedures:
+The gateway speaks ConnectRPC (`POST /realtime.me.status.v1.<Service>/<Method>` or
+`POST /realtime.me.site.v1.<Service>/<Method>`, JSON or binary protobuf). The main procedures:
 
 ```text
 StatusService/GetPublicStatus       # public, unauthenticated — what the page reads
@@ -197,11 +198,13 @@ npx wrangler deploy --config apps/web/status/wrangler.jsonc \
   --var STATUS_API_BASE_URL:https://api-status.example.com
 ```
 
-The Worker serves the SPA and proxies the ConnectRPC calls (`/realtime.me.v1.*`) and `/api/*` to `STATUS_API_BASE_URL`, so the browser reads status and profile from the same origin:
+The Worker serves the SPA and proxies an explicit allowlist of public/read-only
+ConnectRPC calls to `STATUS_API_BASE_URL`, so the browser reads status and profile
+from the same origin without exposing ingest or enrollment routes:
 
 ```text
-https://me.pood1e.space/realtime.me.v1.StatusService/GetPublicStatus
-https://me.pood1e.space/realtime.me.v1.ProjectsService/ListProjects
+https://me.pood1e.space/realtime.me.status.v1.StatusService/GetPublicStatus
+https://me.pood1e.space/realtime.me.site.v1.ProjectsService/ListProjects
 ```
 
 ## Profile and projects

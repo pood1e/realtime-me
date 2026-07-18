@@ -127,7 +127,7 @@ export class ExecutionCoordinator {
     }
     this.events.append(context.execution.threadUid, context.currentRunId, {
       type: EventType.CUSTOM,
-      name: "super_manager.steer",
+      name: "realtime.me.manager.steer",
       value: { instruction },
     });
     return this.store.getExecution(executionUid) ?? context.execution;

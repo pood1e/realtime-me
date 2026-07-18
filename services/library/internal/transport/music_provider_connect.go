@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
-	musicv1 "github.com/pood1e/realtime-me/services/library/gen/cloud/music/v1"
+	musicv1 "github.com/pood1e/realtime-me/gen/go/realtime/me/library/music/v1"
 	"github.com/pood1e/realtime-me/services/library/internal/app"
 	"github.com/pood1e/realtime-me/services/library/internal/domain"
 	"google.golang.org/protobuf/types/known/timestamppb"

@@ -10,7 +10,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/network/agui_transport.dart';
 import '../../core/network/remote_session.dart';
 import '../../core/state/app_session.dart';
-import '../../gen/super_manager/control/v1/thread.pb.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/thread.pb.dart';
 import '../../ui/common.dart';
 import 'interrupt_panel.dart';
 import 'timeline_projection.dart';

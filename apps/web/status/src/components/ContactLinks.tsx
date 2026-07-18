@@ -1,7 +1,7 @@
 import { Globe, Mail } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { siDiscord, siGithub, siGmail, siTelegram } from 'simple-icons/icons';
-import type { ProfileLink } from '@/gen/realtime/me/v1/profile_pb';
+import type { ProfileLink } from '@realtime-me/status-contracts';
 import { Button } from '@/components/ui/button';
 import { BrandIcon } from '@/components/brand';
 

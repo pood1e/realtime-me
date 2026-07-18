@@ -1,0 +1,11 @@
+name: realtime_me_status_contracts
+description: Generated Status and Site protobuf contracts for Realtime Me.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  fixnum: ^1.1.1
+  protobuf: ^4.2.0

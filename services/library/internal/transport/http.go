@@ -9,14 +9,14 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	authv1connect "github.com/pood1e/realtime-me/services/library/gen/cloud/auth/v1/authv1connect"
-	booksv1connect "github.com/pood1e/realtime-me/services/library/gen/cloud/books/v1/booksv1connect"
-	contentv1connect "github.com/pood1e/realtime-me/services/library/gen/cloud/content/v1/contentv1connect"
-	drivev1connect "github.com/pood1e/realtime-me/services/library/gen/cloud/drive/v1/drivev1connect"
-	imagesv1connect "github.com/pood1e/realtime-me/services/library/gen/cloud/images/v1/imagesv1connect"
-	musicv1connect "github.com/pood1e/realtime-me/services/library/gen/cloud/music/v1/musicv1connect"
-	systemv1connect "github.com/pood1e/realtime-me/services/library/gen/cloud/system/v1/systemv1connect"
-	wallpapersv1connect "github.com/pood1e/realtime-me/services/library/gen/cloud/wallpapers/v1/wallpapersv1connect"
+	authv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/auth/v1/authv1connect"
+	booksv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/books/v1/booksv1connect"
+	contentv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/content/v1/contentv1connect"
+	drivev1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/drive/v1/drivev1connect"
+	imagesv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/images/v1/imagesv1connect"
+	musicv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/music/v1/musicv1connect"
+	systemv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/system/v1/systemv1connect"
+	wallpapersv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/wallpapers/v1/wallpapersv1connect"
 	"github.com/pood1e/realtime-me/services/library/internal/app"
 	"github.com/pood1e/realtime-me/services/library/internal/auth"
 	"github.com/pood1e/realtime-me/services/library/internal/config"
@@ -213,7 +213,7 @@ func (router *httpRouter) servePublic(writer http.ResponseWriter, request *http.
 		router.servePublicShareRaw(writer, request)
 		return
 	}
-	if strings.HasPrefix(request.URL.Path, "/cloud.wallpapers.v1.WallpaperPublicService/") {
+	if strings.HasPrefix(request.URL.Path, "/realtime.me.library.wallpapers.v1.WallpaperPublicService/") {
 		writer.Header().Set("Cache-Control", "public, max-age=300, s-maxage=3600")
 	} else {
 		writer.Header().Set("Cache-Control", "no-store")

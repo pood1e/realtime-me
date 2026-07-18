@@ -7,8 +7,8 @@ import androidx.health.services.client.data.DataPointContainer
 import androidx.health.services.client.data.DataType
 import androidx.health.services.client.data.HeartRateAccuracy
 import androidx.health.services.client.data.SampleDataPoint
-import me.realtime.protocol.v1.ReportWatchSnapshotRequest
-import me.realtime.protocol.v1.WatchSnapshot
+import me.realtime.status.v1.ReportWatchSnapshotRequest
+import me.realtime.status.v1.WatchSnapshot
 import me.realtime.watch.state.WatchSnapshotRepository
 import me.realtime.watch.wear.SnapshotPublisher
 import java.time.Instant

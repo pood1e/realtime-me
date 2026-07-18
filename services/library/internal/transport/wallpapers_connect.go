@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
-	wallpapersv1 "github.com/pood1e/realtime-me/services/library/gen/cloud/wallpapers/v1"
+	wallpapersv1 "github.com/pood1e/realtime-me/gen/go/realtime/me/library/wallpapers/v1"
 	"github.com/pood1e/realtime-me/services/library/internal/app"
 )
 

@@ -18,7 +18,7 @@ import {
   siWearos,
   siZorin,
 } from 'simple-icons/icons';
-import type { DeviceState } from '@/gen/realtime/me/v1/status_pb';
+import type { DeviceState } from '@realtime-me/status-contracts';
 
 export function BrandIcon({ icon, className = 'size-4', mono = false }: { icon: SimpleIcon; className?: string; mono?: boolean }) {
   return (

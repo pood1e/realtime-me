@@ -2,7 +2,7 @@ import { CloudOff } from 'lucide-react';
 import { useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
-import type { PublicStatus } from '@/gen/realtime/me/v1/status_pb';
+import type { PublicStatus } from '@realtime-me/status-contracts';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TooltipProvider } from '@/components/ui/tooltip';

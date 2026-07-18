@@ -5,7 +5,7 @@ import android.util.Log
 import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
 import me.realtime.protocol.DataLayerContract
-import me.realtime.protocol.v1.ReportWatchSnapshotRequest
+import me.realtime.status.v1.ReportWatchSnapshotRequest
 
 class SnapshotPublisher(private val context: Context) {
     private val policy = PublishPolicy(context)

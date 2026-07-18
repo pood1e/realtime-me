@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
-	drivev1 "github.com/pood1e/realtime-me/services/library/gen/cloud/drive/v1"
+	drivev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/library/drive/v1"
 	"github.com/pood1e/realtime-me/services/library/internal/app"
 	"github.com/pood1e/realtime-me/services/library/internal/domain"
 )

@@ -13,12 +13,12 @@ import android.os.Build
 import android.provider.Settings
 import me.realtime.mobile.state.StoredWatchSnapshot
 import me.realtime.mobile.nintendo.NintendoSwitchPresenceReader
-import me.realtime.protocol.v1.ChargeState
-import me.realtime.protocol.v1.DeviceKind
-import me.realtime.protocol.v1.EnrollDeviceRequest
-import me.realtime.protocol.v1.NetworkState
-import me.realtime.protocol.v1.PhoneState
-import me.realtime.protocol.v1.ReportMobileStatusRequest
+import me.realtime.status.v1.ChargeState
+import me.realtime.status.v1.DeviceKind
+import me.realtime.status.v1.EnrollDeviceRequest
+import me.realtime.status.v1.NetworkState
+import me.realtime.status.v1.PhoneState
+import me.realtime.status.v1.ReportMobileStatusRequest
 import kotlin.math.roundToInt
 
 class StatusGatewayPayloadBuilder(private val context: Context) {

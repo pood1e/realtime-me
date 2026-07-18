@@ -1,7 +1,7 @@
 import { AlertTriangle, Bot, Box, Gauge, KeyRound, Laptop, LineChart as LineChartIcon, LogOut, RefreshCw, Server, ShieldCheck, Watch } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { siGithub } from 'simple-icons/icons';
-import type { Agent, InternalStatus } from '@/gen/realtime/me/v1/status_pb';
+import type { Agent, InternalStatus } from '@realtime-me/status-contracts';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

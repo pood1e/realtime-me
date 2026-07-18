@@ -22,7 +22,7 @@ import { registerAguiHttp } from "./transport/agui-http.js";
 import { createControlRoutes } from "./transport/control/routes.js";
 import { registerTerminalWebSocket } from "./transport/terminal-websocket.js";
 
-const PAIR_DEVICE_PATH = "/super_manager.control.v1.PairingService/PairDevice";
+const PAIR_DEVICE_PATH = "/realtime.me.manager.control.v1.PairingService/PairDevice";
 
 export interface ServerApplication {
   readonly server: FastifyInstance;

@@ -233,9 +233,10 @@ run an arbitrary query. Don't reintroduce a `query=` parameter.
   container restart.
 - The status page's Worker proxies the four read services — `StatusService`,
   `ProfileService`, `ProjectsService`, `MetricsService` — to `STATUS_API_BASE_URL`
-  by name, so the browser always sees one origin. Don't collapse them back to the
-  `/realtime.me.v1.*` package prefix: that also carries `IngestService` and
-  `EnrollmentService`, the write half of the API. It proxies nothing under
+  by name, so the browser always sees one origin. Keep the explicit
+  `/realtime.me.status.v1.*` and `/realtime.me.site.v1.*` allowlist: the status
+  package also carries `IngestService` and `EnrollmentService`, the write half of
+  the API. It proxies nothing under
   `/api/` either: those are the gateway's control-plane routes, such as scrape
   discovery, and a browser must never reach them.
 - `STATUS_INGEST_TOKEN` (write) and `STATUS_QUERY_TOKEN` (read) are separate

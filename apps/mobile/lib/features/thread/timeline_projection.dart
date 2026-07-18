@@ -330,7 +330,7 @@ final class TimelineProjection {
   }
 
   void _applyCustom(CustomEvent event) {
-    if (event.name != 'super_manager.steer') {
+    if (event.name != 'realtime.me.manager.steer') {
       return;
     }
     final value = event.value;

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
-	systemv1 "github.com/pood1e/realtime-me/services/library/gen/cloud/system/v1"
+	systemv1 "github.com/pood1e/realtime-me/gen/go/realtime/me/library/system/v1"
 	"github.com/pood1e/realtime-me/services/library/internal/app"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

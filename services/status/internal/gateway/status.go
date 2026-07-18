@@ -7,7 +7,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	mev1 "github.com/pood1e/realtime-me/services/status/internal/genproto/realtime/me/v1"
+	mev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/status/v1"
 )
 
 // mobileStaleAfter bounds how long the phone's last push keeps being served.

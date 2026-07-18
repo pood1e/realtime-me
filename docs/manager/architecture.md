@@ -59,7 +59,7 @@ DDNS hostname ── A/AAAA ── 住宅真实公网地址
 - Agent 事件正文只使用 `@ag-ui/core` 的标准事件，不再定义平行聊天模型。
 - Flutter 使用仓库内固定的 AG-UI Dart 最小 fork，只保留协议模型和 SSE parser，并补齐 Interrupt、resume、outcome 与 capabilities。
 - 平台资源只在 `proto/` 定义；TypeScript 与 Dart 均由 Buf 生成。
-- PTY 字节只使用 `super_manager.terminal.v1`，不包装成 Agent 消息。
+- PTY 字节只使用 `realtime.me.manager.terminal.v1`，不包装成 Agent 消息。
 
 ## 4. Runtime 实现
 

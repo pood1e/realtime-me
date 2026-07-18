@@ -6,7 +6,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	mev1 "github.com/pood1e/realtime-me/services/status/internal/genproto/realtime/me/v1"
+	mev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/status/v1"
 )
 
 // An ingest-token holder must not be able to point Prometheus at anything it

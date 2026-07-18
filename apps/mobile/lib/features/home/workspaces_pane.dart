@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/network/remote_session.dart';
 import '../../core/state/app_session.dart';
-import '../../gen/super_manager/control/v1/workspace.pb.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/workspace.pb.dart';
 import '../../ui/common.dart';
 
 class WorkspacesPane extends ConsumerStatefulWidget {

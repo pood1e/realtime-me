@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/remote_session.dart';
 import '../../core/state/app_session.dart';
-import '../../gen/super_manager/control/v1/device.pb.dart';
-import '../../gen/super_manager/control/v1/runtime.pb.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/device.pb.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/runtime.pb.dart';
 import '../../ui/common.dart';
 
 typedef _StatusData = ({

@@ -1,6 +1,6 @@
 import { AlertTriangle } from 'lucide-react';
 import { siGithub } from 'simple-icons/icons';
-import type { GithubSyncDetail } from '@/gen/realtime/me/v1/status_pb';
+import type { GithubSyncDetail } from '@realtime-me/status-contracts';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BrandIcon } from '@/components/brand';

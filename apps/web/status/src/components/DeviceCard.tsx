@@ -1,6 +1,6 @@
 import { Activity, Cpu } from 'lucide-react';
 import type { ReactElement } from 'react';
-import type { DeviceState } from '@/gen/realtime/me/v1/status_pb';
+import type { DeviceState } from '@realtime-me/status-contracts';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { deviceIcon } from '@/components/brand';
 import {

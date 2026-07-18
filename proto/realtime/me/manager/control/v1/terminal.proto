@@ -1,0 +1,111 @@
+syntax = "proto3";
+
+package realtime.me.manager.control.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// TerminalSessionState describes a tmux-backed shell lifecycle.
+enum TerminalSessionState {
+  // The terminal session state was not specified.
+  TERMINAL_SESSION_STATE_UNSPECIFIED = 0;
+  // The tmux-backed shell is running.
+  TERMINAL_SESSION_STATE_RUNNING = 1;
+  // The shell exited or the user explicitly closed it.
+  TERMINAL_SESSION_STATE_CLOSED = 2;
+}
+
+// TerminalSession describes one shell created and owned by Super Manager.
+message TerminalSession {
+  // uid is the server-assigned UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+  // workspace_uid identifies the workspace used as the initial directory.
+  string workspace_uid = 2 [(buf.validate.field).string.uuid = true];
+  // display_name is the human-readable shell label.
+  string display_name = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+  // cwd is the canonical initial working directory.
+  string cwd = 4 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 4096
+    pattern: "^/"
+  }];
+  // state is the projected shell lifecycle state.
+  TerminalSessionState state = 5 [(buf.validate.field).enum.defined_only = true];
+  // create_time is the shell creation time.
+  google.protobuf.Timestamp create_time = 6;
+}
+
+// CreateTerminalSessionRequest creates a tmux-backed shell in one workspace.
+message CreateTerminalSessionRequest {
+  // workspace_uid identifies the registered workspace.
+  string workspace_uid = 1 [(buf.validate.field).string.uuid = true];
+  // display_name is the human-readable shell label.
+  string display_name = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+  // columns is the initial terminal width.
+  uint32 columns = 3 [(buf.validate.field).uint32 = {
+    gte: 20
+    lte: 1000
+  }];
+  // rows is the initial terminal height.
+  uint32 rows = 4 [(buf.validate.field).uint32 = {
+    gte: 5
+    lte: 1000
+  }];
+}
+
+// CreateTerminalSessionResponse returns the new terminal session.
+message CreateTerminalSessionResponse {
+  // terminal_session is the newly created terminal session.
+  TerminalSession terminal_session = 1 [(buf.validate.field).required = true];
+}
+
+// GetTerminalSessionRequest requests one terminal session.
+message GetTerminalSessionRequest {
+  // uid is the terminal session UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+}
+
+// GetTerminalSessionResponse returns one terminal session.
+message GetTerminalSessionResponse {
+  // terminal_session is the requested terminal session.
+  TerminalSession terminal_session = 1 [(buf.validate.field).required = true];
+}
+
+// ListTerminalSessionsRequest requests terminal sessions in one workspace.
+message ListTerminalSessionsRequest {
+  // workspace_uid scopes the list to one workspace.
+  string workspace_uid = 1 [(buf.validate.field).string.uuid = true];
+}
+
+// ListTerminalSessionsResponse returns terminal sessions in one workspace.
+message ListTerminalSessionsResponse {
+  // terminal_sessions contains the bounded workspace collection.
+  repeated TerminalSession terminal_sessions = 1;
+}
+
+// DeleteTerminalSessionRequest closes and deletes one terminal session.
+message DeleteTerminalSessionRequest {
+  // uid is the terminal session UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+}
+
+// DeleteTerminalSessionResponse confirms that the terminal session was closed.
+message DeleteTerminalSessionResponse {}
+
+// TerminalService manages tmux-backed raw shell sessions.
+service TerminalService {
+  // CreateTerminalSession creates a raw shell owned by Super Manager.
+  rpc CreateTerminalSession(CreateTerminalSessionRequest) returns (CreateTerminalSessionResponse);
+  // GetTerminalSession returns one raw shell session.
+  rpc GetTerminalSession(GetTerminalSessionRequest) returns (GetTerminalSessionResponse);
+  // ListTerminalSessions returns raw shell sessions in one workspace.
+  rpc ListTerminalSessions(ListTerminalSessionsRequest) returns (ListTerminalSessionsResponse);
+  // DeleteTerminalSession closes the shell and removes its record.
+  rpc DeleteTerminalSession(DeleteTerminalSessionRequest) returns (DeleteTerminalSessionResponse);
+}

@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	mev1 "github.com/pood1e/realtime-me/services/status/internal/genproto/realtime/me/v1"
+	sitev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/site/v1"
 )
 
 const (
@@ -68,7 +68,7 @@ type GitHubRepository struct {
 // GitHubRepositoryDetail is the decoration: what the repository itself does not
 // carry, and what a card can do without.
 type GitHubRepositoryDetail struct {
-	Languages      []*mev1.LanguageShare
+	Languages      []*sitev1.LanguageShare
 	CommitActivity []int32
 }
 
@@ -146,7 +146,7 @@ func (github *GitHubProjectsClient) repository(ctx context.Context, fullName str
 	return repo, err
 }
 
-func (github *GitHubProjectsClient) languages(ctx context.Context, fullName string, token string) []*mev1.LanguageShare {
+func (github *GitHubProjectsClient) languages(ctx context.Context, fullName string, token string) []*sitev1.LanguageShare {
 	var bytesByLanguage map[string]int64
 	url := fmt.Sprintf("%s/repos/%s/languages", gitHubAPIURL, fullName)
 	if err := github.get(ctx, url, token, &bytesByLanguage); err != nil {
@@ -154,9 +154,9 @@ func (github *GitHubProjectsClient) languages(ctx context.Context, fullName stri
 		return nil
 	}
 
-	shares := make([]*mev1.LanguageShare, 0, len(bytesByLanguage))
+	shares := make([]*sitev1.LanguageShare, 0, len(bytesByLanguage))
 	for name, size := range bytesByLanguage {
-		shares = append(shares, &mev1.LanguageShare{Name: name, Bytes: size})
+		shares = append(shares, &sitev1.LanguageShare{Name: name, Bytes: size})
 	}
 	sort.SliceStable(shares, func(first int, second int) bool {
 		return shares[first].GetBytes() > shares[second].GetBytes()

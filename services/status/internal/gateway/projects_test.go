@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	mev1 "github.com/pood1e/realtime-me/services/status/internal/genproto/realtime/me/v1"
+	sitev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/site/v1"
 )
 
 func TestProjectsReportUnreadableCuration(t *testing.T) {
@@ -36,7 +36,7 @@ func TestPublicProjectWithholdsPrivateRepositoryURL(t *testing.T) {
 		GitHubRepositoryDetail{},
 		"",
 	)
-	if private.GetVisibility() != mev1.ProjectVisibility_PROJECT_VISIBILITY_PRIVATE {
+	if private.GetVisibility() != sitev1.ProjectVisibility_PROJECT_VISIBILITY_PRIVATE {
 		t.Fatalf("want private visibility, got %v", private.GetVisibility())
 	}
 	if private.GetRepositoryUrl() != "" {

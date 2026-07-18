@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	contentv1 "github.com/pood1e/realtime-me/services/library/gen/cloud/content/v1"
+	contentv1 "github.com/pood1e/realtime-me/gen/go/realtime/me/library/content/v1"
 	"github.com/pood1e/realtime-me/services/library/internal/domain"
 )
 

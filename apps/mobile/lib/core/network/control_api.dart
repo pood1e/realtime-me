@@ -2,18 +2,18 @@ import 'dart:async';
 
 import 'package:connectrpc/connect.dart' as connect;
 
-import '../../gen/super_manager/control/v1/device.connect.client.dart';
-import '../../gen/super_manager/control/v1/device.pb.dart';
-import '../../gen/super_manager/control/v1/execution.connect.client.dart';
-import '../../gen/super_manager/control/v1/execution.pb.dart';
-import '../../gen/super_manager/control/v1/runtime.connect.client.dart';
-import '../../gen/super_manager/control/v1/runtime.pb.dart';
-import '../../gen/super_manager/control/v1/terminal.connect.client.dart';
-import '../../gen/super_manager/control/v1/terminal.pb.dart';
-import '../../gen/super_manager/control/v1/thread.connect.client.dart';
-import '../../gen/super_manager/control/v1/thread.pb.dart';
-import '../../gen/super_manager/control/v1/workspace.connect.client.dart';
-import '../../gen/super_manager/control/v1/workspace.pb.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/device.connect.client.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/device.pb.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/execution.connect.client.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/execution.pb.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/runtime.connect.client.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/runtime.pb.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/terminal.connect.client.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/terminal.pb.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/thread.connect.client.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/thread.pb.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/workspace.connect.client.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/workspace.pb.dart';
 
 final class ControlApi {
   static const _timeout = Duration(seconds: 30);

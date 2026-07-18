@@ -1,8 +1,8 @@
 import { Footprints, HeartPulse, Music } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { PublicStatus } from '@/gen/realtime/me/v1/status_pb';
-import type { MediaStatus, SwitchPresence } from '@/gen/realtime/me/v1/status_types_pb';
-import { OnlineState } from '@/gen/realtime/me/v1/status_types_pb';
+import type { PublicStatus } from '@realtime-me/status-contracts';
+import type { MediaStatus, SwitchPresence } from '@realtime-me/status-contracts';
+import { OnlineState } from '@realtime-me/status-contracts';
 import { SwitchArtwork } from '@/components/SwitchArtwork';
 
 export function Presence({ status }: { status?: PublicStatus | null }) {

@@ -11,41 +11,41 @@ import {
   ListDevicesResponseSchema,
   PairDeviceResponseSchema,
   PairingService,
-} from "../../gen/super_manager/control/v1/device_pb.js";
+} from "../../gen/realtime/me/manager/control/v1/device_pb.js";
 import {
   CancelExecutionResponseSchema,
   ExecutionService,
   GetExecutionResponseSchema,
   ListExecutionsResponseSchema,
   SteerExecutionResponseSchema,
-} from "../../gen/super_manager/control/v1/execution_pb.js";
+} from "../../gen/realtime/me/manager/control/v1/execution_pb.js";
 import {
   GetRuntimeQuotaResponseSchema,
   GetRuntimeResponseSchema,
   ListRuntimesResponseSchema,
   RuntimeService,
-} from "../../gen/super_manager/control/v1/runtime_pb.js";
+} from "../../gen/realtime/me/manager/control/v1/runtime_pb.js";
 import {
   CreateTerminalSessionResponseSchema,
   DeleteTerminalSessionResponseSchema,
   GetTerminalSessionResponseSchema,
   ListTerminalSessionsResponseSchema,
   TerminalService,
-} from "../../gen/super_manager/control/v1/terminal_pb.js";
+} from "../../gen/realtime/me/manager/control/v1/terminal_pb.js";
 import {
   CreateThreadResponseSchema,
   DeleteThreadResponseSchema,
   GetThreadResponseSchema,
   ListThreadsResponseSchema,
   ThreadService,
-} from "../../gen/super_manager/control/v1/thread_pb.js";
+} from "../../gen/realtime/me/manager/control/v1/thread_pb.js";
 import {
   CreateWorkspaceResponseSchema,
   DeleteWorkspaceResponseSchema,
   GetWorkspaceResponseSchema,
   ListWorkspacesResponseSchema,
   WorkspaceService,
-} from "../../gen/super_manager/control/v1/workspace_pb.js";
+} from "../../gen/realtime/me/manager/control/v1/workspace_pb.js";
 import type { QuotaRecord, ResourceStore } from "../../infrastructure/resource-store.js";
 import {
   toDevice,

@@ -1,4 +1,4 @@
-import type { Agent, Subagent } from '@/gen/realtime/me/v1/status_pb';
+import type { Agent, Subagent } from '@realtime-me/status-contracts';
 import { AgentClip, agentName } from '@/components/AgentCard';
 import { agentDeviceLabel } from '@/lib/status';
 

@@ -6,7 +6,7 @@ import androidx.core.content.edit
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import me.realtime.protocol.v1.WatchSnapshot
+import me.realtime.status.v1.WatchSnapshot
 import java.time.Instant
 import java.util.Base64
 

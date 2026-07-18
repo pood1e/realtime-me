@@ -2,8 +2,8 @@ package me.realtime.mobile.state
 
 import android.content.Context
 import me.realtime.protocol.toJavaInstant
-import me.realtime.protocol.v1.ReportWatchSnapshotRequest
-import me.realtime.protocol.v1.WatchSnapshot
+import me.realtime.status.v1.ReportWatchSnapshotRequest
+import me.realtime.status.v1.WatchSnapshot
 import java.time.Duration
 import java.time.Instant
 

@@ -48,10 +48,10 @@ GATEWAY=http://<STATUS_GATEWAY_BIND>:18080
 
 curl "$GATEWAY/healthz"
 curl -X POST -H 'Content-Type: application/json' -d '{}' \
-  "$GATEWAY/realtime.me.v1.StatusService/GetPublicStatus"
+  "$GATEWAY/realtime.me.status.v1.StatusService/GetPublicStatus"
 curl -X POST -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $STATUS_QUERY_TOKEN" -d '{}' \
-  "$GATEWAY/realtime.me.v1.StatusService/GetInternalStatus"
+  "$GATEWAY/realtime.me.status.v1.StatusService/GetInternalStatus"
 curl http://127.0.0.1:19090/-/ready
 
 # Scrape discovery requires the read token; without it this must return 401.
