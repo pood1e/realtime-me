@@ -23,7 +23,7 @@ import kotlin.math.roundToInt
 
 class StatusGatewayPayloadBuilder(private val context: Context) {
     private val accessoryReader = BluetoothAudioAccessoryReader(context)
-    private val switchPresenceReader = NintendoSwitchPresenceReader()
+    private val switchPresenceReader = NintendoSwitchPresenceReader(context)
 
     /** The one-time enrollment request describing this phone to the gateway. */
     fun enrollRequest(): EnrollDeviceRequest = EnrollDeviceRequest.newBuilder()

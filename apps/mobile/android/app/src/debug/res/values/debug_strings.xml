@@ -1,4 +1,5 @@
 <resources>
     <string name="debug_token_missing">Token broadcast missing token extra</string>
+    <string name="debug_token_save_failed">This device could not store the status token securely</string>
     <string name="debug_token_saved">Debug status token saved</string>
 </resources>

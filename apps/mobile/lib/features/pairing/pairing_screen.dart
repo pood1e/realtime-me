@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../core/security/device_credentials.dart';
@@ -10,7 +11,9 @@ import '../../core/state/app_session.dart';
 enum _PairingMode { scan, paste }
 
 class PairingScreen extends ConsumerStatefulWidget {
-  const PairingScreen({super.key});
+  final bool closeOnSuccess;
+
+  const PairingScreen({this.closeOnSuccess = false, super.key});
 
   @override
   ConsumerState<PairingScreen> createState() => _PairingScreenState();
@@ -228,6 +231,13 @@ class _PairingScreenState extends ConsumerState<PairingScreen> {
     setState(() => _busy = true);
     try {
       await ref.read(appSessionProvider.notifier).pair(offer, _deviceName.text);
+      if (mounted && widget.closeOnSuccess) {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/');
+        }
+      }
     } on Object catch (error) {
       if (mounted) {
         _showError(error);

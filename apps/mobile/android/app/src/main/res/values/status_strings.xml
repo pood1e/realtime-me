@@ -1,29 +1,5 @@
 <resources>
     <string name="app_name">Realtime Me</string>
-
-    <string name="status_gateway_title">Status page</string>
-    <string name="status_gateway_connected">Connected</string>
-    <string name="status_gateway_missing">Not configured</string>
-    <string name="status_gateway_connected_description">Realtime phone and watch updates are on.</string>
-    <string name="status_gateway_missing_description">Copy the status token once to publish phone and watch status.</string>
-    <string name="status_gateway_import_token">Save status token</string>
-    <string name="status_gateway_disconnect">Remove status token</string>
-    <string name="status_gateway_token_saved">Status token saved.</string>
-    <string name="status_gateway_token_clipboard_missing">Clipboard does not contain a status token.</string>
-    <string name="status_gateway_token_save_failed">This device could not store the status token securely.</string>
-    <string name="status_gateway_disconnected">Status token removed.</string>
-
-    <string name="current_watch_title">Current watch data</string>
-    <string name="watch_waiting_chip">Waiting</string>
-    <string name="watch_data_empty_title">No watch snapshot yet</string>
-    <string name="watch_data_empty_description">Start sensor sync on the Pixel Watch. The phone will show heart rate, steps, battery, and charging after the first snapshot arrives.</string>
-    <string name="watch_metric_heart_rate">Heart rate</string>
-    <string name="watch_metric_heart_rate_value">%1$d</string>
-    <string name="watch_metric_steps">Steps</string>
-    <string name="watch_metric_battery">Battery</string>
-    <string name="watch_metric_battery_value">%1$d%%</string>
-    <string name="watch_metric_charge_state">Charging</string>
-
     <string name="status_sync_notification_channel">Realtime Me</string>
     <string name="status_sync_notification_title">Publishing realtime status</string>
 </resources>

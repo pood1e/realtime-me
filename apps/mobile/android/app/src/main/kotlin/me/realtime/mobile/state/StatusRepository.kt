@@ -23,11 +23,14 @@ class StatusRepository(context: Context) {
 
     fun hasToken(): Boolean = tokenStore.hasToken()
 
+    fun latestSnapshot(): StoredWatchSnapshot? = snapshotStore.latest()
+
     fun watchSnapshots(): Flow<StoredWatchSnapshot?> = snapshotStore.changes()
 
     /** Returns false when the device's Keystore refused to store the token. */
     suspend fun saveToken(token: String): Boolean = withContext(Dispatchers.IO) {
-        if (!tokenStore.save(token)) return@withContext false
+        val normalized = token.trim()
+        if (normalized.isEmpty() || !tokenStore.save(normalized)) return@withContext false
         StatusBackgroundSync.ensureActive(appContext)
         true
     }
@@ -50,5 +53,10 @@ class StatusRepository(context: Context) {
     suspend fun refreshFromWatch(): Unit = withContext(Dispatchers.IO) {
         val payload = runCatching { snapshotReader.latestPayload() }.getOrNull() ?: return@withContext
         snapshotProcessor.process(payload)
+    }
+
+    suspend fun refresh() {
+        refreshFromWatch()
+        ensureSyncActive()
     }
 }

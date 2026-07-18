@@ -16,16 +16,21 @@ class WatchSnapshotStore(context: Context) {
     // Emits the current stored snapshot immediately, then again on every change,
     // so the UI reacts to new watch data instead of polling on a timer.
     fun changes(): Flow<StoredWatchSnapshot?> = callbackFlow {
-        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> trySend(latest()) }
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == REVISION_KEY) trySend(latest())
+        }
         trySend(latest())
         preferences.registerOnSharedPreferenceChangeListener(listener)
         awaitClose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 
+    @Synchronized
     fun save(snapshot: WatchSnapshot, receivedAt: Instant) {
+        val revision = preferences.getLong(REVISION_KEY, 0L) + 1L
         preferences.edit {
             putString(SNAPSHOT_BYTES_KEY, Base64.getEncoder().encodeToString(snapshot.toByteArray()))
             putLong(RECEIVED_AT_KEY, receivedAt.toEpochMilli())
+            putLong(REVISION_KEY, revision)
         }
     }
 
@@ -36,6 +41,7 @@ class WatchSnapshotStore(context: Context) {
             StoredWatchSnapshot(
                 snapshot = WatchSnapshot.parseFrom(Base64.getDecoder().decode(encodedSnapshot)),
                 receivedAt = Instant.ofEpochMilli(receivedAt),
+                revision = preferences.getLong(REVISION_KEY, 0L),
             )
         }.getOrNull()
     }
@@ -44,10 +50,12 @@ class WatchSnapshotStore(context: Context) {
         const val PREFS_NAME = "watch_snapshot"
         const val SNAPSHOT_BYTES_KEY = "snapshot_bytes"
         const val RECEIVED_AT_KEY = "received_at_ms"
+        const val REVISION_KEY = "revision"
     }
 }
 
 data class StoredWatchSnapshot(
     val snapshot: WatchSnapshot,
     val receivedAt: Instant,
+    val revision: Long,
 )

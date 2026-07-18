@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/device.pb.dart';
+import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/runtime.pb.dart';
 
 import '../../core/network/remote_session.dart';
 import '../../core/state/app_session.dart';
-import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/device.pb.dart';
-import 'package:realtime_me_manager_contracts/gen/realtime/me/manager/control/v1/runtime.pb.dart';
 import '../../ui/common.dart';
 
 typedef _StatusData = ({
@@ -14,7 +14,9 @@ typedef _StatusData = ({
 });
 
 class RuntimeStatusPane extends ConsumerStatefulWidget {
-  const RuntimeStatusPane({super.key});
+  final Widget? header;
+
+  const RuntimeStatusPane({this.header, super.key});
 
   @override
   ConsumerState<RuntimeStatusPane> createState() => _RuntimeStatusPaneState();
@@ -51,6 +53,10 @@ class _RuntimeStatusPaneState extends ConsumerState<RuntimeStatusPane> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
             children: [
+              if (widget.header case final header?) ...[
+                header,
+                const SizedBox(height: 24),
+              ],
               _EndpointHeader(session: _session),
               const SizedBox(height: 24),
               _SectionTitle(title: '运行时', count: data.runtimes.length),

@@ -1,18 +1,54 @@
-# Super Manager Flutter client
+# Realtime Me Flutter client
 
-当前 MVP 的 Android 客户端。它只连接 `smctl pair create` 生成的私有 CA/DDNS origin，使用设备 PKCS#12 与 bearer 完成双层认证。
+`apps/mobile` is the only phone application. It combines Status, Agent workspace,
+remote terminal, pairing, runtime, device, and connection settings in one Material 3
+Flutter UI.
 
-```bash
-flutter pub get
-flutter analyze
-flutter build apk --debug
+## Ownership boundary
+
+- Flutter owns every phone screen and navigation flow using Riverpod and `go_router`.
+- Generated Dart protobuf packages are the application contracts; the UI does not
+  define parallel JSON DTOs.
+- Pigeon exposes the Android Status store through a typed Host API and Event Channel.
+  Snapshot payloads cross the bridge as protobuf bytes.
+- Native Android owns Wear OS Data Layer listeners, Android Keystore token storage,
+  WorkManager recovery, and foreground/background Status sync. These continue when
+  the Flutter engine is not running.
+- Manager pairing uses the private CA/DDNS origin created by `smctl pair create`, a
+  device PKCS#12 identity, and a bearer token. The app rejects plaintext HTTP and has
+  no certificate-verification bypass.
+
+## Generate and verify
+
+Run from the repository root:
+
+```sh
+make generate-mobile
+make verify-mobile
 ```
 
-主要页面：
+Or run the Flutter checks directly:
 
-- QR/粘贴配对与 Android secure storage；
-- workspace、thread、runtime、quota 和设备管理；
-- AG-UI timeline、结构化 Ask、cancel/steer 与 sequence replay；
-- xterm.dart 原始 tmux 终端。
+```sh
+(cd apps/mobile && flutter pub get)
+(cd apps/mobile && flutter analyze)
+(cd apps/mobile && flutter build apk --debug)
+```
 
-客户端不接受明文 HTTP，不包含跳过证书校验的开发开关，也不直接持有 OpenAI/Anthropic API key。
+The Pigeon source is `pigeons/status_bridge.dart`. Commit both generated bridge files
+with every contract change.
+
+## Status gateway configuration
+
+Gateway addresses are Android build properties rather than committed private values:
+
+```sh
+cd apps/mobile/android
+./gradlew app:assembleDebug \
+  -PstatusGatewayLanUrl=http://<lan-host>:18080 \
+  -PstatusGatewayPublicUrl=https://api-status.example.com
+```
+
+The ingest token is entered in the app and stored through Android Keystore-backed
+encrypted preferences. OpenAI, Anthropic, and GitHub credentials are never stored in
+the phone app.

@@ -37,7 +37,7 @@ class BluetoothAudioAccessoryReader(private val context: Context) {
     private fun audioProfiles(): List<Int> = buildList {
         add(BluetoothProfile.A2DP)
         add(BluetoothProfile.HEADSET)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) add(BluetoothProfile.HEARING_AID)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) add(BluetoothProfile.HEARING_AID)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(BluetoothProfile.LE_AUDIO)
     }
 
@@ -77,6 +77,9 @@ class BluetoothAudioAccessoryReader(private val context: Context) {
     }
 
     private fun BluetoothDevice.displayName(): String {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+        ) return ""
         return firstNonBlank(
             runCatching {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) alias else ""
@@ -86,6 +89,9 @@ class BluetoothAudioAccessoryReader(private val context: Context) {
     }
 
     private fun BluetoothDevice.isAudioAccessory(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+        ) return false
         val bluetoothClass = runCatching { bluetoothClass }.getOrNull() ?: return true
         if (bluetoothClass.majorDeviceClass == BluetoothClass.Device.Major.AUDIO_VIDEO) return true
         return bluetoothClass.deviceClass == BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES ||

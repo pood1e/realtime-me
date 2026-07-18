@@ -1,14 +1,21 @@
 SHELL := /bin/bash
 
-.PHONY: generate verify verify-generated verify-proto verify-status verify-library verify-manager verify-ops
+.PHONY: generate generate-proto generate-mobile verify verify-generated verify-proto verify-status verify-library verify-manager verify-watch verify-mobile verify-ops
 
-generate:
+generate: generate-proto generate-mobile
+
+generate-proto:
 	pnpm generate
 
-verify: verify-generated verify-proto verify-status verify-library verify-manager verify-ops
+generate-mobile:
+	cd apps/mobile && dart run pigeon --input pigeons/status_bridge.dart
+	cd apps/mobile && dart format lib/core/platform/status_bridge.g.dart >/dev/null
+	node tools/normalize-text.mjs apps/mobile/android/app/src/main/kotlin/me/realtime/mobile/platform/StatusBridge.g.kt
+
+verify: verify-generated verify-proto verify-status verify-library verify-manager verify-watch verify-mobile verify-ops
 
 verify-generated: generate
-	git diff --exit-code -- gen/go packages/status-contracts-web/src/gen packages/status-contracts-dart/lib/gen packages/library-contracts-web/src/gen services/manager/src/gen packages/manager-contracts-dart/lib/gen
+	git diff --exit-code -- gen/go packages/status-contracts-web/src/gen packages/status-contracts-dart/lib/gen packages/library-contracts-web/src/gen services/manager/src/gen packages/manager-contracts-dart/lib/gen apps/mobile/lib/core/platform/status_bridge.g.dart apps/mobile/android/app/src/main/kotlin/me/realtime/mobile/platform/StatusBridge.g.kt
 
 verify-proto:
 	pnpm check:proto
@@ -27,6 +34,14 @@ verify-library:
 verify-manager:
 	pnpm --filter @realtime-me/manager check
 	pnpm --filter @realtime-me/manager build
+
+verify-watch:
+	./gradlew :apps:watch:lintDebug :apps:watch:assembleDebug
+
+verify-mobile:
+	cd apps/mobile && flutter analyze
+	cd apps/mobile/android && ./gradlew app:lintDebug
+	cd apps/mobile && flutter build apk --debug
 
 verify-ops:
 	bash -n deploy/library/scripts/*.sh deploy/library/operator/*.sh deploy/manager/scripts/*.sh

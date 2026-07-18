@@ -1,18 +1,25 @@
 package me.realtime.mobile.nintendo
 
+import android.content.Context
 import android.os.SystemClock
 import android.util.Log
 import com.google.protobuf.Timestamp
 import me.realtime.status.v1.OnlineState
 import me.realtime.status.v1.SwitchPresence
 import org.json.JSONObject
+import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Base64
 import java.util.concurrent.TimeUnit
 
-class NintendoSwitchPresenceReader {
+class NintendoSwitchPresenceReader(context: Context) {
     private val cipher = CoralCipher()
+    private val nintendoDataDirectory = runCatching {
+        context.createPackageContext(NSO_PACKAGE, Context.CONTEXT_IGNORE_SECURITY)
+            .applicationInfo
+            .dataDir
+    }.getOrNull()
 
     fun read(): SwitchPresence? = runCatching {
         var token = usableCoralToken() ?: run {
@@ -161,7 +168,8 @@ class NintendoSwitchPresenceReader {
     }
 
     private fun coralToken(): CoralToken? {
-        val data = suRead(TOKEN_DATASTORE_PATH)?.toString(Charsets.ISO_8859_1) ?: return null
+        val path = nintendoFile(TOKEN_DATASTORE_RELATIVE_PATH) ?: return null
+        val data = suRead(path)?.toString(Charsets.ISO_8859_1) ?: return null
         val candidates = TOKEN_PATTERN.findAll(data).map { it.value }.toList()
         return candidates
             .mapNotNull { token ->
@@ -174,8 +182,14 @@ class NintendoSwitchPresenceReader {
     }
 
     private fun userId(): Long? {
-        val data = suRead(LOGIN_USER_PATH)?.toString(Charsets.UTF_8) ?: return null
+        val path = nintendoFile(LOGIN_USER_RELATIVE_PATH) ?: return null
+        val data = suRead(path)?.toString(Charsets.UTF_8) ?: return null
         return JSONObject(data).optLong("userId").takeIf { it > 0L }
+    }
+
+    private fun nintendoFile(relativePath: String): String? {
+        val dataDirectory = nintendoDataDirectory ?: return null
+        return File(dataDirectory, relativePath).path
     }
 
     private fun suRead(path: String): ByteArray? {
@@ -238,8 +252,8 @@ class NintendoSwitchPresenceReader {
         const val NSO_PACKAGE = "com.nintendo.znca"
         const val NSO_BOOT_ACTIVITY = "com.nintendo.coral.ui.boot.BootActivity"
         const val INVALID_TOKEN_STATUS = 9403
-        const val TOKEN_DATASTORE_PATH = "/data/data/com.nintendo.znca/files/datastore/preferences_token_datastore.preferences_pb"
-        const val LOGIN_USER_PATH = "/data/data/com.nintendo.znca/files/datastore/login_user.pb"
+        const val TOKEN_DATASTORE_RELATIVE_PATH = "files/datastore/preferences_token_datastore.preferences_pb"
+        const val LOGIN_USER_RELATIVE_PATH = "files/datastore/login_user.pb"
         const val TIMEOUT_MS = 10_000
         const val SU_TIMEOUT_SECONDS = 5L
         const val REFRESH_POLL_ATTEMPTS = 30

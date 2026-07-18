@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'features/home/home_screen.dart';
 import 'features/pairing/credential_gate.dart';
+import 'features/pairing/pairing_screen.dart';
 import 'features/terminal/terminal_screen.dart';
 import 'features/thread/thread_screen.dart';
 import 'features/workspace/workspace_screen.dart';
@@ -11,9 +12,10 @@ import 'ui/theme.dart';
 final _router = GoRouter(
   initialLocation: '/',
   routes: [
+    GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
     GoRoute(
-      path: '/',
-      builder: (context, state) => const CredentialGate(child: HomeScreen()),
+      path: '/pairing',
+      builder: (context, state) => const PairingScreen(closeOnSuccess: true),
     ),
     GoRoute(
       path: '/workspaces/:uid',

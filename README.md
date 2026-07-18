@@ -1,6 +1,6 @@
 # realtime-me
 
-Realtime Pixel Watch and device status publisher.
+Personal realtime status, content library, and remote Agent/terminal management in one monorepo.
 
 The watch does not need internet access. It collects local health/device data and sends the latest snapshot to the paired Android phone through the Wear OS Data Layer. The phone only forwards phone/watch status to a self-hosted gateway; the gateway owns GitHub status updates and Prometheus metrics.
 
@@ -11,15 +11,17 @@ The watch does not need internet access. It collects local health/device data an
   - Runs a health foreground service for heart rate, daily steps, battery, charging, and wrist state.
   - Restarts collection after boot/package replacement when permissions are still granted.
   - Publishes watch snapshots to the paired phone over Data Layer.
-- `apps/mobile`: Android phone companion.
+- `apps/mobile`: the single Flutter phone application (`me.realtime`).
+  - Provides Status, Agent, terminal, pairing, and settings surfaces with Material 3, Riverpod, and go_router.
   - Receives watch snapshots from Data Layer.
   - Stores only the self-hosted gateway ingest token with Android Keystore-backed AES/GCM encrypted shared preferences.
   - Pushes phone/watch status to configured gateway endpoints; private LAN/public URLs are build properties, not committed values.
   - Keeps a foreground sync service active after token setup; WorkManager is only a 15-minute OS-managed recovery fallback.
+  - Uses generated Pigeon Host APIs and an Event Channel to read the native snapshot store; Flutter is not required for background sync to stay alive.
 - `services/status`: Go gateway for mobile ingestion, Prometheus HTTP service discovery, GitHub `changeUserStatus`, public status JSON, and internal metrics charts.
 - `apps/web/status`: Vite/React status page using shadcn/ui, Radix, Lucide, Tailwind, and a Cloudflare Worker custom domain.
 - `deploy/status`: Prometheus, node-exporter, cAdvisor, status-gateway, and optional cloudflared service definitions.
-- `packages/status-protocol-android` and `proto/realtime/me/v1/watch.proto`: shared protobuf contract for the Data Layer payload.
+- `packages/status-protocol-android` and `proto/realtime/me/status/v1/watch.proto`: shared protobuf contract for the Data Layer payload.
 
 Wear OS Data Layer requires the phone and watch APKs to use the same package name and signing certificate. Both APKs therefore use application ID `me.realtime`, while keeping separate source namespaces for mobile and watch code.
 
@@ -53,7 +55,7 @@ Attributes are exposed as Prometheus labels such as `device_id`, `device_type`, 
   - Low-battery or off-wrist mode slows unchanged refreshes to about every 5 minutes; changed values still have a 30-second minimum interval.
 - Phone → status gateway:
   - Incoming watch snapshots are processed immediately.
-  - The phone foreground service pushes the latest phone/watch status every 10 seconds while a gateway token is configured.
+  - The phone foreground service pushes on watch, connectivity, and charging changes, with a 5-minute heartbeat while a gateway token is configured.
   - LAN HTTP and public HTTPS endpoints are build-time configuration. Use LAN first to avoid Cloudflare traffic, and public HTTPS as fallback when configured.
 - Gateway → GitHub:
   - The gateway formats the latest watch data and updates GitHub status at most once every 10 seconds by default.
@@ -65,32 +67,33 @@ Requirements:
 
 - Android SDK with API 37 installed.
 - JDK 17. This repo pins Gradle to `/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home` in `gradle.properties`; change that path if needed.
-- Go 1.26.
-- Node 22+.
+- Flutter 3.44.6 / Dart 3.12.2.
+- Go 1.26.4.
+- Node 24.18+ and pnpm 11.10.
 
 Commands:
 
 ```sh
-ANDROID_HOME=$HOME/Library/Android/sdk ANDROID_SDK_ROOT=$HOME/Library/Android/sdk ./gradlew :libs:protocol:generateDebugProto
-ANDROID_HOME=$HOME/Library/Android/sdk ANDROID_SDK_ROOT=$HOME/Library/Android/sdk ./gradlew :apps:watch:assembleDebug :apps:mobile:assembleDebug
-npm run build:status
-buf lint
+make generate
+pnpm check
+./gradlew :apps:watch:assembleDebug
+(cd apps/mobile && flutter analyze && flutter build apk --debug)
 ```
 
 To enable the phone app's LAN status gateway without committing a private address:
 
 ```sh
+cd apps/mobile/android
 ANDROID_HOME=$HOME/Library/Android/sdk ANDROID_SDK_ROOT=$HOME/Library/Android/sdk \
-  ./gradlew :apps:mobile:assembleDebug \
-  -PstatusGatewayLanUrl=http://<lan-host>:18080 \
-  -PstatusGatewayAllowCleartext=true
+  ./gradlew app:assembleDebug -PstatusGatewayLanUrl=http://<lan-host>:18080
 ```
 
 For a public HTTPS fallback:
 
 ```sh
+cd apps/mobile/android
 ANDROID_HOME=$HOME/Library/Android/sdk ANDROID_SDK_ROOT=$HOME/Library/Android/sdk \
-  ./gradlew :apps:mobile:assembleDebug \
+  ./gradlew app:assembleDebug \
   -PstatusGatewayPublicUrl=https://api-status.example.com
 ```
 
@@ -299,9 +302,5 @@ The emoji changes for charging, low battery, and off-wrist states. Off-wrist sta
 ## Verification
 
 ```sh
-buf lint
-ANDROID_HOME=$HOME/Library/Android/sdk ANDROID_SDK_ROOT=$HOME/Library/Android/sdk ./gradlew :apps:watch:assembleDebug :apps:mobile:assembleDebug --no-daemon
-ANDROID_HOME=$HOME/Library/Android/sdk ANDROID_SDK_ROOT=$HOME/Library/Android/sdk ./gradlew :apps:watch:lintDebug :apps:mobile:lintDebug --no-daemon
-npm run check:status
-npm run build:status
+make verify
 ```

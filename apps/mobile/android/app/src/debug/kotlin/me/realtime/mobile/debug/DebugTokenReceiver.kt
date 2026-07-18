@@ -18,7 +18,7 @@ class DebugTokenReceiver : BroadcastReceiver() {
         }
         val appContext = context.applicationContext
         if (!StatusGatewayTokenStore(appContext).save(token)) {
-            Toast.makeText(context, context.getString(R.string.status_gateway_token_save_failed), Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.getString(R.string.debug_token_save_failed), Toast.LENGTH_LONG).show()
             return
         }
         StatusBackgroundSync.ensureActive(appContext)
