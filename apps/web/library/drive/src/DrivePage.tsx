@@ -39,7 +39,7 @@ export function DrivePage() {
   const [trail, setTrail] = useState<readonly Trail[]>(ROOT);
   const [query, setQuery] = useState("");
   const [dialog, setDialog] = useState<DriveDialogState>(null);
-  const [mode, setMode] = useDriveViewMode("cloud-drive.view-mode");
+  const [mode, setMode] = useDriveViewMode("realtime-me.library.drive.view-mode");
   const parentUid = trail.at(-1)?.id ?? "";
   const deferredQuery = useDeferredValue(query.trim());
   const catalog = useCursorQuery({

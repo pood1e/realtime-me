@@ -8,7 +8,7 @@ final class CredentialStore {
   static const _key = 'device_credentials_v1';
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(
-      storageNamespace: 'super_manager',
+      storageNamespace: 'realtime_me_manager',
       resetOnError: false,
       migrateWithBackup: false,
     ),

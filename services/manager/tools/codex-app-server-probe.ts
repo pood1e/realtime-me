@@ -22,7 +22,7 @@ const client = new JsonRpcProcess(executable, ["app-server", "--listen", "stdio:
 });
 try {
   await client.request("initialize", {
-    clientInfo: { name: "super_manager_probe", version: "0.1.0" },
+    clientInfo: { name: "realtime_me_manager_probe", version: "0.1.0" },
     capabilities: { experimentalApi: true, requestAttestation: false },
   });
   client.notify("initialized", {});

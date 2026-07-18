@@ -1,5 +1,5 @@
 [Unit]
-Description=Super Manager persistent tmux server
+Description=Realtime Me Manager persistent tmux server
 After=local-fs.target
 
 [Service]

@@ -39,7 +39,7 @@ export function App() {
   const [trail, setTrail] = useState<readonly Trail[]>([]);
   const [preview, setPreview] = useState<DriveItem>();
   const [error, setError] = useState("");
-  const [viewMode, setViewMode] = useDriveViewMode("cloud-drive.share.view-mode");
+  const [viewMode, setViewMode] = useDriveViewMode("realtime-me.library.share.view-mode");
 
   useEffect(() => {
     if (!token) return;

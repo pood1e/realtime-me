@@ -1,4 +1,4 @@
-# Super Manager
+# Realtime Me Manager
 
 单用户、自托管的 Codex 与 Claude Code 远程控制器。Linux 工作机运行服务和已登录的 CLI，
 统一 Flutter 手机应用中的 Agent/Terminal 模块通过住宅公网 DDNS 直连；不调用模型 API，

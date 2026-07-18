@@ -1,5 +1,5 @@
 [Unit]
-Description=DDNS updater for Super Manager
+Description=DDNS updater for Realtime Me Manager
 After=network-online.target
 Wants=network-online.target
 

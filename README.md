@@ -31,6 +31,13 @@ The watch does not need internet access. It collects local health/device data an
 
 Wear OS Data Layer requires the phone and watch APKs to use the same package name and signing certificate. Both APKs therefore use application ID `me.realtime`, while keeping separate source namespaces for mobile and watch code.
 
+Detailed boundaries and operations:
+
+- [Consolidation architecture and migration plan](docs/architecture/project-consolidation.md)
+- [Library architecture](docs/library/architecture.md) and [production operations](deploy/library/README.md)
+- [Manager architecture](docs/manager/architecture.md) and [Linux deployment](deploy/manager/README.md)
+- [One-time consolidated cutover](docs/operations/consolidation-cutover.md)
+
 ## GitHub status
 
 GitHub is updated by `services/status`, not by the phone. Put a classic personal access token in `github.status_token` in the gateway's `gateway.yaml`:

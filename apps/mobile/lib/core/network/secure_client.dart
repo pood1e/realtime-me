@@ -30,7 +30,7 @@ HttpClient createBoundHttpClient(SecurityContext context) {
     ..connectionTimeout = const Duration(seconds: 15)
     ..idleTimeout = const Duration(seconds: 30)
     ..maxConnectionsPerHost = 8
-    ..userAgent = 'SuperManager/0.1.0';
+    ..userAgent = 'RealtimeMe/0.1.0';
 }
 
 connect.Transport createConnectTransport({

@@ -1,6 +1,6 @@
 import 'base.dart';
 
-/// The subset of canonical AG-UI capabilities consumed by Super Manager.
+/// The subset of canonical AG-UI capabilities consumed by Realtime Me Manager.
 class AgentCapabilities extends AGUIModel {
   final IdentityCapabilities? identity;
   final TransportCapabilities? transport;

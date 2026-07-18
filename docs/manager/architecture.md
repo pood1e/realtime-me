@@ -1,8 +1,10 @@
-# Super Manager MVP 实施方案
+# Realtime Me Manager MVP 实施方案
 
 ## 1. 目标与边界
 
-Super Manager 是一个单用户、自托管的 Codex/Claude Code 远程控制工具。Linux 工作机继续使用两个 CLI 已有的订阅登录；服务端不直接调用模型 HTTP API，也不引入要求 API key 的 Claude Agent SDK。
+Realtime Me Manager 是一个单用户、自托管的 Codex/Claude Code 远程控制工具。Linux
+工作机继续使用两个 CLI 已有的订阅登录；服务端不直接调用模型 HTTP API，也不引入要求
+API key 的 Claude Agent SDK。
 
 MVP 提供两条彼此独立的数据面：
 
@@ -27,7 +29,7 @@ DDNS hostname ── A/AAAA ── 住宅真实公网地址
                     │
                     ▼
               127.0.0.1:3080
-              Super Manager
+            Realtime Me Manager
 ```
 
 `ddns-go` 与 Caddy 和应用运行在同一台 Linux 主机，不再经过 VPS、Cloudflare Tunnel、CDN 或 relay。DDNS 只更新 DNS，不能穿透 CGNAT；上线前必须确认至少一个地址族可从外网入站。
@@ -120,7 +122,7 @@ resume 的敏感答案不写入 `RUN_STARTED` 或平台 raw diagnostics；Claude
 5. 验证家庭 LAN 的 NAT loopback；不支持时用路由器 split DNS 把同一 DDNS 域名解析到内网地址，不能改用不匹配证书的 IP URL。
 6. 住宅网络不可入站时，DDNS profile 必须明确停用，再单独选择 overlay VPN 或国内 relay；MVP 不并行暗跑两条路径。
 
-具体命令见 [`deploy/README.md`](deploy/README.md)。
+具体命令见 [`deploy/manager/README.md`](../../deploy/manager/README.md)。
 
 ## 9. 剩余验收
 

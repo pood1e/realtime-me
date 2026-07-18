@@ -1,8 +1,11 @@
 # realtime-me 项目整合方案
 
-状态：Proposed
+状态：源码阶段 1–6 已实施；生产切换待执行
 
 盘点基线：2026-07-18
+
+生产维护窗口、最终备份、域名切换、Manager 重新配对与旧设备吊销尚未执行。实际切换只按
+[`consolidation-cutover.md`](../operations/consolidation-cutover.md) 单次进行，不启动旧新双写路径。
 
 ## 1. 结论
 

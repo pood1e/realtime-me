@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { PLAYBACK_MODES, type PlaybackMode } from "./playback-types";
 
-const STORAGE_KEY = "cloud-drive.music.playback-settings";
+const STORAGE_KEY = "realtime-me.library.music.playback-settings";
 const DEFAULT_VOLUME = 0.8;
 
 type PlaybackSettings = Readonly<{

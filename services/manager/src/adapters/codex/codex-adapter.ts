@@ -229,8 +229,8 @@ export class CodexAdapter implements RuntimeAdapter {
     try {
       await client.request("initialize", {
         clientInfo: {
-          name: "super_manager",
-          title: "Super Manager",
+          name: "realtime_me_manager",
+          title: "Realtime Me Manager",
           version: "0.1.0",
         },
         capabilities: {

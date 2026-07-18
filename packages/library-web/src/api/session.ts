@@ -62,7 +62,7 @@ export function clearRecentSessionValidation(): void {
   try {
     for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
       const key = window.sessionStorage.key(index);
-      if (key?.startsWith("cloud-drive.session-valid-until:")) {
+      if (key?.startsWith("realtime-me.library.session-valid-until:")) {
         window.sessionStorage.removeItem(key);
       }
     }
@@ -72,7 +72,7 @@ export function clearRecentSessionValidation(): void {
 }
 
 function validationKey(apiBase: string): string {
-  return `cloud-drive.session-valid-until:${apiBase}`;
+  return `realtime-me.library.session-valid-until:${apiBase}`;
 }
 
 export function authenticationUrl(authOrigin: string, returnUrl = window.location.href): string {

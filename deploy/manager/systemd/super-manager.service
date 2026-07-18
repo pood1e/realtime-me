@@ -1,5 +1,5 @@
 [Unit]
-Description=Super Manager agent control service
+Description=Realtime Me Manager agent control service
 After=network-online.target super-manager-terminal.service
 Requires=super-manager-terminal.service
 Wants=network-online.target

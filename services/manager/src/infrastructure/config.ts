@@ -94,13 +94,13 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Server
 
 export function assertSafeProcess(config: ServerConfig): void {
   if (config.production && process.getuid?.() === 0) {
-    throw new Error("Super Manager must not run as root");
+    throw new Error("Realtime Me Manager must not run as root");
   }
   if (config.production && config.allowedWorkspaceRoots.length === 0) {
     throw new Error("At least one allowed workspace root is required");
   }
   if (config.production && config.host !== "127.0.0.1" && config.host !== "::1") {
-    throw new Error("Super Manager must listen on loopback in production");
+    throw new Error("Realtime Me Manager must listen on loopback in production");
   }
 }
 

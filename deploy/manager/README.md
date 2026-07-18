@@ -12,7 +12,7 @@ Android -- DNS lookup --> residential public IPv4/IPv6
                               |
                        127.0.0.1:3080
                               |
-                    Super Manager + CLIs
+                  Realtime Me Manager + CLIs
 
 ddns-go -- provider API --> A/AAAA record
 ```
