@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pood1e</title>
+    <link rel="icon" type="image/png" href="/scallion.png" />
+    <link rel="apple-touch-icon" href="/scallion.png" />
+    <!-- The theme has to be on the document before the first paint, or the page flashes the
+         other one. It comes from a cookie, not localStorage, because the preference is shared
+         with the sibling sites on this domain and localStorage is not. -->
+    <script>
+      (() => {
+        const match = document.cookie.match(/(?:^|;\s*)theme=(dark|light)/);
+        const theme = match
+          ? match[1]
+          : window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+        document.documentElement.classList.add(theme);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

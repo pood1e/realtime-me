@@ -1,0 +1,15 @@
+.git
+.gradle
+.kotlin
+.wrangler
+**/.dart_tool
+**/.gradle
+**/build
+**/dist
+**/node_modules
+**/.env
+**/.env.*
+**/*.log
+**/data
+**/backups
+**/staging

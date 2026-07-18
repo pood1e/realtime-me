@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package realtime.me.library.books.v1;
+
+import "google/protobuf/timestamp.proto";
+import "realtime/me/library/content/v1/processing.proto";
+
+// BookFormat identifies a supported publication container.
+enum BookFormat {
+  // BOOK_FORMAT_UNSPECIFIED is not persisted.
+  BOOK_FORMAT_UNSPECIFIED = 0;
+  // BOOK_FORMAT_PDF identifies a PDF document.
+  BOOK_FORMAT_PDF = 1;
+  // BOOK_FORMAT_EPUB identifies an EPUB publication.
+  BOOK_FORMAT_EPUB = 2;
+}
+
+// Book is one owner-managed publication.
+message Book {
+  // uid is the server-assigned opaque identifier.
+  string uid = 1;
+  // title is the editable publication title.
+  string title = 2;
+  // authors contains editable display names.
+  repeated string authors = 3;
+  // series is the optional editable series name.
+  string series = 4;
+  // series_number is an optional display value such as 1 or 1.5.
+  string series_number = 5;
+  // description is the optional owner-authored summary.
+  string description = 6;
+  // format identifies the publication container.
+  BookFormat format = 7;
+  // original_file_name is the imported basename.
+  string original_file_name = 8;
+  // size_bytes is the immutable original size.
+  int64 size_bytes = 9;
+  // page_count is populated for PDF files when available.
+  int32 page_count = 10;
+  // cover_url is an authenticated relative URL and may be empty while processing.
+  string cover_url = 11;
+  // content_url is an authenticated Range-capable relative URL.
+  string content_url = 12;
+  // processing_status reports metadata and cover extraction readiness.
+  realtime.me.library.content.v1.ProcessingStatus processing_status = 13;
+  // create_time is when the book entered the catalog.
+  google.protobuf.Timestamp create_time = 14;
+  // update_time is the latest metadata change.
+  google.protobuf.Timestamp update_time = 15;
+  // delete_time is set while the book is in the trash.
+  google.protobuf.Timestamp delete_time = 16;
+}
+
+// Shelf is a named owner-managed collection of books.
+message Shelf {
+  // uid is the server-assigned opaque identifier.
+  string uid = 1;
+  // display_name is the editable collection label.
+  string display_name = 2;
+  // book_count is the current visible membership count.
+  int32 book_count = 3;
+  // create_time is when the shelf was created.
+  google.protobuf.Timestamp create_time = 4;
+}
+
+// PdfLocation identifies a page in a PDF document.
+message PdfLocation {
+  // page_number is one-based.
+  int32 page_number = 1;
+  // page_count is the reader-observed total.
+  int32 page_count = 2;
+}
+
+// EpubLocation identifies a stable EPUB position.
+message EpubLocation {
+  // cfi is an EPUB Canonical Fragment Identifier.
+  string cfi = 1;
+}
+
+// ReadingProgress stores the latest reader position for one book.
+message ReadingProgress {
+  // book_uid identifies the publication.
+  string book_uid = 1;
+  // progress_percent is between zero and one.
+  float progress_percent = 2;
+  // location contains the format-specific position.
+  oneof location {
+    // pdf identifies a PDF page.
+    PdfLocation pdf = 3;
+    // epub identifies an EPUB CFI.
+    EpubLocation epub = 4;
+  }
+  // update_time is the latest synchronized position.
+  google.protobuf.Timestamp update_time = 5;
+}

@@ -1,7 +1,7 @@
 package me.realtime.watch.wear
 
 import android.content.Context
-import me.realtime.protocol.v1.ReportWatchSnapshotRequest
+import me.realtime.status.v1.ReportWatchSnapshotRequest
 import java.time.Duration
 
 class PublishPolicy(context: Context) {

@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package realtime.me.library.system.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// HealthService reports whether the suite can serve requests and process content.
+service HealthService {
+  // Check reports current readiness.
+  rpc Check(CheckRequest) returns (CheckResponse);
+}
+
+// CheckRequest asks for current health.
+message CheckRequest {}
+
+// CheckResponse reports API, storage, and worker readiness.
+message CheckResponse {
+  // healthy is true when required request-path dependencies are available.
+  bool healthy = 1;
+  // worker_healthy is true when a recent worker heartbeat exists.
+  bool worker_healthy = 2;
+  // pending_jobs is the current queued processing count.
+  int64 pending_jobs = 3;
+  // available_bytes is free capacity on the content filesystem.
+  int64 available_bytes = 4;
+  // worker_heartbeat_time is the latest known worker heartbeat.
+  google.protobuf.Timestamp worker_heartbeat_time = 5;
+}

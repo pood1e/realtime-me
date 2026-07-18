@@ -1,18 +1,33 @@
 {
   "name": "realtime-me",
+  "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "apps/status-page"
-  ],
-  "scripts": {
-    "proto:lint": "buf lint",
-    "proto:gen": "buf generate",
-    "build:gateway": "cd apps/status-gateway && go build ./...",
-    "check:gateway": "cd apps/status-gateway && go vet ./... && go test ./...",
-    "build:status": "npm run build:gateway && npm run build --workspace apps/status-page",
-    "check:status": "npm run check:gateway && npm run check --workspace apps/status-page"
-  },
+  "type": "module",
+  "packageManager": "pnpm@11.10.0",
   "engines": {
-    "node": ">=22"
+    "node": ">=24.18.0 <27"
+  },
+  "scripts": {
+    "build": "pnpm build:status && pnpm build:library && pnpm build:manager && pnpm build:console && pnpm build:site",
+    "build:console": "go build ./services/console/... && pnpm --filter @realtime-me/console build",
+    "build:library": "go build ./services/library/...",
+    "build:manager": "pnpm --filter @realtime-me/manager build",
+    "build:site": "pnpm --filter @realtime-me/site build",
+    "build:status": "go build ./services/status/...",
+    "check": "pnpm check:style && pnpm check:proto && pnpm check:status && pnpm check:library && pnpm check:manager && pnpm check:console && pnpm check:site",
+    "check:console": "go vet ./services/console/... && go build ./services/console/... && pnpm --filter @realtime-me/console check",
+    "check:library": "go vet ./services/library/... && go build ./services/library/... && pnpm --filter @realtime-me/library-web typecheck",
+    "check:manager": "pnpm --filter @realtime-me/manager check",
+    "check:proto": "buf lint",
+    "check:site": "pnpm --filter @realtime-me/site check",
+    "check:status": "go vet ./services/status/... ./libs/go/authn && go build ./services/status/... && pnpm --filter @realtime-me/status-web typecheck",
+    "check:style": "biome check apps/web packages/library-web packages/status-web packages/web-shell packages/web-ui services/manager tools",
+    "format": "biome format --write apps/web packages/library-web packages/status-web packages/web-shell packages/web-ui services/manager tools && buf format -w",
+    "generate": "buf generate --template buf.gen.go.yaml --path proto/realtime/me/auth --path proto/realtime/me/status --path proto/realtime/me/site --path proto/realtime/me/library && buf generate --template buf.gen.auth.yaml --path proto/realtime/me/auth && buf generate --template buf.gen.status.yaml --path proto/realtime/me/status --path proto/realtime/me/site && buf generate --template buf.gen.library.yaml --path proto/realtime/me/library && buf generate --template buf.gen.manager.yaml --path proto/realtime/me/auth/v1/permission.proto --path proto/realtime/me/manager && node tools/normalize-generated.mjs",
+    "proto:lint": "buf lint"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.4",
+    "@bufbuild/protoc-gen-es": "2.12.1"
   }
 }

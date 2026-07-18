@@ -1,0 +1,33 @@
+[Unit]
+Description=Realtime Me authenticated web console
+After=network-online.target super-manager.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+WorkingDirectory=/opt/realtime-me
+EnvironmentFile=/etc/realtime-me/console.env
+ExecStart=/opt/realtime-me/bin/realtime-me-console
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=30s
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateDevices=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+MemoryDenyWriteExecute=yes
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

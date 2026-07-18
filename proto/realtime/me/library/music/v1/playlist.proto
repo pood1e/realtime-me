@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package realtime.me.library.music.v1;
+
+import "google/protobuf/timestamp.proto";
+import "realtime/me/library/music/v1/provider.proto";
+
+// PlaylistTrackDownloadStatus describes local persistence progress for one playlist track.
+enum PlaylistTrackDownloadStatus {
+  PLAYLIST_TRACK_DOWNLOAD_STATUS_UNSPECIFIED = 0;
+  PLAYLIST_TRACK_DOWNLOAD_STATUS_NOT_STARTED = 1;
+  PLAYLIST_TRACK_DOWNLOAD_STATUS_PENDING = 2;
+  PLAYLIST_TRACK_DOWNLOAD_STATUS_RUNNING = 3;
+  PLAYLIST_TRACK_DOWNLOAD_STATUS_COMPLETED = 4;
+  PLAYLIST_TRACK_DOWNLOAD_STATUS_FAILED = 5;
+}
+
+// PlaylistImportStatus describes one durable provider import operation.
+enum PlaylistImportStatus {
+  PLAYLIST_IMPORT_STATUS_UNSPECIFIED = 0;
+  PLAYLIST_IMPORT_STATUS_PENDING = 1;
+  PLAYLIST_IMPORT_STATUS_RUNNING = 2;
+  PLAYLIST_IMPORT_STATUS_COMPLETED = 3;
+  PLAYLIST_IMPORT_STATUS_FAILED = 4;
+}
+
+// PlaylistImport is a bounded, resumable provider operation.
+message PlaylistImport {
+  string uid = 1;
+  string provider_id = 2;
+  PlaylistImportStatus status = 3;
+  string playlist_uid = 4;
+  string failure_code = 5;
+  google.protobuf.Timestamp create_time = 6;
+  google.protobuf.Timestamp update_time = 7;
+}
+
+// Playlist is an imported snapshot of one provider playlist.
+message Playlist {
+  string uid = 1;
+  string provider_id = 2;
+  string external_id = 3;
+  string display_name = 4;
+  string artwork_url = 5;
+  string provider_url = 6;
+  int32 track_count = 7;
+  int32 pending_track_count = 8;
+  int32 completed_track_count = 9;
+  int32 failed_track_count = 10;
+  bool download_supported = 11;
+  google.protobuf.Timestamp create_time = 12;
+  google.protobuf.Timestamp update_time = 13;
+  int32 downloadable_track_count = 14;
+}
+
+// PlaylistTrack is one ordered provider track and its local persistence state.
+message PlaylistTrack {
+  string uid = 1;
+  string playlist_uid = 2;
+  int32 position = 3;
+  PlayableTrack track = 4;
+  PlaylistTrackDownloadStatus download_status = 5;
+  string local_track_uid = 6;
+}

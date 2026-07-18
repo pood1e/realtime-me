@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+
+repository=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+exec node --disable-warning=ExperimentalWarning \
+  "$repository/node_modules/@bufbuild/protoc-gen-es/bin/protoc-gen-es" "$@"

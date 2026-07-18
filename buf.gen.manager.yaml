@@ -1,0 +1,21 @@
+version: v2
+clean: true
+plugins:
+  - local: tools/protoc-gen-es
+    out: services/manager/src/gen
+    opt:
+      - target=ts
+      - import_extension=js
+    include_imports: true
+  - local: tools/protoc-gen-es
+    out: packages/manager-contracts-web/src/gen
+    opt:
+      - target=ts
+      - import_extension=js
+    include_imports: true
+  - local: tools/protoc-gen-connect-dart
+    out: packages/manager-contracts-dart/lib/gen
+  - local: tools/protoc-gen-dart
+    out: packages/manager-contracts-dart/lib/gen
+    include_imports: true
+    include_wkt: true

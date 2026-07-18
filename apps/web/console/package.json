@@ -1,0 +1,41 @@
+{
+  "name": "@realtime-me/console",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "check": "tsc -b --noEmit"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "catalog:",
+    "@connectrpc/connect": "catalog:",
+    "@connectrpc/connect-web": "catalog:",
+    "@realtime-me/auth-contracts": "workspace:*",
+    "@realtime-me/library-contracts": "workspace:*",
+    "@realtime-me/library-web": "workspace:*",
+    "@realtime-me/manager-contracts": "workspace:*",
+    "@realtime-me/status-contracts": "workspace:*",
+    "@realtime-me/status-web": "workspace:*",
+    "@realtime-me/web-shell": "workspace:*",
+    "@realtime-me/web-ui": "workspace:*",
+    "@tailwindcss/vite": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "epubjs": "^0.3.93",
+    "lucide-react": "catalog:",
+    "pdfjs-dist": "^5.4.530",
+    "qrcode.react": "^4.2.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-router-dom": "^7.18.1",
+    "tailwindcss": "catalog:",
+    "vite": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:"
+  }
+}

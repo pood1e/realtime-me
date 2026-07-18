@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" fill="none">
+  <title>Codex orbit animation</title>
+  <rect x="76" y="36" width="88" height="88" rx="24" stroke="#14B8A6" stroke-width="3" stroke-dasharray="18 12">
+    <animateTransform attributeName="transform" type="rotate" from="0 120 80" to="360 120 80" dur="5.5s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="90" y="50" width="60" height="60" rx="18" stroke="#60A5FA" stroke-width="2" stroke-dasharray="8 10" opacity=".8">
+    <animateTransform attributeName="transform" type="rotate" from="360 120 80" to="0 120 80" dur="4s" repeatCount="indefinite"/>
+  </rect>
+  <circle cx="120" cy="80" r="34" fill="#0F172A" fill-opacity=".72" stroke="#14B8A6" stroke-width="2"/>
+  <path d="m104 68 11 12-11 12" stroke="#14B8A6" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <animate attributeName="opacity" values=".45;1;.45" dur="1.4s" repeatCount="indefinite"/>
+  </path>
+  <path d="M122 95h24" stroke="#60A5FA" stroke-width="6" stroke-linecap="round">
+    <animate attributeName="stroke-dasharray" values="1 28;24 5;1 28" dur="1.8s" repeatCount="indefinite"/>
+  </path>
+</svg>

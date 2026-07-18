@@ -1,0 +1,43 @@
+{
+	admin off
+	auto_https disable_redirects
+}
+
+https://manager.example.com {
+	tls /etc/caddy/super-manager/server.cert.pem /etc/caddy/super-manager/server.key.pem {
+		client_auth {
+			mode require_and_verify
+			trust_pool file /etc/caddy/super-manager/ca.cert.pem
+		}
+	}
+
+	@pairing path /realtime.me.manager.control.v1.PairingService/PairDevice
+	respond @pairing 404
+
+	reverse_proxy 127.0.0.1:3080 {
+		flush_interval -1
+		stream_close_delay 5m
+	}
+}
+
+https://manager.example.com:8443 {
+	tls /etc/caddy/super-manager/server.cert.pem /etc/caddy/super-manager/server.key.pem
+
+	@pairing {
+		method POST
+		path /realtime.me.manager.control.v1.PairingService/PairDevice
+	}
+	handle @pairing {
+		reverse_proxy 127.0.0.1:3080 {
+			flush_interval -1
+		}
+	}
+	respond 404
+}
+
+https://console.example.com {
+	reverse_proxy 127.0.0.1:8090 {
+		flush_interval -1
+		stream_close_delay 5m
+	}
+}

@@ -1,7 +1,7 @@
 package me.realtime.watch.state
 
 import android.os.Build
-import me.realtime.protocol.v1.DeviceInfo
+import me.realtime.status.v1.DeviceInfo
 
 object DeviceInfoReader {
     fun read(): DeviceInfo = DeviceInfo.newBuilder()

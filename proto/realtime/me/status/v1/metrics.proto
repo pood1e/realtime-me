@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package realtime.me.status.v1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "me.realtime.status.v1";
+
+// MetricsService serves the time series behind the internal dashboard's charts.
+// Callers name the series they want; the gateway owns every metric name, label,
+// and query expression, so the storage engine stays an implementation detail.
+service MetricsService {
+  // GetMetricRange returns one series sampled over a time range.
+  rpc GetMetricRange(GetMetricRangeRequest) returns (GetMetricRangeResponse);
+}
+
+// MetricSeries names a chartable series. Each value maps to exactly one query
+// the gateway builds; callers never construct a query expression.
+enum MetricSeries {
+  // Series is not known.
+  METRIC_SERIES_UNSPECIFIED = 0;
+
+  // Host CPU utilization as a percentage. Requires device_uid.
+  METRIC_SERIES_HOST_CPU_UTILIZATION = 1;
+
+  // Host memory in use, in bytes. Requires device_uid.
+  METRIC_SERIES_HOST_MEMORY_USAGE = 2;
+
+  // Host root-filesystem utilization as a percentage. Requires device_uid.
+  METRIC_SERIES_HOST_FILESYSTEM_UTILIZATION = 3;
+
+  // Phone battery level as a percentage. Requires device_uid.
+  METRIC_SERIES_PHONE_BATTERY_LEVEL = 4;
+
+  // Watch battery level as a percentage. Requires device_uid.
+  METRIC_SERIES_WATCH_BATTERY_LEVEL = 5;
+
+  // Watch heart rate in beats per minute. Requires device_uid.
+  METRIC_SERIES_WATCH_HEART_RATE = 6;
+
+  // Watch local-day step count. Requires device_uid.
+  METRIC_SERIES_WATCH_STEPS = 7;
+
+  // Accessory battery level as a percentage. Requires device_uid and accessory.
+  METRIC_SERIES_ACCESSORY_BATTERY_LEVEL = 8;
+
+  // Coding-agent budget remaining as a percentage. Requires agent_kind.
+  METRIC_SERIES_AGENT_BUDGET_REMAINING = 9;
+}
+
+// AccessorySelector identifies one accessory attached to a device.
+message AccessorySelector {
+  // kind is the accessory category key, such as "bluetooth_audio".
+  string kind = 1;
+
+  // display_name is the accessory label, as reported on the status surface.
+  string display_name = 2;
+}
+
+// GetMetricRangeRequest asks for one series over a time range. Which selector
+// fields apply is fixed by the series; unrelated fields are ignored.
+message GetMetricRangeRequest {
+  // series is the series to sample.
+  MetricSeries series = 1;
+
+  // device_uid is the device the series belongs to.
+  string device_uid = 2;
+
+  // agent_kind is the agent kind, such as "codex" or "claude".
+  string agent_kind = 3;
+
+  // accessory identifies the accessory for accessory-scoped series.
+  AccessorySelector accessory = 4;
+
+  // start_time is the inclusive start of the range.
+  google.protobuf.Timestamp start_time = 5;
+
+  // end_time is the inclusive end of the range.
+  google.protobuf.Timestamp end_time = 6;
+
+  // step is the sampling interval between points.
+  google.protobuf.Duration step = 7;
+}
+
+// MetricPoint is one sample in a time series.
+message MetricPoint {
+  // time is when the sample was taken.
+  google.protobuf.Timestamp time = 1;
+
+  // value is the sample value, already scaled to the series' natural unit.
+  double value = 2;
+}
+
+// GetMetricRangeResponse carries the sampled series.
+message GetMetricRangeResponse {
+  // points are the samples, ordered by time.
+  repeated MetricPoint points = 1;
+}

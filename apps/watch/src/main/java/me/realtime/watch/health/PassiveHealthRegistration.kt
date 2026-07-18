@@ -15,7 +15,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import me.realtime.protocol.v1.ReportWatchSnapshotRequest
+import me.realtime.status.v1.ReportWatchSnapshotRequest
 import me.realtime.watch.state.WatchSnapshotRepository
 import me.realtime.watch.wear.SnapshotPublisher
 import java.time.Duration

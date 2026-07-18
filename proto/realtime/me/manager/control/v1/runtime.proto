@@ -1,0 +1,154 @@
+syntax = "proto3";
+
+package realtime.me.manager.control.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// RuntimeKind identifies an installed coding-agent runtime.
+enum RuntimeKind {
+  // The runtime kind was not specified.
+  RUNTIME_KIND_UNSPECIFIED = 0;
+  // The runtime is OpenAI Codex CLI.
+  RUNTIME_KIND_CODEX = 1;
+  // The runtime is Anthropic Claude Code CLI.
+  RUNTIME_KIND_CLAUDE_CODE = 2;
+}
+
+// RuntimeAvailability describes whether a runtime can accept new executions.
+enum RuntimeAvailability {
+  // The runtime availability was not determined.
+  RUNTIME_AVAILABILITY_UNSPECIFIED = 0;
+  // The runtime is installed, authenticated, and compatible.
+  RUNTIME_AVAILABILITY_AVAILABLE = 1;
+  // The runtime executable is not installed.
+  RUNTIME_AVAILABILITY_NOT_INSTALLED = 2;
+  // The runtime is not authenticated with a supported subscription login.
+  RUNTIME_AVAILABILITY_NOT_AUTHENTICATED = 3;
+  // The installed runtime version is not supported.
+  RUNTIME_AVAILABILITY_INCOMPATIBLE = 4;
+  // The runtime health check failed.
+  RUNTIME_AVAILABILITY_UNHEALTHY = 5;
+}
+
+// RuntimeCapability is a user-facing structured-control capability.
+enum RuntimeCapability {
+  // The runtime capability was not specified.
+  RUNTIME_CAPABILITY_UNSPECIFIED = 0;
+  // The runtime streams assistant text.
+  RUNTIME_CAPABILITY_TEXT_STREAMING = 1;
+  // The runtime streams structured tool calls and results.
+  RUNTIME_CAPABILITY_TOOL_STREAMING = 2;
+  // The runtime can request structured user input.
+  RUNTIME_CAPABILITY_STRUCTURED_QUESTIONS = 3;
+  // The runtime can cancel an active execution.
+  RUNTIME_CAPABILITY_CANCEL = 4;
+  // The runtime can steer an active execution.
+  RUNTIME_CAPABILITY_STEER = 5;
+  // The runtime exposes account quota telemetry.
+  RUNTIME_CAPABILITY_QUOTA = 6;
+  // The runtime emits safe reasoning summaries.
+  RUNTIME_CAPABILITY_REASONING_SUMMARIES = 7;
+}
+
+// QuotaFreshness describes the reliability of a quota observation.
+enum QuotaFreshness {
+  // Quota freshness was not determined.
+  QUOTA_FRESHNESS_UNSPECIFIED = 0;
+  // The quota was observed recently from a structured source.
+  QUOTA_FRESHNESS_FRESH = 1;
+  // A prior observation exists but is no longer fresh.
+  QUOTA_FRESHNESS_STALE = 2;
+  // The runtime does not currently provide quota telemetry.
+  QUOTA_FRESHNESS_UNAVAILABLE = 3;
+}
+
+// Runtime describes one fixed installed coding-agent CLI.
+message Runtime {
+  // uid is the server-assigned UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+  // kind identifies the CLI implementation.
+  RuntimeKind kind = 2 [(buf.validate.field).enum.defined_only = true];
+  // display_name is the human-readable runtime label.
+  string display_name = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 64
+  }];
+  // version is the detected CLI version.
+  string version = 4 [(buf.validate.field).string.max_len = 64];
+  // availability is the latest startup probe result.
+  RuntimeAvailability availability = 5 [(buf.validate.field).enum.defined_only = true];
+  // capabilities contains only behavior verified for this installed version.
+  repeated RuntimeCapability capabilities = 6 [(buf.validate.field).repeated = {
+    unique: true
+    items: {
+      enum: {defined_only: true}
+    }
+  }];
+  // diagnostic is a bounded, non-secret explanation when unavailable.
+  string diagnostic = 7 [(buf.validate.field).string.max_len = 512];
+  // update_time is the time of the latest runtime probe.
+  google.protobuf.Timestamp update_time = 8;
+}
+
+// QuotaSnapshot is the latest account-level quota observation for a runtime.
+message QuotaSnapshot {
+  // runtime_uid identifies the observed runtime.
+  string runtime_uid = 1 [(buf.validate.field).string.uuid = true];
+  // freshness describes whether this snapshot is suitable for display.
+  QuotaFreshness freshness = 2 [(buf.validate.field).enum.defined_only = true];
+  // used_ratio is the observed fraction used, in the inclusive range 0 to 1.
+  optional double used_ratio = 3 [(buf.validate.field).double = {
+    gte: 0
+    lte: 1
+  }];
+  // reset_time is the provider-reported reset instant when available.
+  google.protobuf.Timestamp reset_time = 4;
+  // observe_time is the time this value was observed.
+  google.protobuf.Timestamp observe_time = 5;
+  // source is the bounded structured source name.
+  string source = 6 [(buf.validate.field).string.max_len = 64];
+}
+
+// GetRuntimeRequest requests one runtime.
+message GetRuntimeRequest {
+  // uid is the runtime UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+}
+
+// GetRuntimeResponse returns one runtime.
+message GetRuntimeResponse {
+  // runtime is the requested runtime.
+  Runtime runtime = 1 [(buf.validate.field).required = true];
+}
+
+// ListRuntimesRequest requests all configured runtimes.
+message ListRuntimesRequest {}
+
+// ListRuntimesResponse returns all configured runtimes.
+message ListRuntimesResponse {
+  // runtimes is the fixed runtime collection.
+  repeated Runtime runtimes = 1;
+}
+
+// GetRuntimeQuotaRequest requests the latest quota snapshot for one runtime.
+message GetRuntimeQuotaRequest {
+  // runtime_uid is the runtime UUIDv4 identifier.
+  string runtime_uid = 1 [(buf.validate.field).string.uuid = true];
+}
+
+// GetRuntimeQuotaResponse returns the latest quota snapshot.
+message GetRuntimeQuotaResponse {
+  // quota_snapshot is the latest bounded observation.
+  QuotaSnapshot quota_snapshot = 1 [(buf.validate.field).required = true];
+}
+
+// RuntimeService exposes installed runtime status and account telemetry.
+service RuntimeService {
+  // GetRuntime returns one installed runtime.
+  rpc GetRuntime(GetRuntimeRequest) returns (GetRuntimeResponse);
+  // ListRuntimes returns all installed runtime slots.
+  rpc ListRuntimes(ListRuntimesRequest) returns (ListRuntimesResponse);
+  // GetRuntimeQuota returns the latest account-level quota observation.
+  rpc GetRuntimeQuota(GetRuntimeQuotaRequest) returns (GetRuntimeQuotaResponse);
+}

@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the cloud-drive plain backup once per day
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=6h
+Unit=cloud-drive-backup.service
+
+[Install]
+WantedBy=timers.target

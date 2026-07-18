@@ -1,0 +1,12 @@
+name: realtime_me_manager_contracts
+description: Generated Manager ConnectRPC and protobuf contracts for Realtime Me.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  connectrpc: ^1.0.0
+  fixnum: ^1.1.1
+  protobuf: ^4.2.0

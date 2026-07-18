@@ -1,0 +1,28 @@
+[Unit]
+Description=DDNS updater for Realtime Me Manager
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ddns-go
+Group=ddns-go
+StateDirectory=ddns-go
+StateDirectoryMode=0700
+ExecStart=/usr/local/bin/ddns-go -l 127.0.0.1:9876 -f 10 -cacheTimes 30 -c /var/lib/ddns-go/config.yaml
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

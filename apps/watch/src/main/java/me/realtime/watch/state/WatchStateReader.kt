@@ -5,8 +5,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import me.realtime.protocol.toProtoTimestamp
-import me.realtime.protocol.v1.ChargeState
-import me.realtime.protocol.v1.WatchState
+import me.realtime.status.v1.ChargeState
+import me.realtime.status.v1.WatchState
 import java.time.Instant
 import kotlin.math.roundToInt
 

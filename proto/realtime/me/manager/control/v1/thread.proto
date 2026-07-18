@@ -1,0 +1,114 @@
+syntax = "proto3";
+
+package realtime.me.manager.control.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// ThreadState describes whether a structured conversation can accept new runs.
+enum ThreadState {
+  // The thread state was not specified.
+  THREAD_STATE_UNSPECIFIED = 0;
+  // The thread can accept a new run.
+  THREAD_STATE_IDLE = 1;
+  // The thread has an active provider execution.
+  THREAD_STATE_RUNNING = 2;
+  // The thread is waiting for structured user input.
+  THREAD_STATE_INPUT_REQUIRED = 3;
+  // The thread cannot continue because its provider execution was lost.
+  THREAD_STATE_LOST = 4;
+}
+
+// Thread is a durable structured conversation in one workspace and runtime.
+message Thread {
+  // uid is the server-assigned UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+  // workspace_uid identifies the workspace that owns this thread.
+  string workspace_uid = 2 [(buf.validate.field).string.uuid = true];
+  // runtime_uid identifies the runtime that executes this thread.
+  string runtime_uid = 3 [(buf.validate.field).string.uuid = true];
+  // display_name is the human-readable conversation label.
+  string display_name = 4 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+  // state is the current projected conversation state.
+  ThreadState state = 5 [(buf.validate.field).enum.defined_only = true];
+  // create_time is the thread creation time.
+  google.protobuf.Timestamp create_time = 6;
+  // update_time is the latest state or event update time.
+  google.protobuf.Timestamp update_time = 7;
+}
+
+// CreateThreadRequest creates a structured conversation.
+message CreateThreadRequest {
+  // workspace_uid identifies the registered workspace.
+  string workspace_uid = 1 [(buf.validate.field).string.uuid = true];
+  // runtime_uid identifies an available runtime.
+  string runtime_uid = 2 [(buf.validate.field).string.uuid = true];
+  // display_name is the human-readable conversation label.
+  string display_name = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+}
+
+// CreateThreadResponse returns the new thread.
+message CreateThreadResponse {
+  // thread is the newly created thread.
+  Thread thread = 1 [(buf.validate.field).required = true];
+}
+
+// GetThreadRequest requests one thread.
+message GetThreadRequest {
+  // uid is the thread UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+}
+
+// GetThreadResponse returns one thread.
+message GetThreadResponse {
+  // thread is the requested thread.
+  Thread thread = 1 [(buf.validate.field).required = true];
+}
+
+// ListThreadsRequest requests threads in one workspace.
+message ListThreadsRequest {
+  // workspace_uid scopes the list to one workspace.
+  string workspace_uid = 1 [(buf.validate.field).string.uuid = true];
+  // page_size is the maximum number of threads to return.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 100
+  }];
+  // page_token is an opaque continuation token returned by the server.
+  string page_token = 3 [(buf.validate.field).string.max_len = 256];
+}
+
+// ListThreadsResponse returns threads in one workspace.
+message ListThreadsResponse {
+  // threads contains the current page.
+  repeated Thread threads = 1;
+  // next_page_token requests the next page and is empty on the last page.
+  string next_page_token = 2;
+}
+
+// DeleteThreadRequest deletes one thread and its semantic event history.
+message DeleteThreadRequest {
+  // uid is the thread UUIDv4 identifier.
+  string uid = 1 [(buf.validate.field).string.uuid = true];
+}
+
+// DeleteThreadResponse confirms that the thread was deleted.
+message DeleteThreadResponse {}
+
+// ThreadService manages durable structured conversations.
+service ThreadService {
+  // CreateThread creates a conversation for one workspace and runtime.
+  rpc CreateThread(CreateThreadRequest) returns (CreateThreadResponse);
+  // GetThread returns one conversation.
+  rpc GetThread(GetThreadRequest) returns (GetThreadResponse);
+  // ListThreads returns conversations in one workspace.
+  rpc ListThreads(ListThreadsRequest) returns (ListThreadsResponse);
+  // DeleteThread deletes a conversation and its semantic history.
+  rpc DeleteThread(DeleteThreadRequest) returns (DeleteThreadResponse);
+}

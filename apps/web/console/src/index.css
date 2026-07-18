@@ -1,0 +1,12 @@
+@import "@realtime-me/web-shell/styles.css";
+@import "@realtime-me/status-web/styles.css";
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+}

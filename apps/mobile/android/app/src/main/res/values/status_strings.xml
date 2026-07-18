@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Realtime Me</string>
+    <string name="status_sync_notification_channel">Realtime Me</string>
+    <string name="status_sync_notification_title">Publishing realtime status</string>
+</resources>

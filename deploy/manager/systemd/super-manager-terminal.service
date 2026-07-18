@@ -1,0 +1,24 @@
+[Unit]
+Description=Realtime Me Manager persistent tmux server
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=super-manager
+Group=super-manager
+Environment=HOME=/var/lib/super-manager
+Environment=PATH=/opt/super-manager/node/bin:/opt/super-manager/providers/node_modules/.bin:/usr/local/bin:/usr/bin:/bin
+UMask=0077
+ExecStart=/usr/bin/tmux -L super-manager new-session -d -s __super_manager_keeper /usr/bin/sleep infinity
+ExecStop=/usr/bin/tmux -L super-manager kill-server
+RemainAfterExit=yes
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

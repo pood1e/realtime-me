@@ -1,0 +1,8 @@
+version: v2
+clean: true
+plugins:
+  - local: tools/protoc-gen-es
+    out: packages/library-contracts-web/src/gen
+    opt:
+      - target=ts
+      - import_extension=js
