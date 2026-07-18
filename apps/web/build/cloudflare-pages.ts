@@ -60,7 +60,7 @@ export function cloudflarePagesHeaders(
   let origin = apiOrigin(fallbackApiBase, variableName);
 
   return {
-    name: "cloud-drive-cloudflare-pages-headers",
+    name: "realtime-me-cloudflare-pages-headers",
     apply: "build",
     configResolved(config) {
       origin = apiOrigin(

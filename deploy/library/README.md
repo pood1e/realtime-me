@@ -1,8 +1,9 @@
 # 生产运维
 
-本目录管理主机上的 PostgreSQL、一次性迁移、Go API、内容 Worker 与 cloudflared，以及七个
-Cloudflare Pages 项目的手动发布。所有真实域名、主机地址、项目名、Tunnel 标识和
-凭据都留在被 Git 忽略的本地配置或主机 root-only 文件中。
+本目录只管理主机上的 PostgreSQL、一次性迁移、Go API 与内容 Worker。共享 Tunnel
+connector 由 [`deploy/edge`](../edge/README.md) 管理，七个 Cloudflare Pages 项目由
+[`deploy/web`](../web/README.md) 发布。所有真实域名、主机地址和凭据都留在被 Git 忽略的
+本地配置或主机 root-only 文件中。
 
 ## 容器边界
 
@@ -11,10 +12,10 @@ Cloudflare Pages 项目的手动发布。所有真实域名、主机地址、项
   API 与 Worker 才能启动。
 - `worker` 加入内部 `backend` 与独立 `provider-egress` 网络；前者访问 PostgreSQL，
   后者只用于歌单音频出站下载。Worker 不监听 HTTP 端口。
-- `api` 加入 `backend` 与 `edge`，只由 `cloudflared` 访问。
-- `cloudflared` 通过 Docker secret 读取 Tunnel token，不接收明文命令行参数。
+- `api` 加入 `backend` 与外部 `realtime-me-edge`，稳定别名为 `library-api`；共享
+  `cloudflared` connector 只通过该别名访问 API。
 - 所有 bind mount 都使用 `create_host_path: false`；数据卷未挂载时部署直接失败。
-- API、Worker、PostgreSQL 与 cloudflared 使用 `restart: unless-stopped`；Migrate 是
+- API、Worker 与 PostgreSQL 使用 `restart: unless-stopped`；Migrate 是
   `restart: no` 的启动门禁。
 
 ## 安装工作树
@@ -26,10 +27,10 @@ sudo install -d -o root -g root -m 0755 /opt/cloud-drive
 sudo rsync -a --delete --chown=root:root --chmod=Dgo-w,Fgo-w \
   /path/to/cloud-drive-staging/ /opt/cloud-drive/
 sudo install -d -o root -g root -m 0700 /etc/cloud-drive
-sudo install -o root -g root -m 0400 \
-  /path/to/cloudflare-tunnel.token \
-  /etc/cloud-drive/cloudflare-tunnel.token
 ```
+
+首次部署前先启动 `deploy/edge`，由它创建外部 `realtime-me-edge` network。Library 的
+运行时环境不读取 Tunnel token，也不能管理 edge connector。
 
 ## 初始化主数据卷
 
@@ -138,23 +139,9 @@ sudo /opt/cloud-drive/deploy/library/scripts/compose.sh -- logs --tail=100 api w
 
 ## 发布七个 Pages
 
-在已通过 Wrangler 登录的开发机复制本地配置：
-
-```bash
-cp deploy/library/pages.env.example deploy/library/pages.env
-$EDITOR deploy/library/pages.env
-ops/scripts/deploy-pages.sh
-```
-
-`deploy/library/pages.env` 被 Git 忽略。脚本要求七个项目名、两个 API Origin、七个应用 Origin
-和默认登录返回 Origin，统一构建后依次发布：
-
-```text
-auth -> drive -> books -> music -> images -> wallpapers -> share
-```
-
-生成的 `_headers` 为每个应用写入与其 API Origin 对应的 CSP。实际域名和 Pages
-项目名不能写入仓库。
+Web 发布已从主机运行时中拆出。使用 `deploy/web/deploy-library-pages.sh` 和
+`deploy/web/pages.env`；完整命令见 [`deploy/web/README.md`](../web/README.md)。发布 Web
+不会触发数据库迁移、备份或 Library 容器重启。
 
 ## 受限非 root 运维入口
 
@@ -171,7 +158,7 @@ sudo /opt/cloud-drive/deploy/library/scripts/install-operator-access.sh \
 sudo -n cloud-drive-release
 sudo -n cloud-drive-backup-now
 sudo -n cloud-drive-status
-sudo -n cloud-drive-logs api       # api | worker | migrate | postgres | cloudflared | backup
+sudo -n cloud-drive-logs api       # api | worker | migrate | postgres | backup
 ```
 
 `sudo -n` 只进入 root 安装的固定网关，不会询问密码，也不会授予 Docker socket 或
@@ -179,18 +166,21 @@ sudo -n cloud-drive-logs api       # api | worker | migrate | postgres | cloudfl
 
 ```bash
 rsync -rltzO --delete --exclude=/Dockerfile \
-  api/ /var/lib/cloud-drive-release/incoming-api/
-cp ops/docker-compose.yml \
-  /var/lib/cloud-drive-release/incoming-compose/docker-compose.yml
+  services/library/ /var/lib/cloud-drive-release/incoming-source/
+cp deploy/library/compose.yaml \
+  /var/lib/cloud-drive-release/incoming-compose/compose.yaml
 sudo -n cloud-drive-release
 ```
 
 唯一发布网关会把源码、迁移和 Compose 作为一个版本串行部署。网关先使用无敏感信息的
-环境渲染 Compose，再按固定的服务、镜像、网络、挂载和 secret 策略校验真实配置，并在
+环境渲染 Compose，再按固定的服务、镜像、网络和挂载策略校验真实配置，并在
 越过迁移边界前强制生成一份成功备份。当前策略只允许 PostgreSQL、一次性 Migrate、API、
-本机下载 Worker 与 cloudflared。数据库迁移是 forward-only；如果迁移后的启动失败，候选
+本机下载 Worker；`edge` 必须是名为 `realtime-me-edge` 的外部网络。数据库迁移是
+forward-only；如果迁移后的启动失败，候选
 版本会保留以便向前修复，不会用不兼容的旧程序覆盖新 schema。Dockerfile、运维脚本或
-Compose 安全策略本身仍属于 root 控制面，需要 root 重新审核安装。
+Compose 安全策略本身仍属于 root 控制面，需要 root 重新审核安装。根 `go.mod`、`go.sum`、
+`vendor/`、Library 生成的 Go contracts 与 Dockerfile 同样由 root 控制；依赖或 Proto 变更
+必须先由 root 安装新的整合工作树，受限发布入口只替换 `services/library` 业务源码。
 
 ## 明文增量备份
 

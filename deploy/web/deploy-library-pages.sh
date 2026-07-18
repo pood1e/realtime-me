@@ -6,7 +6,7 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 # shellcheck source=lib.sh
 source "$SCRIPT_DIR/lib.sh"
 
-REPO_DIR=$(cd -- "$SCRIPT_DIR/../../.." && pwd -P)
+REPO_DIR=$(cd -- "$SCRIPT_DIR/../.." && pwd -P)
 PAGES_ENV_FILE=
 BRANCH=main
 BUILD=true
@@ -19,8 +19,8 @@ Builds and deploys the authentication, drive, books, music, images,
 wallpapers, and share applications to their Cloudflare Pages projects.
 
 Options:
-  --repo-dir PATH   Checked-out cloud-drive repository
-  --env-file PATH   Local Pages config (default: deploy/library/pages.env)
+  --repo-dir PATH   Checked-out realtime-me repository
+  --env-file PATH   Local Pages config (default: deploy/web/pages.env)
   --branch NAME     Pages branch (default: main)
   --skip-build      Deploy existing dist directories
   -h, --help        Show this help
@@ -55,10 +55,11 @@ while (($# > 0)); do
   esac
 done
 
+require_command awk
 require_command pnpm
 REPO_DIR=$(cd -- "$REPO_DIR" && pwd -P)
 [[ -f "$REPO_DIR/package.json" ]] || die "package.json not found: $REPO_DIR"
-PAGES_ENV_FILE=${PAGES_ENV_FILE:-$REPO_DIR/deploy/library/pages.env}
+PAGES_ENV_FILE=${PAGES_ENV_FILE:-$REPO_DIR/deploy/web/pages.env}
 require_regular_file "$PAGES_ENV_FILE"
 [[ "$BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]] || die 'branch name contains unsupported characters'
 

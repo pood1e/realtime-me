@@ -15,14 +15,14 @@ usage() {
   cat <<'USAGE'
 Usage: deploy.sh [options]
 
-Builds and starts the private API, PostgreSQL, and cloudflared on the host. The
+Builds and starts PostgreSQL, migrate, API, and worker on the host. The
 runtime environment file is never copied into the repository or printed.
 
 Options:
-  --repo-dir PATH   Checked-out cloud-drive repository (default: script's repository)
+  --repo-dir PATH   Installed realtime-me release tree (default: script's repository)
   --env-file PATH   Root-only Compose environment file (default: /etc/cloud-drive/runtime.env)
   --compose-file PATH
-                    Compose file (default: <repo-dir>/ops/docker-compose.yml)
+                    Compose file (default: <repo-dir>/deploy/library/compose.yaml)
   -h, --help        Show this help
 USAGE
 }
@@ -57,11 +57,10 @@ require_command env
 require_command mountpoint
 require_command df
 require_command awk
-require_command tr
 
 REPO_DIR=$(cd -- "$REPO_DIR" && pwd -P)
 if [[ -z "$COMPOSE_FILE" ]]; then
-  COMPOSE_FILE="$REPO_DIR/deploy/library/docker-compose.yml"
+  COMPOSE_FILE="$REPO_DIR/deploy/library/compose.yaml"
 fi
 
 require_regular_file "$COMPOSE_FILE"
@@ -104,7 +103,6 @@ fi
 [[ "$VOLUME_MOUNT_DIR" == /* && "$DATA_DIR" == "$VOLUME_MOUNT_DIR"/* ]] || die 'CLOUD_DRIVE_DATA_DIR must be below CLOUD_DRIVE_VOLUME_MOUNT_DIR'
 [[ "$POSTGRES_DIR" == "$VOLUME_MOUNT_DIR"/* ]] || die 'CLOUD_DRIVE_POSTGRES_DIR must be below CLOUD_DRIVE_VOLUME_MOUNT_DIR'
 [[ "$BACKUP_STAGING_DIR" == "$VOLUME_MOUNT_DIR"/* ]] || die 'CLOUD_DRIVE_BACKUP_STAGING_DIR must be below CLOUD_DRIVE_VOLUME_MOUNT_DIR'
-TUNNEL_TOKEN=$(read_cloudflare_tunnel_token "$ENV_FILE")
 
 require_mountpoint "$VOLUME_MOUNT_DIR"
 [[ -f "$VOLUME_MOUNT_DIR/.cloud-drive-volume" ]] || die "missing volume marker: $VOLUME_MOUNT_DIR/.cloud-drive-volume"
@@ -124,7 +122,7 @@ FREE_BYTES=$(available_bytes "$VOLUME_MOUNT_DIR")
 : "$SPOTIFY_CLIENT_ID" "$SPOTIFY_CLIENT_SECRET"
 
 compose() {
-  env -i PATH="$PATH" HOME=/root TUNNEL_TOKEN="$TUNNEL_TOKEN" docker compose \
+  env -i PATH="$PATH" HOME=/root docker compose \
     --project-directory "$REPO_DIR" \
     --project-name cloud-drive \
     --env-file "$ENV_FILE" \
@@ -138,5 +136,4 @@ compose config --quiet
 note 'building and starting cloud-drive services'
 compose up --build --detach --wait --wait-timeout 120 --remove-orphans
 compose ps --status running
-unset TUNNEL_TOKEN
 note 'deployment completed'

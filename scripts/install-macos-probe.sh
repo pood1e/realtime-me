@@ -222,7 +222,7 @@ PLIST
 }
 
 load_agent() {
-  local label=$1 plist=$2 domain target attempt
+  local label=$1 plist=$2 domain target
   domain="gui/$(id -u)"
   target="$domain/$label"
   # bootout is asynchronous; bootstrap fails with "5: Input/output error" while
@@ -230,11 +230,11 @@ load_agent() {
   # label is really gone, then bootstrap with a few retries.
   launchctl bootout "$target" 2>/dev/null || true
   launchctl unload "$plist" 2>/dev/null || true
-  for attempt in 1 2 3 4 5; do
+  for _ in 1 2 3 4 5; do
     launchctl print "$target" >/dev/null 2>&1 || break
     sleep 1
   done
-  for attempt in 1 2 3; do
+  for _ in 1 2 3; do
     if launchctl bootstrap "$domain" "$plist" 2>/dev/null; then
       launchctl enable "$target" 2>/dev/null || true
       return 0

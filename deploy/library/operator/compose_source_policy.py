@@ -18,7 +18,6 @@ _EXPECTED_VARIABLES = Counter(
     {
         "$$POSTGRES_DB": 1,
         "$$POSTGRES_USER": 1,
-        "${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.6.0}": 1,
         "${CLOUD_DRIVE_DATA_DIR:?CLOUD_DRIVE_DATA_DIR is required}": 3,
         "${CLOUD_DRIVE_IMAGE:-cloud-drive:local}": 1,
         "${CLOUD_DRIVE_POSTGRES_DIR:?CLOUD_DRIVE_POSTGRES_DIR is required}": 1,

@@ -3,6 +3,7 @@ FROM golang:1.26-alpine AS build
 WORKDIR /src
 COPY go.mod go.sum ./
 COPY vendor vendor
+COPY gen/go gen/go
 COPY services/library services/library
 RUN CGO_ENABLED=0 go build -mod=vendor -trimpath -ldflags='-s -w' -o /out/library-api ./services/library/cmd/server \
 	&& CGO_ENABLED=0 go build -mod=vendor -trimpath -ldflags='-s -w' -o /out/library-worker ./services/library/cmd/worker \

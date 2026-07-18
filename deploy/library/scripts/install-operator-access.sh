@@ -12,7 +12,7 @@ OPERATOR_GROUP=cloud-drive-operators
 LIBEXEC_DIR=/usr/local/libexec/cloud-drive-operator
 SBIN_DIR=/usr/local/sbin
 STATE_DIR=/var/lib/cloud-drive-release
-INCOMING_API_DIR="$STATE_DIR/incoming-api"
+INCOMING_SOURCE_DIR="$STATE_DIR/incoming-source"
 INCOMING_COMPOSE_DIR="$STATE_DIR/incoming-compose"
 SUDOERS_FILE=/etc/sudoers.d/cloud-drive-operators
 
@@ -61,7 +61,7 @@ usermod --append --groups "$OPERATOR_GROUP" "$OPERATOR_USER"
 
 install -d -o root -g root -m 0755 "$LIBEXEC_DIR" "$STATE_DIR"
 install -d -o root -g "$OPERATOR_GROUP" -m 2770 \
-  "$INCOMING_API_DIR" \
+  "$INCOMING_SOURCE_DIR" \
   "$INCOMING_COMPOSE_DIR"
 install -o root -g root -m 0644 "$REPO_DIR/deploy/library/operator/lib.sh" "$LIBEXEC_DIR/lib.sh"
 install -o root -g root -m 0644 \

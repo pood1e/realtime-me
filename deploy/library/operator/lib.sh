@@ -36,3 +36,14 @@ require_root_controlled_file() {
   [[ ${permissions:1:1} != [2367] && ${permissions:2:1} != [2367] ]] ||
     die "control file must not be writable by group or others: $file"
 }
+
+require_root_controlled_tree() {
+  local directory=$1
+  local invalid unsafe
+
+  [[ -d "$directory" && ! -L "$directory" ]] || die "required control tree is missing: $directory"
+  invalid=$(find -P "$directory" -mindepth 1 ! -type d ! -type f -print -quit)
+  [[ -z "$invalid" ]] || die "control tree contains an unsupported entry: $invalid"
+  unsafe=$(find -P "$directory" \( ! -user root -o -perm /022 \) -print -quit)
+  [[ -z "$unsafe" ]] || die "control tree is not root-controlled: $unsafe"
+}

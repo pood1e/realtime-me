@@ -23,7 +23,7 @@ snapshot, and the latest 30 successful snapshots are retained. A missing USB
 mount or insufficient capacity is a failure.
 
 Options:
-  --repo-dir PATH          Checked-out cloud-drive repository
+  --repo-dir PATH          Installed realtime-me release tree
   --env-file PATH          Root-only Compose environment file
   --backup-env-file PATH   Root-only backup configuration file
   --compose-file PATH      Compose file
@@ -60,13 +60,13 @@ while (($# > 0)); do
 done
 
 require_root
-for command in docker mountpoint flock date du df awk rm tr rsync install mktemp find sort tail mv ln sync sha256sum wc; do
+for command in docker env mountpoint flock date du df awk rm tr rsync install mktemp find sort tail mv ln sync sha256sum wc; do
   require_command "$command"
 done
 
 REPO_DIR=$(cd -- "$REPO_DIR" && pwd -P)
 if [[ -z "$COMPOSE_FILE" ]]; then
-  COMPOSE_FILE="$REPO_DIR/deploy/library/docker-compose.yml"
+  COMPOSE_FILE="$REPO_DIR/deploy/library/compose.yaml"
 fi
 
 require_regular_file "$COMPOSE_FILE"
@@ -76,7 +76,6 @@ docker compose version >/dev/null
 
 POSTGRES_USER=$(require_env_value "$ENV_FILE" POSTGRES_USER)
 POSTGRES_DB=$(require_env_value "$ENV_FILE" POSTGRES_DB)
-TUNNEL_TOKEN=$(read_cloudflare_tunnel_token "$ENV_FILE")
 VOLUME_MOUNT_DIR=$(require_env_value "$ENV_FILE" CLOUD_DRIVE_VOLUME_MOUNT_DIR)
 DATA_DIR=$(require_env_value "$ENV_FILE" CLOUD_DRIVE_DATA_DIR)
 BACKUP_STAGING_DIR=$(require_env_value "$ENV_FILE" CLOUD_DRIVE_BACKUP_STAGING_DIR)
@@ -149,7 +148,7 @@ if [[ -z "$PREVIOUS_SNAPSHOT_NAME" ]]; then
 fi
 
 compose() {
-  TUNNEL_TOKEN="$TUNNEL_TOKEN" docker compose \
+  env -i PATH="$PATH" HOME=/root docker compose \
     --project-directory "$REPO_DIR" \
     --project-name cloud-drive \
     --env-file "$ENV_FILE" \
@@ -172,7 +171,6 @@ note 'creating PostgreSQL backup dump'
 compose exec --no-TTY postgres pg_dump --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --format=custom >"$DUMP_FILE"
 [[ -s "$DUMP_FILE" ]] || die 'PostgreSQL dump is empty'
 compose exec --no-TTY postgres pg_restore --list <"$DUMP_FILE" >/dev/null || die 'PostgreSQL dump validation failed'
-unset TUNNEL_TOKEN
 
 SNAPSHOT_NAME=$(date --utc +%Y%m%dT%H%M%SZ)
 FINAL_SNAPSHOT="$SNAPSHOTS_DIR/$SNAPSHOT_NAME"

@@ -47,7 +47,7 @@ verify-mobile:
 	cd apps/mobile && flutter build apk --debug
 
 verify-ops:
-	bash -n deploy/library/scripts/*.sh deploy/library/operator/*.sh deploy/manager/scripts/*.sh
-	shellcheck --severity=warning deploy/library/scripts/*.sh deploy/library/operator/*.sh deploy/manager/scripts/*.sh
+	find deploy scripts -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
+	find deploy scripts -type f -name '*.sh' -print0 | xargs -0 shellcheck --severity=warning
 	PYTHONPATH=deploy/library/operator python3 -B -c 'import compose_expected, compose_policy, compose_rendered_policy, compose_source_policy'
-	python3 -B deploy/library/operator/validate-compose.py source deploy/library/docker-compose.yml
+	python3 -B deploy/library/operator/validate-compose.py source deploy/library/compose.yaml

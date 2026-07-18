@@ -58,6 +58,11 @@ services:
     depends_on:
       prometheus:
         condition: service_healthy
+    networks:
+      backend:
+      edge:
+        aliases:
+          - status-api
 
   prometheus:
     image: prom/prometheus:v3.13.0
@@ -88,6 +93,8 @@ services:
     depends_on:
       node-exporter:
         condition: service_healthy
+    networks:
+      - backend
 
   node-exporter:
     image: prom/node-exporter:v1.11.1
@@ -102,6 +109,8 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+    networks:
+      - backend
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.55.1
@@ -122,22 +131,15 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+    networks:
+      - backend
 
-  cloudflared:
-    image: cloudflare/cloudflared:2026.7.0
-    restart: unless-stopped
-    profiles:
-      - tunnel
-    # cloudflared reads the token from TUNNEL_TOKEN or from argv, and nothing
-    # else. The environment at least keeps it out of `ps` inside the container;
-    # it is still readable to anyone who can run `docker inspect` on this host,
-    # which is anyone in the docker group.
-    environment:
-      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
-    command: tunnel --no-autoupdate run
-    depends_on:
-      status-gateway:
-        condition: service_healthy
+networks:
+  backend:
+    internal: true
+  edge:
+    external: true
+    name: realtime-me-edge
 
 volumes:
   prometheus-data:

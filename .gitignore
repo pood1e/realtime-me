@@ -31,7 +31,7 @@ deploy/status/gateway.yaml
 deploy/status/projects.json
 
 # Library deployment settings and runtime state.
-deploy/library/pages.env
+deploy/web/pages.env
 deploy/library/runtime.env
 deploy/library/cloud-drive-password.txt
 *.pem

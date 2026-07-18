@@ -2,7 +2,7 @@ name: cloud-drive
 
 x-app-image: &app-image
   build:
-    context: ../..
+    context: .
     dockerfile: services/library/Dockerfile
   image: "${CLOUD_DRIVE_IMAGE:-cloud-drive:local}"
 
@@ -90,8 +90,10 @@ services:
       retries: 12
       start_period: 15s
     networks:
-      - backend
-      - edge
+      backend:
+      edge:
+        aliases:
+          - library-api
 
   worker:
     <<: *app-image
@@ -120,40 +122,10 @@ services:
       - backend
       - provider-egress
 
-  cloudflared:
-    image: "${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.6.0}"
-    command:
-      - tunnel
-      - --metrics
-      - 127.0.0.1:2000
-      - run
-    environment:
-      TUNNEL_TOKEN_FILE: /run/secrets/cloudflare_tunnel_token
-    secrets:
-      - source: cloudflare_tunnel_token
-        target: cloudflare_tunnel_token
-        uid: "65532"
-        gid: "65532"
-        mode: 0o400
-    restart: unless-stopped
-    depends_on:
-      api:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "cloudflared", "tunnel", "--metrics", "127.0.0.1:2000", "ready"]
-      interval: 15s
-      timeout: 5s
-      retries: 8
-      start_period: 15s
-    networks:
-      - edge
-
 networks:
   backend:
     internal: true
   edge:
+    external: true
+    name: realtime-me-edge
   provider-egress:
-
-secrets:
-  cloudflare_tunnel_token:
-    environment: TUNNEL_TOKEN

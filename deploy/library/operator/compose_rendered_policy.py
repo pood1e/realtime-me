@@ -10,24 +10,23 @@ from compose_policy import PolicyError, first_difference
 def validate_rendered(
     config: Any,
     *,
+    project_directory: str,
     data_directory: str,
     postgres_directory: str,
 ) -> None:
     root = _mapping(config, "configuration")
     services = _mapping(root.get("services"), "services")
-    _expect_keys(services, {"api", "cloudflared", "migrate", "postgres", "worker"}, "services")
+    _expect_keys(services, {"api", "migrate", "postgres", "worker"}, "services")
 
     postgres_environment = _service_environment(services, "postgres")
     migrate_environment = _service_environment(services, "migrate")
     api_environment = _service_environment(services, "api")
     worker_environment = _service_environment(services, "worker")
-    cloudflared_environment = _service_environment(services, "cloudflared")
     _validate_environments(
         postgres_environment,
         migrate_environment,
         api_environment,
         worker_environment,
-        cloudflared_environment,
     )
 
     app_image = _text(_mapping(services["api"], "api").get("image"), "api image")
@@ -35,26 +34,19 @@ def validate_rendered(
         _mapping(services["postgres"], "postgres").get("image"),
         "postgres image",
     )
-    cloudflared_image = _text(
-        _mapping(services["cloudflared"], "cloudflared").get("image"),
-        "cloudflared image",
-    )
     if app_image != "cloud-drive:local":
         raise PolicyError("API image is outside the approved local build policy")
     if not re.fullmatch(r"postgres:18\.\d+-alpine", postgres_image):
         raise PolicyError("Postgres image is outside the approved policy")
-    if not re.fullmatch(r"cloudflare/cloudflared:2026\.\d+\.\d+", cloudflared_image):
-        raise PolicyError("cloudflared image is outside the approved policy")
 
     expected = build_expected_configuration(
         postgres_environment=postgres_environment,
         migrate_environment=migrate_environment,
         api_environment=api_environment,
         worker_environment=worker_environment,
-        cloudflared_environment=cloudflared_environment,
         app_image=app_image,
         postgres_image=postgres_image,
-        cloudflared_image=cloudflared_image,
+        project_directory=project_directory,
         data_directory=data_directory,
         postgres_directory=postgres_directory,
     )
@@ -68,7 +60,6 @@ def _validate_environments(
     migrate: dict[str, Any],
     api: dict[str, Any],
     worker: dict[str, Any],
-    cloudflared: dict[str, Any],
 ) -> None:
     _expect_keys(
         migrate,
@@ -114,8 +105,6 @@ def _validate_environments(
         },
         "worker environment",
     )
-    _expect_keys(cloudflared, {"TUNNEL_TOKEN_FILE"}, "cloudflared environment")
-
     database = _matching_text(postgres["POSTGRES_DB"], r"[A-Za-z0-9_]+", "database name")
     username = _matching_text(postgres["POSTGRES_USER"], r"[A-Za-z0-9_]+", "database user")
     password = _matching_text(
@@ -156,7 +145,6 @@ def _validate_environments(
     _expect_equal(worker["PRIVATE_API_HOST"], api["PRIVATE_API_HOST"], "worker private API host")
     _expect_equal(worker["SPOTIFY_CLIENT_ID"], spotify_client_id, "worker Spotify client ID")
     _expect_equal(worker["SPOTIFY_CLIENT_SECRET"], spotify_client_secret, "worker Spotify client secret")
-
 
 
 def _service_environment(services: dict[str, Any], name: str) -> dict[str, Any]:

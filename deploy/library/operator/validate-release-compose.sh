@@ -56,10 +56,9 @@ chmod 0600 "$DUMMY_ENV"
 
 render_compose() {
   local environment_file=$1
-  local tunnel_token=$2
-  local output_file=$3
+  local output_file=$2
 
-  env -i PATH="$PATH" HOME=/root TUNNEL_TOKEN="$tunnel_token" \
+  env -i PATH="$PATH" HOME=/root \
     timeout 20s docker compose \
       --project-directory /opt/cloud-drive \
       --project-name cloud-drive \
@@ -68,10 +67,11 @@ render_compose() {
       config --format json >"$output_file"
 }
 
-if ! render_compose "$DUMMY_ENV" validation-token "$DUMMY_RENDERED" 2>/dev/null; then
+if ! render_compose "$DUMMY_ENV" "$DUMMY_RENDERED" 2>/dev/null; then
   die 'staged Compose file could not be rendered safely'
 fi
 "$VALIDATOR" rendered "$DUMMY_RENDERED" \
+  --project-directory /opt/cloud-drive \
   --data-directory /var/lib/cloud-drive-validation/data \
   --postgres-directory /var/lib/cloud-drive-validation/postgres
 
@@ -80,12 +80,10 @@ source "$HOST_LIB"
 require_secure_root_file "$RUNTIME_ENV"
 DATA_DIRECTORY=$(require_env_value "$RUNTIME_ENV" CLOUD_DRIVE_DATA_DIR)
 POSTGRES_DIRECTORY=$(require_env_value "$RUNTIME_ENV" CLOUD_DRIVE_POSTGRES_DIR)
-TUNNEL_TOKEN=$(read_cloudflare_tunnel_token "$RUNTIME_ENV")
-if ! render_compose "$RUNTIME_ENV" "$TUNNEL_TOKEN" "$RUNTIME_RENDERED" 2>/dev/null; then
-  unset TUNNEL_TOKEN
+if ! render_compose "$RUNTIME_ENV" "$RUNTIME_RENDERED" 2>/dev/null; then
   die 'staged Compose file is incompatible with the runtime configuration'
 fi
-unset TUNNEL_TOKEN
 "$VALIDATOR" rendered "$RUNTIME_RENDERED" \
+  --project-directory /opt/cloud-drive \
   --data-directory "$DATA_DIRECTORY" \
   --postgres-directory "$POSTGRES_DIRECTORY"

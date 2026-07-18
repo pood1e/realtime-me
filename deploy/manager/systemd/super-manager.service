@@ -8,11 +8,11 @@ Wants=network-online.target
 Type=simple
 User=super-manager
 Group=super-manager
-WorkingDirectory=/opt/super-manager/source
+WorkingDirectory=/opt/realtime-me
 EnvironmentFile=/etc/super-manager/agent.env
 Environment=PATH=/opt/super-manager/node/bin:/opt/super-manager/providers/node_modules/.bin:/usr/local/bin:/usr/bin:/bin
 UMask=0077
-ExecStart=/opt/super-manager/node/bin/node /opt/super-manager/source/server/dist/main.js
+ExecStart=/opt/super-manager/node/bin/node /opt/realtime-me/services/manager/dist/main.js
 Restart=on-failure
 RestartSec=3s
 TimeoutStopSec=30s

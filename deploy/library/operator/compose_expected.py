@@ -9,14 +9,13 @@ def build_expected_configuration(
     migrate_environment: dict[str, Any],
     api_environment: dict[str, Any],
     worker_environment: dict[str, Any],
-    cloudflared_environment: dict[str, Any],
     app_image: str,
     postgres_image: str,
-    cloudflared_image: str,
+    project_directory: str,
     data_directory: str,
     postgres_directory: str,
 ) -> dict[str, Any]:
-    build = {"context": "/opt/cloud-drive", "dockerfile": "services/library/Dockerfile"}
+    build = {"context": project_directory, "dockerfile": "services/library/Dockerfile"}
     postgres_dependency = {"postgres": {"condition": "service_healthy", "required": True}}
     application_dependencies = {
         **postgres_dependency,
@@ -34,14 +33,8 @@ def build_expected_configuration(
         "name": "cloud-drive",
         "networks": {
             "backend": {"name": "cloud-drive_backend", "ipam": {}, "internal": True},
-            "edge": {"name": "cloud-drive_edge", "ipam": {}},
+            "edge": {"name": "realtime-me-edge", "ipam": {}, "external": True},
             "provider-egress": {"name": "cloud-drive_provider-egress", "ipam": {}},
-        },
-        "secrets": {
-            "cloudflare_tunnel_token": {
-                "name": "cloud-drive_cloudflare_tunnel_token",
-                "environment": "TUNNEL_TOKEN",
-            }
         },
         "services": {
             "api": {
@@ -62,41 +55,9 @@ def build_expected_configuration(
                     "start_period": "15s",
                 },
                 "image": app_image,
-                "networks": {"backend": None, "edge": None},
+                "networks": {"backend": None, "edge": {"aliases": ["library-api"]}},
                 "restart": "unless-stopped",
                 "volumes": data_volume,
-            },
-            "cloudflared": {
-                "command": ["tunnel", "--metrics", "127.0.0.1:2000", "run"],
-                "depends_on": {"api": {"condition": "service_healthy", "required": True}},
-                "entrypoint": None,
-                "environment": cloudflared_environment,
-                "healthcheck": {
-                    "test": [
-                        "CMD",
-                        "cloudflared",
-                        "tunnel",
-                        "--metrics",
-                        "127.0.0.1:2000",
-                        "ready",
-                    ],
-                    "timeout": "5s",
-                    "interval": "15s",
-                    "retries": 8,
-                    "start_period": "15s",
-                },
-                "image": cloudflared_image,
-                "networks": {"edge": None},
-                "restart": "unless-stopped",
-                "secrets": [
-                    {
-                        "source": "cloudflare_tunnel_token",
-                        "target": "cloudflare_tunnel_token",
-                        "uid": "65532",
-                        "gid": "65532",
-                        "mode": "0400",
-                    }
-                ],
             },
             "migrate": {
                 "build": build,

@@ -50,7 +50,7 @@ Create the service account and install the unit:
 ```bash
 sudo useradd --system --home /var/lib/ddns-go --shell /usr/sbin/nologin ddns-go
 sudo install -m 0755 ddns-go /usr/local/bin/ddns-go
-sudo install -m 0644 deploy/systemd/ddns-go.service /etc/systemd/system/ddns-go.service
+sudo install -m 0644 deploy/manager/systemd/ddns-go.service /etc/systemd/system/ddns-go.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now ddns-go.service
 ```
@@ -71,7 +71,9 @@ provider traffic while reacting promptly to an observed address change.
 ## 3. Agent and provider CLIs
 
 1. Install Node `24.18.0`, pnpm `11.10.0`, tmux, OpenSSL and qrencode.
-2. Build this repository with `pnpm install --frozen-lockfile && pnpm build`.
+2. Install the reviewed monorepo at `/opt/realtime-me`, then run
+   `pnpm install --frozen-lockfile && pnpm --filter @realtime-me/manager build` there. Keep the
+   installed worktree root-owned and non-writable by the service account.
 3. Install exact provider versions `@openai/codex@0.144.5` and
    `@anthropic-ai/claude-code@2.1.195` under `/opt/super-manager/providers`.
 4. Create a locked service account with a real shell for tmux, then create its state and workspace
@@ -97,12 +99,19 @@ provider traffic while reacting promptly to an observed address change.
 
    ```bash
    sudo install -d -m 0750 -o root -g super-manager /etc/super-manager
-   sudo install -m 0640 -o root -g super-manager deploy/agent/agent.env.example \
+   sudo install -m 0640 -o root -g super-manager deploy/manager/agent/agent.env.example \
      /etc/super-manager/agent.env
-   sudo install -m 0755 -o root -g root deploy/agent/smctl /usr/local/bin/smctl
+   sudo install -m 0755 -o root -g root deploy/manager/agent/smctl /usr/local/bin/smctl
    ```
 
-7. Install and enable `super-manager-terminal.service` and `super-manager.service`.
+7. Install and enable `super-manager-terminal.service` and `super-manager.service`:
+
+   ```bash
+   sudo install -m 0644 deploy/manager/systemd/super-manager-terminal.service \
+     deploy/manager/systemd/super-manager.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now super-manager-terminal.service super-manager.service
+   ```
 8. Run management commands through the wrapper so they use the same data directory, hostname,
    provider paths, `HOME`, and pinned Node runtime as the service:
 
@@ -117,9 +126,11 @@ PTY bridges but leaves shells running.
 ## 4. Caddy and router
 
 Install exact Caddy `2.11.4`. Replace `manager.example.com` in
-`deploy/host/Caddyfile.example`, then install the application TLS material:
+`deploy/manager/host/Caddyfile.example`, install it as `/etc/caddy/Caddyfile`, then install the
+application TLS material:
 
 ```bash
+sudo install -m 0644 deploy/manager/host/Caddyfile.example /etc/caddy/Caddyfile
 sudo install -d -m 0750 -o root -g caddy /etc/caddy/super-manager
 sudo install -m 0644 -o root -g caddy /var/lib/super-manager/data/pki/ca.cert.pem \
   /var/lib/super-manager/data/pki/server.cert.pem /etc/caddy/super-manager/
@@ -146,7 +157,7 @@ Run locally on the Linux host as the service user:
 sudo -u super-manager -H /usr/local/bin/smctl pair create
 ```
 
-Scan the QR code in the Android app. The payload bootstraps the private CA, service URL, pairing
+Scan the QR code in the unified Flutter phone app. The payload bootstraps the private CA, service URL, pairing
 URL, expiry, and one-time secret. After redemption, all normal traffic uses both mTLS and a
 revocable inner bearer token.
 

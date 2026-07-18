@@ -8,7 +8,10 @@ Self-hosted metrics and status gateway for a private metrics host.
 - node-exporter exposes host metrics.
 - cAdvisor exposes Docker container metrics when the `containers` profile is enabled.
 - status-gateway receives phone/watch status, serves Prometheus HTTP service discovery, updates GitHub status, exposes public JSON, Prometheus metrics, and the LAN-only internal status page.
-- cloudflared is optional and runs only with the `tunnel` compose profile.
+
+Public ingress is owned by [`deploy/edge`](../edge/README.md), not this release unit. The gateway
+joins the external `realtime-me-edge` network as `status-api` while Prometheus and exporters remain
+on the internal Status backend network.
 
 ## Setup
 
@@ -31,14 +34,15 @@ Set `STATUS_GATEWAY_BIND` to the LAN address that should accept local device upd
 
 Set `GITHUB_TOKEN` to a classic GitHub token with only the `user` scope so the gateway can call `changeUserStatus`.
 
-Configure Cloudflare Tunnel to route `api-status.<BASE_DOMAIN>` to `http://status-gateway:8080`, then put the tunnel token in `.env`.
+Configure the shared Cloudflare Tunnel to route `api-status.<BASE_DOMAIN>` to
+`http://status-api:8080`. Start `deploy/edge` once before bringing up this stack so the external
+network exists. No Tunnel credential belongs in the Status `.env` file.
 
 ## Run
 
 ```sh
-docker compose up -d --build
-docker compose --profile containers up -d --build
-docker compose --profile tunnel up -d --build
+docker compose up -d --build --remove-orphans
+docker compose --profile containers up -d --build --remove-orphans
 ```
 
 ## Verify
@@ -67,4 +71,5 @@ curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-l
 
 Open `http://<STATUS_GATEWAY_BIND>:18080/internal` on the LAN for detailed device, metric, GitHub sync, and active-agent status. The page stores the internal access token only in browser local storage.
 
-Do not commit `.env`; it contains reusable credentials.
+Do not commit `.env`; host-specific Compose settings stay local even though application secrets
+live in `gateway.yaml`.

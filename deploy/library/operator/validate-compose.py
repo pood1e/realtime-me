@@ -21,6 +21,7 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
 
     rendered = commands.add_parser("rendered", help="validate rendered Compose JSON")
     rendered.add_argument("path", type=Path)
+    rendered.add_argument("--project-directory", required=True)
     rendered.add_argument("--data-directory", required=True)
     rendered.add_argument("--postgres-directory", required=True)
     return parser.parse_args(arguments)
@@ -39,6 +40,7 @@ def main(arguments: Sequence[str]) -> int:
         else:
             validate_rendered(
                 load_json(options.path),
+                project_directory=options.project_directory,
                 data_directory=options.data_directory,
                 postgres_directory=options.postgres_directory,
             )

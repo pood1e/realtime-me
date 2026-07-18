@@ -22,7 +22,7 @@ backup snapshot. Derived artifacts are discarded and queued for regeneration.
 Options:
   --snapshot PATH    Snapshot containing postgres.dump and objects/ (required)
   --confirm-destroy  Confirm replacement of current application data (required)
-  --repo-dir PATH    Checked-out cloud-drive repository
+  --repo-dir PATH    Installed realtime-me release tree
   --env-file PATH    Root-only runtime environment file
   --compose-file PATH
   -h, --help         Show this help
@@ -62,7 +62,7 @@ while (($# > 0)); do
 done
 
 require_root
-for command in docker mountpoint rsync install rm sha256sum du find wc awk tr basename; do
+for command in docker env mountpoint rsync install rm sha256sum du find wc awk tr basename; do
   require_command "$command"
 done
 [[ "$CONFIRM" == true ]] || die '--confirm-destroy is required'
@@ -85,7 +85,7 @@ ACTUAL_OBJECT_BYTES=$(find "$SNAPSHOT/objects" -type f -printf '%s\n' |
 [[ "$ACTUAL_OBJECT_BYTES" == "$EXPECTED_OBJECT_BYTES" ]] || die 'snapshot object size mismatch'
 
 REPO_DIR=$(cd -- "$REPO_DIR" && pwd -P)
-COMPOSE_FILE=${COMPOSE_FILE:-$REPO_DIR/deploy/library/docker-compose.yml}
+COMPOSE_FILE=${COMPOSE_FILE:-$REPO_DIR/deploy/library/compose.yaml}
 require_regular_file "$COMPOSE_FILE"
 require_secure_root_file "$ENV_FILE"
 
@@ -93,13 +93,12 @@ POSTGRES_USER=$(require_env_value "$ENV_FILE" POSTGRES_USER)
 POSTGRES_DB=$(require_env_value "$ENV_FILE" POSTGRES_DB)
 VOLUME_MOUNT_DIR=$(require_env_value "$ENV_FILE" CLOUD_DRIVE_VOLUME_MOUNT_DIR)
 DATA_DIR=$(require_env_value "$ENV_FILE" CLOUD_DRIVE_DATA_DIR)
-TUNNEL_TOKEN=$(read_cloudflare_tunnel_token "$ENV_FILE")
 require_mountpoint "$VOLUME_MOUNT_DIR"
 [[ -f "$VOLUME_MOUNT_DIR/.cloud-drive-volume" ]] || die 'primary volume marker is missing'
 [[ "$DATA_DIR" == "$VOLUME_MOUNT_DIR"/* ]] || die 'data directory is outside the primary volume'
 
 compose() {
-  TUNNEL_TOKEN="$TUNNEL_TOKEN" docker compose \
+  env -i PATH="$PATH" HOME=/root docker compose \
     --project-directory "$REPO_DIR" \
     --project-name cloud-drive \
     --env-file "$ENV_FILE" \
@@ -108,7 +107,7 @@ compose() {
 }
 
 note 'stopping request and processing services'
-compose stop api worker cloudflared || true
+compose stop api worker || true
 compose up --detach --wait postgres
 compose exec --no-TTY postgres pg_restore --list <"$SNAPSHOT/postgres.dump" >/dev/null || die 'snapshot database dump is invalid'
 
@@ -164,5 +163,4 @@ SQL
 note 'starting the restored service suite'
 compose up --build --detach --wait --wait-timeout 180 --remove-orphans
 compose ps --status running
-unset TUNNEL_TOKEN
 note 'restore completed; derived artifacts are rebuilding in the worker'

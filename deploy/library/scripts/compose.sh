@@ -14,8 +14,8 @@ usage() {
   cat <<'USAGE'
 Usage: compose.sh [--repo-dir PATH] [--env-file PATH] [--compose-file PATH] -- <docker compose arguments>
 
-Runs Docker Compose with the Cloudflare Tunnel token supplied only as a
-short-lived environment-sourced Docker secret. The token is never put in argv.
+Runs the fixed Library Compose project with a root-only environment file and a
+clean process environment.
 USAGE
 }
 
@@ -50,17 +50,15 @@ done
 (($# > 0)) || die 'provide Docker Compose arguments after --'
 require_root
 require_command docker
-require_command tr
+require_command env
 REPO_DIR=$(cd -- "$REPO_DIR" && pwd -P)
 if [[ -z "$COMPOSE_FILE" ]]; then
-  COMPOSE_FILE="$REPO_DIR/deploy/library/docker-compose.yml"
+  COMPOSE_FILE="$REPO_DIR/deploy/library/compose.yaml"
 fi
 require_regular_file "$COMPOSE_FILE"
 require_secure_root_file "$ENV_FILE"
-TUNNEL_TOKEN=$(read_cloudflare_tunnel_token "$ENV_FILE")
 
-export TUNNEL_TOKEN
-exec docker compose \
+exec env -i PATH="$PATH" HOME=/root docker compose \
   --project-directory "$REPO_DIR" \
   --project-name cloud-drive \
   --env-file "$ENV_FILE" \

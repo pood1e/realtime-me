@@ -14,13 +14,19 @@ The watch does not need internet access. It collects local health/device data an
 - `apps/mobile`: the single Flutter phone application (`me.realtime`).
   - Provides Status, Agent, terminal, pairing, and settings surfaces with Material 3, Riverpod, and go_router.
   - Receives watch snapshots from Data Layer.
-  - Stores only the self-hosted gateway ingest token with Android Keystore-backed AES/GCM encrypted shared preferences.
+  - Stores the Status ingest token with Android Keystore-backed AES/GCM preferences and keeps the
+    separately scoped Manager PKCS#12/bearer credentials in Flutter secure storage; Android backup
+    is disabled for both.
   - Pushes phone/watch status to configured gateway endpoints; private LAN/public URLs are build properties, not committed values.
   - Keeps a foreground sync service active after token setup; WorkManager is only a 15-minute OS-managed recovery fallback.
   - Uses generated Pigeon Host APIs and an Event Channel to read the native snapshot store; Flutter is not required for background sync to stay alive.
 - `services/status`: Go gateway for mobile ingestion, Prometheus HTTP service discovery, GitHub `changeUserStatus`, public status JSON, and internal metrics charts.
 - `apps/web/status`: Vite/React status page using shadcn/ui, Radix, Lucide, Tailwind, and a Cloudflare Worker custom domain.
-- `deploy/status`: Prometheus, node-exporter, cAdvisor, status-gateway, and optional cloudflared service definitions.
+- `services/library` and `apps/web/library`: local-first content API/worker plus seven independent web applications.
+- `services/manager`: Fastify/ConnectRPC control plane for subscription-backed Codex/Claude agents and persistent terminals.
+- `packages/web-ui`: the single shared React primitive and theme-token layer for Status and Library.
+- `deploy/edge`: the only `cloudflared` connector and owner of the shared `realtime-me-edge` network.
+- `deploy/status`, `deploy/library`, `deploy/manager`, and `deploy/web`: independent release units for each runtime boundary.
 - `packages/status-protocol-android` and `proto/realtime/me/status/v1/watch.proto`: shared protobuf contract for the Data Layer payload.
 
 Wear OS Data Layer requires the phone and watch APKs to use the same package name and signing certificate. Both APKs therefore use application ID `me.realtime`, while keeping separate source namespaces for mobile and watch code.
@@ -146,13 +152,17 @@ people out:
   `github.status_token`. See [Profile and projects](#profile-and-projects) below.
 
 `.env` now holds only what Docker Compose has to interpolate for itself —
-`STATUS_GATEWAY_BIND`, `PROMETHEUS_RETENTION`, `CLOUDFLARE_TUNNEL_TOKEN` — because
+`STATUS_GATEWAY_BIND` and `PROMETHEUS_RETENTION` — because
 Compose cannot read the YAML. Everything the *gateway* reads is in the YAML, and the
 container's own paths and ports are set in `compose.yaml`, where you never have to
 think about them.
 
+Start [`deploy/edge`](deploy/edge/README.md) once before the Status or Library stack. The shared
+connector routes Status through `status-api:8080` and both Library API hostnames through
+`library-api:8080`; neither application unit stores the Tunnel token.
+
 ```sh
-docker compose up -d --build
+docker compose up -d --build --remove-orphans
 ```
 
 The gateway speaks ConnectRPC (`POST /realtime.me.status.v1.<Service>/<Method>` or
@@ -196,8 +206,8 @@ The gateway mints the device's uid and serves it to Prometheus as a service-disc
 Build the static assets, then deploy with the public gateway URL as a runtime variable:
 
 ```sh
-npm run build --workspace apps/web/status
-npx wrangler deploy --config apps/web/status/wrangler.jsonc \
+pnpm --filter @realtime-me/status-web build
+pnpm --dir apps/web/status deploy -- \
   --var STATUS_API_BASE_URL:https://api-status.example.com
 ```
 

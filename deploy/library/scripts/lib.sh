@@ -96,18 +96,6 @@ require_mountpoint() {
   mountpoint -q "$path" || die "required path is not a mounted filesystem: $path"
 }
 
-read_cloudflare_tunnel_token() {
-  local runtime_env_file=$1
-  local token_file token
-
-  token_file=$(require_env_value "$runtime_env_file" CLOUDFLARE_TUNNEL_TOKEN_FILE)
-  require_secure_root_file "$token_file"
-  token=$(tr -d '\r\n' <"$token_file")
-  [[ -n "$token" ]] || die "Cloudflare Tunnel token file is empty: $token_file"
-  is_placeholder "$token" && die "Cloudflare Tunnel token file still contains a placeholder: $token_file"
-  printf '%s' "$token"
-}
-
 available_bytes() {
   local path=$1
 
