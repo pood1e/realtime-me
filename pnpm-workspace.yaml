@@ -1,8 +1,12 @@
 packages:
-  - apps/web/status
-  - apps/web/library/*
+  - apps/web/site
+  - apps/web/console
+  - packages/auth-contracts-web
   - packages/library-*
+  - packages/manager-contracts-web
+  - packages/status-web
   - packages/status-contracts-web
+  - packages/web-shell
   - packages/web-ui
   - services/manager
 catalog:

@@ -14,15 +14,15 @@ import (
 
 // WallpaperService manages private publication and the public read-only catalog.
 type WallpaperService struct {
-	store           domain.WallpaperStore
-	contents        domain.ContentStore
-	files           ContentReader
-	publicAPIOrigin string
+	store            domain.WallpaperStore
+	contents         domain.ContentStore
+	files            ContentReader
+	publicSiteOrigin string
 }
 
 // NewWallpaperService constructs wallpaper publication and public access.
-func NewWallpaperService(store domain.WallpaperStore, contents domain.ContentStore, files ContentReader, publicAPIOrigin string) *WallpaperService {
-	return &WallpaperService{store: store, contents: contents, files: files, publicAPIOrigin: strings.TrimRight(publicAPIOrigin, "/")}
+func NewWallpaperService(store domain.WallpaperStore, contents domain.ContentStore, files ContentReader, publicSiteOrigin string) *WallpaperService {
+	return &WallpaperService{store: store, contents: contents, files: files, publicSiteOrigin: strings.TrimRight(publicSiteOrigin, "/")}
 }
 
 func (s *WallpaperService) Get(ctx context.Context, uid string) (domain.Wallpaper, error) {
@@ -57,11 +57,11 @@ func (s *WallpaperService) Unpublish(ctx context.Context, uid string) error {
 }
 
 func (s *WallpaperService) OriginalURL(uid string) string {
-	return s.publicAPIOrigin + "/v1/wallpapers/" + uid + "/original"
+	return s.publicSiteOrigin + "/v1/wallpapers/" + uid + "/original"
 }
 
 func (s *WallpaperService) VariantURL(uid string, width int) string {
-	return s.publicAPIOrigin + "/v1/wallpapers/" + uid + "/" + strconv.Itoa(width)
+	return s.publicSiteOrigin + "/v1/wallpapers/" + uid + "/" + strconv.Itoa(width)
 }
 
 func (s *WallpaperService) OpenOriginal(ctx context.Context, uid string) (*os.File, domain.Wallpaper, error) {

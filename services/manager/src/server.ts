@@ -7,13 +7,15 @@ import fastifyWebsocket from "@fastify/websocket";
 import Fastify, { type FastifyInstance } from "fastify";
 import { ClaudeAdapter } from "./adapters/claude/claude-adapter.js";
 import { CodexAdapter } from "./adapters/codex/codex-adapter.js";
-import { AuthService } from "./application/auth-service.js";
+import { DeviceAuthService } from "./application/device-auth-service.js";
 import { EventStream } from "./application/event-stream.js";
 import { ExecutionCoordinator } from "./application/execution-coordinator.js";
+import { OidcAuthService, PermissionDeniedError } from "./application/oidc-auth-service.js";
 import { PairingAuthority } from "./application/pairing-authority.js";
 import { RuntimeRegistry } from "./application/runtime-registry.js";
 import { TerminalManager } from "./application/terminal-manager.js";
 import { WorkspaceRegistry } from "./application/workspace-registry.js";
+import { Permission } from "./gen/realtime/me/auth/v1/permission_pb.js";
 import type { ServerConfig } from "./infrastructure/config.js";
 import { ResourceStore } from "./infrastructure/resource-store.js";
 import { SecretStore } from "./infrastructure/secret-store.js";
@@ -73,6 +75,7 @@ async function buildServer(
   await terminals.reconcile();
   const executions = new ExecutionCoordinator(store, events, runtimes, config.dataDirectory);
   projectRecoveredExecutions(store, events);
+  const ownerAuth = new OidcAuthService(config.oidcIssuer, config.oidcAudience);
 
   const server = Fastify({
     bodyLimit: 256 * 1024,
@@ -95,7 +98,7 @@ async function buildServer(
     options: { maxPayload: 1024 * 1024 + 1024 },
   });
 
-  const auth = new AuthService(store, secrets);
+  const deviceAuth = new DeviceAuthService(store, secrets);
   const pairingLimiter = new PairingLimiter();
   server.addHook("onRequest", async (request, reply) => {
     const path = request.url.split("?", 1)[0] ?? "";
@@ -108,9 +111,21 @@ async function buildServer(
       }
       return;
     }
-    if (!auth.authenticate(request.headers.authorization)) {
-      return reply.code(401).header("WWW-Authenticate", "Bearer").send({ error: "Unauthorized" });
+    if (deviceAuth.authenticate(request.headers.authorization)) {
+      return;
     }
+    try {
+      if (await ownerAuth.authenticate(request.headers.authorization, Permission.MANAGER_CONTROL)) {
+        return;
+      }
+    } catch (error) {
+      if (error instanceof PermissionDeniedError) {
+        return reply.code(403).send({ error: "Permission denied" });
+      }
+      request.log.error({ err: error }, "OIDC authentication failed");
+      return reply.code(503).send({ error: "Identity service unavailable" });
+    }
+    return reply.code(401).header("WWW-Authenticate", "Bearer").send({ error: "Unauthorized" });
   });
 
   server.get("/healthz", async () => ({ status: "ok" }));

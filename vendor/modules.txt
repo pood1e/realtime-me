@@ -60,6 +60,9 @@ github.com/cloudwego/base64x/internal/native
 github.com/cloudwego/base64x/internal/native/avx2
 github.com/cloudwego/base64x/internal/native/sse
 github.com/cloudwego/base64x/internal/rt
+# github.com/coreos/go-oidc/v3 v3.20.0
+## explicit; go 1.25.0
+github.com/coreos/go-oidc/v3/oidc
 # github.com/gabriel-vasile/mimetype v1.4.12
 ## explicit; go 1.21
 github.com/gabriel-vasile/mimetype
@@ -80,6 +83,11 @@ github.com/gin-gonic/gin/codec/json
 github.com/gin-gonic/gin/internal/bytesconv
 github.com/gin-gonic/gin/internal/fs
 github.com/gin-gonic/gin/render
+# github.com/go-jose/go-jose/v4 v4.1.4
+## explicit; go 1.24.0
+github.com/go-jose/go-jose/v4
+github.com/go-jose/go-jose/v4/cipher
+github.com/go-jose/go-jose/v4/json
 # github.com/go-logr/logr v1.4.3
 ## explicit; go 1.18
 github.com/go-logr/logr
@@ -313,8 +321,6 @@ go.yaml.in/yaml/v3
 golang.org/x/arch/x86/x86asm
 # golang.org/x/crypto v0.54.0
 ## explicit; go 1.25.0
-golang.org/x/crypto/bcrypt
-golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/chacha20poly1305
 golang.org/x/crypto/hkdf
@@ -335,6 +341,10 @@ golang.org/x/net/internal/iana
 golang.org/x/net/internal/socket
 golang.org/x/net/ipv4
 golang.org/x/net/ipv6
+# golang.org/x/oauth2 v0.36.0
+## explicit; go 1.25.0
+golang.org/x/oauth2
+golang.org/x/oauth2/internal
 # golang.org/x/sync v0.22.0
 ## explicit; go 1.25.0
 golang.org/x/sync/semaphore

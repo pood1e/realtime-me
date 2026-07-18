@@ -25,8 +25,13 @@ Configure the tunnel's public hostnames in Cloudflare before starting it:
 | Library public API hostname | `http://library-api:8080` |
 
 End the ingress list with the managed `http_status:404` catch-all. Public and
-private Library hosts intentionally reach the same API process; its Host, Origin,
-session, and RPC authorization checks preserve the application boundary.
+private Library hosts intentionally reach the same API process; exact Host routing,
+OIDC permission checks, and a reduced public router preserve the application boundary.
+
+The public Site Worker consumes the Status and Library public hostnames. The
+Console BFF consumes Status and the Library private hostname. Manager remains on
+its direct host: mTLS device traffic uses the public Manager endpoint while Console
+owner traffic reaches Manager over loopback.
 
 ## Run
 

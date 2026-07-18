@@ -27,7 +27,8 @@ for file in \
   /opt/cloud-drive/go.mod \
   /opt/cloud-drive/go.sum \
   /opt/cloud-drive/vendor/modules.txt \
-  /opt/cloud-drive/gen/go/realtime/me/library/auth/v1/session_service.pb.go \
+  /opt/cloud-drive/gen/go/realtime/me/auth/v1/permission.pb.go \
+  /opt/cloud-drive/libs/go/authn/verifier.go \
   /opt/cloud-drive/services/library/Dockerfile \
   "$BACKUP_SCRIPT" \
   "$DEPLOY_SCRIPT" \
@@ -36,7 +37,9 @@ for file in \
   require_root_controlled_file "$file"
 done
 require_root_controlled_tree /opt/cloud-drive/vendor
+require_root_controlled_tree /opt/cloud-drive/gen/go/realtime/me/auth
 require_root_controlled_tree /opt/cloud-drive/gen/go/realtime/me/library
+require_root_controlled_tree /opt/cloud-drive/libs/go/authn
 [[ -d "$INCOMING_SOURCE_DIR" && ! -L "$INCOMING_SOURCE_DIR" ]] ||
   die "incoming Library source directory is unavailable: $INCOMING_SOURCE_DIR"
 [[ -f "$INCOMING_COMPOSE_FILE" && ! -L "$INCOMING_COMPOSE_FILE" ]] ||

@@ -36,23 +36,3 @@ func safeInlineContentType(contentType string) bool {
 	mediaType = strings.ToLower(mediaType)
 	return mediaType == "application/pdf" || mediaType == "text/plain" || strings.HasPrefix(mediaType, "audio/") || (strings.HasPrefix(mediaType, "image/") && mediaType != "image/svg+xml")
 }
-
-func applyCORS(writer http.ResponseWriter, request *http.Request, allowedOrigins map[string]struct{}, methods string, credentials bool) bool {
-	origin := request.Header.Get("Origin")
-	if origin == "" {
-		return true
-	}
-	if _, allowed := allowedOrigins[origin]; !allowed {
-		http.Error(writer, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-		return false
-	}
-	writer.Header().Set("Access-Control-Allow-Origin", origin)
-	if credentials {
-		writer.Header().Set("Access-Control-Allow-Credentials", "true")
-	}
-	writer.Header().Set("Access-Control-Allow-Methods", methods)
-	writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Connect-Protocol-Version, Connect-Timeout-Ms, Range, Content-Range")
-	writer.Header().Set("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges")
-	writer.Header().Add("Vary", "Origin")
-	return true
-}

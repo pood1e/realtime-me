@@ -16,12 +16,12 @@ tokens:
   #   openssl rand -base64 32
   ingest: replace-with-generated-token
 
-  # Read. Reaches the internal dashboard, the metric charts, and scrape discovery —
-  # nothing else. It must differ from the ingest token, because this one is pasted
-  # into a browser and kept in localStorage. Prometheus presents it too, so write the
-  # same value, without a trailing newline, to prometheus/query_token:
-  #   printf %s "<the token>" > prometheus/query_token
-  query: replace-with-a-second-generated-token
+  # Workload read. Prometheus alone presents this token to scrape discovery and
+  # the gateway's raw /metrics endpoint. Human access to internal status and metrics
+  # uses OIDC instead. Write the value without a trailing newline to
+  # prometheus/discovery_token:
+  #   printf %s "<the token>" > prometheus/discovery_token
+  discovery: replace-with-a-second-generated-token
 
 github:
   # Writes the owner's GitHub status — the emoji and message on their profile — through

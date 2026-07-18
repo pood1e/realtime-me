@@ -23,7 +23,7 @@ scrape_configs:
         refresh_interval: 30s
         authorization:
           type: Bearer
-          credentials_file: /etc/prometheus/query_token
+          credentials_file: /etc/prometheus/discovery_token
 
   - job_name: cadvisor
     file_sd_configs:
@@ -31,6 +31,9 @@ scrape_configs:
           - /etc/prometheus/file_sd/cadvisor.yml
 
   - job_name: status-gateway
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/discovery_token
     static_configs:
       - targets: ["status-gateway:8080"]
         labels:

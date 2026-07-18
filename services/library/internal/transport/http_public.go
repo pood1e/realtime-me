@@ -19,8 +19,6 @@ func (router *httpRouter) servePublicImage(writer http.ResponseWriter, request *
 		writeDomainError(writer, err, true)
 		return
 	}
-	writer.Header().Set("Access-Control-Allow-Origin", "*")
-	writer.Header().Set("Cross-Origin-Resource-Policy", "cross-origin")
 	serveFile(writer, request, file, image.OriginalFileName, contentType, image.UpdateTime, "no-store", false)
 }
 
@@ -33,8 +31,6 @@ func (router *httpRouter) serveWallpaperFile(writer http.ResponseWriter, request
 		http.NotFound(writer, request)
 		return
 	}
-	writer.Header().Set("Access-Control-Allow-Origin", "*")
-	writer.Header().Set("Cross-Origin-Resource-Policy", "cross-origin")
 	if segments[1] == "original" {
 		file, wallpaper, err := router.suite.Wallpapers.OpenOriginal(request.Context(), segments[0])
 		if err != nil {
@@ -77,16 +73,4 @@ func (router *httpRouter) servePublicShareRaw(writer http.ResponseWriter, reques
 		return
 	}
 	http.NotFound(writer, request)
-}
-
-func publicAssetPreflight(writer http.ResponseWriter, request *http.Request) bool {
-	writer.Header().Set("Access-Control-Allow-Origin", "*")
-	writer.Header().Set("Cross-Origin-Resource-Policy", "cross-origin")
-	if request.Method != http.MethodOptions {
-		return false
-	}
-	writer.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
-	writer.Header().Set("Access-Control-Allow-Headers", "Range")
-	writer.WriteHeader(http.StatusNoContent)
-	return true
 }

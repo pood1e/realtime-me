@@ -1,9 +1,9 @@
 # 生产运维
 
 本目录只管理主机上的 PostgreSQL、一次性迁移、Go API 与内容 Worker。共享 Tunnel
-connector 由 [`deploy/edge`](../edge/README.md) 管理，七个 Cloudflare Pages 项目由
-[`deploy/web`](../web/README.md) 发布。所有真实域名、主机地址和凭据都留在被 Git 忽略的
-本地配置或主机 root-only 文件中。
+connector 由 [`deploy/edge`](../edge/README.md) 管理；匿名页面统一进入 Site Worker，私有
+页面统一进入 OIDC Console。所有真实域名、主机地址和凭据都留在被 Git 忽略的本地配置
+或主机 root-only 文件中。
 
 ## 容器边界
 
@@ -25,7 +25,7 @@ connector 由 [`deploy/edge`](../edge/README.md) 管理，七个 Cloudflare Page
 ```bash
 sudo install -d -o root -g root -m 0755 /opt/cloud-drive
 sudo rsync -a --delete --chown=root:root --chmod=Dgo-w,Fgo-w \
-  /path/to/cloud-drive-staging/ /opt/cloud-drive/
+  /path/to/realtime-me-staging/ /opt/cloud-drive/
 sudo install -d -o root -g root -m 0700 /etc/cloud-drive
 ```
 
@@ -72,14 +72,12 @@ sudoedit /etc/cloud-drive/runtime.env
 
 | 变量 | 内容 |
 | --- | --- |
-| `PRIVATE_APP_ORIGINS` | 认证、云盘、书架、音乐盒、图床的逗号分隔 HTTPS Origin |
-| `PUBLIC_APP_ORIGINS` | 壁纸站与分享页的逗号分隔 HTTPS Origin |
-| `SHARE_APP_ORIGIN` | 创建文件分享链接时使用的分享页 Origin |
-| `MUSIC_APP_ORIGIN` | Spotify OAuth 完成后固定返回的音乐盒 Origin |
+| `PUBLIC_SITE_ORIGIN` | 匿名壁纸与分享链接统一使用的 Site HTTPS Origin |
+| `CONSOLE_ORIGIN` | 私有 Library 页面及音乐 Provider 回调统一返回的 Console Origin |
+| `OIDC_ISSUER` | 与 Status、Manager、Console 相同的 OIDC Issuer |
+| `LIBRARY_AUTH_AUDIENCE` | 统一 owner access token audience，建议 `realtime-me` |
 | `PRIVATE_API_HOST` | 所有私有应用共用的 API Host，仅主机名 |
 | `PUBLIC_API_HOST` | 壁纸、匿名图片与分享共用的 API Host，仅主机名 |
-| `PASSWORD_HASH_BASE64` | bcrypt cost 12 以上的密码哈希再做 padded Base64 |
-| `SESSION_SECRET` | 64 个十六进制字符 |
 | `MUSIC_PROVIDER_CREDENTIAL_KEY` | 32 字节 padded Base64，仅加密第三方账号凭据 |
 | `RESERVED_FREE_BYTES` | 上传和歌单下载必须共同保留的本地空闲字节数，默认 20 GiB |
 | `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | 可选，但必须同时配置 |
@@ -87,15 +85,13 @@ sudoedit /etc/cloud-drive/runtime.env
 生成运行时秘密：
 
 ```bash
-htpasswd -nBC 12 local-library | cut -d: -f2 | base64 | tr -d '\n'
-openssl rand -hex 32
 openssl rand -base64 32  # 音乐 Provider 凭据密钥
 openssl rand -hex 32  # PostgreSQL 密码
 ```
 
-API 不保存明文密码。登录会话有效 24 小时，Cookie 为 host-only、`HttpOnly`、
-`Secure`、`SameSite=Strict`。前端只在认证 Pages 提交密码；其他私有 Pages 未登录时
-跳转过去。
+Library 不再签发浏览器会话。Console BFF 完成 OIDC authorization-code + PKCE 登录并把
+短期 access token 转发到 Library；API 独立校验 issuer、audience 与
+`PERMISSION_LIBRARY_MANAGE`。匿名 Site 请求只进入显式公开路由。
 
 ## Tunnel 与 DNS
 
@@ -108,12 +104,11 @@ remotely-managed named tunnel 中配置两个 Public Hostname：
 catch-all          -> http_status:404
 ```
 
-两个 API DNS 名均指向该 Tunnel；七个前端 DNS 名分别绑定七个 Pages 项目。不要给
-私有 Pages 或私有 API 添加 Cloudflare Access：静态应用没有用户数据，真正的读取与
-写入都由 API 的密码会话和精确 Origin 校验保护。
+两个 API DNS 名均指向该 Tunnel；Site 与 Console 是仅有的两个 Web Origin。Console
+可通过私有 API Host 转发 owner access token，浏览器不直接持有该 token。
 
-私有 API 只公开登录和健康 RPC；其余 ConnectRPC、上传、源文件与衍生文件路由均需
-有效 Cookie。公开 API 只挂载壁纸读取、匿名图片和令牌范围内的只读分享路由。
+私有 API 的 ConnectRPC、上传、源文件与衍生文件路由均需有效 OIDC owner token。
+公开 API 只挂载壁纸读取、匿名图片和令牌范围内的只读分享路由。
 Spotify OAuth callback 是私有 Host 上唯一额外的无会话 GET 路由，通过一次性 state
 与 PKCE 验证，不依赖 `SameSite=Strict` Cookie，也不接受客户端指定的跳转 Origin。
 
@@ -130,11 +125,12 @@ sudo /opt/cloud-drive/deploy/library/scripts/compose.sh -- logs --tail=100 api w
 心跳上报状态，并用独立的交互任务通道和 Provider 下载通道处理工作；重启后会凭租约
 继续认领未完成任务。
 
-## 发布七个 Pages
+## 发布 Web
 
-Web 发布已从主机运行时中拆出。使用 `deploy/web/deploy-library-pages.sh` 和
-`deploy/web/pages.env`；完整命令见 [`deploy/web/README.md`](../web/README.md)。发布 Web
-不会触发数据库迁移、备份或 Library 容器重启。
+Web 发布已从主机运行时中拆出。匿名 Library 功能随 Site Worker 发布；私有功能随
+Console BFF 发布，完整命令见 [`deploy/web/README.md`](../web/README.md) 与
+[`deploy/manager/README.md`](../manager/README.md)。发布 Web 不会触发数据库迁移、备份
+或 Library 容器重启。
 
 ## 受限非 root 运维入口
 
@@ -172,8 +168,9 @@ sudo -n cloud-drive-release
 forward-only；如果迁移后的启动失败，候选
 版本会保留以便向前修复，不会用不兼容的旧程序覆盖新 schema。Dockerfile、运维脚本或
 Compose 安全策略本身仍属于 root 控制面，需要 root 重新审核安装。根 `go.mod`、`go.sum`、
-`vendor/`、Library 生成的 Go contracts 与 Dockerfile 同样由 root 控制；依赖或 Proto 变更
-必须先由 root 安装新的整合工作树，受限发布入口只替换 `services/library` 业务源码。
+`vendor/`、Auth/Library 生成的 Go contracts、`libs/go/authn` 与 Dockerfile 同样由 root
+控制；依赖或 Proto 变更必须先由 root 安装新的整合工作树，受限发布入口只替换
+`services/library` 业务源码。
 
 ## 明文增量备份
 

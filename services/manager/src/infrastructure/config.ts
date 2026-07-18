@@ -22,6 +22,8 @@ const EnvironmentSchema = z.object({
   SM_OPENSSL_PATH: z.string().default("openssl"),
   SM_PUBLIC_URL: z.string().url().default("https://127.0.0.1"),
   SM_PAIRING_URL: z.string().url().optional(),
+  OIDC_ISSUER: z.string().url(),
+  MANAGER_AUTH_AUDIENCE: z.string().trim().regex(/^\S+$/),
 });
 
 export interface ServerConfig {
@@ -41,6 +43,8 @@ export interface ServerConfig {
   readonly opensslPath: string;
   readonly publicUrl: string;
   readonly pairingUrl: string;
+  readonly oidcIssuer: string;
+  readonly oidcAudience: string;
 }
 
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env): ServerConfig {
@@ -67,6 +71,9 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Server
     if (publicEndpoint.protocol !== "https:" || pairingEndpoint.protocol !== "https:") {
       throw new Error("Public and pairing endpoints must use HTTPS in production");
     }
+    if (new URL(parsed.OIDC_ISSUER).protocol !== "https:") {
+      throw new Error("OIDC_ISSUER must use HTTPS in production");
+    }
     if (publicEndpoint.hostname !== pairingEndpoint.hostname) {
       throw new Error("Public and pairing endpoints must use the same hostname");
     }
@@ -89,6 +96,8 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Server
     opensslPath: parsed.SM_OPENSSL_PATH,
     publicUrl: publicEndpoint.toString().replace(/\/$/, ""),
     pairingUrl: pairingEndpoint.toString().replace(/\/$/, ""),
+    oidcIssuer: normalizeIssuer(parsed.OIDC_ISSUER),
+    oidcAudience: parsed.MANAGER_AUTH_AUDIENCE,
   };
 }
 
@@ -116,4 +125,24 @@ function normalizeEndpoint(value: string, name: string): URL {
     throw new Error(`${name} must be an origin without credentials, path, query, or fragment`);
   }
   return endpoint;
+}
+
+function normalizeIssuer(value: string): string {
+  const issuer = new URL(value);
+  if (
+    issuer.username.length > 0 ||
+    issuer.password.length > 0 ||
+    issuer.search.length > 0 ||
+    issuer.hash.length > 0
+  ) {
+    throw new Error("OIDC_ISSUER must not contain credentials, query, or fragment");
+  }
+  if (issuer.protocol !== "https:" && !(issuer.protocol === "http:" && loopback(issuer.hostname))) {
+    throw new Error("OIDC_ISSUER must use HTTPS outside loopback development");
+  }
+  return issuer.toString().replace(/\/$/, "");
+}
+
+function loopback(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "[::1]" || /^127(?:\.\d{1,3}){3}$/.test(hostname);
 }

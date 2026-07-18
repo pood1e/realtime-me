@@ -1,6 +1,5 @@
 // This package only re-exports files generated from proto/. Do not add
 // handwritten business DTOs here.
-export * from "./gen/realtime/me/library/auth/v1/session_service_pb.js";
 export * from "./gen/realtime/me/library/books/v1/book_pb.js";
 export * from "./gen/realtime/me/library/books/v1/book_service_pb.js";
 export * from "./gen/realtime/me/library/content/v1/upload_pb.js";

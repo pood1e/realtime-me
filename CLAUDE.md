@@ -1,21 +1,26 @@
 # realtime-me
 
-A personal realtime status system: Android phone and Wear OS watch apps, a Go
-gateway, a React status page on Cloudflare Workers, and one Python probe for
-Linux, macOS, and Windows hosts. Protobuf is the single contract across all four
-languages.
+A personal Status, Library, and coding-agent Manager monorepo. It contains a
+Flutter phone app, Kotlin Wear app, Go/TypeScript services, two React web apps,
+and one Python probe for Linux, macOS, and Windows. Protobuf is the canonical
+cross-language contract.
 
 ## Layout
 
 | Path | Contents |
 | --- | --- |
-| `proto/realtime/me/*` | Canonical versioned contracts for status, site, library, and manager. |
+| `proto/realtime/me/*` | Canonical versioned contracts for auth, status, site, library, and manager. |
 | `services/status` | Go ConnectRPC gateway; queries Prometheus, serves the API. |
-| `apps/web/status` | React SPA + Cloudflare Worker (`src/worker.ts`) that proxies the API. |
+| `services/library` | Go Library API, worker, and migrate commands. |
+| `services/manager` | TypeScript/Fastify Manager service and CLI. |
+| `services/console` | Go OIDC BFF, authenticated proxy, and static Console host. |
+| `apps/web/site` | Anonymous React SPA + explicit public allowlist Worker. |
+| `apps/web/console` | Unified owner Status/Library/Manager SPA. |
 | `apps/mobile` | Flutter phone app with the Android platform bridge (`me.realtime.mobile`). |
 | `apps/watch` | Wear OS app (`me.realtime.watch`). |
 | `packages/status-protocol-android` | Kotlin/Android library sharing the protos and the Wear data-layer contract. |
-| `deploy/status` | Docker Compose: Prometheus, node-exporter, cAdvisor, gateway, cloudflared. |
+| `deploy/status` | Docker Compose: Prometheus, node-exporter, cAdvisor, and gateway. |
+| `deploy/edge` | The only cloudflared connector and shared edge network. |
 | `scripts/probe` | Cross-platform probe package and its pinned runtime manifest. |
 | `scripts/operator` | Tools you run from a clone against the gateway. |
 | `scripts/install-probe.py` | Cross-platform host installer, executed directly from its published URL. |
@@ -26,8 +31,8 @@ languages.
 ```sh
 pnpm check:proto                         # buf lint
 pnpm generate                            # regenerate Go, TypeScript, and Dart contracts
-pnpm check:status                        # go vet/build and status-web type-check
-pnpm build:status                        # status service and web production builds
+pnpm check                               # all service/web static and build checks
+pnpm build                               # Status, Library, Manager, Site, and Console
 ./gradlew :apps:watch:assembleDebug      # Wear OS application
 (cd apps/mobile && flutter build apk --debug) # Flutter phone application
 ```
@@ -73,10 +78,10 @@ serves the name, avatar, and contact links the topbar carries on *every* page;
 `ProjectsService` serves `/projects`, and nothing else. Neither is a "page" — the
 contract does not model screens.
 
-**Settings live in one YAML; data lives in JSON beside it.** `gateway.yaml` is
-everything a person chooses — both bearer tokens, both kinds of GitHub credential, the
-profile — and an unknown key in it is a startup error, never a setting that quietly
-does nothing. `projects.json` is data: the curated repositories and their summaries,
+**Status settings live in one YAML; data lives in JSON beside it.** `gateway.yaml` is
+the two workload tokens, both kinds of GitHub credential, and the profile; an unknown
+key is a startup error. Human authentication is OIDC wiring in Compose rather than a
+hand-written gateway setting. `projects.json` is data: the curated repositories and their summaries,
 which are prose and read badly in YAML. What the container *is* — port, state paths,
 the address of Prometheus — stays in `compose.yaml`, because Compose decides it and
 nobody should keep it in step by hand. Nothing the gateway reads goes in `.env`: `.env`
@@ -205,8 +210,8 @@ browser fetch from a third party.
 place a query expression is written. Clients name a `MetricSeries` and pass
 domain selectors (device uid, agent kind, accessory); the gateway resolves the
 metric name, labels, and job, escapes every selector, and bounds the window to
-`maxMetricRangePoints`. There is no PromQL passthrough — the read token cannot
-run an arbitrary query. Don't reintroduce a `query=` parameter.
+`maxMetricRangePoints`. There is no PromQL passthrough — an authenticated owner
+cannot run an arbitrary query. Don't reintroduce a `query=` parameter.
 
 ## Gotchas
 
@@ -228,16 +233,12 @@ run an arbitrary query. Don't reintroduce a `query=` parameter.
 - Prometheus runs without `--web.enable-lifecycle`: nothing here reloads it, and
   the flag serves unauthenticated `/-/reload` and `/-/quit`. Config changes need a
   container restart.
-- The status page's Worker proxies the four read services — `StatusService`,
-  `ProfileService`, `ProjectsService`, `MetricsService` — to `STATUS_API_BASE_URL`
-  by name, so the browser always sees one origin. Keep the explicit
-  `/realtime.me.status.v1.*` and `/realtime.me.site.v1.*` allowlist: the status
-  package also carries `IngestService` and `EnrollmentService`, the write half of
-  the API. It proxies nothing under
-  `/api/` either: those are the gateway's control-plane routes, such as scrape
-  discovery, and a browser must never reach them.
-- `STATUS_INGEST_TOKEN` (write) and `STATUS_QUERY_TOKEN` (read) are separate
-  secrets and the gateway refuses to start without both. The read token reaches
-  the internal dashboard, `MetricsService`, and scrape discovery; Prometheus
-  presents it from `deploy/status/prometheus/query_token`, which is
-  gitignored and must exist before the first `docker compose up`.
+- The Site Worker's Status allowlist contains only public `GetPublicStatus`,
+  `GetProfile`, and `ListProjects`; it must never proxy Metrics, internal Status,
+  enrollment, ingest, or `/api/` control routes. Console reaches internal APIs
+  through same-origin BFF prefixes and downstream OIDC permission checks.
+- `tokens.ingest` and `tokens.discovery` are separate workload secrets. The
+  discovery token is used only by Prometheus for HTTP service discovery and the
+  gateway process scrape, and is loaded from
+  `deploy/status/prometheus/discovery_token`; humans use OIDC and the browser
+  stores only the Console session cookie.

@@ -13,13 +13,13 @@ MVP 提供两条彼此独立的数据面：
 
 明确不做：多人协作、公共云中继、多主机编排、附件、后台推送、任意现存 shell 接管、ANSI/TUI 语义识别和 provider 普通权限审批。CLI 始终以 bypass/never 运行，但 `AskUserQuestion` 保留。
 
-## 2. DDNS 直连拓扑
+## 2. DDNS 直连与管理拓扑
 
 ```text
 Flutter Android
   │ HTTPS / SSE / WSS
   ▼
-DDNS hostname ── A/AAAA ── 住宅真实公网地址
+manager.example.com ── A/AAAA ── 住宅真实公网地址
   │
   ▼
 路由器转发或 IPv6 防火墙
@@ -30,15 +30,27 @@ DDNS hostname ── A/AAAA ── 住宅真实公网地址
                     ▼
               127.0.0.1:3080
             Realtime Me Manager
+
+Browser ── HTTPS ──> console.example.com:443 ──> Caddy
+                                                   │
+                                                   ▼
+                                             127.0.0.1:8090
+                                               Console BFF
+                                              │    │    └─ Manager loopback
+                                              │    └── Library HTTPS
+                                              └─── Status HTTPS
 ```
 
 `ddns-go` 与 Caddy 和应用运行在同一台 Linux 主机，不再经过 VPS、Cloudflare Tunnel、CDN 或 relay。DDNS 只更新 DNS，不能穿透 CGNAT；上线前必须确认至少一个地址族可从外网入站。
+
+Manager 公网域名始终要求设备客户端证书；浏览器只访问独立的 Console 域名。Console 完成 OIDC 授权码 + PKCE 登录，在服务端保管 token，再以 owner access token 访问三个后端。Manager 延迟 OIDC discovery 到首个 owner JWT 请求，因此 IdP 故障不会阻止设备路径启动。
 
 ## 3. 已实现架构
 
 ### Linux 服务端
 
 - TypeScript/Fastify 模块化单体，生产环境强制 loopback、HTTPS 公网 origin、非 root 和 workspace allowlist。
+- 两类主体在传输边界分流：Flutter 设备使用 mTLS + 可吊销设备 token；Console owner 使用 OIDC access token + `PERMISSION_MANAGER_CONTROL`。
 - Protobuf + ConnectRPC 控制面：runtime、quota、workspace、thread、execution、terminal、device。
 - SQLite WAL：资源、run、pending interrupt、AG-UI append-only event、设备和额度快照。
 - AG-UI SSE：先持久化后发布；thread 内单调 sequence；`after` 游标重放；15 秒 heartbeat；慢订阅者有 4 MiB 上限。
@@ -105,8 +117,10 @@ resume 的敏感答案不写入 `RUN_STARTED` 或平台 raw diagnostics；Claude
 
 ## 7. 安全与资源边界
 
-- 公网只暴露 Caddy；应用、ddns-go 管理 UI、CLI stdio、tmux socket 和 SQLite 均留在主机内。
-- 443 同时要求私有 CA 签发的设备证书与可吊销 bearer；8443 只路由 PairDevice，可在不用时关闭。
+- 公网只暴露 Caddy；Manager、Console、ddns-go 管理 UI、CLI stdio、tmux socket 和 SQLite 均留在主机内。
+- Manager 域名的 443 同时要求私有 CA 签发的设备证书与可吊销 bearer；8443 只路由 PairDevice，可在不用时关闭。
+- Console 域名使用标准服务器 TLS；浏览器仅持有 host-only `HttpOnly` session cookie，OAuth token 不下发给前端，Console 还必须校验同源写请求。
+- Status、Library 和 Manager 分别在后端校验自己的 canonical permission，Console 导航隐藏不能代替后端授权。
 - 设备证书有效 365 天，服务证书 825 天；到期前重新配对/重新签发，不自动降低验证等级。
 - 服务运行在专用非 root Unix 账号；该账号和 workspace 文件权限才是 bypass 模式下的真实安全边界。
 - prompt 最大 128 KiB；结构化问题、frame、paused output、SSE backlog、terminal 数量、执行并发和诊断存储均有限额。

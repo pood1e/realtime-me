@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/pood1e/realtime-me/libs/go/authn"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -22,13 +23,14 @@ type Config struct {
 	Port              string
 	StateFile         string
 	IdentityStateFile string
-	StaticDir         string
 	PrometheusURL     string
 	ProjectsFile      string
+	OIDCIssuer        string
+	OIDCAudience      string
 
 	// The settings: from the YAML.
 	IngestTokens                   map[string]struct{}
-	QueryTokens                    map[string]struct{}
+	DiscoveryTokens                map[string]struct{}
 	GitHubToken                    string
 	GitHubStatusMinIntervalSeconds int
 	GitHubStatusTTLMinutes         int
@@ -46,12 +48,10 @@ type Settings struct {
 	PublicAgentPlaceholder bool            `yaml:"public_agent_placeholder"`
 }
 
-// TokenSettings are the two bearer tokens, and they are two on purpose: the query
-// token is pasted into a browser and handed to Prometheus, and must never be able to
-// enroll a device or accept a status report.
+// TokenSettings are workload credentials for ingest and Prometheus discovery.
 type TokenSettings struct {
-	Ingest string `yaml:"ingest"`
-	Query  string `yaml:"query"`
+	Ingest    string `yaml:"ingest"`
+	Discovery string `yaml:"discovery"`
 }
 
 // GitHubSettings holds credentials that must not be confused for one another. The
@@ -91,12 +91,13 @@ func LoadConfig() (Config, error) {
 		Port:              env("PORT", "8080"),
 		StateFile:         env("STATUS_STATE_FILE", "/data/status-state.json"),
 		IdentityStateFile: env("STATUS_IDENTITY_STATE_FILE", "/data/identity-state.json"),
-		StaticDir:         strings.TrimRight(strings.TrimSpace(os.Getenv("STATUS_WEB_DIR")), "/"),
 		PrometheusURL:     strings.TrimRight(env("PROMETHEUS_URL", "http://prometheus:9090"), "/"),
 		ProjectsFile:      strings.TrimSpace(os.Getenv("PROJECTS_CONFIG_FILE")),
+		OIDCIssuer:        strings.TrimRight(strings.TrimSpace(os.Getenv("OIDC_ISSUER")), "/"),
+		OIDCAudience:      strings.TrimSpace(os.Getenv("STATUS_AUTH_AUDIENCE")),
 
 		IngestTokens:                   bearerToken(settings.Tokens.Ingest),
-		QueryTokens:                    bearerToken(settings.Tokens.Query),
+		DiscoveryTokens:                bearerToken(settings.Tokens.Discovery),
 		GitHubToken:                    secret(settings.GitHub.StatusToken),
 		GitHubStatusMinIntervalSeconds: atLeastOne(settings.GitHub.StatusMinIntervalSeconds, 10),
 		GitHubStatusTTLMinutes:         atLeastOne(settings.GitHub.StatusTTLMinutes, 20),
@@ -143,29 +144,30 @@ func configuredProfile(profile ProfileSettings) ConfiguredProfile {
 	}
 }
 
-// Validate reports the first setting that would leave the gateway unable to
-// authenticate any caller. An empty token set rejects everyone, which reads as a
-// mysterious outage rather than a deliberate lockdown, so both must be set — and set
-// to different values, because the query token is pasted into a browser.
+// Validate reports the first incomplete authentication boundary.
 func (config Config) Validate() error {
 	if len(config.IngestTokens) == 0 {
 		return errors.New("tokens.ingest is required")
 	}
-	if len(config.QueryTokens) == 0 {
-		return errors.New("tokens.query is required")
+	if len(config.DiscoveryTokens) == 0 {
+		return errors.New("tokens.discovery is required")
 	}
-	for token := range config.QueryTokens {
+	for token := range config.DiscoveryTokens {
 		if _, shared := config.IngestTokens[token]; shared {
-			return errors.New("tokens.query must differ from tokens.ingest: it is pasted into a browser")
+			return errors.New("tokens.discovery must differ from tokens.ingest")
 		}
 	}
-	return nil
+	return config.AccessConfig().Validate()
 }
 
-// AuthorizedQuery reports whether the bearer token may read internal status,
-// query metrics, and fetch scrape discovery.
-func (config Config) AuthorizedQuery(header string) bool {
-	return authorizedWith(config.QueryTokens, header)
+// AccessConfig returns the human OIDC trust boundary.
+func (config Config) AccessConfig() authn.Config {
+	return authn.Config{Issuer: config.OIDCIssuer, Audience: config.OIDCAudience}
+}
+
+// AuthorizedDiscovery reports whether Prometheus may fetch scrape discovery.
+func (config Config) AuthorizedDiscovery(header string) bool {
+	return authorizedWith(config.DiscoveryTokens, header)
 }
 
 func authorizedWith(tokens map[string]struct{}, header string) bool {

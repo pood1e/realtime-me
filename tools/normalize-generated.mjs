@@ -19,7 +19,9 @@ for (const descriptorPath of descriptorPaths) {
 }
 
 const typescriptRoots = [
+  new URL("../packages/auth-contracts-web/src/gen/", import.meta.url),
   new URL("../packages/library-contracts-web/src/gen/", import.meta.url),
+  new URL("../packages/manager-contracts-web/src/gen/", import.meta.url),
   new URL("../packages/status-contracts-web/src/gen/", import.meta.url),
   new URL("../services/manager/src/gen/", import.meta.url),
 ];

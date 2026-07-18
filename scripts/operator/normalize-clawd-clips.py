@@ -2,7 +2,7 @@
 """Re-encode Anthropic's Claw'd clips so the mascot renders at one consistent size.
 
 The clips are not in this repository (see
-apps/web/status/src/assets/agents/NOTICE.md). Each one draws Clawd at a
+packages/status-web/src/assets/agents/NOTICE.md). Each one draws Clawd at a
 different scale — his eye is 29px across in Laptop and 100px in CrabWalking —
 inside a differently-padded canvas, so `object-fit: contain` in the card's fixed
 box showed him anywhere from tiny to full-bleed. The eye is a perfect square in
@@ -15,7 +15,7 @@ Needs Pillow and numpy. Writes <name>.gif plus a <name>.png poster, the most
 opaque frame, shown to viewers who ask for reduced motion.
 
   scripts/operator/normalize-clawd-clips.py \
-    ~/Downloads/clawd-gifs apps/web/status/src/assets/agents/clawd
+    ~/Downloads/clawd-gifs packages/status-web/src/assets/agents/clawd
 """
 from __future__ import annotations
 

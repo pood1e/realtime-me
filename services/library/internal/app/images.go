@@ -15,16 +15,16 @@ import (
 
 // ImageService manages private images and stable anonymous raw links.
 type ImageService struct {
-	store           domain.ImageStore
-	contents        domain.ContentStore
-	content         *ContentService
-	files           ContentReader
-	publicAPIOrigin string
+	store            domain.ImageStore
+	contents         domain.ContentStore
+	content          *ContentService
+	files            ContentReader
+	publicSiteOrigin string
 }
 
 // NewImageService constructs the private image application.
-func NewImageService(store domain.ImageStore, contents domain.ContentStore, content *ContentService, files ContentReader, publicAPIOrigin string) *ImageService {
-	return &ImageService{store: store, contents: contents, content: content, files: files, publicAPIOrigin: strings.TrimRight(publicAPIOrigin, "/")}
+func NewImageService(store domain.ImageStore, contents domain.ContentStore, content *ContentService, files ContentReader, publicSiteOrigin string) *ImageService {
+	return &ImageService{store: store, contents: contents, content: content, files: files, publicSiteOrigin: strings.TrimRight(publicSiteOrigin, "/")}
 }
 
 func (s *ImageService) Get(ctx context.Context, uid string) (domain.Image, error) {
@@ -121,7 +121,7 @@ func (s *ImageService) RevokeLink(ctx context.Context, uid string) (domain.Image
 }
 
 func (s *ImageService) PublicLinkURL(uid string) string {
-	return s.publicAPIOrigin + "/i/" + uid
+	return s.publicSiteOrigin + "/i/" + uid
 }
 
 func (s *ImageService) OpenOriginal(ctx context.Context, uid string) (*os.File, domain.Image, error) {

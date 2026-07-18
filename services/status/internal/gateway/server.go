@@ -3,15 +3,14 @@ package gateway
 import (
 	"encoding/json"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/gin-gonic/gin"
 
+	authv1 "github.com/pood1e/realtime-me/gen/go/realtime/me/auth/v1"
 	sitev1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/site/v1/sitev1connect"
 	statusv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/status/v1/statusv1connect"
+	"github.com/pood1e/realtime-me/libs/go/authn"
 )
 
 type Server struct {
@@ -23,9 +22,10 @@ type Server struct {
 	profile    *ProfileService
 	projects   *ProjectsService
 	metrics    http.Handler
+	access     *authn.Verifier
 }
 
-func NewServer(config Config, store *StatusStore, identity *IdentityStore, prometheus *PrometheusClient, github *GitHubStatusPublisher, profile *ProfileService, projects *ProjectsService, metrics http.Handler) *Server {
+func NewServer(config Config, store *StatusStore, identity *IdentityStore, prometheus *PrometheusClient, github *GitHubStatusPublisher, profile *ProfileService, projects *ProjectsService, metrics http.Handler, access *authn.Verifier) *Server {
 	return &Server{
 		config:     config,
 		store:      store,
@@ -35,33 +35,31 @@ func NewServer(config Config, store *StatusStore, identity *IdentityStore, prome
 		profile:    profile,
 		projects:   projects,
 		metrics:    metrics,
+		access:     access,
 	}
 }
 
-// Handler builds the Gin engine. Gin owns routing, CORS, and recovery; the
+// Handler builds the Gin engine. Gin owns routing and recovery; the
 // ConnectRPC services are mounted onto it, and the Prometheus/static endpoints
 // remain plain HTTP routes because Prometheus does not speak the Connect
 // protocol.
 func (server *Server) Handler() http.Handler {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
-	router.Use(gin.Recovery(), corsMiddleware())
+	router.Use(gin.Recovery())
 
 	router.GET("/healthz", gin.WrapF(server.health))
 	router.GET("/api/prometheus/http-sd/:job", server.prometheusHTTPDiscovery)
-	router.GET("/metrics", gin.WrapH(server.metrics))
+	router.GET("/metrics", server.prometheusMetrics)
 
 	server.mountConnectServices(router)
 
-	if server.config.StaticDir != "" {
-		router.NoRoute(gin.WrapF(server.static))
-	}
 	return router
 }
 
 // mountConnectServices mounts the ConnectRPC handlers. Enrollment and ingest
-// require an ingest token; the profile, the projects, and the public status are
-// unauthenticated, while internal status requires a token.
+// require an ingest token; profile, projects, and public status are
+// unauthenticated, while internal status and metrics require owner OIDC permission.
 func (server *Server) mountConnectServices(router *gin.Engine) {
 	mount := func(path string, handler http.Handler) {
 		router.Any(path+"*any", gin.WrapH(handler))
@@ -69,19 +67,19 @@ func (server *Server) mountConnectServices(router *gin.Engine) {
 
 	mount(statusv1connect.NewEnrollmentServiceHandler(
 		NewEnrollmentServer(server.identity),
-		connect.WithInterceptors(NewAuthInterceptor(server.config.IngestTokens)),
+		connect.WithInterceptors(NewTokenAuthInterceptor(server.config.IngestTokens)),
 	))
 	mount(statusv1connect.NewIngestServiceHandler(
 		NewIngestServer(server.store, server.identity, server.github),
-		connect.WithInterceptors(NewAuthInterceptor(server.config.IngestTokens)),
+		connect.WithInterceptors(NewTokenAuthInterceptor(server.config.IngestTokens)),
 	))
 	mount(statusv1connect.NewStatusServiceHandler(
 		NewStatusServer(server.store, server.prometheus, server.config),
-		connect.WithInterceptors(NewAuthInterceptor(server.config.QueryTokens, statusv1connect.StatusServiceGetPublicStatusProcedure)),
+		connect.WithInterceptors(NewPermissionInterceptor(server.access, authv1.Permission_PERMISSION_STATUS_INTERNAL_READ, statusv1connect.StatusServiceGetPublicStatusProcedure)),
 	))
 	mount(statusv1connect.NewMetricsServiceHandler(
 		NewMetricsServer(server.prometheus),
-		connect.WithInterceptors(NewAuthInterceptor(server.config.QueryTokens)),
+		connect.WithInterceptors(NewPermissionInterceptor(server.access, authv1.Permission_PERMISSION_STATUS_INTERNAL_READ)),
 	))
 	mount(sitev1connect.NewProfileServiceHandler(
 		NewProfileServer(server.profile),
@@ -91,27 +89,15 @@ func (server *Server) mountConnectServices(router *gin.Engine) {
 	))
 }
 
-func corsMiddleware() gin.HandlerFunc {
-	return func(context *gin.Context) {
-		context.Header("Access-Control-Allow-Origin", "*")
-		context.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		context.Header("Access-Control-Allow-Headers", "Authorization, Content-Type, Connect-Protocol-Version, Connect-Timeout-Ms")
-		if context.Request.Method == http.MethodOptions {
-			context.AbortWithStatus(http.StatusNoContent)
-			return
-		}
-		context.Next()
-	}
-}
-
 func (server *Server) health(writer http.ResponseWriter, _ *http.Request) {
 	writeJSON(writer, http.StatusOK, map[string]bool{"ok": true})
 }
 
-// prometheusHTTPDiscovery is gated behind the read token because it enumerates
+// prometheusHTTPDiscovery is gated behind the workload discovery token because it enumerates
 // every device's name, model, and LAN scrape address.
 func (server *Server) prometheusHTTPDiscovery(context *gin.Context) {
-	if !server.config.AuthorizedQuery(context.Request.Header.Get("Authorization")) {
+	if !server.config.AuthorizedDiscovery(context.Request.Header.Get("Authorization")) {
+		context.Header("WWW-Authenticate", "Bearer")
 		writeJSON(context.Writer, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
@@ -123,22 +109,15 @@ func (server *Server) prometheusHTTPDiscovery(context *gin.Context) {
 	writeJSON(context.Writer, http.StatusOK, server.store.PrometheusHTTPDiscovery(job, server.identity.Lookup))
 }
 
-func (server *Server) static(writer http.ResponseWriter, request *http.Request) {
-	if strings.HasPrefix(request.URL.Path, "/api/") {
-		writeJSON(writer, http.StatusNotFound, map[string]string{"error": "not_found"})
+// prometheusMetrics keeps the raw process scrape endpoint on the Prometheus workload boundary.
+// Human metric reads use the OIDC-protected MetricsService instead.
+func (server *Server) prometheusMetrics(context *gin.Context) {
+	if !server.config.AuthorizedDiscovery(context.Request.Header.Get("Authorization")) {
+		context.Header("WWW-Authenticate", "Bearer")
+		writeJSON(context.Writer, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
-
-	relativePath := strings.TrimPrefix(filepath.Clean("/"+request.URL.Path), "/")
-	if relativePath == "." {
-		relativePath = ""
-	}
-	filePath := filepath.Join(server.config.StaticDir, relativePath)
-	if info, err := os.Stat(filePath); err == nil && !info.IsDir() {
-		http.ServeFile(writer, request, filePath)
-		return
-	}
-	http.ServeFile(writer, request, filepath.Join(server.config.StaticDir, "index.html"))
+	server.metrics.ServeHTTP(context.Writer, context.Request)
 }
 
 func writeJSON(writer http.ResponseWriter, status int, value any) {

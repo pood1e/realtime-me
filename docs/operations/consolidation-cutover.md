@@ -1,74 +1,66 @@
-# Consolidated deployment cutover
+# Unified Web and OIDC cutover
 
-This is a one-time conversion from the standalone `realtime-me`, `cloud-driver`,
-and `super-manager` deployments to the consolidated repository. It is not a
-rolling compatibility procedure: old writers remain stopped after the migration.
+This is a one-time replacement of the legacy Status Worker, seven Library Pages
+applications, browser query/password credentials, and their deployment scripts.
+There is no dual route, legacy configuration fallback, or parallel writer.
 
-## Preserved external identities
-
-Do not rename, recreate, or empty these resources during source installation:
+## Preserve
 
 - Status volumes `realtime-me-prometheus` and `realtime-me-status-gateway`;
-- Library Compose project `cloud-drive`, bind mounts under `/srv/cloud-drive/data`,
-  database name/user, backup snapshots, and `/opt/cloud-drive` installation root;
-- Manager Unix user/home, `/var/lib/super-manager/data`, PKI, device records,
-  provider login homes, tmux socket, DDNS hostname, and systemd unit names;
-- Android application ID `me.realtime`, signing key, Keystore alias, and Wear Data
-  Layer paths.
+- Library Compose project `cloud-drive`, PostgreSQL/database identity, objects,
+  backups, and `/opt/cloud-drive` paths;
+- Manager Unix user/home, SQLite, PKI, paired devices, provider logins, tmux
+  socket, DDNS hostname, and workspace roots;
+- Android `me.realtime` signing identity and Wear Data Layer paths.
 
-## New configuration ownership
+## Convert configuration
 
-| Old owner | New owner | Required conversion |
-| --- | --- | --- |
-| Status `CLOUDFLARE_TUNNEL_TOKEN` | `deploy/edge/.env` references one root-only token file | Delete the token key from Status `.env`. |
-| Library `CLOUDFLARE_TUNNEL_TOKEN_FILE` and `cloudflared` service | `deploy/edge` | Delete both Library keys; never copy the token into `/etc/cloud-drive/runtime.env`. |
-| Library local `edge` network | external `realtime-me-edge` | Create it through `deploy/edge/compose.yaml` before either origin starts. |
-| Library `docker-compose.yml` | `deploy/library/compose.yaml` | Stage releases as `incoming-compose/compose.yaml`; there is no old filename fallback. |
-| Library `incoming-api` staging | `incoming-source` containing `services/library` contents | Root separately owns the monorepo module, vendor tree, generated Go contracts, and Dockerfile. |
-| Library Pages config/scripts | `deploy/web` | Move the local values to `deploy/web/pages.env`; do not retain a second file. |
-| Manager source under `/opt/super-manager/source` | monorepo under `/opt/realtime-me` | Keep `/opt/super-manager` only for Node, provider CLIs, home, and persistent credentials. |
-| Standalone Manager Android application | Agent/Terminal areas in `apps/mobile` | Re-pair after installing the unified Flutter APK, then revoke the old device. |
+| Remove | Add |
+| --- | --- |
+| Status `tokens.query`, browser localStorage token | `tokens.discovery` for Prometheus plus `OIDC_ISSUER` / `STATUS_AUTH_AUDIENCE` |
+| `prometheus/query_token` | `prometheus/discovery_token` |
+| Library password hash, session secret, private/public app origin lists | `PUBLIC_SITE_ORIGIN`, `CONSOLE_ORIGIN`, `OIDC_ISSUER`, `LIBRARY_AUTH_AUDIENCE` |
+| Manager device-only application authorization | `OIDC_ISSUER` / `MANAGER_AUTH_AUDIENCE`; keep device mTLS + bearer unchanged |
+| seven Pages projects and Status web app | one Site Worker and one Console BFF/SPA |
 
-The shared remotely managed Tunnel must route the Status host to
-`http://status-api:8080`, both Library API hosts to `http://library-api:8080`, and
-all unmatched hostnames to an HTTP 404 service.
+Register one confidential OIDC client with callback
+`https://console.example.com/auth/callback`. ID and access tokens must carry the
+common owner audience and canonical `permissions` array. Manager additionally
+requires access-token `typ: at+jwt`.
 
 ## Maintenance-window order
 
-1. Stop old Library API/worker writes, Status ingest, Manager execution, and both
-   old `cloudflared` containers.
-2. Take final consistent Library PostgreSQL/object, Status volume, and Manager
-   SQLite/PKI/provider-home backups. Record checksums outside the repository.
-3. Install the reviewed monorepo at `/opt/realtime-me`; install the reviewed
-   Library release at the existing `/opt/cloud-drive` path.
-4. Copy `deploy/edge/.env.example` to `deploy/edge/.env`, point it at the root-only
-   Tunnel token file, then run `docker compose ... create` for the edge unit.
-5. Install the new Status configuration and start Status. Install the new Library
-   `compose.yaml` and restricted operator policy, then run the Library deploy
-   script. Confirm both containers are attached to `realtime-me-edge` under their
-   stable aliases.
-6. Start the single edge connector and verify every configured hostname plus the
-   unmatched-host 404 rule.
-7. Install the Manager units/wrapper from `deploy/manager`, reload Caddy and
-   systemd, then verify pairing, mTLS/bearer control calls, SSE replay, and terminal
-   attach against the preserved state.
-8. Deploy the Status Worker and all seven Library Pages applications from
-   `deploy/web`.
-9. Publish the unified Flutter phone APK with the existing `me.realtime` signature,
-   publish the Wear APK, pair Manager again, revoke the standalone app's old device,
-   and uninstall the standalone APK.
-10. Remove old service definitions and local configuration copies. Do not restart
-    an old writer or connector after the new baseline is accepted.
+1. Freeze Library writes and Manager executions; take final Status, Library, and
+   Manager backups with external checksums.
+2. Install the reviewed monorepo and root-controlled generated Auth contracts,
+   `libs/go/authn`, vendor tree, Dockerfiles, systemd units, and policy validators.
+3. Create `prometheus/discovery_token`, install new Status OIDC configuration,
+   then start Status and confirm public RPC plus scrape discovery.
+4. Install new Library runtime configuration and restricted Compose policy; run
+   backup + forward-only migrate + deploy.
+5. Install Manager OIDC configuration and restart Manager. Verify the preserved
+   Flutter mTLS device path before continuing.
+6. Build Console SPA and binary, install `/etc/realtime-me/console.env`, start
+   `realtime-me-console.service`, and add the Console Caddy hostname.
+7. Verify OIDC login/logout and each permission independently against Status,
+   Library, and Manager. Confirm cross-Origin mutations fail.
+8. Publish `apps/web/site` with both public upstream variables. Verify its Worker
+   cannot reach any internal/private procedure.
+9. Delete legacy Pages projects, old Worker routes, old password/session secrets,
+   and browser query-token instructions. Do not restart them.
 
-## Acceptance and rollback boundary
+## Acceptance
 
-Before opening writes, verify Status ingest/query separation and Prometheus
-scrapes; Library login, upload, worker, anonymous share/wallpaper, backup and
-restore; Manager pairing, AG-UI, terminal, restart semantics; and edge streaming,
-range requests, WebSocket, CORS, and large uploads.
+- anonymous Status, wallpapers, and token-scoped shares work through Site;
+- Console browser storage contains no owner access token;
+- downstream services reject missing audience/permission even if a route is
+  manually invoked;
+- Library upload/range/provider callback and Manager AG-UI/WebSocket/PTY streaming
+  work through Console;
+- Prometheus discovery and gateway process metrics accept only its workload token;
+- Manager public device hostname still requires mTLS.
 
-Rollback is allowed only before an append-only Library migration crosses its
-schema boundary. After that point, retain the candidate and fix forward. Restoring
-an older Library binary over a migrated database is prohibited. Status and Manager
-can be restored only from their matching final snapshots; do not mix backup times
-or regenerate the Manager CA.
+Library rollback is allowed only before its append-only migration boundary. Once
+new writes or migration occur, fix forward or restore one matching PostgreSQL +
+objects snapshot. Never restore an older binary onto a migrated database and never
+regenerate the preserved Manager CA during rollback.

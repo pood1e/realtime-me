@@ -2,6 +2,7 @@ package transport
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -9,7 +10,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	authv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/auth/v1/authv1connect"
+	authv1 "github.com/pood1e/realtime-me/gen/go/realtime/me/auth/v1"
 	booksv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/books/v1/booksv1connect"
 	contentv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/content/v1/contentv1connect"
 	drivev1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/drive/v1/drivev1connect"
@@ -17,8 +18,8 @@ import (
 	musicv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/music/v1/musicv1connect"
 	systemv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/system/v1/systemv1connect"
 	wallpapersv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/wallpapers/v1/wallpapersv1connect"
+	"github.com/pood1e/realtime-me/libs/go/authn"
 	"github.com/pood1e/realtime-me/services/library/internal/app"
-	"github.com/pood1e/realtime-me/services/library/internal/auth"
 	"github.com/pood1e/realtime-me/services/library/internal/config"
 	"github.com/pood1e/realtime-me/services/library/internal/domain"
 )
@@ -28,19 +29,17 @@ const maxChunkBodyBytes = 16 << 20
 const providerCallbackPrefix = "/v1/music/providers/"
 
 // NewHTTPHandler creates strict host-separated private and public routes.
-func NewHTTPHandler(cfg config.Config, suite *app.Suite, sessions *auth.Manager, logger *slog.Logger) http.Handler {
+func NewHTTPHandler(cfg config.Config, suite *app.Suite, access *authn.Verifier, logger *slog.Logger) http.Handler {
 	privateMux := http.NewServeMux()
 	publicMux := http.NewServeMux()
-	mountPrivateConnect(privateMux, cfg, suite, sessions)
+	mountPrivateConnect(privateMux, suite)
 	mountPublicConnect(publicMux, suite)
-	router := &httpRouter{config: cfg, suite: suite, sessions: sessions, connectErrors: connect.NewErrorWriter(), privateMux: privateMux, publicMux: publicMux}
+	router := &httpRouter{config: cfg, suite: suite, access: access, connectErrors: connect.NewErrorWriter(), privateMux: privateMux, publicMux: publicMux}
 	return requestLogger(logger, router)
 }
 
-func mountPrivateConnect(mux *http.ServeMux, cfg config.Config, suite *app.Suite, sessions *auth.Manager) {
-	path, handler := authv1connect.NewSessionServiceHandler(&authServer{sessions: sessions, validator: cfg})
-	registerConnect(mux, path, handler)
-	path, handler = systemv1connect.NewHealthServiceHandler(&systemServer{service: suite.System})
+func mountPrivateConnect(mux *http.ServeMux, suite *app.Suite) {
+	path, handler := systemv1connect.NewHealthServiceHandler(&systemServer{service: suite.System})
 	registerConnect(mux, path, handler)
 	path, handler = contentv1connect.NewContentUploadServiceHandler(&contentServer{service: suite.Content})
 	registerConnect(mux, path, handler)
@@ -87,7 +86,7 @@ func registerConnect(mux *http.ServeMux, path string, handler http.Handler) {
 type httpRouter struct {
 	config        config.Config
 	suite         *app.Suite
-	sessions      *auth.Manager
+	access        *authn.Verifier
 	connectErrors *connect.ErrorWriter
 	privateMux    http.Handler
 	publicMux     http.Handler
@@ -140,23 +139,11 @@ func (router *httpRouter) servePrivate(writer http.ResponseWriter, request *http
 		router.serveProviderCallback(writer, request, provider)
 		return
 	}
-	if !applyCORS(writer, request, router.config.PrivateAppOrigins, "GET, POST, PUT, DELETE, OPTIONS", true) {
-		return
-	}
-	if request.Method == http.MethodOptions {
-		writer.WriteHeader(http.StatusNoContent)
-		return
-	}
-	if privatePublicProcedure(request.URL.Path) {
-		router.privateMux.ServeHTTP(writer, request)
-		return
-	}
-	session, err := router.sessions.Authenticate(request)
+	_, err := router.access.Authenticate(request.Context(), request.Header.Get("Authorization"), authv1.Permission_PERMISSION_LIBRARY_MANAGE)
 	if err != nil {
-		router.writeUnauthenticated(writer, request)
+		router.writeAccessError(writer, request, err)
 		return
 	}
-	request = request.WithContext(auth.ContextWithSession(request.Context(), session))
 	if strings.HasPrefix(request.URL.Path, "/v1/") {
 		router.servePrivateRaw(writer, request)
 		return
@@ -169,10 +156,6 @@ func (router *httpRouter) serveProviderCallback(writer http.ResponseWriter, requ
 		methodNotAllowed(writer, http.MethodGet)
 		return
 	}
-	if router.config.MusicAppOrigin == "" {
-		http.NotFound(writer, request)
-		return
-	}
 	status := "failed"
 	if request.URL.Query().Get("error") == "" {
 		err := router.suite.Music.Providers.CompleteRedirectConnection(
@@ -183,30 +166,17 @@ func (router *httpRouter) serveProviderCallback(writer http.ResponseWriter, requ
 		}
 	}
 	query := url.Values{"provider": {string(provider)}, "connection": {status}}
-	target := router.config.MusicAppOrigin + "/?" + query.Encode()
+	target := router.config.ConsoleOrigin + "/library/music?" + query.Encode()
 	http.Redirect(writer, request, target, http.StatusSeeOther)
 }
 
 func (router *httpRouter) servePublic(writer http.ResponseWriter, request *http.Request) {
 	if strings.HasPrefix(request.URL.Path, "/i/") {
-		if publicAssetPreflight(writer, request) {
-			return
-		}
 		router.servePublicImage(writer, request)
 		return
 	}
 	if strings.HasPrefix(request.URL.Path, "/v1/wallpapers/") {
-		if publicAssetPreflight(writer, request) {
-			return
-		}
 		router.serveWallpaperFile(writer, request)
-		return
-	}
-	if !applyCORS(writer, request, router.config.PublicAppOrigins, "GET, POST, OPTIONS", false) {
-		return
-	}
-	if request.Method == http.MethodOptions {
-		writer.WriteHeader(http.StatusNoContent)
 		return
 	}
 	if strings.HasPrefix(request.URL.Path, "/v1/shares/") {
@@ -221,15 +191,23 @@ func (router *httpRouter) servePublic(writer http.ResponseWriter, request *http.
 	router.publicMux.ServeHTTP(writer, request)
 }
 
-func (router *httpRouter) writeUnauthenticated(writer http.ResponseWriter, request *http.Request) {
-	err := connect.NewError(connect.CodeUnauthenticated, auth.ErrUnauthenticated)
+func (router *httpRouter) writeAccessError(writer http.ResponseWriter, request *http.Request, accessError error) {
+	code := connect.CodeUnauthenticated
+	status := http.StatusUnauthorized
+	message := authn.ErrUnauthenticated
+	if errors.Is(accessError, authn.ErrUnavailable) {
+		code = connect.CodeUnavailable
+		status = http.StatusServiceUnavailable
+		message = authn.ErrUnavailable
+	} else if errors.Is(accessError, authn.ErrPermissionDenied) {
+		code = connect.CodePermissionDenied
+		status = http.StatusForbidden
+		message = authn.ErrPermissionDenied
+	}
+	err := connect.NewError(code, message)
 	if router.connectErrors.IsSupported(request) {
 		_ = router.connectErrors.Write(writer, request, err)
 		return
 	}
-	http.Error(writer, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-}
-
-func privatePublicProcedure(path string) bool {
-	return path == authv1connect.SessionServiceLoginProcedure
+	http.Error(writer, http.StatusText(status), status)
 }

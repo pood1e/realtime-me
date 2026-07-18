@@ -4,16 +4,8 @@ import (
 	"errors"
 
 	"connectrpc.com/connect"
-	"github.com/pood1e/realtime-me/services/library/internal/auth"
 	"github.com/pood1e/realtime-me/services/library/internal/domain"
 )
-
-func sessionError(err error) error {
-	if errors.Is(err, auth.ErrUnauthenticated) {
-		return connect.NewError(connect.CodeUnauthenticated, auth.ErrUnauthenticated)
-	}
-	return connect.NewError(connect.CodeInternal, errors.New("internal server error"))
-}
 
 func connectError(err error) error {
 	switch {

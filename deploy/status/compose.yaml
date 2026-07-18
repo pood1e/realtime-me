@@ -79,10 +79,10 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./prometheus/file_sd:/etc/prometheus/file_sd:ro
-      # Bearer token Prometheus presents to the gateway's scrape-discovery
-      # endpoint. Create it before the first `up`, or Docker will helpfully
-      # create a directory here and Prometheus will fail to start.
-      - ./prometheus/query_token:/etc/prometheus/query_token:ro
+      # Bearer token Prometheus presents to the gateway's scrape-discovery and
+      # raw process-metrics endpoints. Create it before the first `up`, or Docker
+      # will helpfully create a directory here and Prometheus will fail to start.
+      - ./prometheus/discovery_token:/etc/prometheus/discovery_token:ro
       - prometheus-data:/prometheus
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9090/-/healthy"]

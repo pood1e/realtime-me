@@ -1,7 +1,5 @@
 export * from "./components/app-dialog";
 export * from "./components/app-providers";
-export * from "./components/app-shell";
-export * from "./components/auth-guard";
 export * from "./components/dialog-provider";
 export * from "./components/drive-view";
 export * from "./components/feedback";

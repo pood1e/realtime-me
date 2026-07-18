@@ -38,13 +38,11 @@ cat >"$DUMMY_ENV" <<'EOF'
 POSTGRES_DB=cloud_drive_validation
 POSTGRES_USER=cloud_drive_validation
 POSTGRES_PASSWORD=validation-password-0123456789abcdef
-PASSWORD_HASH_BASE64=dmFsaWRhdGlvbi1wYXNzd29yZA==
-SESSION_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 MUSIC_PROVIDER_CREDENTIAL_KEY=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
-PRIVATE_APP_ORIGINS=https://private.invalid
-PUBLIC_APP_ORIGINS=https://public.invalid
-SHARE_APP_ORIGIN=https://share.invalid
-MUSIC_APP_ORIGIN=https://music.invalid
+PUBLIC_SITE_ORIGIN=https://site.invalid
+CONSOLE_ORIGIN=https://console.invalid
+OIDC_ISSUER=https://identity.invalid/realms/realtime-me
+LIBRARY_AUTH_AUDIENCE=realtime-me
 PRIVATE_API_HOST=private.invalid
 PUBLIC_API_HOST=public.invalid
 SPOTIFY_CLIENT_ID=

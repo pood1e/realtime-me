@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package realtime.me.auth.v1;
+
+// Permission identifies one owner capability enforced by a bounded context.
+enum Permission {
+  // The permission was not specified.
+  PERMISSION_UNSPECIFIED = 0;
+  // The caller may read internal status and metrics.
+  PERMISSION_STATUS_INTERNAL_READ = 1;
+  // The caller may manage private Library resources.
+  PERMISSION_LIBRARY_MANAGE = 2;
+  // The caller may observe and control Manager resources.
+  PERMISSION_MANAGER_CONTROL = 3;
+}

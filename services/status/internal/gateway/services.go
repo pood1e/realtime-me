@@ -13,8 +13,10 @@ import (
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	authv1 "github.com/pood1e/realtime-me/gen/go/realtime/me/auth/v1"
 	sitev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/site/v1"
 	mev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/status/v1"
+	"github.com/pood1e/realtime-me/libs/go/authn"
 )
 
 // EnrollmentServer implements the Connect EnrollmentService. It mints the
@@ -217,10 +219,10 @@ func (server *ProjectsServer) ListProjects(
 	return connect.NewResponse(&sitev1.ListProjectsResponse{Projects: projects}), nil
 }
 
-// NewAuthInterceptor rejects unauthenticated server-side calls whose bearer
+// NewTokenAuthInterceptor rejects unauthenticated workload calls whose bearer
 // token is not in the given scope's token set, except for the listed public
 // procedures.
-func NewAuthInterceptor(tokens map[string]struct{}, publicProcedures ...string) connect.UnaryInterceptorFunc {
+func NewTokenAuthInterceptor(tokens map[string]struct{}, publicProcedures ...string) connect.UnaryInterceptorFunc {
 	allow := make(map[string]bool, len(publicProcedures))
 	for _, procedure := range publicProcedures {
 		allow[procedure] = true
@@ -231,6 +233,32 @@ func NewAuthInterceptor(tokens map[string]struct{}, publicProcedures ...string) 
 				return next(ctx, request)
 			}
 			if !authorizedWith(tokens, request.Header().Get("Authorization")) {
+				return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthorized"))
+			}
+			return next(ctx, request)
+		}
+	}
+}
+
+// NewPermissionInterceptor verifies an OIDC identity and one bounded-context permission.
+func NewPermissionInterceptor(verifier *authn.Verifier, permission authv1.Permission, publicProcedures ...string) connect.UnaryInterceptorFunc {
+	allow := make(map[string]bool, len(publicProcedures))
+	for _, procedure := range publicProcedures {
+		allow[procedure] = true
+	}
+	return func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, request connect.AnyRequest) (connect.AnyResponse, error) {
+			if request.Spec().IsClient || allow[request.Spec().Procedure] {
+				return next(ctx, request)
+			}
+			_, err := verifier.Authenticate(ctx, request.Header().Get("Authorization"), permission)
+			if errors.Is(err, authn.ErrUnavailable) {
+				return nil, connect.NewError(connect.CodeUnavailable, errors.New("identity service unavailable"))
+			}
+			if errors.Is(err, authn.ErrPermissionDenied) {
+				return nil, connect.NewError(connect.CodePermissionDenied, errors.New("permission denied"))
+			}
+			if err != nil {
 				return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthorized"))
 			}
 			return next(ctx, request)

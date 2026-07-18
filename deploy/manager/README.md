@@ -1,24 +1,21 @@
 # Linux deployment
 
-The MVP uses the residential public address directly. There is no VPS, tunnel, CDN, or relay in
-the data path:
+The Manager host exposes two deliberately different principals. Flutter clients keep the direct
+mTLS path; human operators use the OIDC Console BFF on the same host:
 
 ```text
-Android -- DNS lookup --> residential public IPv4/IPv6
-                              |
-                         router/firewall
-                              |
-                    Caddy :443 / :8443
-                              |
-                       127.0.0.1:3080
-                              |
-                  Realtime Me Manager + CLIs
+Flutter -- mTLS + device token --> manager host :443/:8443 --> Manager :3080
+Browser -- OIDC session --------> console host :443 -------> Console :8090
+                                                               |-- Manager :3080
+                                                               |-- Status HTTPS
+                                                               `-- Library HTTPS
 
 ddns-go -- provider API --> A/AAAA record
 ```
 
-The API process remains loopback-only. Caddy exposes the authenticated API on `443` and the
-single-use pairing RPC on `8443`.
+Both processes remain loopback-only. The Manager public hostname still requires an application
+client certificate; the owner path is not published without that mTLS boundary, while Console
+reaches it directly over host loopback.
 
 ## 1. Check that direct inbound access is possible
 
@@ -71,9 +68,18 @@ provider traffic while reacting promptly to an observed address change.
 ## 3. Agent and provider CLIs
 
 1. Install Node `24.18.0`, pnpm `11.10.0`, tmux, OpenSSL and qrencode.
-2. Install the reviewed monorepo at `/opt/realtime-me`, then run
-   `pnpm install --frozen-lockfile && pnpm --filter @realtime-me/manager build` there. Keep the
-   installed worktree root-owned and non-writable by the service account.
+2. Install the reviewed monorepo at `/opt/realtime-me`, then build Manager and Console there:
+
+   ```bash
+   pnpm install --frozen-lockfile
+   pnpm --filter @realtime-me/manager build
+   pnpm --filter @realtime-me/console build
+   sudo install -d -o root -g root -m 0755 /opt/realtime-me/bin
+   GOTOOLCHAIN=go1.26.4 go build -mod=vendor -trimpath \
+     -o /opt/realtime-me/bin/realtime-me-console ./services/console/cmd/server
+   ```
+
+   Keep the installed worktree and binary root-owned and non-writable by service accounts.
 3. Install exact provider versions `@openai/codex@0.144.5` and
    `@anthropic-ai/claude-code@2.1.195` under `/opt/super-manager/providers`.
 4. Create a locked service account with a real shell for tmux, then create its state and workspace
@@ -123,9 +129,41 @@ provider traffic while reacting promptly to an observed address change.
 The tmux server is in a separate systemd cgroup. Restarting only `super-manager.service` detaches
 PTY bridges but leaves shells running.
 
-## 4. Caddy and router
+## 4. Owner identity and Console
 
-Install exact Caddy `2.11.4`. Replace `manager.example.com` in
+Register one confidential OIDC client with the exact callback
+`https://console.example.com/auth/callback`. Configure the provider to put the canonical
+`permissions` string array in both ID and access tokens and to issue the common `realtime-me`
+audience. The available values are:
+
+- `PERMISSION_STATUS_INTERNAL_READ`
+- `PERMISSION_LIBRARY_MANAGE`
+- `PERMISSION_MANAGER_CONTROL`
+
+Manager requires RFC 9068 access tokens (`typ: at+jwt`). Use the same issuer and audience in
+Status, Library, Manager, and Console configuration; permissions retain the service boundary.
+
+Install the root-only Console environment, replace every example origin and secret, then install
+the hardened dynamic-user unit:
+
+```bash
+sudo install -d -o root -g root -m 0700 /etc/realtime-me
+sudo install -m 0600 -o root -g root deploy/manager/console.env.example \
+  /etc/realtime-me/console.env
+sudoedit /etc/realtime-me/console.env
+sudo install -m 0644 deploy/manager/systemd/realtime-me-console.service \
+  /etc/systemd/system/realtime-me-console.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now realtime-me-console.service
+```
+
+Console binds authorization state to a short-lived host-only cookie, keeps OAuth tokens in a
+bounded server-side session, exposes only a host-only `HttpOnly` session cookie, checks same-origin
+mutations, and injects access tokens only into its three upstreams.
+
+## 5. Caddy and router
+
+Install exact Caddy `2.11.4`. Replace both `manager.example.com` and `console.example.com` in
 `deploy/manager/host/Caddyfile.example`, install it as `/etc/caddy/Caddyfile`, then install the
 application TLS material:
 
@@ -143,13 +181,14 @@ sudo systemctl reload caddy
 Keep `ca.key.pem` readable only by `super-manager`; Caddy never needs it. The private server
 certificate is issued for the DDNS hostname, so a public IP change does not require reissuance.
 
-Forward router TCP `443 -> host:443` and `8443 -> host:8443`. For IPv6, add firewall rules rather
+Forward router TCP `443 -> host:443` and `8443 -> host:8443`. Both DNS names resolve to the same
+host and Caddy selects their independent TLS policies by SNI. For IPv6, add firewall rules rather
 than NAT. Do not forward `3080` or `9876`. Port `443` requires an application client certificate
 and a bearer token. Port `8443` routes only `PairDevice`; the RPC also requires a 32-byte,
 ten-minute, one-time secret and is rate-limited. The `8443` rule may remain disabled except while
 adding a device.
 
-## 5. Pairing
+## 6. Pairing
 
 Run locally on the Linux host as the service user:
 

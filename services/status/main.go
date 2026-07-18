@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/pood1e/realtime-me/libs/go/authn"
 	"github.com/pood1e/realtime-me/services/status/internal/gateway"
 )
 
@@ -21,6 +22,11 @@ func main() {
 	}
 	if err := config.Validate(); err != nil {
 		slog.Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
+	access, err := authn.NewVerifier(config.AccessConfig())
+	if err != nil {
+		slog.Error("failed to initialize OIDC verifier", "error", err)
 		os.Exit(1)
 	}
 
@@ -62,7 +68,7 @@ func main() {
 		gateway.NewGitHubProjectsClient(config.GitHubProjectsTokens),
 		config.GitHubProjectsRefreshHours,
 	)
-	server := gateway.NewServer(config, store, identity, prometheus, github, profile, projects, metrics.Handler())
+	server := gateway.NewServer(config, store, identity, prometheus, github, profile, projects, metrics.Handler(), access)
 
 	httpServer := &http.Server{
 		Addr:              ":" + config.Port,

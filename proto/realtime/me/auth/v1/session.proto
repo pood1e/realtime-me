@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package realtime.me.auth.v1;
+
+import "google/protobuf/timestamp.proto";
+import "realtime/me/auth/v1/permission.proto";
+
+// Session is the authenticated owner session projected by the Console BFF.
+message Session {
+  // subject is the opaque OIDC subject identifier.
+  string subject = 1;
+  // display_name is the human-readable identity label.
+  string display_name = 2;
+  // expire_time is the current access-token expiry.
+  google.protobuf.Timestamp expire_time = 3;
+  // permissions contains the capabilities projected for navigation only.
+  repeated Permission permissions = 4;
+}
+
+// GetSessionRequest requests the current Console session.
+message GetSessionRequest {}
+
+// GetSessionResponse returns the current Console session.
+message GetSessionResponse {
+  // session is the authenticated owner session.
+  Session session = 1;
+}
+
+// LogoutRequest ends the current Console session.
+message LogoutRequest {}
+
+// LogoutResponse confirms that the Console session was removed.
+message LogoutResponse {}
+
+// SessionService exposes the Console's server-side owner session.
+service SessionService {
+  // GetSession returns the current authenticated owner session.
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+  // Logout ends the current owner session.
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+}

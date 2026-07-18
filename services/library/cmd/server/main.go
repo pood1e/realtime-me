@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -11,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/pood1e/realtime-me/libs/go/authn"
 	"github.com/pood1e/realtime-me/services/library/internal/app"
-	"github.com/pood1e/realtime-me/services/library/internal/auth"
 	"github.com/pood1e/realtime-me/services/library/internal/config"
 	"github.com/pood1e/realtime-me/services/library/internal/domain"
 	"github.com/pood1e/realtime-me/services/library/internal/provider"
@@ -34,13 +33,13 @@ func run(logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	clock := domain.SystemClock{}
-	sessions, err := auth.NewManager(cfg.PasswordHash, cfg.SessionSecret, clock, rand.Reader)
+	startupContext, cancelStartup := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelStartup()
+	access, err := authn.NewVerifier(cfg.AccessConfig())
 	if err != nil {
 		return err
 	}
-	startupContext, cancelStartup := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancelStartup()
+	clock := domain.SystemClock{}
 	store, err := postgres.Open(startupContext, cfg.DatabaseURL)
 	if err != nil {
 		return err
@@ -64,13 +63,13 @@ func run(logger *slog.Logger) error {
 	content := app.NewContentService(store, store, files, clock, cfg.ChunkSizeBytes, cfg.ReservedFreeBytes, cfg.UploadTTL)
 	suite := &app.Suite{
 		Content: content,
-		Drive:   app.NewDriveService(store, content, files, clock, cfg.ShareAppOrigin),
+		Drive:   app.NewDriveService(store, content, files, clock, cfg.PublicSiteOrigin),
 		Books:   app.NewBookService(store, store, content, files),
 		Music: app.NewMusicSuite(store, store, content, files, clock, app.MusicProviderDependencies{
 			Store: store, Registry: providerRegistry, Credentials: credentialBox,
 		}),
-		Images:     app.NewImageService(store, store, content, files, cfg.PublicAPIOrigin()),
-		Wallpapers: app.NewWallpaperService(store, store, files, cfg.PublicAPIOrigin()),
+		Images:     app.NewImageService(store, store, content, files, cfg.PublicSiteOrigin),
+		Wallpapers: app.NewWallpaperService(store, store, files, cfg.PublicSiteOrigin),
 		System:     app.NewSystemService(store, store, files, clock),
 		Retention:  app.NewRetentionService(store, content, clock),
 	}
@@ -83,7 +82,7 @@ func run(logger *slog.Logger) error {
 
 	server := &http.Server{
 		Addr:              cfg.ListenAddr,
-		Handler:           transport.NewHTTPHandler(cfg, suite, sessions, logger),
+		Handler:           transport.NewHTTPHandler(cfg, suite, access, logger),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       2 * time.Minute,
 		WriteTimeout:      0,

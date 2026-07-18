@@ -136,7 +136,7 @@ func TestPromLabelValueEscapesInjection(t *testing.T) {
 }
 
 // The window is bounded so a single request cannot ask Prometheus for an
-// unbounded scan. This is what makes the read token safe to hand to a browser.
+// unbounded scan. This keeps an authenticated Console request bounded.
 func TestMetricRangeWindowBoundsTheQuery(t *testing.T) {
 	now := time.Unix(1_700_000_000, 0).UTC()
 	window := func(start time.Time, end time.Time, step time.Duration) *mev1.GetMetricRangeRequest {

@@ -76,17 +76,15 @@ def _validate_environments(
         {
             "DATABASE_URL",
             "DATA_ROOT",
+            "CONSOLE_ORIGIN",
+            "LIBRARY_AUTH_AUDIENCE",
             "LISTEN_ADDR",
-            "MUSIC_APP_ORIGIN",
             "MUSIC_PROVIDER_CREDENTIAL_KEY",
-            "PASSWORD_HASH_BASE64",
+            "OIDC_ISSUER",
             "PRIVATE_API_HOST",
-            "PRIVATE_APP_ORIGINS",
             "PUBLIC_API_HOST",
-            "PUBLIC_APP_ORIGINS",
+            "PUBLIC_SITE_ORIGIN",
             "RESERVED_FREE_BYTES",
-            "SESSION_SECRET",
-            "SHARE_APP_ORIGIN",
             "SPOTIFY_CLIENT_ID",
             "SPOTIFY_CLIENT_SECRET",
         },
@@ -117,8 +115,6 @@ def _validate_environments(
     _expect_equal(migrate["DATABASE_URL"], database_url, "migrate database URL")
     _expect_equal(worker["DATABASE_URL"], database_url, "worker database URL")
 
-    _matching_text(api["PASSWORD_HASH_BASE64"], r"[A-Za-z0-9+/]+={0,2}", "password hash")
-    _matching_text(api["SESSION_SECRET"], r"[A-Fa-f0-9]{64}", "session secret")
     credential_key = _matching_text(
         api["MUSIC_PROVIDER_CREDENTIAL_KEY"],
         r"[A-Za-z0-9+/]{43}=",
@@ -129,12 +125,12 @@ def _validate_environments(
     reserved_bytes = _matching_text(api["RESERVED_FREE_BYTES"], r"[0-9]+", "reserved bytes")
     _expect_equal(worker["RESERVED_FREE_BYTES"], reserved_bytes, "worker reserved bytes")
     for key in (
-        "MUSIC_APP_ORIGIN",
+        "CONSOLE_ORIGIN",
+        "LIBRARY_AUTH_AUDIENCE",
+        "OIDC_ISSUER",
         "PRIVATE_API_HOST",
-        "PRIVATE_APP_ORIGINS",
         "PUBLIC_API_HOST",
-        "PUBLIC_APP_ORIGINS",
-        "SHARE_APP_ORIGIN",
+        "PUBLIC_SITE_ORIGIN",
     ):
         _bounded_text(api[key], key)
 

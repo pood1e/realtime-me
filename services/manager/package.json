@@ -26,6 +26,7 @@
     "@fastify/websocket": "11.3.0",
     "better-sqlite3": "12.11.1",
     "fastify": "5.10.0",
+    "jose": "6.2.3",
     "node-pty": "1.1.0",
     "pino": "10.3.1",
     "ws": "8.21.1",

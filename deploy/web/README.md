@@ -1,27 +1,20 @@
-# Web release unit
+# Public Site release
 
-Status is deployed as a Worker with static assets. The seven Library frontends
-are deployed to independent Cloudflare Pages projects. This directory owns their
-deployment configuration; application source remains under `apps/web`.
-
-## Status Worker
-
-```sh
-pnpm --filter @realtime-me/status-web build
-pnpm --dir apps/web/status deploy -- \
-  --var STATUS_API_BASE_URL:https://api-status.example.com
-```
-
-The Worker proxies only the public Status and Site ConnectRPC procedures listed
-in `apps/web/status/src/worker.ts`.
-
-## Library Pages
+`apps/web/site` is the single anonymous web surface. It contains the public
+Status/Profile/Projects pages plus Library wallpapers and token-scoped shares.
+The Cloudflare Worker serves the SPA and proxies only the explicit public
+procedures allowlisted in `src/worker.ts`; it strips cookies and authorization.
 
 ```sh
-cp deploy/web/pages.env.example deploy/web/pages.env
-$EDITOR deploy/web/pages.env
-deploy/web/deploy-library-pages.sh
+VITE_CONSOLE_URL=https://console.example.com pnpm --filter @realtime-me/site build
+pnpm --dir apps/web/site deploy -- \
+  --var STATUS_API_BASE_URL:https://api-status.example.com \
+  --var LIBRARY_PUBLIC_API_BASE_URL:https://api-library-public.example.com
 ```
 
-The local environment file supplies exact HTTPS origins and existing Pages
-project names. It contains no API, account, or Tunnel credentials.
+Set the custom domain in `apps/web/site/wrangler.jsonc` before deployment. There
+are no separate Library Pages projects.
+
+The authenticated application is built from `apps/web/console` and served by
+the Console BFF. Its host deployment and OIDC configuration live under
+[`deploy/manager`](../manager/README.md).

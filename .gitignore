@@ -22,7 +22,7 @@ node_modules/
 .app-password
 
 # Bearer token Prometheus presents to the gateway's scrape-discovery endpoint.
-deploy/status/prometheus/query_token
+deploy/status/prometheus/discovery_token
 
 # Every setting the gateway has, including all five of its tokens; and the curated
 # repositories, which name private repos. Copy each .example beside them and fill it
@@ -31,7 +31,6 @@ deploy/status/gateway.yaml
 deploy/status/projects.json
 
 # Library deployment settings and runtime state.
-deploy/web/pages.env
 deploy/library/runtime.env
 deploy/library/cloud-drive-password.txt
 *.pem
@@ -49,6 +48,6 @@ __pycache__/
 *.pyc
 
 # Anthropic's Claw'd artwork. Used by the deployed page, never committed. See
-# apps/web/status/src/assets/agents/NOTICE.md
-apps/web/status/src/assets/agents/clawd/
-apps/web/status/src/assets/agents/codex/
+# packages/status-web/src/assets/agents/NOTICE.md
+packages/status-web/src/assets/agents/clawd/
+packages/status-web/src/assets/agents/codex/

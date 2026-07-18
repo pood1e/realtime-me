@@ -8,19 +8,24 @@ import (
 
 func TestValidateRequiresBothTokens(t *testing.T) {
 	cases := []struct {
-		name    string
-		ingest  map[string]struct{}
-		query   map[string]struct{}
-		wantErr bool
+		name      string
+		ingest    map[string]struct{}
+		discovery map[string]struct{}
+		wantErr   bool
 	}{
-		{name: "both set", ingest: tokenSet("write"), query: tokenSet("read"), wantErr: false},
-		{name: "no query token", ingest: tokenSet("write"), query: nil, wantErr: true},
-		{name: "no ingest token", ingest: nil, query: tokenSet("read"), wantErr: true},
-		{name: "neither", ingest: nil, query: nil, wantErr: true},
+		{name: "both set", ingest: tokenSet("write"), discovery: tokenSet("read"), wantErr: false},
+		{name: "no discovery token", ingest: tokenSet("write"), discovery: nil, wantErr: true},
+		{name: "no ingest token", ingest: nil, discovery: tokenSet("read"), wantErr: true},
+		{name: "neither", ingest: nil, discovery: nil, wantErr: true},
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			config := Config{IngestTokens: testCase.ingest, QueryTokens: testCase.query}
+			config := Config{
+				IngestTokens:    testCase.ingest,
+				DiscoveryTokens: testCase.discovery,
+				OIDCIssuer:      "https://identity.example.com",
+				OIDCAudience:    "status",
+			}
 			if err := config.Validate(); (err != nil) != testCase.wantErr {
 				t.Fatalf("Validate() error = %v, wantErr %v", err, testCase.wantErr)
 			}
@@ -28,19 +33,18 @@ func TestValidateRequiresBothTokens(t *testing.T) {
 	}
 }
 
-// The read token must never authorize a write. This is the invariant that the
-// removed queryTokens=ingestTokens fallback silently broke.
+// The discovery token must never authorize a write.
 func TestReadTokenIsNotAWriteToken(t *testing.T) {
-	config := Config{IngestTokens: tokenSet("write"), QueryTokens: tokenSet("read")}
+	config := Config{IngestTokens: tokenSet("write"), DiscoveryTokens: tokenSet("read")}
 
-	if config.AuthorizedQuery("Bearer read") != true {
-		t.Error("query token must authorize reads")
+	if config.AuthorizedDiscovery("Bearer read") != true {
+		t.Error("discovery token must authorize reads")
 	}
-	if config.AuthorizedQuery("Bearer write") != false {
+	if config.AuthorizedDiscovery("Bearer write") != false {
 		t.Error("ingest token must not authorize reads")
 	}
 	if authorizedWith(config.IngestTokens, "Bearer read") != false {
-		t.Error("query token must not authorize writes")
+		t.Error("discovery token must not authorize writes")
 	}
 	if authorizedWith(config.IngestTokens, "Bearer write") != true {
 		t.Error("ingest token must authorize writes")
@@ -84,6 +88,8 @@ func loadSettingsFile(t *testing.T, document string) (Config, error) {
 		t.Fatalf("write settings: %v", err)
 	}
 	t.Setenv("STATUS_GATEWAY_CONFIG", path)
+	t.Setenv("OIDC_ISSUER", "https://identity.example.com")
+	t.Setenv("STATUS_AUTH_AUDIENCE", "status")
 	return LoadConfig()
 }
 
@@ -93,7 +99,7 @@ func TestSettingsCarryTheTokensAndTheProfile(t *testing.T) {
 	config, err := loadSettingsFile(t, `
 tokens:
   ingest: write-me
-  query: read-me
+  discovery: read-me
 github:
   status_token: ghp_status
   projects_tokens:
@@ -131,10 +137,9 @@ profile:
 	}
 }
 
-// A browser holds the query token. Were it also the ingest token, anyone with the
-// dashboard open could enroll a device.
+// Prometheus holds the discovery token. It must never authorize device enrollment.
 func TestOneTokenCannotBeBothHalvesOfTheAPI(t *testing.T) {
-	config, err := loadSettingsFile(t, "tokens:\n  ingest: same\n  query: same\n")
+	config, err := loadSettingsFile(t, "tokens:\n  ingest: same\n  discovery: same\n")
 	if err != nil {
 		t.Fatalf("load config: %v", err)
 	}

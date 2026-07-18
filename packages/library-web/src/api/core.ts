@@ -19,7 +19,7 @@ export function normalizeBaseUrl(value: string): string {
 }
 
 export function resolveApiUrl(baseUrl: string, path: string): string {
-  return new URL(path, `${normalizeBaseUrl(baseUrl)}/`).toString();
+  return new URL(path.replace(/^\/+/, ""), `${normalizeBaseUrl(baseUrl)}/`).toString();
 }
 
 export function required<T>(value: T | undefined, field: string): T {

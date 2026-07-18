@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/url"
@@ -10,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pood1e/realtime-me/libs/go/authn"
 )
 
 const (
@@ -26,12 +27,10 @@ type Config struct {
 	ListenAddr            string
 	PrivateAPIHost        string
 	PublicAPIHost         string
-	PrivateAppOrigins     map[string]struct{}
-	PublicAppOrigins      map[string]struct{}
-	ShareAppOrigin        string
-	MusicAppOrigin        string
-	PasswordHash          []byte
-	SessionSecret         []byte
+	PublicSiteOrigin      string
+	ConsoleOrigin         string
+	OIDCIssuer            string
+	OIDCAudience          string
 	ProviderCredentialKey []byte
 	SpotifyClientID       string
 	SpotifyClientSecret   string
@@ -59,34 +58,16 @@ type MigrationConfig struct {
 
 // Load reads and validates API configuration.
 func Load() (Config, error) {
-	passwordHash, err := decodePasswordHash(os.Getenv("PASSWORD_HASH_BASE64"))
-	if err != nil {
-		return Config{}, err
-	}
-	sessionSecret, err := decodeSessionSecret(os.Getenv("SESSION_SECRET"))
-	if err != nil {
-		return Config{}, err
-	}
-	privateOrigins, err := parseOrigins("PRIVATE_APP_ORIGINS", os.Getenv("PRIVATE_APP_ORIGINS"))
-	if err != nil {
-		return Config{}, err
-	}
-	publicOrigins, err := parseOrigins("PUBLIC_APP_ORIGINS", os.Getenv("PUBLIC_APP_ORIGINS"))
-	if err != nil {
-		return Config{}, err
-	}
 	config := Config{
 		DatabaseURL:         strings.TrimSpace(os.Getenv("DATABASE_URL")),
 		DataRoot:            strings.TrimSpace(os.Getenv("DATA_ROOT")),
 		ListenAddr:          valueOrDefault("LISTEN_ADDR", defaultListenAddr),
 		PrivateAPIHost:      normalizeHost(os.Getenv("PRIVATE_API_HOST")),
 		PublicAPIHost:       normalizeHost(os.Getenv("PUBLIC_API_HOST")),
-		PrivateAppOrigins:   privateOrigins,
-		PublicAppOrigins:    publicOrigins,
-		ShareAppOrigin:      trimTrailingSlash(os.Getenv("SHARE_APP_ORIGIN")),
-		MusicAppOrigin:      trimTrailingSlash(os.Getenv("MUSIC_APP_ORIGIN")),
-		PasswordHash:        passwordHash,
-		SessionSecret:       sessionSecret,
+		PublicSiteOrigin:    trimTrailingSlash(os.Getenv("PUBLIC_SITE_ORIGIN")),
+		ConsoleOrigin:       trimTrailingSlash(os.Getenv("CONSOLE_ORIGIN")),
+		OIDCIssuer:          trimTrailingSlash(os.Getenv("OIDC_ISSUER")),
+		OIDCAudience:        strings.TrimSpace(os.Getenv("LIBRARY_AUTH_AUDIENCE")),
 		SpotifyClientID:     strings.TrimSpace(os.Getenv("SPOTIFY_CLIENT_ID")),
 		SpotifyClientSecret: strings.TrimSpace(os.Getenv("SPOTIFY_CLIENT_SECRET")),
 		ChunkSizeBytes:      defaultChunkSizeBytes,
@@ -107,11 +88,20 @@ func Load() (Config, error) {
 	if config.PrivateAPIHost == "" || config.PublicAPIHost == "" || config.PrivateAPIHost == config.PublicAPIHost {
 		return Config{}, errors.New("PRIVATE_API_HOST and PUBLIC_API_HOST must be distinct non-empty hosts")
 	}
-	if err := validateOrigin("SHARE_APP_ORIGIN", config.ShareAppOrigin); err != nil {
+	if err := validateHost("PRIVATE_API_HOST", config.PrivateAPIHost); err != nil {
 		return Config{}, err
 	}
-	if _, found := config.PublicAppOrigins[config.ShareAppOrigin]; !found {
-		return Config{}, errors.New("SHARE_APP_ORIGIN must be present in PUBLIC_APP_ORIGINS")
+	if err := validateHost("PUBLIC_API_HOST", config.PublicAPIHost); err != nil {
+		return Config{}, err
+	}
+	if err := validateOrigin("PUBLIC_SITE_ORIGIN", config.PublicSiteOrigin); err != nil {
+		return Config{}, err
+	}
+	if err := validateOrigin("CONSOLE_ORIGIN", config.ConsoleOrigin); err != nil {
+		return Config{}, err
+	}
+	if err := config.AccessConfig().Validate(); err != nil {
+		return Config{}, err
 	}
 	if err := validateSpotifyConfig(config); err != nil {
 		return Config{}, err
@@ -140,6 +130,9 @@ func LoadWorker() (WorkerConfig, error) {
 		if config.SpotifyClientID == "" || config.SpotifyClientSecret == "" || privateAPIHost == "" {
 			return WorkerConfig{}, errors.New("Spotify worker configuration requires client ID, client secret, and private API host")
 		}
+		if err := validateHost("PRIVATE_API_HOST", privateAPIHost); err != nil {
+			return WorkerConfig{}, err
+		}
 		config.SpotifyRedirectURI = "https://" + privateAPIHost + "/v1/music/providers/spotify/callback"
 	}
 	if raw := strings.TrimSpace(os.Getenv("RESERVED_FREE_BYTES")); raw != "" {
@@ -164,27 +157,12 @@ func LoadMigration() (MigrationConfig, error) {
 	return config, nil
 }
 
-// PublicAPIOrigin returns the canonical externally visible API origin.
-func (c Config) PublicAPIOrigin() string { return "https://" + c.PublicAPIHost }
-
 // PrivateAPIOrigin returns the canonical private API origin.
 func (c Config) PrivateAPIOrigin() string { return "https://" + c.PrivateAPIHost }
 
-// ReturnURL validates an authentication return URL against private application origins.
-func (c Config) ReturnURL(value string) (string, error) {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return "", nil
-	}
-	parsed, err := url.Parse(value)
-	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil {
-		return "", errors.New("invalid return URL")
-	}
-	origin := parsed.Scheme + "://" + parsed.Host
-	if _, allowed := c.PrivateAppOrigins[origin]; !allowed {
-		return "", errors.New("return URL origin is not allowed")
-	}
-	return parsed.String(), nil
+// AccessConfig returns the human OIDC trust boundary.
+func (c Config) AccessConfig() authn.Config {
+	return authn.Config{Issuer: c.OIDCIssuer, Audience: c.OIDCAudience}
 }
 
 func applyNumericOverrides(config *Config) error {
@@ -212,42 +190,6 @@ func applyNumericOverrides(config *Config) error {
 	return nil
 }
 
-func parseOrigins(name, value string) (map[string]struct{}, error) {
-	origins := make(map[string]struct{})
-	for _, candidate := range strings.Split(value, ",") {
-		candidate = trimTrailingSlash(candidate)
-		if candidate == "" {
-			continue
-		}
-		if err := validateOrigin(name, candidate); err != nil {
-			return nil, err
-		}
-		origins[candidate] = struct{}{}
-	}
-	if len(origins) == 0 {
-		return nil, fmt.Errorf("%s must contain at least one HTTPS origin", name)
-	}
-	return origins, nil
-}
-
-func decodePasswordHash(value string) ([]byte, error) {
-	encoded := strings.TrimSpace(value)
-	decoded, err := base64.StdEncoding.Strict().DecodeString(encoded)
-	if encoded == "" || err != nil || len(decoded) == 0 {
-		return nil, errors.New("PASSWORD_HASH_BASE64 must be valid padded Base64")
-	}
-	return decoded, nil
-}
-
-func decodeSessionSecret(value string) ([]byte, error) {
-	encoded := strings.TrimSpace(value)
-	decoded, err := hex.DecodeString(encoded)
-	if len(encoded) < 64 || err != nil || len(decoded) < 32 {
-		return nil, errors.New("SESSION_SECRET must contain at least 64 hexadecimal characters")
-	}
-	return decoded, nil
-}
-
 func decodeProviderCredentialKey(value string) ([]byte, error) {
 	encoded := strings.TrimSpace(value)
 	decoded, err := base64.StdEncoding.Strict().DecodeString(encoded)
@@ -264,12 +206,6 @@ func validateSpotifyConfig(config Config) error {
 	}
 	if !configured {
 		return nil
-	}
-	if err := validateOrigin("MUSIC_APP_ORIGIN", config.MusicAppOrigin); err != nil {
-		return err
-	}
-	if _, found := config.PrivateAppOrigins[config.MusicAppOrigin]; !found {
-		return errors.New("MUSIC_APP_ORIGIN must be present in PRIVATE_APP_ORIGINS")
 	}
 	return nil
 }
@@ -291,8 +227,16 @@ func trimTrailingSlash(value string) string {
 
 func validateOrigin(name, value string) error {
 	parsed, err := url.ParseRequestURI(value)
-	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
 		return fmt.Errorf("%s must contain only an HTTPS origin", name)
+	}
+	return nil
+}
+
+func validateHost(name, value string) error {
+	parsed, err := url.Parse("https://" + value)
+	if err != nil || parsed.Host != value || parsed.Hostname() == "" || parsed.User != nil || parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return fmt.Errorf("%s must contain only one HTTP host", name)
 	}
 	return nil
 }

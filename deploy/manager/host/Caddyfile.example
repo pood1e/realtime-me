@@ -34,3 +34,10 @@ https://manager.example.com:8443 {
 	}
 	respond 404
 }
+
+https://console.example.com {
+	reverse_proxy 127.0.0.1:8090 {
+		flush_interval -1
+		stream_close_delay 5m
+	}
+}

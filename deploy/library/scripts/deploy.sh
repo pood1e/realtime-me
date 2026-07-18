@@ -71,13 +71,11 @@ docker compose version >/dev/null
 POSTGRES_USER=$(require_env_value "$ENV_FILE" POSTGRES_USER)
 POSTGRES_PASSWORD=$(require_env_value "$ENV_FILE" POSTGRES_PASSWORD)
 POSTGRES_DB=$(require_env_value "$ENV_FILE" POSTGRES_DB)
-PASSWORD_HASH_BASE64=$(require_env_value "$ENV_FILE" PASSWORD_HASH_BASE64)
-SESSION_SECRET=$(require_env_value "$ENV_FILE" SESSION_SECRET)
 MUSIC_PROVIDER_CREDENTIAL_KEY=$(require_env_value "$ENV_FILE" MUSIC_PROVIDER_CREDENTIAL_KEY)
-PRIVATE_APP_ORIGINS=$(require_env_value "$ENV_FILE" PRIVATE_APP_ORIGINS)
-PUBLIC_APP_ORIGINS=$(require_env_value "$ENV_FILE" PUBLIC_APP_ORIGINS)
-SHARE_APP_ORIGIN=$(require_env_value "$ENV_FILE" SHARE_APP_ORIGIN)
-MUSIC_APP_ORIGIN=$(require_env_value "$ENV_FILE" MUSIC_APP_ORIGIN)
+PUBLIC_SITE_ORIGIN=$(require_env_value "$ENV_FILE" PUBLIC_SITE_ORIGIN)
+CONSOLE_ORIGIN=$(require_env_value "$ENV_FILE" CONSOLE_ORIGIN)
+OIDC_ISSUER=$(require_env_value "$ENV_FILE" OIDC_ISSUER)
+LIBRARY_AUTH_AUDIENCE=$(require_env_value "$ENV_FILE" LIBRARY_AUTH_AUDIENCE)
 PRIVATE_API_HOST=$(require_env_value "$ENV_FILE" PRIVATE_API_HOST)
 PUBLIC_API_HOST=$(require_env_value "$ENV_FILE" PUBLIC_API_HOST)
 SPOTIFY_CLIENT_ID=$(read_env_value "$ENV_FILE" SPOTIFY_CLIENT_ID)
@@ -92,8 +90,6 @@ BACKUP_STAGING_DIR=$(require_env_value "$ENV_FILE" CLOUD_DRIVE_BACKUP_STAGING_DI
 [[ "$POSTGRES_PASSWORD" =~ ^[A-Za-z0-9._~-]{32,}$ ]] || die 'POSTGRES_PASSWORD must be URL-safe and at least 32 characters'
 [[ "$POSTGRES_USER" =~ ^[A-Za-z0-9_]+$ ]] || die 'POSTGRES_USER must contain only letters, digits, or underscores'
 [[ "$POSTGRES_DB" =~ ^[A-Za-z0-9_]+$ ]] || die 'POSTGRES_DB must contain only letters, digits, or underscores'
-[[ "$PASSWORD_HASH_BASE64" =~ ^[A-Za-z0-9+/]+={0,2}$ ]] || die 'PASSWORD_HASH_BASE64 must be padded Base64 without whitespace'
-[[ "$SESSION_SECRET" =~ ^[A-Fa-f0-9]{64}$ ]] || die 'SESSION_SECRET must contain exactly 64 hexadecimal characters'
 [[ "$MUSIC_PROVIDER_CREDENTIAL_KEY" =~ ^[A-Za-z0-9+/]{43}=$ ]] ||
   die 'MUSIC_PROVIDER_CREDENTIAL_KEY must be padded Base64 containing exactly 32 bytes'
 if [[ -n "$SPOTIFY_CLIENT_ID" || -n "$SPOTIFY_CLIENT_SECRET" ]]; then
@@ -116,8 +112,8 @@ FREE_BYTES=$(available_bytes "$VOLUME_MOUNT_DIR")
 
 # Avoid shellcheck's unused-variable warning while keeping all required values
 # secret and validating each one before Compose receives the environment file.
-: "$PASSWORD_HASH_BASE64" "$SESSION_SECRET" "$MUSIC_PROVIDER_CREDENTIAL_KEY"
-: "$PRIVATE_APP_ORIGINS" "$PUBLIC_APP_ORIGINS" "$SHARE_APP_ORIGIN" "$MUSIC_APP_ORIGIN"
+: "$MUSIC_PROVIDER_CREDENTIAL_KEY"
+: "$PUBLIC_SITE_ORIGIN" "$CONSOLE_ORIGIN" "$OIDC_ISSUER" "$LIBRARY_AUTH_AUDIENCE"
 : "$PRIVATE_API_HOST" "$PUBLIC_API_HOST"
 : "$SPOTIFY_CLIENT_ID" "$SPOTIFY_CLIENT_SECRET"
 

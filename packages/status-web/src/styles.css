@@ -1,0 +1,39 @@
+.agent-motion {
+  display: grid;
+  min-height: 4.5rem;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: transparent;
+}
+
+.agent-motion-image {
+  width: min(100%, 9rem);
+  height: 5.5rem;
+  object-fit: contain;
+  filter: drop-shadow(0 0 1rem oklch(0.64 0.128 44 / 0.2));
+}
+
+/* Every clip shares one 3:2 canvas and the mascot stands on its floor, so a fixed
+   height renders him at the same size in all of them and a bottom-aligned row
+   stands them all on one ground line. A sub-agent is drawn smaller than the
+   agent that spawned it, so the group reads as one worker leading its helpers.
+
+   The ratio is declared rather than inferred: swapping clips remounts the image
+   to restart the animation, and a box sized only by height collapses to nothing
+   until the new file decodes, so the mascot would shrink on every rotation. */
+.working-agent-image,
+.working-subagent-image {
+  aspect-ratio: 3 / 2;
+  width: auto;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.working-agent-image {
+  height: 3rem;
+}
+
+.working-subagent-image {
+  height: 2rem;
+}
