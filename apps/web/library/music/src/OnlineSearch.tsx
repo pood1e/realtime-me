@@ -1,20 +1,19 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { Music2, Search } from "lucide-react";
 import {
-  ProviderSearchStatus,
   type PlayableTrack,
   type ProviderSearchGroup,
+  ProviderSearchStatus,
 } from "@realtime-me/library-contracts";
 import {
-  Button,
   EmptyState,
-  Input,
   LoadingIndicator,
-  MusicClient,
+  type MusicClient,
   useQuery,
   useQueryClient,
   useToast,
 } from "@realtime-me/library-web";
+import { Button, Input } from "@realtime-me/web-ui";
+import { Music2, Search } from "lucide-react";
+import { type FormEvent, useEffect, useState } from "react";
 import { PlayableTrackRow } from "./PlayableTrackRow";
 import type { PlaybackQueueSelection } from "./playback/playback-types";
 import { useProviderLabel } from "./provider-catalog";
@@ -35,14 +34,11 @@ export function OnlineSearch({
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [groups, setGroups] = useState<ProviderSearchGroup[]>([]);
-  const [loadingProviders, setLoadingProviders] = useState<Set<string>>(
-    new Set(),
-  );
+  const [loadingProviders, setLoadingProviders] = useState<Set<string>>(new Set());
   const search = useQuery({
     queryKey: ["music-search", submittedQuery],
     enabled: submittedQuery !== "",
-    queryFn: ({ signal }) =>
-      client.providers.search(submittedQuery, [], signal),
+    queryFn: ({ signal }) => client.providers.search(submittedQuery, [], signal),
   });
   useEffect(() => {
     if (search.data) setGroups(search.data);
@@ -62,12 +58,7 @@ export function OnlineSearch({
     setLoadingProviders((current) => new Set(current).add(group.providerId));
     try {
       const [page] = await queryClient.fetchQuery({
-        queryKey: [
-          "music-search-page",
-          submittedQuery,
-          group.providerId,
-          group.nextPageToken,
-        ],
+        queryKey: ["music-search-page", submittedQuery, group.providerId, group.nextPageToken],
         queryFn: ({ signal }) =>
           client.providers.search(
             submittedQuery,
@@ -171,9 +162,7 @@ function SearchGroup({
       [{ providerId: group.providerId, pageToken }],
       signal,
     );
-    const page = pages.find(
-      (candidate) => candidate.providerId === group.providerId,
-    );
+    const page = pages.find((candidate) => candidate.providerId === group.providerId);
     return {
       tracks: page?.tracks ?? [],
       nextPageToken: page?.nextPageToken ?? "",
@@ -183,12 +172,8 @@ function SearchGroup({
     <section>
       <div className="mb-3 flex items-end justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold">
-            {providerLabel(group.providerId)}
-          </h2>
-          {detail ? (
-            <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
-          ) : null}
+          <h2 className="text-sm font-semibold">{providerLabel(group.providerId)}</h2>
+          {detail ? <p className="mt-1 text-xs text-muted-foreground">{detail}</p> : null}
         </div>
         <span className="text-xs text-muted-foreground">
           {group.tracks.length ? `${group.tracks.length} 首` : ""}
@@ -216,12 +201,7 @@ function SearchGroup({
           ))}
           {group.nextPageToken ? (
             <div className="flex justify-center border-t p-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onLoadMore}
-                disabled={loadingMore}
-              >
+              <Button variant="ghost" size="sm" onClick={onLoadMore} disabled={loadingMore}>
                 {loadingMore ? "正在加载" : "加载更多"}
               </Button>
             </div>
@@ -253,18 +233,11 @@ function sameTrack(a: PlayableTrack | undefined, b: PlayableTrack): boolean {
   return a?.providerId === b.providerId && a.trackId === b.trackId;
 }
 
-function appendUnique(
-  current: PlayableTrack[],
-  next: PlayableTrack[],
-): PlayableTrack[] {
-  const known = new Set(
-    current.map((track) => `${track.providerId}\u0000${track.trackId}`),
-  );
+function appendUnique(current: PlayableTrack[], next: PlayableTrack[]): PlayableTrack[] {
+  const known = new Set(current.map((track) => `${track.providerId}\u0000${track.trackId}`));
   return [
     ...current,
-    ...next.filter(
-      (track) => !known.has(`${track.providerId}\u0000${track.trackId}`),
-    ),
+    ...next.filter((track) => !known.has(`${track.providerId}\u0000${track.trackId}`)),
   ];
 }
 

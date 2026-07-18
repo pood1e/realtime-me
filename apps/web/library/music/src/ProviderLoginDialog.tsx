@@ -1,12 +1,9 @@
-import { useEffect, useState } from "react";
 import type { ProviderConnectionAttempt } from "@realtime-me/library-contracts";
 import { AppDialog } from "@realtime-me/library-web";
 import { QRCodeSVG } from "qrcode.react";
+import { useEffect, useState } from "react";
+import { connectionAttemptStatus, terminalConnectionAttempt } from "./provider-account-model";
 import { useProviderLabel } from "./provider-catalog";
-import {
-  connectionAttemptStatus,
-  terminalConnectionAttempt,
-} from "./provider-account-model";
 
 export function ProviderLoginDialog({
   attempt,
@@ -35,18 +32,13 @@ export function ProviderLoginDialog({
         </div>
       ) : null}
       {attempt && !terminalConnectionAttempt(attempt.status) ? (
-        <p className="text-center text-xs text-muted-foreground">
-          页面会自动检查扫码结果
-        </p>
+        <p className="text-center text-xs text-muted-foreground">页面会自动检查扫码结果</p>
       ) : null}
     </AppDialog>
   );
 }
 
-function useQRImage(
-  image: Uint8Array | undefined,
-  contentType: string | undefined,
-) {
+function useQRImage(image: Uint8Array | undefined, contentType: string | undefined) {
   const [url, setURL] = useState("");
   useEffect(() => {
     if (!image?.length) {

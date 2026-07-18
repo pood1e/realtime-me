@@ -1,14 +1,13 @@
-import { ImageIcon, MoreHorizontal } from "lucide-react";
 import type { Image } from "@realtime-me/library-contracts";
+import { formatBytes, type ImagesClient } from "@realtime-me/library-web";
 import {
   Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  ImagesClient,
-  formatBytes,
-} from "@realtime-me/library-web";
+} from "@realtime-me/web-ui";
+import { ImageIcon, MoreHorizontal } from "lucide-react";
 
 export function ImageCard({
   image,
@@ -27,12 +26,7 @@ export function ImageCard({
 }) {
   return (
     <article className="group relative mb-3 break-inside-avoid overflow-hidden rounded-xl border bg-card">
-      <button
-        type="button"
-        onClick={onOpen}
-        disabled={trashed}
-        className="block w-full bg-muted"
-      >
+      <button type="button" onClick={onOpen} disabled={trashed} className="block w-full bg-muted">
         {image.previewUrl ? (
           <img
             src={client.previewUrl(image)}

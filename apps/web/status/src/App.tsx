@@ -1,9 +1,9 @@
-import { Route, Routes } from 'react-router-dom';
-import { AppShell } from '@/components/AppShell';
-import { AppsApp } from '@/routes/Apps';
-import { InternalStatusApp } from '@/routes/Internal';
-import { ProjectsApp } from '@/routes/Projects';
-import { PublicStatusApp } from '@/routes/PublicStatus';
+import { Route, Routes } from "react-router-dom";
+import { AppShell } from "@/components/AppShell";
+import { AppsApp } from "@/routes/Apps";
+import { InternalStatusApp } from "@/routes/Internal";
+import { ProjectsApp } from "@/routes/Projects";
+import { PublicStatusApp } from "@/routes/PublicStatus";
 
 export function App() {
   return (

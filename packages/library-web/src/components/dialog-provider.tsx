@@ -1,16 +1,4 @@
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
-  type PropsWithChildren,
-  type ReactNode,
-} from "react";
-
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -19,17 +7,29 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "./ui/alert-dialog";
-import { Button } from "./ui/button";
+} from "@realtime-me/web-ui/alert-dialog";
+import { Button } from "@realtime-me/web-ui/button";
 import {
-  Dialog as DialogRoot,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
+  Dialog as DialogRoot,
   DialogTitle,
-} from "./ui/dialog";
-import { Input } from "./ui/input";
+} from "@realtime-me/web-ui/dialog";
+import { Input } from "@realtime-me/web-ui/input";
+import {
+  createContext,
+  type FormEvent,
+  type PropsWithChildren,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 export type ConfirmDialogOptions = Readonly<{
   title: string;
@@ -120,18 +120,10 @@ export function DialogProvider({ children }: PropsWithChildren) {
     <DialogContext.Provider value={value}>
       {children}
       {active?.kind === "confirm" ? (
-        <ConfirmDialog
-          key={active.id}
-          request={active}
-          onFinish={() => finish(active)}
-        />
+        <ConfirmDialog key={active.id} request={active} onFinish={() => finish(active)} />
       ) : null}
       {active?.kind === "prompt" ? (
-        <PromptDialog
-          key={active.id}
-          request={active}
-          onFinish={() => finish(active)}
-        />
+        <PromptDialog key={active.id} request={active} onFinish={() => finish(active)} />
       ) : null}
     </DialogContext.Provider>
   );
@@ -143,13 +135,7 @@ export function useDialog(): DialogContextValue {
   return context;
 }
 
-function ConfirmDialog({
-  request,
-  onFinish,
-}: {
-  request: ConfirmRequest;
-  onFinish: () => void;
-}) {
+function ConfirmDialog({ request, onFinish }: { request: ConfirmRequest; onFinish: () => void }) {
   const settled = useRef(false);
   const settle = (value: boolean) => {
     if (settled.current) return;
@@ -182,13 +168,8 @@ function ConfirmDialog({
   );
 }
 
-function PromptDialog({
-  request,
-  onFinish,
-}: {
-  request: PromptRequest;
-  onFinish: () => void;
-}) {
+function PromptDialog({ request, onFinish }: { request: PromptRequest; onFinish: () => void }) {
+  const inputId = useId();
   const [value, setValue] = useState(request.options.defaultValue ?? "");
   const settled = useRef(false);
   const settle = (result: string | undefined) => {
@@ -214,29 +195,21 @@ function PromptDialog({
               </DialogDescription>
             ) : null}
           </DialogHeader>
-          <label className="grid gap-2 text-sm font-medium">
+          <label htmlFor={inputId} className="grid gap-2 text-sm font-medium">
             {request.options.label}
             <Input
+              id={inputId}
               autoFocus
               value={value}
-              {...(request.options.placeholder
-                ? { placeholder: request.options.placeholder }
-                : {})}
+              {...(request.options.placeholder ? { placeholder: request.options.placeholder } : {})}
               onChange={(event) => setValue(event.target.value)}
             />
           </label>
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => settle(undefined)}
-            >
+            <Button type="button" variant="outline" onClick={() => settle(undefined)}>
               取消
             </Button>
-            <Button
-              type="submit"
-              disabled={request.options.required !== false && !value.trim()}
-            >
+            <Button type="submit" disabled={request.options.required !== false && !value.trim()}>
               {request.options.submitLabel ?? "确认"}
             </Button>
           </DialogFooter>

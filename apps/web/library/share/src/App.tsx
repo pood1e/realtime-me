@@ -1,37 +1,30 @@
-import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  Download,
-  FilePlus2,
-  Folder,
-  Link2Off,
-  ShieldCheck,
-} from "lucide-react";
 import type { DriveItem } from "@realtime-me/library-contracts";
+import type { ResolvedShare } from "@realtime-me/library-web";
 import {
-  Breadcrumbs,
-  Button,
   AppDialog,
+  Breadcrumbs,
   DriveItemView,
   DriveViewModeToggle,
-  EmptyState,
-  InlineError,
-  InfiniteScrollSentinel,
-  LoadingIndicator,
-  PublicShareClient,
   driveItemIsDirectory,
   driveItemName,
   driveItemUid,
+  EmptyState,
+  InfiniteScrollSentinel,
+  InlineError,
   isImage,
   isPdf,
   isText,
   isUnavailableShareError,
+  LoadingIndicator,
+  PublicShareClient,
   shareLinkExpiresAt,
-  useDriveViewMode,
   useCursorQuery,
+  useDriveViewMode,
 } from "@realtime-me/library-web";
-import type { ResolvedShare } from "@realtime-me/library-web";
+import { Button } from "@realtime-me/web-ui";
+import { AlertTriangle, Download, FilePlus2, Folder, Link2Off, ShieldCheck } from "lucide-react";
+import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { API_BASE } from "./config";
 
@@ -41,16 +34,12 @@ type Trail = Readonly<{ id: string; label: string }>;
 export function App() {
   const client = useMemo(() => new PublicShareClient(API_BASE), []);
   const token = useMemo(readShareToken, []);
-  const [state, setState] = useState<ViewState>(
-    token ? "loading" : "unavailable",
-  );
+  const [state, setState] = useState<ViewState>(token ? "loading" : "unavailable");
   const [share, setShare] = useState<ResolvedShare>();
   const [trail, setTrail] = useState<readonly Trail[]>([]);
   const [preview, setPreview] = useState<DriveItem>();
   const [error, setError] = useState("");
-  const [viewMode, setViewMode] = useDriveViewMode(
-    "cloud-drive.share.view-mode",
-  );
+  const [viewMode, setViewMode] = useDriveViewMode("cloud-drive.share.view-mode");
 
   useEffect(() => {
     if (!token) return;
@@ -65,9 +54,7 @@ export function App() {
       .catch((resolveError: unknown) => {
         if (controller.signal.aborted) return;
         setError(errorMessage(resolveError));
-        setState(
-          isUnavailableShareError(resolveError) ? "unavailable" : "error",
-        );
+        setState(isUnavailableShareError(resolveError) ? "unavailable" : "error");
       });
     return () => controller.abort();
   }, [client, token]);
@@ -135,9 +122,7 @@ export function App() {
             <DriveViewModeToggle mode={viewMode} onChange={setViewMode} />
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            有效期至{" "}
-            {shareLinkExpiresAt(share.shareLink)?.toLocaleString("zh-CN") ??
-              "—"}
+            有效期至 {shareLinkExpiresAt(share.shareLink)?.toLocaleString("zh-CN") ?? "—"}
           </p>
         </header>
         {catalog.error ? (
@@ -146,9 +131,7 @@ export function App() {
             onRetry={() => void catalog.refetch()}
           />
         ) : null}
-        {catalog.isPending && folderShare ? (
-          <LoadingIndicator label="正在读取分享内容" />
-        ) : null}
+        {catalog.isPending && folderShare ? <LoadingIndicator label="正在读取分享内容" /> : null}
         {(!folderShare || !catalog.isPending) && !catalog.error ? (
           <>
             <DriveItemView
@@ -164,12 +147,7 @@ export function App() {
                   setPreview(item);
                 }
               }}
-              empty={
-                <EmptyState
-                  icon={<Folder className="size-6" />}
-                  title="文件夹为空"
-                />
-              }
+              empty={<EmptyState icon={<Folder className="size-6" />} title="文件夹为空" />}
             />
             {folderShare ? (
               <InfiniteScrollSentinel
@@ -235,12 +213,7 @@ function PublicPreview({
   }, [item, url]);
 
   return (
-    <AppDialog
-      open
-      title={driveItemName(item)}
-      size="preview"
-      onClose={onClose}
-    >
+    <AppDialog open title={driveItemName(item)} size="preview" onClose={onClose}>
       {error ? <InlineError message={error} /> : null}
       <div className="min-h-56 max-h-[70dvh] overflow-auto rounded-lg bg-muted/30 p-2">
         {isImage(item) ? (
@@ -285,9 +258,7 @@ function readShareToken(): string | undefined {
   const queryToken = new URLSearchParams(window.location.search).get("token");
   if (queryToken) return queryToken;
   const segments = window.location.pathname.split("/").filter(Boolean);
-  const marker = segments.findIndex(
-    (segment) => segment === "s" || segment === "share",
-  );
+  const marker = segments.findIndex((segment) => segment === "s" || segment === "share");
   if (marker >= 0) return segments[marker + 1];
   return segments.length === 1 ? segments[0] : undefined;
 }

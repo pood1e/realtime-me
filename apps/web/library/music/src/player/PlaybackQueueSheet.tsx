@@ -1,8 +1,6 @@
-import { useState } from "react";
-import { ListMusic } from "lucide-react";
+import { InfiniteScrollSentinel, type MusicClient } from "@realtime-me/library-web";
 import {
   Button,
-  InfiniteScrollSentinel,
   Sheet,
   SheetContent,
   SheetDescription,
@@ -12,8 +10,9 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  type MusicClient,
-} from "@realtime-me/library-web";
+} from "@realtime-me/web-ui";
+import { ListMusic } from "lucide-react";
+import { useMemo, useState } from "react";
 import type { PlaybackQueueController } from "../playback/playback-queue";
 import { useProviderLabel } from "../provider-catalog";
 
@@ -26,6 +25,7 @@ export function PlaybackQueueSheet({
 }) {
   const [open, setOpen] = useState(false);
   const providerLabel = useProviderLabel();
+  const items = useMemo(() => queueItems(queue.tracks), [queue.tracks]);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <Tooltip>
@@ -47,19 +47,19 @@ export function PlaybackQueueSheet({
         </SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
           <div className="overflow-hidden rounded-lg border">
-            {queue.tracks.map((track, index) => {
+            {items.map(({ key, position, track }) => {
               const artwork = client.providers.artworkUrl(track);
-              const active = index === queue.currentIndex;
+              const active = position === queue.currentIndex;
               return (
                 <button
-                  key={`${track.providerId}-${track.trackId}-${index}`}
+                  key={key}
                   type="button"
                   aria-current={active ? "true" : undefined}
                   className={`flex w-full items-center gap-3 border-b px-3 py-2.5 text-left last:border-b-0 ${
                     active ? "bg-primary/10" : "hover:bg-accent/45"
                   }`}
                   onClick={() => {
-                    queue.playIndex(index);
+                    queue.playIndex(position);
                     setOpen(false);
                   }}
                 >
@@ -75,17 +75,12 @@ export function PlaybackQueueSheet({
                     <div className="size-9 shrink-0 rounded bg-muted" />
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">
-                      {track.title}
-                    </span>
+                    <span className="block truncate text-sm font-medium">{track.title}</span>
                     <span className="block truncate text-xs text-muted-foreground">
-                      {track.artists.join("、") || "未知艺人"} ·{" "}
-                      {providerLabel(track.providerId)}
+                      {track.artists.join("、") || "未知艺人"} · {providerLabel(track.providerId)}
                     </span>
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    {index + 1}
-                  </span>
+                  <span className="text-xs text-muted-foreground">{position + 1}</span>
                 </button>
               );
             })}
@@ -99,12 +94,20 @@ export function PlaybackQueueSheet({
             onLoadMore={() => void queue.loadMore()}
           />
           {queue.loadError ? (
-            <p className="px-3 pb-3 text-center text-xs text-destructive">
-              {queue.loadError}
-            </p>
+            <p className="px-3 pb-3 text-center text-xs text-destructive">{queue.loadError}</p>
           ) : null}
         </div>
       </SheetContent>
     </Sheet>
   );
+}
+
+function queueItems(tracks: PlaybackQueueController["tracks"]) {
+  const occurrences = new Map<string, number>();
+  return tracks.map((track, position) => {
+    const identity = `${track.providerId}:${track.trackId}`;
+    const occurrence = occurrences.get(identity) ?? 0;
+    occurrences.set(identity, occurrence + 1);
+    return { key: `${identity}:${occurrence}`, position, track };
+  });
 }

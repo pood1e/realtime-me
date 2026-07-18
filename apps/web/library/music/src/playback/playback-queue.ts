@@ -1,22 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PLAYBACK_MODES, type PlaybackMode } from "./playback-types";
-import type {
-  PlaybackQueuePage,
-  PlaybackQueueSelection,
-} from "./playback-types";
 import {
   advanceQueue,
   appendQueuePage,
   canAdvanceQueue,
   EMPTY_PLAYBACK_QUEUE,
+  type PlaybackQueueState,
   queueNeedsPage,
   queueWithMode,
   replayQueue,
   retreatQueue,
   selectedQueue,
   selectQueueIndex,
-  type PlaybackQueueState,
 } from "./playback-queue-state";
+import type { PlaybackQueuePage, PlaybackQueueSelection } from "./playback-types";
+import { PLAYBACK_MODES, type PlaybackMode } from "./playback-types";
 
 const PREVIOUS_RESTART_THRESHOLD_SECONDS = 3;
 const MAX_EMPTY_PAGE_FETCHES = 5;
@@ -32,22 +29,18 @@ export function usePlaybackQueue({
 }) {
   const [mode, setMode] = useState(initialMode);
   const modeRef = useRef(mode);
-  const [state, setRenderedState] =
-    useState<PlaybackQueueState>(EMPTY_PLAYBACK_QUEUE);
+  const [state, setRenderedState] = useState<PlaybackQueueState>(EMPTY_PLAYBACK_QUEUE);
   const stateRef = useRef(state);
   const generation = useRef(0);
   const loadRequest = useRef<AbortController | undefined>(undefined);
   modeRef.current = mode;
 
-  const commit = useCallback(
-    (update: (current: PlaybackQueueState) => PlaybackQueueState) => {
-      const next = update(stateRef.current);
-      stateRef.current = next;
-      setRenderedState(next);
-      return next;
-    },
-    [],
-  );
+  const commit = useCallback((update: (current: PlaybackQueueState) => PlaybackQueueState) => {
+    const next = update(stateRef.current);
+    stateRef.current = next;
+    setRenderedState(next);
+    return next;
+  }, []);
 
   useEffect(() => () => loadRequest.current?.abort(), []);
 
@@ -57,12 +50,7 @@ export function usePlaybackQueue({
       generation.current += 1;
       loadRequest.current?.abort();
       loadRequest.current = undefined;
-      const next = selectedQueue(
-        selection,
-        mode,
-        stateRef.current.playbackSequence + 1,
-        random,
-      );
+      const next = selectedQueue(selection, mode, stateRef.current.playbackSequence + 1, random);
       stateRef.current = next;
       setRenderedState(next);
     },
@@ -71,8 +59,7 @@ export function usePlaybackQueue({
 
   const loadMore = useCallback(async (): Promise<boolean> => {
     const initial = stateRef.current;
-    if (initial.loadingMore || !initial.nextPageToken || !initial.loadNextPage)
-      return false;
+    if (initial.loadingMore || !initial.nextPageToken || !initial.loadNextPage) return false;
 
     const requestGeneration = generation.current;
     const controller = new AbortController();
@@ -86,16 +73,12 @@ export function usePlaybackQueue({
         initial.loadNextPage,
         controller.signal,
       );
-      if (!requestIsCurrent(controller, requestGeneration, generation.current))
-        return false;
+      if (!requestIsCurrent(controller, requestGeneration, generation.current)) return false;
       const previousLength = stateRef.current.tracks.length;
-      commit((current) =>
-        appendQueuePage(current, page, modeRef.current, random),
-      );
+      commit((current) => appendQueuePage(current, page, modeRef.current, random));
       return stateRef.current.tracks.length > previousLength;
     } catch (error) {
-      if (!requestIsCurrent(controller, requestGeneration, generation.current))
-        return false;
+      if (!requestIsCurrent(controller, requestGeneration, generation.current)) return false;
       commit((current) => ({
         ...current,
         loadingMore: false,
@@ -175,11 +158,7 @@ async function loadPlayablePage(
 ): Promise<PlaybackQueuePage> {
   let pageToken = firstPageToken;
   let page: PlaybackQueuePage = { tracks: [], nextPageToken: pageToken };
-  for (
-    let attempt = 0;
-    attempt < MAX_EMPTY_PAGE_FETCHES && pageToken;
-    attempt += 1
-  ) {
+  for (let attempt = 0; attempt < MAX_EMPTY_PAGE_FETCHES && pageToken; attempt += 1) {
     page = await loadPage(pageToken, signal);
     pageToken = page.nextPageToken;
     if (page.tracks.length) break;
@@ -188,9 +167,7 @@ async function loadPlayablePage(
 }
 
 function validSelection(selection: PlaybackQueueSelection): boolean {
-  return (
-    selection.startIndex >= 0 && selection.startIndex < selection.tracks.length
-  );
+  return selection.startIndex >= 0 && selection.startIndex < selection.tracks.length;
 }
 
 function requestIsCurrent(

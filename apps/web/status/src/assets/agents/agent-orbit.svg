@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" fill="none">
+  <title>Agent orbit animation</title>
   <circle cx="120" cy="80" r="58" stroke="#A78BFA" stroke-width="3" stroke-linecap="round" stroke-dasharray="12 16">
     <animateTransform attributeName="transform" type="rotate" from="0 120 80" to="360 120 80" dur="5s" repeatCount="indefinite"/>
   </circle>

@@ -1,13 +1,13 @@
-import type { DeviceState } from '@realtime-me/status-contracts';
-import { formatBytes, formatPercent } from '@/lib/format';
+import type { DeviceState } from "@realtime-me/status-contracts";
+import { formatBytes, formatPercent } from "@/lib/format";
 
-export const CPU_CORES = 'system.cpu.logical.count';
-export const CPU_USAGE = 'system.cpu.utilization';
-export const MEMORY_USAGE = 'system.memory.usage';
-export const MEMORY_LIMIT = 'system.memory.limit';
-export const FILESYSTEM_USAGE = 'system.filesystem.usage';
-export const FILESYSTEM_LIMIT = 'system.filesystem.limit';
-export const FILESYSTEM_UTILIZATION = 'system.filesystem.utilization';
+export const CPU_CORES = "system.cpu.logical.count";
+export const CPU_USAGE = "system.cpu.utilization";
+export const MEMORY_USAGE = "system.memory.usage";
+export const MEMORY_LIMIT = "system.memory.limit";
+export const FILESYSTEM_USAGE = "system.filesystem.usage";
+export const FILESYSTEM_LIMIT = "system.filesystem.limit";
+export const FILESYSTEM_UTILIZATION = "system.filesystem.utilization";
 
 type Device = DeviceState | null | undefined;
 
@@ -30,19 +30,19 @@ export function hasDiskMetric(device: Device): boolean {
 
 export function cpuCoreText(device: Device): string {
   const cores = metricValue(device, CPU_CORES);
-  return cores === undefined ? '—' : `${Math.round(cores)}`;
+  return cores === undefined ? "—" : `${Math.round(cores)}`;
 }
 
 export function cpuText(device: Device): string {
   const percent = formatPercent(metricPercent(device, CPU_USAGE));
   const cores = cpuCoreText(device);
-  return cores === '—' ? percent : `${percent} · ${cores} cores`;
+  return cores === "—" ? percent : `${percent} · ${cores} cores`;
 }
 
 export function memoryValues(device: Device): { text: string; percent?: number } {
   const used = metricValue(device, MEMORY_USAGE);
   const total = metricValue(device, MEMORY_LIMIT);
-  if (used === undefined || total === undefined || total <= 0) return { text: '—' };
+  if (used === undefined || total === undefined || total <= 0) return { text: "—" };
   return { text: `${formatBytes(used)}/${formatBytes(total)}`, percent: (used * 100) / total };
 }
 
@@ -51,9 +51,13 @@ export function diskValues(device: Device): { text: string; percent?: number } {
   const total = metricValue(device, FILESYSTEM_LIMIT);
   if (used !== undefined && total !== undefined && total > 0) {
     const percent = (used * 100) / total;
-    return { text: `${formatBytes(used)}/${formatBytes(total)} · ${formatPercent(percent)}`, percent };
+    return {
+      text: `${formatBytes(used)}/${formatBytes(total)} · ${formatPercent(percent)}`,
+      percent,
+    };
   }
   const directPercent = metricPercent(device, FILESYSTEM_UTILIZATION);
-  if (directPercent !== undefined) return { text: formatPercent(directPercent), percent: directPercent };
-  return { text: '—' };
+  if (directPercent !== undefined)
+    return { text: formatPercent(directPercent), percent: directPercent };
+  return { text: "—" };
 }

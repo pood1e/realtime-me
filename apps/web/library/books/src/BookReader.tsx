@@ -1,7 +1,7 @@
-import { lazy, Suspense } from "react";
-import { BookFormat } from "@realtime-me/library-contracts";
 import type { Book } from "@realtime-me/library-contracts";
-import { BooksClient, AppDialog, LoadingIndicator } from "@realtime-me/library-web";
+import { BookFormat } from "@realtime-me/library-contracts";
+import { AppDialog, type BooksClient, LoadingIndicator } from "@realtime-me/library-web";
+import { lazy, Suspense } from "react";
 
 const PdfReader = lazy(() =>
   import("./PdfReader").then((module) => ({ default: module.PdfReader })),

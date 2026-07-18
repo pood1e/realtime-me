@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" fill="none">
+  <title>Codex swarm animation</title>
   <g stroke-linecap="round" stroke-linejoin="round">
     <g>
       <animateTransform attributeName="transform" type="rotate" from="0 120 80" to="360 120 80" dur="3.4s" repeatCount="indefinite"/>

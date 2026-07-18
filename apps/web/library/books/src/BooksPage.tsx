@@ -1,28 +1,30 @@
-import { useCallback, useMemo, useState } from "react";
-import { Library, Plus, Search } from "lucide-react";
 import type { Book } from "@realtime-me/library-contracts";
 import {
   BooksClient,
-  Button,
   EmptyState,
-  Input,
   LoadingIndicator,
   PrivateAppShell,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   UploadButton,
   UploadClient,
   useDialog,
   useToast,
 } from "@realtime-me/library-web";
+import {
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@realtime-me/web-ui";
+import { Library, Plus, Search } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import { BookGrid } from "./BookGrid";
 import { BookReader } from "./BookReader";
 import { API_BASE, APP_LINKS } from "./config";
-import { useBookCatalog } from "./useBookCatalog";
 import type { BookFilter } from "./useBookCatalog";
+import { useBookCatalog } from "./useBookCatalog";
 
 export function BooksPage() {
   const client = useMemo(() => new BooksClient(API_BASE), []);
@@ -108,11 +110,7 @@ export function BooksPage() {
     <PrivateAppShell
       app="books"
       title="书架"
-      subtitle={catalogSubtitle(
-        catalog.books.length,
-        catalog.hasMore,
-        catalog.initialLoading,
-      )}
+      subtitle={catalogSubtitle(catalog.books.length, catalog.hasMore, catalog.initialLoading)}
       apiBase={API_BASE}
       links={APP_LINKS}
       actions={
@@ -139,10 +137,7 @@ export function BooksPage() {
             className="pl-9"
           />
         </div>
-        <Select
-          value={filter}
-          onValueChange={(value) => setFilter(value as BookFilter)}
-        >
+        <Select value={filter} onValueChange={(value) => setFilter(value as BookFilter)}>
           <SelectTrigger className="w-full lg:w-40">
             <SelectValue />
           </SelectTrigger>
@@ -194,11 +189,7 @@ export function BooksPage() {
         />
       )}
       {reader ? (
-        <BookReader
-          book={reader}
-          client={client}
-          onClose={() => setReader(undefined)}
-        />
+        <BookReader book={reader} client={client} onClose={() => setReader(undefined)} />
       ) : null}
     </PrivateAppShell>
   );

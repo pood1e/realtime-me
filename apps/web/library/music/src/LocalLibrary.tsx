@@ -1,22 +1,21 @@
-import { useCallback, useMemo, useState } from "react";
-import { Music2, Search } from "lucide-react";
 import type { PlayableTrack, Track } from "@realtime-me/library-contracts";
 import {
-  Button,
   EmptyState,
-  Input,
   LoadingIndicator,
-  MusicClient,
+  type MusicClient,
   UploadButton,
   UploadClient,
   useDialog,
   useToast,
 } from "@realtime-me/library-web";
+import { Button, Input } from "@realtime-me/web-ui";
+import { Music2, Search } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import { LocalTrackList } from "./LocalTrackList";
 import { localPlayableTrack } from "./music-model";
 import type { PlaybackQueueSelection } from "./playback/playback-types";
-import { useLocalTrackCatalog } from "./useLocalTrackCatalog";
 import type { LocalLibraryMode } from "./useLocalTrackCatalog";
+import { useLocalTrackCatalog } from "./useLocalTrackCatalog";
 
 export function LocalLibrary({
   mode,
@@ -45,10 +44,7 @@ export function LocalLibrary({
     mode,
     onError: onLoadError,
   });
-  const queue = useMemo(
-    () => catalog.tracks.map(localPlayableTrack),
-    [catalog.tracks],
-  );
+  const queue = useMemo(() => catalog.tracks.map(localPlayableTrack), [catalog.tracks]);
   const upload = async (files: File[]) => {
     for (const file of files) {
       try {
@@ -63,8 +59,7 @@ export function LocalLibrary({
   const favorite = async (track: Track) => {
     try {
       const updated = await client.library.favorite(track.uid, !track.favorite);
-      if (mode === "favorites" && !updated.favorite)
-        catalog.removeTrack(track.uid);
+      if (mode === "favorites" && !updated.favorite) catalog.removeTrack(track.uid);
       else catalog.updateTrack(updated);
     } catch (error) {
       showToast(message(error), "error");

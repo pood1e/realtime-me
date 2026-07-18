@@ -1,8 +1,8 @@
-import { useCallback, useDeferredValue, useEffect } from "react";
-import { BookFormat, ProcessingStatus } from "@realtime-me/library-contracts";
 import type { Book } from "@realtime-me/library-contracts";
+import { BookFormat, ProcessingStatus } from "@realtime-me/library-contracts";
 import type { BookListOptions, BooksClient } from "@realtime-me/library-web";
 import { useCursorQuery, useQuery } from "@realtime-me/library-web";
+import { useCallback, useDeferredValue, useEffect } from "react";
 
 const BOOK_PAGE_SIZE = 32;
 
@@ -16,19 +16,12 @@ type CatalogParameters = Readonly<{
   onError: (error: unknown) => void;
 }>;
 
-export function useBookCatalog({
-  client,
-  query,
-  filter,
-  shelfUid,
-  onError,
-}: CatalogParameters) {
+export function useBookCatalog({ client, query, filter, shelfUid, onError }: CatalogParameters) {
   const deferredQuery = useDeferredValue(query.trim());
   const catalog = useCursorQuery<Book>({
     queryKey: ["books", deferredQuery, filter, shelfUid],
     pollInterval: 2_500,
-    shouldPoll: (books) =>
-      books.some((book) => book.processingStatus === ProcessingStatus.PENDING),
+    shouldPoll: (books) => books.some((book) => book.processingStatus === ProcessingStatus.PENDING),
     loadPage: async (pageToken, signal) => {
       const page = await client.listPage(
         listOptions(deferredQuery, filter, shelfUid, pageToken),
@@ -75,11 +68,7 @@ function listOptions(
   pageToken = "",
 ): BookListOptions {
   const format =
-    filter === "pdf"
-      ? BookFormat.PDF
-      : filter === "epub"
-        ? BookFormat.EPUB
-        : undefined;
+    filter === "pdf" ? BookFormat.PDF : filter === "epub" ? BookFormat.EPUB : undefined;
   return {
     query,
     ...(format === undefined ? {} : { format }),

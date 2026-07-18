@@ -1,5 +1,5 @@
 import type { PlayableTrack, Track } from "@realtime-me/library-contracts";
-import { InfiniteScrollSentinel, MusicClient } from "@realtime-me/library-web";
+import { InfiniteScrollSentinel, type MusicClient } from "@realtime-me/library-web";
 import { TrackRow } from "./TrackRow";
 
 type LocalTrackListProps = Readonly<{

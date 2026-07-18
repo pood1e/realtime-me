@@ -1,6 +1,8 @@
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@realtime-me/web-ui";
 import {
   ListEnd,
   LoaderCircle,
+  type LucideIcon,
   Pause,
   Play,
   Repeat1,
@@ -8,21 +10,11 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
-  type LucideIcon,
 } from "lucide-react";
 import type { ReactElement } from "react";
-import {
-  Button,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@realtime-me/library-web";
 import type { PlaybackMode } from "../playback/playback-types";
 
-const MODE_PRESENTATION: Record<
-  PlaybackMode,
-  Readonly<{ label: string; icon: LucideIcon }>
-> = {
+const MODE_PRESENTATION: Record<PlaybackMode, Readonly<{ label: string; icon: LucideIcon }>> = {
   sequential: { label: "顺序播放", icon: ListEnd },
   "repeat-all": { label: "列表循环", icon: Repeat2 },
   "repeat-one": { label: "单曲循环", icon: Repeat1 },
@@ -82,13 +74,7 @@ export function PlaybackControls({
           disabled={loading}
           aria-label={playing ? "暂停" : "播放"}
         >
-          {loading ? (
-            <LoaderCircle className="animate-spin" />
-          ) : playing ? (
-            <Pause />
-          ) : (
-            <Play />
-          )}
+          {loading ? <LoaderCircle className="animate-spin" /> : playing ? <Pause /> : <Play />}
         </Button>
       </ControlTip>
       <ControlTip label="下一首">
@@ -106,13 +92,7 @@ export function PlaybackControls({
   );
 }
 
-function ControlTip({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactElement;
-}) {
+function ControlTip({ label, children }: { label: string; children: ReactElement }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>

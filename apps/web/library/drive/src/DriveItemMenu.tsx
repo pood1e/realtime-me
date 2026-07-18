@@ -1,11 +1,5 @@
-import {
-  ArchiveRestore,
-  Download,
-  MoreHorizontal,
-  Share2,
-  Trash2,
-} from "lucide-react";
 import type { DriveItem } from "@realtime-me/library-contracts";
+import { driveItemIsDirectory } from "@realtime-me/library-web";
 import {
   Button,
   DropdownMenu,
@@ -13,8 +7,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  driveItemIsDirectory,
-} from "@realtime-me/library-web";
+} from "@realtime-me/web-ui";
+import { ArchiveRestore, Download, MoreHorizontal, Share2, Trash2 } from "lucide-react";
 
 export function DriveItemMenu({
   item,
@@ -63,13 +57,7 @@ export function DriveItemMenu({
   );
 }
 
-function TrashedActions({
-  onRestore,
-  onPurge,
-}: {
-  onRestore: () => void;
-  onPurge: () => void;
-}) {
+function TrashedActions({ onRestore, onPurge }: { onRestore: () => void; onPurge: () => void }) {
   return (
     <>
       <DropdownMenuItem onSelect={onRestore}>

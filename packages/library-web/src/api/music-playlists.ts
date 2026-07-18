@@ -1,5 +1,6 @@
 import { create } from "@bufbuild/protobuf";
-import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { type Client, createClient, type Transport } from "@connectrpc/connect";
+import type { Playlist, PlaylistTrack } from "@realtime-me/library-contracts";
 import {
   DeletePlaylistRequestSchema,
   DownloadPlaylistRequestSchema,
@@ -11,7 +12,6 @@ import {
   MusicPlaylistService,
   PlaylistImportStatus,
 } from "@realtime-me/library-contracts";
-import type { Playlist, PlaylistTrack } from "@realtime-me/library-contracts";
 
 import { privateTransport, required } from "./core";
 import { abortableDelay } from "./delay";
@@ -32,10 +32,7 @@ export type PlaylistTrackPage = Readonly<{
 export class MusicPlaylistClient {
   private readonly client: Client<typeof MusicPlaylistService>;
 
-  constructor(
-    baseUrl: string,
-    transport: Transport = privateTransport(baseUrl),
-  ) {
+  constructor(baseUrl: string, transport: Transport = privateTransport(baseUrl)) {
     this.client = createClient(MusicPlaylistService, transport);
   }
 
@@ -74,14 +71,9 @@ export class MusicPlaylistClient {
         "playlist import",
       );
     }
-    if (
-      operation.status !== PlaylistImportStatus.COMPLETED ||
-      !operation.playlistUid
-    ) {
+    if (operation.status !== PlaylistImportStatus.COMPLETED || !operation.playlistUid) {
       throw new Error(
-        operation.failureCode
-          ? `歌单导入失败（${operation.failureCode}）`
-          : "歌单导入失败",
+        operation.failureCode ? `歌单导入失败（${operation.failureCode}）` : "歌单导入失败",
       );
     }
     return this.get(operation.playlistUid, signal);
@@ -131,18 +123,13 @@ export class MusicPlaylistClient {
 
   async download(playlistUid: string): Promise<Playlist> {
     return required(
-      (
-        await this.client.downloadPlaylist(
-          create(DownloadPlaylistRequestSchema, { playlistUid }),
-        )
-      ).playlist,
+      (await this.client.downloadPlaylist(create(DownloadPlaylistRequestSchema, { playlistUid })))
+        .playlist,
       "playlist",
     );
   }
 
   async delete(playlistUid: string): Promise<void> {
-    await this.client.deletePlaylist(
-      create(DeletePlaylistRequestSchema, { playlistUid }),
-    );
+    await this.client.deletePlaylist(create(DeletePlaylistRequestSchema, { playlistUid }));
   }
 }

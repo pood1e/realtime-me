@@ -1,12 +1,19 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.4/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
   "files": {
     "includes": [
       "**",
-      "!services/manager/src/gen/**",
-      "!services/manager/src/adapters/codex/gen/**",
-      "!services/manager/src/adapters/codex/schema/**",
-      "!apps/mobile/lib/gen/**"
+      "!services/manager/src/gen",
+      "!services/manager/src/adapters/codex/gen",
+      "!services/manager/src/adapters/codex/schema",
+      "!apps/mobile/lib/gen",
+      "!packages/library-contracts-web/src/gen",
+      "!packages/status-contracts-web/src/gen"
     ]
   },
   "formatter": {
@@ -26,6 +33,11 @@
       "quoteStyle": "double",
       "semicolons": "always",
       "trailingCommas": "all"
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
     }
   }
 }

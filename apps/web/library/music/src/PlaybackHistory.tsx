@@ -1,14 +1,14 @@
-import { useEffect } from "react";
-import { History } from "lucide-react";
 import type { PlayableTrack, PlaybackEntry } from "@realtime-me/library-contracts";
 import {
   EmptyState,
   InfiniteScrollSentinel,
   LoadingIndicator,
-  MusicClient,
+  type MusicClient,
   useCursorQuery,
   useToast,
 } from "@realtime-me/library-web";
+import { History } from "lucide-react";
+import { useEffect } from "react";
 import { PlayableTrackRow } from "./PlayableTrackRow";
 import type { PlaybackQueueSelection } from "./playback/playback-types";
 
@@ -37,9 +37,8 @@ export function PlaybackHistory({
     if (history.error) showToast(message(history.error), "error");
   }, [history.error, showToast]);
   if (history.isPending) return <LoadingIndicator label="正在读取播放历史" />;
-  const entries = history.items.filter(
-    (entry): entry is PlaybackEntry & { track: PlayableTrack } =>
-      Boolean(entry.track),
+  const entries = history.items.filter((entry): entry is PlaybackEntry & { track: PlayableTrack } =>
+    Boolean(entry.track),
   );
   const tracks = entries.map((entry) => entry.track);
   const loadPlaybackPage = async (pageToken: string, signal: AbortSignal) => {

@@ -1,18 +1,13 @@
 import { create } from "@bufbuild/protobuf";
-import { createClient, type Client } from "@connectrpc/connect";
+import { type Client, createClient } from "@connectrpc/connect";
+import type { DriveItem, ShareLink } from "@realtime-me/library-contracts";
 import {
   ListSharedItemsRequestSchema,
   ResolveShareRequestSchema,
   ShareService,
 } from "@realtime-me/library-contracts";
-import type { DriveItem, ShareLink } from "@realtime-me/library-contracts";
 
-import {
-  normalizeBaseUrl,
-  publicTransport,
-  required,
-  resolveApiUrl,
-} from "./core";
+import { normalizeBaseUrl, publicTransport, required, resolveApiUrl } from "./core";
 
 export type SharedItemPage = Readonly<{
   items: DriveItem[];
@@ -28,10 +23,7 @@ export class PublicShareClient {
     this.client = createClient(ShareService, publicTransport(baseUrl));
   }
 
-  async resolveShare(
-    token: string,
-    signal?: AbortSignal,
-  ): Promise<ResolvedShare> {
+  async resolveShare(token: string, signal?: AbortSignal): Promise<ResolvedShare> {
     const response = await this.client.resolveShare(
       create(ResolveShareRequestSchema, { shareToken: token }),
       signal ? { signal } : undefined,

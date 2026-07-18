@@ -44,9 +44,7 @@ export function selectedQueue(
     loadNextPage: selection.loadNextPage,
     shuffleHistory: [],
     shuffleUpcoming:
-      mode === "shuffle"
-        ? shuffledIndexes(tracks.length, selection.startIndex, random)
-        : [],
+      mode === "shuffle" ? shuffledIndexes(tracks.length, selection.startIndex, random) : [],
     playbackSequence,
     loadingMore: false,
     loadError: "",
@@ -98,14 +96,10 @@ export function advanceQueue(
   return mode === "repeat-all" ? selectIndex(current, 0) : current;
 }
 
-export function retreatQueue(
-  current: PlaybackQueueState,
-  mode: PlaybackMode,
-): PlaybackQueueState {
+export function retreatQueue(current: PlaybackQueueState, mode: PlaybackMode): PlaybackQueueState {
   if (current.currentIndex < 0) return current;
   if (mode === "shuffle") return retreatShuffledQueue(current);
-  if (current.currentIndex > 0)
-    return selectIndex(current, current.currentIndex - 1);
+  if (current.currentIndex > 0) return selectIndex(current, current.currentIndex - 1);
   if (mode === "repeat-all" && current.tracks.length > 1)
     return selectIndex(current, current.tracks.length - 1);
   return replayQueue(current);
@@ -123,9 +117,7 @@ export function selectQueueIndex(
     currentIndex: index,
     shuffleHistory: [],
     shuffleUpcoming:
-      mode === "shuffle"
-        ? shuffledIndexes(current.tracks.length, index, random)
-        : [],
+      mode === "shuffle" ? shuffledIndexes(current.tracks.length, index, random) : [],
     playbackSequence: current.playbackSequence + 1,
   };
 }
@@ -145,20 +137,14 @@ export function queueWithMode(
   };
 }
 
-export function queueNeedsPage(
-  current: PlaybackQueueState,
-  mode: PlaybackMode,
-): boolean {
+export function queueNeedsPage(current: PlaybackQueueState, mode: PlaybackMode): boolean {
   if (!current.nextPageToken || !current.loadNextPage) return false;
   return mode === "shuffle"
     ? current.shuffleUpcoming.length === 0
     : current.currentIndex >= current.tracks.length - 1;
 }
 
-export function canAdvanceQueue(
-  current: PlaybackQueueState,
-  mode: PlaybackMode,
-): boolean {
+export function canAdvanceQueue(current: PlaybackQueueState, mode: PlaybackMode): boolean {
   if (current.currentIndex < 0) return false;
   if (current.nextPageToken) return true;
   if (mode === "shuffle") return current.tracks.length > 1;
@@ -166,10 +152,7 @@ export function canAdvanceQueue(
   return mode === "repeat-all" && current.tracks.length > 1;
 }
 
-function selectIndex(
-  current: PlaybackQueueState,
-  currentIndex: number,
-): PlaybackQueueState {
+function selectIndex(current: PlaybackQueueState, currentIndex: number): PlaybackQueueState {
   return {
     ...current,
     currentIndex,
@@ -207,11 +190,7 @@ function retreatShuffledQueue(current: PlaybackQueueState): PlaybackQueueState {
   };
 }
 
-function shuffledIndexes(
-  length: number,
-  excludedIndex: number,
-  random: () => number,
-): number[] {
+function shuffledIndexes(length: number, excludedIndex: number, random: () => number): number[] {
   const indexes = Array.from({ length }, (_, index) => index).filter(
     (index) => index !== excludedIndex,
   );

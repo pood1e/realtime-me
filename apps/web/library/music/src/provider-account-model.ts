@@ -3,9 +3,7 @@ import {
   ProviderConnectionStatus,
 } from "@realtime-me/library-contracts";
 
-export function terminalConnectionAttempt(
-  status: ProviderConnectionAttemptStatus,
-): boolean {
+export function terminalConnectionAttempt(status: ProviderConnectionAttemptStatus): boolean {
   return [
     ProviderConnectionAttemptStatus.CONNECTED,
     ProviderConnectionAttemptStatus.EXPIRED,
@@ -14,9 +12,7 @@ export function terminalConnectionAttempt(
   ].includes(status);
 }
 
-export function connectionAttemptStatus(
-  status?: ProviderConnectionAttemptStatus,
-): string {
+export function connectionAttemptStatus(status?: ProviderConnectionAttemptStatus): string {
   switch (status) {
     case ProviderConnectionAttemptStatus.SCANNED:
       return "已扫码，请在手机上确认";
@@ -33,12 +29,8 @@ export function connectionAttemptStatus(
   }
 }
 
-export function providerConnectionDetail(
-  status: ProviderConnectionStatus,
-): string {
-  if (status === ProviderConnectionStatus.NOT_CONFIGURED)
-    return "需要先配置服务端应用凭据";
-  if (status === ProviderConnectionStatus.RECONNECT_REQUIRED)
-    return "登录已失效，请重新连接";
+export function providerConnectionDetail(status: ProviderConnectionStatus): string {
+  if (status === ProviderConnectionStatus.NOT_CONFIGURED) return "需要先配置服务端应用凭据";
+  if (status === ProviderConnectionStatus.RECONNECT_REQUIRED) return "登录已失效，请重新连接";
   return "尚未连接账号";
 }

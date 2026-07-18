@@ -1,7 +1,10 @@
 import { readdir, readFile, writeFile } from "node:fs/promises";
 
 const descriptorPaths = [
-  new URL("../packages/manager-contracts-dart/lib/gen/google/protobuf/descriptor.pb.dart", import.meta.url),
+  new URL(
+    "../packages/manager-contracts-dart/lib/gen/google/protobuf/descriptor.pb.dart",
+    import.meta.url,
+  ),
 ];
 const unescapedMapExample = "///     map<KeyType, ValueType> map_field = 1;";
 const escapedMapExample = "///     `map<KeyType, ValueType> map_field = 1;`";

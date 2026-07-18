@@ -1,14 +1,13 @@
-import { Heart, MoreHorizontal, Music2 } from "lucide-react";
 import type { Track } from "@realtime-me/library-contracts";
+import { formatBytes, type MusicClient } from "@realtime-me/library-web";
 import {
   Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  MusicClient,
-  formatBytes,
-} from "@realtime-me/library-web";
+} from "@realtime-me/web-ui";
+import { Heart, MoreHorizontal, Music2 } from "lucide-react";
 
 export function TrackRow({
   track,
@@ -54,9 +53,7 @@ export function TrackRow({
         )}
       </button>
       <TrackSummary track={track} onPlay={onPlay} />
-      <p className="hidden truncate text-sm text-muted-foreground md:block">
-        {track.album || "—"}
-      </p>
+      <p className="hidden truncate text-sm text-muted-foreground md:block">{track.album || "—"}</p>
       <p className="hidden text-xs text-muted-foreground md:block">
         {formatBytes(track.sizeBytes)}
       </p>
@@ -74,9 +71,7 @@ export function TrackRow({
 function TrackSummary({ track, onPlay }: { track: Track; onPlay: () => void }) {
   return (
     <button type="button" onClick={onPlay} className="min-w-0 text-left">
-      <p className="truncate text-sm font-medium">
-        {track.title || track.originalFileName}
-      </p>
+      <p className="truncate text-sm font-medium">{track.title || track.originalFileName}</p>
       <p className="truncate text-xs text-muted-foreground">
         {track.artists.join("、") || "未知艺人"}
       </p>
@@ -109,9 +104,7 @@ function TrackMenu({
           <DropdownMenuItem onSelect={onRestore}>恢复</DropdownMenuItem>
         ) : (
           <DropdownMenuItem onSelect={onFavorite}>
-            <Heart
-              className={track.favorite ? "fill-current text-rose-400" : ""}
-            />
+            <Heart className={track.favorite ? "fill-current text-rose-400" : ""} />
             {track.favorite ? "取消收藏" : "收藏"}
           </DropdownMenuItem>
         )}

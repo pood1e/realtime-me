@@ -1,6 +1,7 @@
 import { create } from "@bufbuild/protobuf";
-import { createClient } from "@connectrpc/connect";
 import type { Client } from "@connectrpc/connect";
+import { createClient } from "@connectrpc/connect";
+import type { Book, BookFormat, ReadingProgress, Shelf } from "@realtime-me/library-contracts";
 import {
   AddBookToShelfRequestSchema,
   BookService,
@@ -18,19 +19,8 @@ import {
   UpdateBookRequestSchema,
   UpdateReadingProgressRequestSchema,
 } from "@realtime-me/library-contracts";
-import type {
-  Book,
-  BookFormat,
-  ReadingProgress,
-  Shelf,
-} from "@realtime-me/library-contracts";
 
-import {
-  normalizeBaseUrl,
-  privateTransport,
-  required,
-  resolveApiUrl,
-} from "./core";
+import { normalizeBaseUrl, privateTransport, required, resolveApiUrl } from "./core";
 
 export type BookListOptions = Readonly<{
   query?: string;
@@ -53,10 +43,7 @@ export class BooksClient {
     this.baseUrl = normalizeBaseUrl(baseUrl);
     this.client = createClient(BookService, privateTransport(baseUrl));
   }
-  async listPage(
-    options: BookListOptions = {},
-    signal?: AbortSignal,
-  ): Promise<BookListPage> {
+  async listPage(options: BookListOptions = {}, signal?: AbortSignal): Promise<BookListPage> {
     const response = await this.client.listBooks(
       create(ListBooksRequestSchema, options),
       signal ? { signal } : undefined,
@@ -68,18 +55,13 @@ export class BooksClient {
   }
   async get(bookUid: string): Promise<Book> {
     return required(
-      (await this.client.getBook(create(GetBookRequestSchema, { bookUid })))
-        .book,
+      (await this.client.getBook(create(GetBookRequestSchema, { bookUid }))).book,
       "book",
     );
   }
   async importUpload(uploadUid: string): Promise<Book> {
     return required(
-      (
-        await this.client.importBook(
-          create(ImportBookRequestSchema, { uploadUid }),
-        )
-      ).book,
+      (await this.client.importBook(create(ImportBookRequestSchema, { uploadUid }))).book,
       "book",
     );
   }
@@ -104,9 +86,7 @@ export class BooksClient {
     await this.client.deleteBook(create(DeleteBookRequestSchema, { bookUid }));
   }
   async restore(bookUid: string): Promise<void> {
-    await this.client.restoreBook(
-      create(RestoreBookRequestSchema, { bookUid }),
-    );
+    await this.client.restoreBook(create(RestoreBookRequestSchema, { bookUid }));
   }
   async purge(bookUid: string): Promise<void> {
     await this.client.purgeBook(create(PurgeBookRequestSchema, { bookUid }));
@@ -116,11 +96,8 @@ export class BooksClient {
   }
   async progress(bookUid: string): Promise<ReadingProgress> {
     return required(
-      (
-        await this.client.getReadingProgress(
-          create(GetReadingProgressRequestSchema, { bookUid }),
-        )
-      ).readingProgress,
+      (await this.client.getReadingProgress(create(GetReadingProgressRequestSchema, { bookUid })))
+        .readingProgress,
       "readingProgress",
     );
   }
@@ -139,18 +116,12 @@ export class BooksClient {
   }
   async createShelf(displayName: string): Promise<Shelf> {
     return required(
-      (
-        await this.client.createShelf(
-          create(CreateShelfRequestSchema, { displayName }),
-        )
-      ).shelf,
+      (await this.client.createShelf(create(CreateShelfRequestSchema, { displayName }))).shelf,
       "shelf",
     );
   }
   async addToShelf(shelfUid: string, bookUid: string): Promise<void> {
-    await this.client.addBookToShelf(
-      create(AddBookToShelfRequestSchema, { shelfUid, bookUid }),
-    );
+    await this.client.addBookToShelf(create(AddBookToShelfRequestSchema, { shelfUid, bookUid }));
   }
   async removeFromShelf(shelfUid: string, bookUid: string): Promise<void> {
     await this.client.removeBookFromShelf(

@@ -42,8 +42,7 @@ export function usePlaybackSettings() {
     setSettings((current) => ({
       ...current,
       muted: !current.muted,
-      volume:
-        current.muted && current.volume === 0 ? DEFAULT_VOLUME : current.volume,
+      volume: current.muted && current.volume === 0 ? DEFAULT_VOLUME : current.volume,
     }));
   }, []);
 
@@ -52,21 +51,14 @@ export function usePlaybackSettings() {
 
 function readSettings(): PlaybackSettings {
   try {
-    const value: unknown = JSON.parse(
-      window.localStorage.getItem(STORAGE_KEY) ?? "null",
-    );
+    const value: unknown = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "null");
     if (!value || typeof value !== "object") return DEFAULT_SETTINGS;
     const record = value as Record<string, unknown>;
     return {
       mode: isPlaybackMode(record.mode) ? record.mode : DEFAULT_SETTINGS.mode,
       volume:
-        typeof record.volume === "number"
-          ? clampVolume(record.volume)
-          : DEFAULT_SETTINGS.volume,
-      muted:
-        typeof record.muted === "boolean"
-          ? record.muted
-          : DEFAULT_SETTINGS.muted,
+        typeof record.volume === "number" ? clampVolume(record.volume) : DEFAULT_SETTINGS.volume,
+      muted: typeof record.muted === "boolean" ? record.muted : DEFAULT_SETTINGS.muted,
     };
   } catch {
     return DEFAULT_SETTINGS;

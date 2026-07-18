@@ -10,16 +10,14 @@
          other one. It comes from a cookie, not localStorage, because the preference is shared
          with the sibling sites on this domain and localStorage is not. -->
     <script>
-      (function () {
-        try {
-          var m = document.cookie.match(/(?:^|;\s*)theme=(dark|light)/);
-          var t = m
-            ? m[1]
-            : window.matchMedia('(prefers-color-scheme: dark)').matches
-              ? 'dark'
-              : 'light';
-          document.documentElement.classList.add(t);
-        } catch (e) {}
+      (() => {
+        const match = document.cookie.match(/(?:^|;\s*)theme=(dark|light)/);
+        const theme = match
+          ? match[1]
+          : window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+        document.documentElement.classList.add(theme);
       })();
     </script>
   </head>

@@ -12,4 +12,4 @@ export const PRIVATE_APP_ORIGINS = new Set(
   ].filter((origin): origin is string => Boolean(origin)),
 );
 export const DEFAULT_RETURN_URL =
-  import.meta.env.VITE_DEFAULT_RETURN_URL?.trim() || configuration.links.books!;
+  import.meta.env.VITE_DEFAULT_RETURN_URL?.trim() || configuration.links.books;

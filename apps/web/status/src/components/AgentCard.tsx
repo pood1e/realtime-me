@@ -1,20 +1,20 @@
-import { AlertTriangle, Bot, CheckCircle2, CircleOff, Laptop } from 'lucide-react';
-import { useEffect, useState, type ReactElement } from 'react';
-import { siClaude } from 'simple-icons/icons';
-import agentOrbitUrl from '@/assets/agents/agent-orbit.svg';
-import codexOrbitUrl from '@/assets/agents/codex-orbit.svg';
-import codexRibbonsUrl from '@/assets/agents/codex-ribbons.svg';
-import codexSparksUrl from '@/assets/agents/codex-sparks.svg';
-import codexSwarmUrl from '@/assets/agents/codex-swarm.svg';
-import type { Agent, Subagent } from '@realtime-me/status-contracts';
-import { AgentState } from '@realtime-me/status-contracts';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { BrandIcon } from '@/components/brand';
-import { EmptyCard, InlineTime } from '@/components/layout';
-import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
-import { agentDeviceLabel, subagentCountLabel, subagentModelSummary } from '@/lib/status';
+import type { Agent, Subagent } from "@realtime-me/status-contracts";
+import { AgentState } from "@realtime-me/status-contracts";
+import { Badge } from "@realtime-me/web-ui/badge";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@realtime-me/web-ui/card";
+import { Progress } from "@realtime-me/web-ui/progress";
+import { AlertTriangle, Bot, CheckCircle2, CircleOff, Laptop } from "lucide-react";
+import { type ReactElement, useEffect, useState } from "react";
+import { siClaude } from "simple-icons/icons";
+import agentOrbitUrl from "@/assets/agents/agent-orbit.svg";
+import codexOrbitUrl from "@/assets/agents/codex-orbit.svg";
+import codexRibbonsUrl from "@/assets/agents/codex-ribbons.svg";
+import codexSparksUrl from "@/assets/agents/codex-sparks.svg";
+import codexSwarmUrl from "@/assets/agents/codex-swarm.svg";
+import { BrandIcon } from "@/components/brand";
+import { EmptyCard, InlineTime } from "@/components/layout";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { agentDeviceLabel, subagentCountLabel, subagentModelSummary } from "@/lib/status";
 
 type AgentMotionAsset = {
   src: string;
@@ -39,36 +39,60 @@ const CLIP_LOOPS_BEFORE_ROTATE = 4;
 const CODEX_PET_DURATION_MS = 1_640;
 
 const CLAWD_CLIP_DURATIONS_MS: Record<string, number> = {
-  'clawd-laptop': 3_580,
-  'clawd-magnifier': 9_410,
-  'clawd-crab-walking': 1_660,
-  'clawd-lurking': 5_580,
-  'clawd-racing-car': 4_010,
-  'clawd-soccer': 4_880,
-  'clawd-dancing': 3_330,
-  'clawd-jumping-happy': 1_760,
-  'clawd-waving': 1_410,
+  "clawd-laptop": 3_580,
+  "clawd-magnifier": 9_410,
+  "clawd-crab-walking": 1_660,
+  "clawd-lurking": 5_580,
+  "clawd-racing-car": 4_010,
+  "clawd-soccer": 4_880,
+  "clawd-dancing": 3_330,
+  "clawd-jumping-happy": 1_760,
+  "clawd-waving": 1_410,
 };
 
-const clawdClipUrls = import.meta.glob('../assets/agents/clawd/*.gif', { eager: true, import: 'default' }) as Record<string, string>;
-const clawdPosterUrls = import.meta.glob('../assets/agents/clawd/*.png', { eager: true, import: 'default' }) as Record<string, string>;
-const codexClipUrls = import.meta.glob('../assets/agents/codex/*.gif', { eager: true, import: 'default' }) as Record<string, string>;
-const codexPosterUrls = import.meta.glob('../assets/agents/codex/*.png', { eager: true, import: 'default' }) as Record<string, string>;
+const clawdClipUrls = import.meta.glob("../assets/agents/clawd/*.gif", {
+  eager: true,
+  import: "default",
+}) as Record<string, string>;
+const clawdPosterUrls = import.meta.glob("../assets/agents/clawd/*.png", {
+  eager: true,
+  import: "default",
+}) as Record<string, string>;
+const codexClipUrls = import.meta.glob("../assets/agents/codex/*.gif", {
+  eager: true,
+  import: "default",
+}) as Record<string, string>;
+const codexPosterUrls = import.meta.glob("../assets/agents/codex/*.png", {
+  eager: true,
+  import: "default",
+}) as Record<string, string>;
 
 const DEFAULT_MOTION_ASSETS: AgentMotionAsset[] = [{ src: agentOrbitUrl, durationMs: 4_000 }];
-const CODEX_FALLBACK_ASSETS: AgentMotionAsset[] = [codexOrbitUrl, codexSparksUrl, codexRibbonsUrl, codexSwarmUrl].map((src) => ({
+const CODEX_FALLBACK_ASSETS: AgentMotionAsset[] = [
+  codexOrbitUrl,
+  codexSparksUrl,
+  codexRibbonsUrl,
+  codexSwarmUrl,
+].map((src) => ({
   src,
   durationMs: 4_000,
 }));
 const CLAWD_MOTION_ASSETS: AgentMotionAsset[] = clawdMotionAssets();
-const CODEX_MOTION_ASSETS: AgentMotionAsset[] = motionAssets(codexClipUrls, codexPosterUrls, () => CODEX_PET_DURATION_MS);
+const CODEX_MOTION_ASSETS: AgentMotionAsset[] = motionAssets(
+  codexClipUrls,
+  codexPosterUrls,
+  () => CODEX_PET_DURATION_MS,
+);
 
 // A clip counts only once its loop length, its animation and its reduced-motion
 // still all resolve; a partial clip would either cycle on a NaN delay or animate
 // at a viewer who asked it not to.
 function clawdMotionAssets(): AgentMotionAsset[] {
   const urls = Object.fromEntries(
-    Object.keys(CLAWD_CLIP_DURATIONS_MS).map((name) => [`../assets/agents/clawd/${name}.gif`, clawdClipUrls[`../assets/agents/clawd/${name}.gif`]]),
+    Object.keys(CLAWD_CLIP_DURATIONS_MS).map((name) => [
+      `../assets/agents/clawd/${name}.gif`,
+      clawdClipUrls[`../assets/agents/clawd/${name}.gif`],
+    ]),
   );
   return motionAssets(urls, clawdPosterUrls, (name) => CLAWD_CLIP_DURATIONS_MS[name]);
 }
@@ -76,11 +100,15 @@ function clawdMotionAssets(): AgentMotionAsset[] {
 // Pair each discovered clip with its poster and its loop length, dropping any
 // that is missing either. The clips are keyed by their own file name, so a pet
 // added to the asset directory joins the rotation without further wiring.
-function motionAssets(clipUrls: Record<string, string>, posterUrls: Record<string, string>, durationMs: (name: string) => number): AgentMotionAsset[] {
+function motionAssets(
+  clipUrls: Record<string, string>,
+  posterUrls: Record<string, string>,
+  durationMs: (name: string) => number,
+): AgentMotionAsset[] {
   return Object.entries(clipUrls)
     .sort(([left], [right]) => left.localeCompare(right))
     .flatMap(([path, src]) => {
-      const poster = posterUrls[path.replace(/\.gif$/, '.png')];
+      const poster = posterUrls[path.replace(/\.gif$/, ".png")];
       const duration = durationMs(clipName(path));
       if (!src || !poster || !duration) return [];
       return [{ src, durationMs: duration, poster }];
@@ -88,7 +116,7 @@ function motionAssets(clipUrls: Record<string, string>, posterUrls: Record<strin
 }
 
 function clipName(path: string): string {
-  return path.slice(path.lastIndexOf('/') + 1, -'.gif'.length);
+  return path.slice(path.lastIndexOf("/") + 1, -".gif".length);
 }
 
 export function AgentCard({ agent }: { agent: Agent }) {
@@ -102,7 +130,13 @@ export function AgentCard({ agent }: { agent: Agent }) {
         </CardTitle>
         <CardAction className="flex items-center gap-2">
           <InlineTime value={agent.updateTime} />
-          <Badge variant={agentBadgeVariant(agent.state)} title={stateLabel} aria-label={stateLabel}>{agentStateIcon(agent.state)}</Badge>
+          <Badge
+            variant={agentBadgeVariant(agent.state)}
+            title={stateLabel}
+            aria-label={stateLabel}
+          >
+            {agentStateIcon(agent.state)}
+          </Badge>
         </CardAction>
       </CardHeader>
       <CardContent className="grid gap-4">
@@ -135,14 +169,14 @@ export function agentKey(agent: Agent): string {
 }
 
 export function agentName(kind: string): string {
-  if (isClaudeAgent(kind)) return 'Claude Code';
-  if (kind === 'codex') return 'Codex';
-  return kind || 'Agent';
+  if (isClaudeAgent(kind)) return "Claude Code";
+  if (kind === "codex") return "Codex";
+  return kind || "Agent";
 }
 
 export function agentIcon(kind: string): ReactElement {
   if (isClaudeAgent(kind)) return <BrandIcon icon={siClaude} />;
-  if (kind === 'codex') return <CodexIcon />;
+  if (kind === "codex") return <CodexIcon />;
   return <Bot className="size-4" />;
 }
 
@@ -158,7 +192,19 @@ function AgentMotion({ agent }: { agent: Agent }) {
 // AgentClip cycles an agent's clips, swapping only on a whole-loop boundary. The
 // seed decides which clip it opens on, so an agent and each of its sub-agents
 // start on different pictures rather than moving in lockstep.
-export function AgentClip({ kind, seed, className, alt, title }: { kind: string; seed: string; className: string; alt: string; title?: string }) {
+export function AgentClip({
+  kind,
+  seed,
+  className,
+  alt,
+  title,
+}: {
+  kind: string;
+  seed: string;
+  className: string;
+  alt: string;
+  title?: string;
+}) {
   const assets = agentMotionAssets(kind);
   const reducedMotion = usePrefersReducedMotion();
   const initialIndex = hashString(seed) % assets.length;
@@ -180,14 +226,17 @@ export function AgentClip({ kind, seed, className, alt, title }: { kind: string;
   useEffect(() => {
     if (reducedMotion || assets.length <= 1) return;
     const timeout = window.setTimeout(() => {
-      setClip((current) => ({ index: current.next, next: nextClipIndex(current.next, assets.length) }));
+      setClip((current) => ({
+        index: current.next,
+        next: nextClipIndex(current.next, assets.length),
+      }));
     }, asset.durationMs * CLIP_LOOPS_BEFORE_ROTATE);
     return () => window.clearTimeout(timeout);
   }, [asset, assets.length, reducedMotion]);
 
   // A GIF animates no matter what the stylesheet says, so a viewer who asked for
   // reduced motion gets a still frame instead.
-  const src = reducedMotion ? asset.poster ?? asset.src : asset.src;
+  const src = reducedMotion ? (asset.poster ?? asset.src) : asset.src;
   return <img key={src} className={className} src={src} alt={alt} title={title} />;
 }
 
@@ -195,7 +244,9 @@ export function AgentClip({ kind, seed, className, alt, title }: { kind: string;
 // cannot: which agent, and how much budget it has left.
 export function agentMotionLabel(agent: Agent): string {
   const name = `${agentName(agent.kind)} working`;
-  return agent.budgetRemainingPercent === undefined ? name : `${name} · ${agent.budgetRemainingPercent}% budget left`;
+  return agent.budgetRemainingPercent === undefined
+    ? name
+    : `${name} · ${agent.budgetRemainingPercent}% budget left`;
 }
 
 // The badge counts the sub-agents out; the models they run are named in its
@@ -225,7 +276,8 @@ function AgentDeviceBadge({ agent }: { agent: Agent }) {
 
 function agentMotionAssets(kind: string): AgentMotionAsset[] {
   if (isClaudeAgent(kind) && CLAWD_MOTION_ASSETS.length > 0) return CLAWD_MOTION_ASSETS;
-  if (kind === 'codex') return CODEX_MOTION_ASSETS.length > 0 ? CODEX_MOTION_ASSETS : CODEX_FALLBACK_ASSETS;
+  if (kind === "codex")
+    return CODEX_MOTION_ASSETS.length > 0 ? CODEX_MOTION_ASSETS : CODEX_FALLBACK_ASSETS;
   return DEFAULT_MOTION_ASSETS;
 }
 
@@ -249,21 +301,21 @@ function agentStateIcon(state: AgentState): ReactElement {
   return <CircleOff />;
 }
 
-function agentBadgeVariant(state: AgentState): 'default' | 'secondary' | 'destructive' {
-  if (state === AgentState.FAILED) return 'destructive';
-  if (state === AgentState.RUNNING) return 'default';
-  return 'secondary';
+function agentBadgeVariant(state: AgentState): "default" | "secondary" | "destructive" {
+  if (state === AgentState.FAILED) return "destructive";
+  if (state === AgentState.RUNNING) return "default";
+  return "secondary";
 }
 
 function agentStateLabel(state: AgentState): string {
-  if (state === AgentState.RUNNING) return 'running';
-  if (state === AgentState.FAILED) return 'failed';
-  if (state === AgentState.IDLE) return 'idle';
-  return 'unknown';
+  if (state === AgentState.RUNNING) return "running";
+  if (state === AgentState.FAILED) return "failed";
+  if (state === AgentState.IDLE) return "idle";
+  return "unknown";
 }
 
 function isClaudeAgent(kind: string): boolean {
-  return kind === 'claude';
+  return kind === "claude";
 }
 
 function hashString(value: string): number {
@@ -274,9 +326,16 @@ function hashString(value: string): number {
   return Math.abs(hash);
 }
 
-function CodexIcon({ className = 'size-4' }: { className?: string }) {
+function CodexIcon({ className = "size-4" }: { className?: string }) {
   return (
-    <svg aria-label="Codex" className={`${className} shrink-0`} fill="currentColor" fillRule="evenodd" role="img" viewBox="0 0 24 24">
+    <svg
+      aria-label="Codex"
+      className={`${className} shrink-0`}
+      fill="currentColor"
+      fillRule="evenodd"
+      role="img"
+      viewBox="0 0 24 24"
+    >
       <title>Codex</title>
       <path
         clipRule="evenodd"

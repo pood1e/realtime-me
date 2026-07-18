@@ -1,4 +1,3 @@
-import { useCallback, useDeferredValue, useEffect, useMemo } from "react";
 import { ProcessingStatus, type Track } from "@realtime-me/library-contracts";
 import type {
   CursorPage,
@@ -7,6 +6,7 @@ import type {
   TrackListOptions,
 } from "@realtime-me/library-web";
 import { useCursorQuery, useQueryClient } from "@realtime-me/library-web";
+import { useCallback, useDeferredValue, useEffect, useMemo } from "react";
 import { localPlayableTrack } from "./music-model";
 
 const TRACK_PAGE_SIZE = 50;
@@ -20,12 +20,7 @@ type CatalogParameters = Readonly<{
   onError: (error: unknown) => void;
 }>;
 
-export function useLocalTrackCatalog({
-  client,
-  query,
-  mode,
-  onError,
-}: CatalogParameters) {
+export function useLocalTrackCatalog({ client, query, mode, onError }: CatalogParameters) {
   const deferredQuery = useDeferredValue(query.trim());
   const queryKey = useMemo(
     () => ["music-tracks", deferredQuery, mode] as const,
@@ -36,9 +31,7 @@ export function useLocalTrackCatalog({
     queryKey,
     pollInterval: 2_500,
     shouldPoll: (tracks) =>
-      tracks.some(
-        (track) => track.processingStatus === ProcessingStatus.PENDING,
-      ),
+      tracks.some((track) => track.processingStatus === ProcessingStatus.PENDING),
     loadPage: async (pageToken, signal) => {
       const page = await client.library.trackPage(
         listOptions(deferredQuery, mode, pageToken),
@@ -54,18 +47,16 @@ export function useLocalTrackCatalog({
 
   const updatePages = useCallback(
     (update: (tracks: Track[]) => Track[]) => {
-      queryClient.setQueryData<InfiniteData<CursorPage<Track>, string>>(
-        queryKey,
-        (current) =>
-          current
-            ? {
-                ...current,
-                pages: current.pages.map((page) => ({
-                  ...page,
-                  items: update(page.items),
-                })),
-              }
-            : current,
+      queryClient.setQueryData<InfiniteData<CursorPage<Track>, string>>(queryKey, (current) =>
+        current
+          ? {
+              ...current,
+              pages: current.pages.map((page) => ({
+                ...page,
+                items: update(page.items),
+              })),
+            }
+          : current,
       );
     },
     [queryClient, queryKey],
@@ -73,9 +64,7 @@ export function useLocalTrackCatalog({
   const updateTrack = useCallback(
     (track: Track) => {
       updatePages((tracks) =>
-        tracks.map((candidate) =>
-          candidate.uid === track.uid ? track : candidate,
-        ),
+        tracks.map((candidate) => (candidate.uid === track.uid ? track : candidate)),
       );
     },
     [updatePages],
@@ -121,11 +110,7 @@ export function useLocalTrackCatalog({
   };
 }
 
-function listOptions(
-  query: string,
-  mode: LocalLibraryMode,
-  pageToken = "",
-): TrackListOptions {
+function listOptions(query: string, mode: LocalLibraryMode, pageToken = ""): TrackListOptions {
   return {
     query,
     favorites: mode === "favorites",

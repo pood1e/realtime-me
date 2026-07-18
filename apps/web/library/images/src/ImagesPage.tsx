@@ -1,19 +1,10 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { Images, Plus, Search, Trash2 } from "lucide-react";
-import { ProcessingStatus, type Image } from "@realtime-me/library-contracts";
+import { type Image, ProcessingStatus } from "@realtime-me/library-contracts";
 import {
-  Button,
   EmptyState,
   ImagesClient,
   InfiniteScrollSentinel,
-  Input,
   LoadingIndicator,
   PrivateAppShell,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   UploadButton,
   UploadClient,
   useCursorQuery,
@@ -21,9 +12,20 @@ import {
   useQuery,
   useToast,
 } from "@realtime-me/library-web";
-import { ImageDialog } from "./ImageDialog";
-import { ImageCard } from "./ImageCard";
+import {
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@realtime-me/web-ui";
+import { Images, Plus, Search, Trash2 } from "lucide-react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { API_BASE, APP_LINKS } from "./config";
+import { ImageCard } from "./ImageCard";
+import { ImageDialog } from "./ImageDialog";
 
 export function ImagesPage() {
   const client = useMemo(() => new ImagesClient(API_BASE), []);
@@ -39,9 +41,7 @@ export function ImagesPage() {
     queryKey: ["images", deferredQuery, albumUid, trash],
     pollInterval: 2_500,
     shouldPoll: (images) =>
-      images.some(
-        (image) => image.processingStatus === ProcessingStatus.PENDING,
-      ),
+      images.some((image) => image.processingStatus === ProcessingStatus.PENDING),
     loadPage: async (pageToken, signal) => {
       const page = await client.listPage(
         {
@@ -179,10 +179,7 @@ export function ImagesPage() {
           <Plus />
           新建相册
         </Button>
-        <Button
-          variant={trash ? "secondary" : "ghost"}
-          onClick={() => setTrash((value) => !value)}
-        >
+        <Button variant={trash ? "secondary" : "ghost"} onClick={() => setTrash((value) => !value)}>
           <Trash2 />
           {trash ? "返回图库" : "回收站"}
         </Button>
@@ -221,11 +218,7 @@ export function ImagesPage() {
         />
       )}
       {selected ? (
-        <ImageDialog
-          image={selected}
-          client={client}
-          onClose={() => setSelected(undefined)}
-        />
+        <ImageDialog image={selected} client={client} onClose={() => setSelected(undefined)} />
       ) : null}
     </PrivateAppShell>
   );

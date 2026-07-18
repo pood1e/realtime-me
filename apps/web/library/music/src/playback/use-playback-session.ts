@@ -1,23 +1,20 @@
+import { type PlayableTrack, PlaybackQuality } from "@realtime-me/library-contracts";
+import { LOCAL_PROVIDER_ID, type MusicClient } from "@realtime-me/library-web";
 import {
+  type Dispatch,
+  type SetStateAction,
   useCallback,
   useEffect,
   useRef,
   useState,
-  type Dispatch,
-  type SetStateAction,
 } from "react";
-import { PlaybackQuality, type PlayableTrack } from "@realtime-me/library-contracts";
-import { LOCAL_PROVIDER_ID, type MusicClient } from "@realtime-me/library-web";
-import {
-  createPlaybackAdapter,
-  playbackResource,
-} from "./playback-adapter-factory";
+import { createPlaybackAdapter, playbackResource } from "./playback-adapter-factory";
 import {
   effectiveVolume,
   emptyPlaybackState,
   mergePlaybackState,
-  playbackErrorMessage,
   type PlaybackSessionState,
+  playbackErrorMessage,
 } from "./playback-session-state";
 import type { PlaybackAdapter, PlaybackAdapterEvents } from "./playback-types";
 
@@ -38,9 +35,7 @@ export function usePlaybackSession({
   onEnded: () => void;
   onRecorded: () => void;
 }) {
-  const [state, setState] = useState<PlaybackSessionState>(() =>
-    emptyPlaybackState(track),
-  );
+  const [state, setState] = useState<PlaybackSessionState>(() => emptyPlaybackState(track));
   const adapter = useRef<PlaybackAdapter | undefined>(undefined);
   const resolution = useRef<AbortController | undefined>(undefined);
   const generation = useRef(0);
@@ -73,15 +68,11 @@ export function usePlaybackSession({
         .recordPlayback(track)
         .then(() => onRecordedRef.current())
         .catch(() => {
-          if (generation.current === currentGeneration)
-            recorded.current = false;
+          if (generation.current === currentGeneration) recorded.current = false;
         });
     };
 
-    const start = async (
-      quality: PlaybackQuality,
-      allowFallback: boolean,
-    ): Promise<void> => {
+    const start = async (quality: PlaybackQuality, allowFallback: boolean): Promise<void> => {
       try {
         const descriptor = await client.providers.resolvePlayback(
           track,
@@ -93,12 +84,7 @@ export function usePlaybackSession({
         let currentAdapter: PlaybackAdapter | undefined;
         let failureHandled = false;
         const handleFailure = (error: unknown) => {
-          if (
-            failureHandled ||
-            !active ||
-            !currentAdapter ||
-            adapter.current !== currentAdapter
-          )
+          if (failureHandled || !active || !currentAdapter || adapter.current !== currentAdapter)
             return;
           failureHandled = true;
           if (
@@ -120,8 +106,7 @@ export function usePlaybackSession({
             if (!next.paused) recordPlayback();
           },
           onEnded: () => {
-            if (active && adapter.current === currentAdapter)
-              onEndedRef.current();
+            if (active && adapter.current === currentAdapter) onEndedRef.current();
           },
           onError: handleFailure,
         };
@@ -201,8 +186,7 @@ export function usePlaybackSession({
       const current = adapter.current;
       if (!current) return;
       const finite = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
-      const position =
-        state.duration > 0 ? Math.min(finite, state.duration) : finite;
+      const position = state.duration > 0 ? Math.min(finite, state.duration) : finite;
       setState((value) => ({ ...value, position }));
       void current.seek(position).catch((error) => {
         if (adapter.current === current) updateError(setState, error);

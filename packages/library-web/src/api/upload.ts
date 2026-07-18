@@ -1,6 +1,7 @@
 import { create, fromJson } from "@bufbuild/protobuf";
-import { createClient } from "@connectrpc/connect";
 import type { Client } from "@connectrpc/connect";
+import { createClient } from "@connectrpc/connect";
+import type { Upload } from "@realtime-me/library-contracts";
 import {
   AbandonUploadRequestSchema,
   ContentUploadService,
@@ -10,21 +11,9 @@ import {
   UploadStatus,
   WriteUploadChunkResponseSchema,
 } from "@realtime-me/library-contracts";
-import type { Upload } from "@realtime-me/library-contracts";
 
-import {
-  uploadChunkSize,
-  uploadRanges,
-  uploadReceivedBytes,
-  uploadUid,
-} from "../message";
-import {
-  ApiError,
-  normalizeBaseUrl,
-  privateTransport,
-  required,
-  resolveApiUrl,
-} from "./core";
+import { uploadChunkSize, uploadRanges, uploadReceivedBytes, uploadUid } from "../message";
+import { ApiError, normalizeBaseUrl, privateTransport, required, resolveApiUrl } from "./core";
 import { abortableDelay } from "./delay";
 
 const MAX_UPLOAD_ATTEMPTS = 3;
@@ -151,13 +140,9 @@ export class UploadClient {
           signal: signal ?? null,
         });
         if (!response.ok)
-          throw new ApiError(
-            `Upload failed (${response.status}).`,
-            response.status,
-          );
+          throw new ApiError(`Upload failed (${response.status}).`, response.status);
         return required(
-          fromJson(WriteUploadChunkResponseSchema, await response.json())
-            .upload,
+          fromJson(WriteUploadChunkResponseSchema, await response.json()).upload,
           "upload",
         );
       } catch (error) {
@@ -173,26 +158,16 @@ export class UploadClient {
           ).upload,
           "upload",
         );
-        if (rangeContains(uploadRanges(recovered), start, end))
-          return recovered;
+        if (rangeContains(uploadRanges(recovered), start, end)) return recovered;
       }
     }
-    throw lastError instanceof Error
-      ? lastError
-      : new ApiError("Unable to upload this chunk.");
+    throw lastError instanceof Error ? lastError : new ApiError("Unable to upload this chunk.");
   }
 
-  private async waitUntilSealed(
-    initial: Upload,
-    signal?: AbortSignal,
-  ): Promise<void> {
+  private async waitUntilSealed(initial: Upload, signal?: AbortSignal): Promise<void> {
     let upload = initial;
     for (;;) {
-      if (
-        upload.status === UploadStatus.SEALED ||
-        upload.status === UploadStatus.CLAIMED
-      )
-        return;
+      if (upload.status === UploadStatus.SEALED || upload.status === UploadStatus.CLAIMED) return;
       if (upload.status === UploadStatus.FAILED)
         throw new ApiError(
           upload.failureCode
@@ -220,15 +195,11 @@ function rangeContains(
   start: number,
   end: number,
 ): boolean {
-  return ranges.some(
-    ([rangeStart, rangeEnd]) => rangeStart <= start && rangeEnd >= end,
-  );
+  return ranges.some(([rangeStart, rangeEnd]) => rangeStart <= start && rangeEnd >= end);
 }
 
 function acknowledgedBytes(upload: Upload, totalBytes: number): number {
-  const ranges = [...uploadRanges(upload)].sort(
-    ([left], [right]) => left - right,
-  );
+  const ranges = [...uploadRanges(upload)].sort(([left], [right]) => left - right);
   let covered = 0;
   for (const [start, end] of ranges) {
     if (start > covered) break;

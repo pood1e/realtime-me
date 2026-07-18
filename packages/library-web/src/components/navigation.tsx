@@ -1,9 +1,8 @@
+import { Button } from "@realtime-me/web-ui/button";
+import { cn } from "@realtime-me/web-ui/cn";
+import { ChevronRight, LayoutGrid, List as ListIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
-import { ChevronRight, LayoutGrid, List as ListIcon } from "lucide-react";
-
-import { cn } from "../lib/utils";
-import { Button } from "./ui/button";
 
 export type Breadcrumb = Readonly<{ id: string; label: string }>;
 export type DriveViewMode = "list" | "grid";
@@ -17,9 +16,7 @@ function storedDriveViewMode(storageKey: string): DriveViewMode {
 }
 
 export function useDriveViewMode(storageKey: string) {
-  const [mode, setMode] = useState<DriveViewMode>(() =>
-    storedDriveViewMode(storageKey),
-  );
+  const [mode, setMode] = useState<DriveViewMode>(() => storedDriveViewMode(storageKey));
   const selectMode = useCallback(
     (nextMode: DriveViewMode) => {
       setMode(nextMode);
@@ -43,13 +40,7 @@ export function IconButton({
   children: ReactNode;
 }) {
   return (
-    <Button
-      aria-label={label}
-      title={label}
-      size="icon"
-      variant="ghost"
-      {...props}
-    >
+    <Button aria-label={label} title={label} size="icon" variant="ghost" {...props}>
       {children}
     </Button>
   );
@@ -69,9 +60,7 @@ export function Breadcrumbs({
     >
       {items.map((item, index) => (
         <span className="flex shrink-0 items-center gap-1" key={item.id}>
-          {index > 0 ? (
-            <ChevronRight className="size-3.5 opacity-45" aria-hidden="true" />
-          ) : null}
+          {index > 0 ? <ChevronRight className="size-3.5 opacity-45" aria-hidden="true" /> : null}
           <button
             type="button"
             className={cn(
@@ -96,11 +85,8 @@ export function DriveViewModeToggle({
   onChange: (mode: DriveViewMode) => void;
 }) {
   return (
-    <div
-      role="group"
-      aria-label="文件视图"
-      className="flex shrink-0 rounded-lg border bg-muted/30 p-1"
-    >
+    <fieldset className="m-0 flex min-w-0 shrink-0 rounded-lg border bg-muted/30 p-1">
+      <legend className="sr-only">文件视图</legend>
       <IconButton
         label="列表视图"
         aria-pressed={mode === "list"}
@@ -117,6 +103,6 @@ export function DriveViewModeToggle({
       >
         <LayoutGrid className="size-4" aria-hidden="true" />
       </IconButton>
-    </div>
+    </fieldset>
   );
 }

@@ -1,5 +1,6 @@
 import { create } from "@bufbuild/protobuf";
-import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { type Client, createClient, type Transport } from "@connectrpc/connect";
+import type { PlayableTrack, PlaybackEntry, Track } from "@realtime-me/library-contracts";
 import {
   DeleteTrackRequestSchema,
   EmptyTrackTrashRequestSchema,
@@ -13,18 +14,8 @@ import {
   RestoreTrackRequestSchema,
   SetTrackFavoriteRequestSchema,
 } from "@realtime-me/library-contracts";
-import type {
-  PlayableTrack,
-  PlaybackEntry,
-  Track,
-} from "@realtime-me/library-contracts";
 
-import {
-  normalizeBaseUrl,
-  privateTransport,
-  required,
-  resolveApiUrl,
-} from "./core";
+import { normalizeBaseUrl, privateTransport, required, resolveApiUrl } from "./core";
 
 export type TrackListOptions = Readonly<{
   query?: string;
@@ -50,18 +41,12 @@ export class MusicLibraryClient {
   private readonly baseUrl: string;
   private readonly client: Client<typeof MusicLibraryService>;
 
-  constructor(
-    baseUrl: string,
-    transport: Transport = privateTransport(baseUrl),
-  ) {
+  constructor(baseUrl: string, transport: Transport = privateTransport(baseUrl)) {
     this.baseUrl = normalizeBaseUrl(baseUrl);
     this.client = createClient(MusicLibraryService, transport);
   }
 
-  async trackPage(
-    options: TrackListOptions = {},
-    signal?: AbortSignal,
-  ): Promise<TrackListPage> {
+  async trackPage(options: TrackListOptions = {}, signal?: AbortSignal): Promise<TrackListPage> {
     const response = await this.client.listTracks(
       create(ListTracksRequestSchema, options),
       signal ? { signal } : undefined,
@@ -83,11 +68,7 @@ export class MusicLibraryClient {
 
   async importUpload(uploadUid: string): Promise<Track> {
     return required(
-      (
-        await this.client.importTrack(
-          create(ImportTrackRequestSchema, { uploadUid }),
-        )
-      ).track,
+      (await this.client.importTrack(create(ImportTrackRequestSchema, { uploadUid }))).track,
       "track",
     );
   }
@@ -104,15 +85,11 @@ export class MusicLibraryClient {
   }
 
   async trash(trackUid: string): Promise<void> {
-    await this.client.deleteTrack(
-      create(DeleteTrackRequestSchema, { trackUid }),
-    );
+    await this.client.deleteTrack(create(DeleteTrackRequestSchema, { trackUid }));
   }
 
   async restore(trackUid: string): Promise<void> {
-    await this.client.restoreTrack(
-      create(RestoreTrackRequestSchema, { trackUid }),
-    );
+    await this.client.restoreTrack(create(RestoreTrackRequestSchema, { trackUid }));
   }
 
   async purge(trackUid: string): Promise<void> {
@@ -124,15 +101,10 @@ export class MusicLibraryClient {
   }
 
   async recordPlayback(track: PlayableTrack): Promise<void> {
-    await this.client.recordPlayback(
-      create(RecordPlaybackRequestSchema, { track }),
-    );
+    await this.client.recordPlayback(create(RecordPlaybackRequestSchema, { track }));
   }
 
-  async historyPage(
-    pageToken = "",
-    signal?: AbortSignal,
-  ): Promise<PlaybackHistoryPage> {
+  async historyPage(pageToken = "", signal?: AbortSignal): Promise<PlaybackHistoryPage> {
     const response = await this.client.listPlaybackHistory(
       create(ListPlaybackHistoryRequestSchema, { pageSize: 50, pageToken }),
       signal ? { signal } : undefined,

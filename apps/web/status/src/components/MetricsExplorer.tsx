@@ -1,20 +1,48 @@
-import { AlertTriangle, Battery, Cpu, Footprints, HardDrive, Headphones, HeartPulse, LineChart as LineChartIcon, MemoryStick } from 'lucide-react';
-import { lazy, Suspense, useEffect, useState, type ReactElement } from 'react';
-import { create } from '@bufbuild/protobuf';
-import { timestampFromDate } from '@bufbuild/protobuf/wkt';
-import { GetMetricRangeRequestSchema, MetricSeries } from '@realtime-me/status-contracts';
-import type { GetMetricRangeRequest } from '@realtime-me/status-contracts';
-import type { Agent, DeviceState, InternalStatus, MobileState } from '@realtime-me/status-contracts';
-import type { Accessory } from '@realtime-me/status-contracts';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { agentIcon, agentName } from '@/components/AgentCard';
-import { EmptyCard } from '@/components/layout';
-import type { ChartPoint, ChartUnit } from '@/lib/format';
-import { CPU_USAGE, MEMORY_USAGE, hasDiskMetric, hasMetric } from '@/lib/metrics';
-import { deviceDisplayName, hostDevices } from '@/lib/status';
-import { authHeaders, metricsClient } from '@/lib/transport';
+import { create } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
+import type {
+  Accessory,
+  Agent,
+  DeviceState,
+  GetMetricRangeRequest,
+  InternalStatus,
+  MobileState,
+} from "@realtime-me/status-contracts";
+import { GetMetricRangeRequestSchema, MetricSeries } from "@realtime-me/status-contracts";
+import { Badge } from "@realtime-me/web-ui/badge";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@realtime-me/web-ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@realtime-me/web-ui/select";
+import {
+  AlertTriangle,
+  Battery,
+  Cpu,
+  Footprints,
+  HardDrive,
+  Headphones,
+  HeartPulse,
+  LineChart as LineChartIcon,
+  MemoryStick,
+} from "lucide-react";
+import { lazy, type ReactElement, Suspense, useEffect, useState } from "react";
+import { agentIcon, agentName } from "@/components/AgentCard";
+import { EmptyCard } from "@/components/layout";
+import type { ChartPoint, ChartUnit } from "@/lib/format";
+import { CPU_USAGE, hasDiskMetric, hasMetric, MEMORY_USAGE } from "@/lib/metrics";
+import { deviceDisplayName, hostDevices } from "@/lib/status";
+import { authHeaders, metricsClient } from "@/lib/transport";
 
 type ChartRange = {
   id: string;
@@ -37,13 +65,13 @@ type ChartDefinition = {
 };
 
 const CHART_RANGES: ChartRange[] = [
-  { id: '15m', label: '15m', durationMs: 15 * 60_000, stepSeconds: 15 },
-  { id: '1h', label: '1h', durationMs: 60 * 60_000, stepSeconds: 30 },
-  { id: '6h', label: '6h', durationMs: 6 * 60 * 60_000, stepSeconds: 120 },
-  { id: '24h', label: '24h', durationMs: 24 * 60 * 60_000, stepSeconds: 300 },
+  { id: "15m", label: "15m", durationMs: 15 * 60_000, stepSeconds: 15 },
+  { id: "1h", label: "1h", durationMs: 60 * 60_000, stepSeconds: 30 },
+  { id: "6h", label: "6h", durationMs: 6 * 60 * 60_000, stepSeconds: 120 },
+  { id: "24h", label: "24h", durationMs: 24 * 60 * 60_000, stepSeconds: 300 },
 ];
 
-const StatusChart = lazy(() => import('@/components/StatusChart'));
+const StatusChart = lazy(() => import("@/components/StatusChart"));
 
 export function MetricsExplorer({ status, token }: { status: InternalStatus; token: string }) {
   const [rangeId, setRangeId] = useState(CHART_RANGES[1].id);
@@ -54,32 +82,62 @@ export function MetricsExplorer({ status, token }: { status: InternalStatus; tok
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight"><LineChartIcon className="size-4" />Metrics</h2>
+        <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+          <LineChartIcon className="size-4" />
+          Metrics
+        </h2>
         <Select value={range.id} onValueChange={setRangeId}>
           <SelectTrigger size="sm" aria-label="Metric range">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {CHART_RANGES.map((item) => <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>)}
+            {CHART_RANGES.map((item) => (
+              <SelectItem key={item.id} value={item.id}>
+                {item.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        {charts.length === 0 ? <EmptyCard text="No chartable metrics" /> : charts.map((chart) => (
-          <TimeSeriesCard key={chart.id} chart={chart} range={range} token={token} />
-        ))}
+        {charts.length === 0 ? (
+          <EmptyCard text="No chartable metrics" />
+        ) : (
+          charts.map((chart) => (
+            <TimeSeriesCard key={chart.id} chart={chart} range={range} token={token} />
+          ))
+        )}
       </div>
     </div>
   );
 }
 
-function TimeSeriesCard({ chart, range, token }: { chart: ChartDefinition; range: ChartRange; token: string }) {
+function TimeSeriesCard({
+  chart,
+  range,
+  token,
+}: {
+  chart: ChartDefinition;
+  range: ChartRange;
+  token: string;
+}) {
   const { data, failed } = useMetricRange(token, chart, range);
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">{chart.icon}{chart.title}</CardTitle>
-        <CardAction>{failed ? <Badge variant="destructive"><AlertTriangle /></Badge> : <Badge variant="outline">{range.label}</Badge>}</CardAction>
+        <CardTitle className="flex items-center gap-2">
+          {chart.icon}
+          {chart.title}
+        </CardTitle>
+        <CardAction>
+          {failed ? (
+            <Badge variant="destructive">
+              <AlertTriangle />
+            </Badge>
+          ) : (
+            <Badge variant="outline">{range.label}</Badge>
+          )}
+        </CardAction>
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
@@ -96,7 +154,11 @@ function TimeSeriesCard({ chart, range, token }: { chart: ChartDefinition; range
 
 // The window is recomputed on every refresh, so a chart advances with the
 // dashboard's own poll instead of freezing at the moment it first rendered.
-function useMetricRange(token: string, chart: ChartDefinition, range: ChartRange): { data: ChartPoint[]; failed: boolean } {
+function useMetricRange(
+  token: string,
+  chart: ChartDefinition,
+  range: ChartRange,
+): { data: ChartPoint[]; failed: boolean } {
   const [data, setData] = useState<ChartPoint[]>([]);
   const [failed, setFailed] = useState(false);
   const { series, deviceUid, agentKind, accessory } = chart;
@@ -112,7 +174,9 @@ function useMetricRange(token: string, chart: ChartDefinition, range: ChartRange
           { headers: authHeaders(token), signal: controller.signal },
         );
         if (!active) return;
-        setData(response.points.map(chartPoint).filter((point): point is ChartPoint => point !== null));
+        setData(
+          response.points.map(chartPoint).filter((point): point is ChartPoint => point !== null),
+        );
         setFailed(false);
       } catch {
         if (active && !controller.signal.aborted) setFailed(true);
@@ -126,7 +190,7 @@ function useMetricRange(token: string, chart: ChartDefinition, range: ChartRange
       controller.abort();
       window.clearInterval(timer);
     };
-  }, [series, deviceUid, agentKind, accessory?.kind, accessory?.displayName, range.durationMs, range.stepSeconds, token]);
+  }, [series, deviceUid, agentKind, accessory, range, token]);
 
   return { data, failed };
 }
@@ -134,16 +198,18 @@ function useMetricRange(token: string, chart: ChartDefinition, range: ChartRange
 const POLL_METRICS_MS = 30_000;
 
 function metricRangeRequest(
-  chart: Pick<ChartDefinition, 'series' | 'deviceUid' | 'agentKind' | 'accessory'>,
+  chart: Pick<ChartDefinition, "series" | "deviceUid" | "agentKind" | "accessory">,
   range: ChartRange,
 ): GetMetricRangeRequest {
   const end = new Date();
   const start = new Date(end.getTime() - range.durationMs);
   return create(GetMetricRangeRequestSchema, {
     series: chart.series,
-    deviceUid: chart.deviceUid ?? '',
-    agentKind: chart.agentKind ?? '',
-    accessory: chart.accessory ? { kind: chart.accessory.kind, displayName: chart.accessory.displayName } : undefined,
+    deviceUid: chart.deviceUid ?? "",
+    agentKind: chart.agentKind ?? "",
+    accessory: chart.accessory
+      ? { kind: chart.accessory.kind, displayName: chart.accessory.displayName }
+      : undefined,
     startTime: timestampFromDate(start),
     endTime: timestampFromDate(end),
     step: { seconds: BigInt(range.stepSeconds), nanos: 0 },
@@ -170,16 +236,37 @@ function chartDefinitions(status: InternalStatus): ChartDefinition[] {
 }
 
 function hostChartDefinitions(device: DeviceState): ChartDefinition[] {
-  const identity = deviceDisplayName(device, 'Device');
+  const identity = deviceDisplayName(device, "Device");
   const definitions: ChartDefinition[] = [];
   if (hasMetric(device, CPU_USAGE)) {
-    definitions.push({ id: `${device.deviceUid}:cpu`, title: `${identity} CPU`, unit: 'percent', icon: <Cpu className="size-4" />, series: MetricSeries.HOST_CPU_UTILIZATION, deviceUid: device.deviceUid });
+    definitions.push({
+      id: `${device.deviceUid}:cpu`,
+      title: `${identity} CPU`,
+      unit: "percent",
+      icon: <Cpu className="size-4" />,
+      series: MetricSeries.HOST_CPU_UTILIZATION,
+      deviceUid: device.deviceUid,
+    });
   }
   if (hasMetric(device, MEMORY_USAGE)) {
-    definitions.push({ id: `${device.deviceUid}:mem`, title: `${identity} memory`, unit: 'bytes', icon: <MemoryStick className="size-4" />, series: MetricSeries.HOST_MEMORY_USAGE, deviceUid: device.deviceUid });
+    definitions.push({
+      id: `${device.deviceUid}:mem`,
+      title: `${identity} memory`,
+      unit: "bytes",
+      icon: <MemoryStick className="size-4" />,
+      series: MetricSeries.HOST_MEMORY_USAGE,
+      deviceUid: device.deviceUid,
+    });
   }
   if (hasDiskMetric(device)) {
-    definitions.push({ id: `${device.deviceUid}:disk`, title: `${identity} disk`, unit: 'percent', icon: <HardDrive className="size-4" />, series: MetricSeries.HOST_FILESYSTEM_UTILIZATION, deviceUid: device.deviceUid });
+    definitions.push({
+      id: `${device.deviceUid}:disk`,
+      title: `${identity} disk`,
+      unit: "percent",
+      icon: <HardDrive className="size-4" />,
+      series: MetricSeries.HOST_FILESYSTEM_UTILIZATION,
+      deviceUid: device.deviceUid,
+    });
   }
   definitions.push(...accessoryBatteryCharts(device.deviceUid, identity, device.accessories));
   return definitions;
@@ -187,34 +274,68 @@ function hostChartDefinitions(device: DeviceState): ChartDefinition[] {
 
 function mobileChartDefinitions(mobile: MobileState): ChartDefinition[] {
   const definitions: ChartDefinition[] = [];
-  const phoneName = mobile.displayName || 'Phone';
+  const phoneName = mobile.displayName || "Phone";
   if (mobile.phone?.batteryPercent !== undefined) {
-    definitions.push({ id: `${mobile.deviceUid}:phone-battery`, title: `${phoneName} battery`, unit: 'percent', icon: <Battery className="size-4" />, series: MetricSeries.PHONE_BATTERY_LEVEL, deviceUid: mobile.deviceUid });
+    definitions.push({
+      id: `${mobile.deviceUid}:phone-battery`,
+      title: `${phoneName} battery`,
+      unit: "percent",
+      icon: <Battery className="size-4" />,
+      series: MetricSeries.PHONE_BATTERY_LEVEL,
+      deviceUid: mobile.deviceUid,
+    });
   }
-  definitions.push(...accessoryBatteryCharts(mobile.deviceUid, phoneName, mobile.phone?.accessories));
+  definitions.push(
+    ...accessoryBatteryCharts(mobile.deviceUid, phoneName, mobile.phone?.accessories),
+  );
 
   const watch = mobile.watch;
   if (!watch) return definitions;
-  const watchName = watch.deviceInfo?.displayName || 'Watch';
+  const watchName = watch.deviceInfo?.displayName || "Watch";
   if (watch.heartRate !== undefined) {
-    definitions.push({ id: `${mobile.deviceUid}:watch-hr`, title: `${watchName} heart rate`, unit: 'rate', icon: <HeartPulse className="size-4" />, series: MetricSeries.WATCH_HEART_RATE, deviceUid: mobile.deviceUid });
+    definitions.push({
+      id: `${mobile.deviceUid}:watch-hr`,
+      title: `${watchName} heart rate`,
+      unit: "rate",
+      icon: <HeartPulse className="size-4" />,
+      series: MetricSeries.WATCH_HEART_RATE,
+      deviceUid: mobile.deviceUid,
+    });
   }
   if (watch.activityTotals !== undefined) {
-    definitions.push({ id: `${mobile.deviceUid}:watch-steps`, title: `${watchName} steps`, unit: 'count', icon: <Footprints className="size-4" />, series: MetricSeries.WATCH_STEPS, deviceUid: mobile.deviceUid });
+    definitions.push({
+      id: `${mobile.deviceUid}:watch-steps`,
+      title: `${watchName} steps`,
+      unit: "count",
+      icon: <Footprints className="size-4" />,
+      series: MetricSeries.WATCH_STEPS,
+      deviceUid: mobile.deviceUid,
+    });
   }
   if (watch.watchState !== undefined) {
-    definitions.push({ id: `${mobile.deviceUid}:watch-battery`, title: `${watchName} battery`, unit: 'percent', icon: <Battery className="size-4" />, series: MetricSeries.WATCH_BATTERY_LEVEL, deviceUid: mobile.deviceUid });
+    definitions.push({
+      id: `${mobile.deviceUid}:watch-battery`,
+      title: `${watchName} battery`,
+      unit: "percent",
+      icon: <Battery className="size-4" />,
+      series: MetricSeries.WATCH_BATTERY_LEVEL,
+      deviceUid: mobile.deviceUid,
+    });
   }
   return definitions;
 }
 
-function accessoryBatteryCharts(deviceUid: string, deviceName: string, accessories: Accessory[] | undefined): ChartDefinition[] {
+function accessoryBatteryCharts(
+  deviceUid: string,
+  deviceName: string,
+  accessories: Accessory[] | undefined,
+): ChartDefinition[] {
   return (accessories ?? [])
     .filter((accessory) => accessory.displayName && accessory.batteryPercent !== undefined)
     .map((accessory) => ({
       id: `${deviceUid}:${accessory.kind}:${accessory.displayName}:battery`,
       title: `${deviceName} ${accessory.displayName}`,
-      unit: 'percent' as ChartUnit,
+      unit: "percent" as ChartUnit,
       icon: <Headphones className="size-4" />,
       series: MetricSeries.ACCESSORY_BATTERY_LEVEL,
       deviceUid,
@@ -226,7 +347,7 @@ function agentBudgetChart(agent: Agent): ChartDefinition {
   return {
     id: `${agent.uid}:budget`,
     title: `${agentName(agent.kind)} budget`,
-    unit: 'percent',
+    unit: "percent",
     icon: agentIcon(agent.kind),
     series: MetricSeries.AGENT_BUDGET_REMAINING,
     agentKind: agent.kind,

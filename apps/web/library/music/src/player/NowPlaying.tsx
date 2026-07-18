@@ -1,9 +1,6 @@
-import type { PlaybackDescriptor, PlayableTrack } from "@realtime-me/library-contracts";
-import {
-  Badge,
-  LOCAL_PROVIDER_ID,
-  type MusicClient,
-} from "@realtime-me/library-web";
+import type { PlayableTrack, PlaybackDescriptor } from "@realtime-me/library-contracts";
+import { LOCAL_PROVIDER_ID, type MusicClient } from "@realtime-me/library-web";
+import { Badge } from "@realtime-me/web-ui";
 import { useProviderLabel } from "../provider-catalog";
 
 export function NowPlaying({
@@ -20,18 +17,13 @@ export function NowPlaying({
   const providerLabel = useProviderLabel();
   const artwork = client.providers.artworkUrl(track);
   const sourceLabel =
-    descriptor?.providerId === LOCAL_PROVIDER_ID &&
-    track.providerId !== LOCAL_PROVIDER_ID
+    descriptor?.providerId === LOCAL_PROVIDER_ID && track.providerId !== LOCAL_PROVIDER_ID
       ? "本地缓存"
       : providerLabel(track.providerId);
   return (
     <div className="flex min-w-0 items-center gap-3">
       {artwork ? (
-        <img
-          src={artwork}
-          alt=""
-          className="size-10 shrink-0 rounded-md object-cover sm:size-11"
-        />
+        <img src={artwork} alt="" className="size-10 shrink-0 rounded-md object-cover sm:size-11" />
       ) : (
         <div className="size-10 shrink-0 rounded-md bg-muted sm:size-11" />
       )}
@@ -44,9 +36,7 @@ export function NowPlaying({
         </div>
         <p
           className={
-            error
-              ? "truncate text-xs text-destructive"
-              : "truncate text-xs text-muted-foreground"
+            error ? "truncate text-xs text-destructive" : "truncate text-xs text-muted-foreground"
           }
         >
           {error || track.artists.join("、") || "未知艺人"}

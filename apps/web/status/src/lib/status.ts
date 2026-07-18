@@ -1,5 +1,11 @@
-import type { Agent, DeviceState, InternalStatus, MobileState, Subagent } from '@realtime-me/status-contracts';
-import { DeviceKind, DeviceRole, NetworkState, OnlineState } from '@realtime-me/status-contracts';
+import type {
+  Agent,
+  DeviceState,
+  InternalStatus,
+  MobileState,
+  Subagent,
+} from "@realtime-me/status-contracts";
+import { DeviceKind, DeviceRole, NetworkState, OnlineState } from "@realtime-me/status-contracts";
 
 export function isVirtualMachine(device: DeviceState): boolean {
   return device.kind === DeviceKind.VIRTUAL_MACHINE || device.role === DeviceRole.VM;
@@ -7,7 +13,9 @@ export function isVirtualMachine(device: DeviceState): boolean {
 
 // hostDevices is the server plus every reporting device, skipping an absent server.
 export function hostDevices(status: InternalStatus): DeviceState[] {
-  return [status.server, ...status.devices].filter((device): device is DeviceState => device !== undefined);
+  return [status.server, ...status.devices].filter(
+    (device): device is DeviceState => device !== undefined,
+  );
 }
 
 // deviceCounts reports how many devices are online against the total, counting the
@@ -33,15 +41,20 @@ export function deviceCounts(status: InternalStatus): { online: number; total: n
 }
 
 export function isPlayingOnSwitch(mobile: MobileState): boolean {
-  return mobile.switchPresence?.state === OnlineState.ONLINE && Boolean(mobile.switchPresence.gameName);
+  return (
+    mobile.switchPresence?.state === OnlineState.ONLINE && Boolean(mobile.switchPresence.gameName)
+  );
 }
 
-export function deviceDisplayName(device: DeviceState | null | undefined, fallback: string): string {
+export function deviceDisplayName(
+  device: DeviceState | null | undefined,
+  fallback: string,
+): string {
   return humanLabel(device?.displayName) ?? fallback;
 }
 
 export function agentDeviceLabel(agent: Agent): string {
-  return humanLabel(agent.displayName) ?? '';
+  return humanLabel(agent.displayName) ?? "";
 }
 
 // The sub-agents an agent has out, grouped by the model each runs, busiest first.
@@ -49,7 +62,8 @@ export function agentDeviceLabel(agent: Agent): string {
 // grouped by model rather than counted as heads.
 function subagentModelCounts(subagents: Subagent[]): Array<{ model: string; count: number }> {
   const counts = new Map<string, number>();
-  for (const subagent of subagents) counts.set(subagent.model, (counts.get(subagent.model) ?? 0) + 1);
+  for (const subagent of subagents)
+    counts.set(subagent.model, (counts.get(subagent.model) ?? 0) + 1);
   return [...counts]
     .map(([model, count]) => ({ model, count }))
     .sort((left, right) => right.count - left.count || left.model.localeCompare(right.model));
@@ -59,7 +73,7 @@ function subagentModelCounts(subagents: Subagent[]): Array<{ model: string; coun
 // the headline: a sub-agent usually runs the model that spawned it, and naming
 // it on the badge only repeats the agent's own model back to the reader.
 export function subagentCountLabel(count: number): string {
-  return count === 1 ? '1 sub-agent' : `${count} sub-agents`;
+  return count === 1 ? "1 sub-agent" : `${count} sub-agents`;
 }
 
 // The models behind that count, for the badge's tooltip. Empty when the exporter
@@ -68,7 +82,7 @@ export function subagentModelSummary(subagents: Subagent[]): string {
   return subagentModelCounts(subagents)
     .filter(({ model }) => model)
     .map(({ model, count }) => (count === 1 ? model : `${count} × ${model}`))
-    .join(' · ');
+    .join(" · ");
 }
 
 // humanLabel keeps only a name a person would recognise. A LAN address is not
@@ -79,35 +93,41 @@ function humanLabel(value: string | undefined): string | undefined {
 }
 
 export function onlineStateLabel(state: OnlineState | undefined): string {
-  if (state === OnlineState.ONLINE) return 'online';
-  if (state === OnlineState.OFFLINE) return 'offline';
-  return 'unknown';
+  if (state === OnlineState.ONLINE) return "online";
+  if (state === OnlineState.OFFLINE) return "offline";
+  return "unknown";
 }
 
 export function networkLabel(network: NetworkState): string {
   switch (network) {
     case NetworkState.WIFI:
-      return 'Wi-Fi';
+      return "Wi-Fi";
     case NetworkState.CELLULAR:
-      return 'Cellular';
+      return "Cellular";
     case NetworkState.VPN:
-      return 'VPN';
+      return "VPN";
     case NetworkState.ONLINE:
-      return 'Online';
+      return "Online";
     case NetworkState.OFFLINE:
-      return 'Offline';
+      return "Offline";
     default:
-      return '—';
+      return "—";
   }
 }
 
 function isPrivateIPv4(value: string): boolean {
-  const octets = value.split('.').map((part) => Number(part));
-  if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
+  const octets = value.split(".").map((part) => Number(part));
+  if (
+    octets.length !== 4 ||
+    octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)
+  )
+    return false;
   const [first, second] = octets;
-  return first === 10 ||
+  return (
+    first === 10 ||
     first === 127 ||
     (first === 172 && second >= 16 && second <= 31) ||
     (first === 192 && second === 168) ||
-    (first === 169 && second === 254);
+    (first === 169 && second === 254)
+  );
 }

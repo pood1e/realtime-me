@@ -1,6 +1,5 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { ListPlus } from "lucide-react";
 import type { ProviderDescriptor } from "@realtime-me/library-contracts";
+import type { ProviderId } from "@realtime-me/library-web";
 import {
   Button,
   DialogContent,
@@ -15,8 +14,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  type ProviderId,
-} from "@realtime-me/library-web";
+} from "@realtime-me/web-ui";
+import { ListPlus } from "lucide-react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useProviderLabel } from "./provider-catalog";
 
 export function PlaylistImportDialog({
@@ -79,10 +79,7 @@ export function PlaylistImportDialog({
             />
           </div>
           <DialogFooter>
-            <Button
-              type="submit"
-              disabled={importing || !providerId || !source.trim()}
-            >
+            <Button type="submit" disabled={importing || !providerId || !source.trim()}>
               {importing ? "正在导入" : "导入"}
             </Button>
           </DialogFooter>

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-const QUERY = '(prefers-reduced-motion: reduce)';
+const QUERY = "(prefers-reduced-motion: reduce)";
 
 // usePrefersReducedMotion tracks the viewer's motion preference. CSS can pause a
 // keyframe animation but not a GIF, so a component that animates through an
@@ -11,8 +11,8 @@ export function usePrefersReducedMotion(): boolean {
   useEffect(() => {
     const media = window.matchMedia(QUERY);
     const onChange = () => setReduced(media.matches);
-    media.addEventListener('change', onChange);
-    return () => media.removeEventListener('change', onChange);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
   }, []);
 
   return reduced;

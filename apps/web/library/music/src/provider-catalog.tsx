@@ -1,17 +1,11 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  type PropsWithChildren,
-} from "react";
 import type { ProviderDescriptor } from "@realtime-me/library-contracts";
 import {
   LOCAL_PROVIDER_ID,
-  MusicClient,
+  type MusicClient,
   type ProviderId,
   useQuery,
 } from "@realtime-me/library-web";
+import { createContext, type PropsWithChildren, useCallback, useContext, useMemo } from "react";
 
 const ProviderNames = createContext<ReadonlyMap<ProviderId, string>>(new Map());
 
@@ -33,16 +27,13 @@ export function MusicProviderCatalog({
       ),
     [providers.data],
   );
-  return (
-    <ProviderNames.Provider value={names}>{children}</ProviderNames.Provider>
-  );
+  return <ProviderNames.Provider value={names}>{children}</ProviderNames.Provider>;
 }
 
 export function useProviderLabel() {
   const names = useContext(ProviderNames);
   return useCallback(
-    (providerId: ProviderId) =>
-      names.get(providerId) ?? fallbackProviderName(providerId),
+    (providerId: ProviderId) => names.get(providerId) ?? fallbackProviderName(providerId),
     [names],
   );
 }

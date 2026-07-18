@@ -8,10 +8,7 @@ type ProviderPlayerFactory = (
 
 const providerPlayerFactories = new Map<string, ProviderPlayerFactory>();
 
-export function registerProviderPlayer(
-  sdkId: string,
-  factory: ProviderPlayerFactory,
-): void {
+export function registerProviderPlayer(sdkId: string, factory: ProviderPlayerFactory): void {
   if (!sdkId.trim()) throw new Error("Provider player SDK ID is required.");
   providerPlayerFactories.set(sdkId, factory);
 }

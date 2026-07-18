@@ -1,5 +1,5 @@
-import { Code, ConnectError } from '@connectrpc/connect';
-import { useEffect, useRef, useState } from 'react';
+import { Code, ConnectError } from "@connectrpc/connect";
+import { useEffect, useRef, useState } from "react";
 
 export type Poll<T> = {
   data: T | null;
@@ -61,5 +61,5 @@ export function usePolling<T>(
 
 function isAbort(cause: unknown): boolean {
   if (cause instanceof ConnectError) return cause.code === Code.Canceled;
-  return cause instanceof DOMException && cause.name === 'AbortError';
+  return cause instanceof DOMException && cause.name === "AbortError";
 }

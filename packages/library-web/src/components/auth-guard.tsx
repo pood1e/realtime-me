@@ -1,16 +1,15 @@
+import { Button } from "@realtime-me/web-ui/button";
+import { RefreshCw, ShieldAlert } from "lucide-react";
 import type { PropsWithChildren } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { RefreshCw, ShieldAlert } from "lucide-react";
-
 import {
-  SessionClient,
   authenticationUrl,
   hasRecentSessionValidation,
   isUnauthenticatedError,
   markSessionValidated,
+  SessionClient,
 } from "../api";
 import { EmptyState, LoadingIndicator } from "./feedback";
-import { Button } from "./ui/button";
 
 type State = "checking" | "ready" | "failed";
 const feedbackDelayMs = 600;
@@ -67,9 +66,7 @@ export function AuthGuard({
           return;
         }
         if (backgroundValidation) return;
-        setMessage(
-          error instanceof Error ? error.message : "暂时无法连接服务。",
-        );
+        setMessage(error instanceof Error ? error.message : "暂时无法连接服务。");
         setState("failed");
       });
     return () => {

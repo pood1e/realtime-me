@@ -1,6 +1,6 @@
-import type { Agent, Subagent } from '@realtime-me/status-contracts';
-import { AgentClip, agentName } from '@/components/AgentCard';
-import { agentDeviceLabel } from '@/lib/status';
+import type { Agent, Subagent } from "@realtime-me/status-contracts";
+import { AgentClip, agentName } from "@/components/AgentCard";
+import { agentDeviceLabel } from "@/lib/status";
 
 // Working agents live here rather than on the card of the machine they run on: a
 // device can host several at once, and stacking them beside its name crowds the
@@ -25,7 +25,13 @@ export function WorkingNow({ agents }: { agents: Agent[] }) {
 function WorkingAgent({ agent }: { agent: Agent }) {
   return (
     <div className="flex items-end gap-1">
-      <AgentClip kind={agent.kind} seed={agent.uid} className="working-agent-image" alt={agentTitle(agent)} title={agentTitle(agent)} />
+      <AgentClip
+        kind={agent.kind}
+        seed={agent.uid}
+        className="working-agent-image"
+        alt={agentTitle(agent)}
+        title={agentTitle(agent)}
+      />
       {agent.subagents.map((subagent, index) => (
         <AgentClip
           key={index}
@@ -41,9 +47,11 @@ function WorkingAgent({ agent }: { agent: Agent }) {
 }
 
 function agentTitle(agent: Agent): string {
-  return [`${agentName(agent.kind)} working`, agent.model, agentDeviceLabel(agent)].filter(Boolean).join(' · ');
+  return [`${agentName(agent.kind)} working`, agent.model, agentDeviceLabel(agent)]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 function subagentTitle(agent: Agent, subagent: Subagent): string {
-  return [`${agentName(agent.kind)} sub-agent`, subagent.model].filter(Boolean).join(' · ');
+  return [`${agentName(agent.kind)} sub-agent`, subagent.model].filter(Boolean).join(" · ");
 }

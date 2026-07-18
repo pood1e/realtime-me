@@ -1,16 +1,15 @@
-import { BookOpen, MoreHorizontal, Trash2 } from "lucide-react";
-import { BookFormat, ProcessingStatus } from "@realtime-me/library-contracts";
 import type { Book } from "@realtime-me/library-contracts";
+import { BookFormat, ProcessingStatus } from "@realtime-me/library-contracts";
+import { type BooksClient, formatBytes } from "@realtime-me/library-web";
 import {
   Badge,
-  BooksClient,
   Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  formatBytes,
-} from "@realtime-me/library-web";
+} from "@realtime-me/web-ui";
+import { BookOpen, MoreHorizontal, Trash2 } from "lucide-react";
 
 export function BookCard({
   book,

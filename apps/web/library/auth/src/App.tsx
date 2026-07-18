@@ -1,24 +1,17 @@
+import { isUnauthenticatedError, SessionClient } from "@realtime-me/library-web";
+import { Button, Input } from "@realtime-me/web-ui";
+import { KeyRound, LoaderCircle, LockKeyhole, ShieldCheck } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { KeyRound, LoaderCircle, LockKeyhole, ShieldCheck } from "lucide-react";
-import {
-  Button,
-  Input,
-  SessionClient,
-  isUnauthenticatedError,
-} from "@realtime-me/library-web";
 
 import { API_BASE, DEFAULT_RETURN_URL, PRIVATE_APP_ORIGINS } from "./config";
 
 function requestedReturnUrl(): string {
   const candidate =
-    new URLSearchParams(window.location.search).get("return_to") ||
-    DEFAULT_RETURN_URL;
+    new URLSearchParams(window.location.search).get("return_to") || DEFAULT_RETURN_URL;
   try {
     const parsed = new URL(candidate);
-    return PRIVATE_APP_ORIGINS.has(parsed.origin)
-      ? parsed.toString()
-      : DEFAULT_RETURN_URL;
+    return PRIVATE_APP_ORIGINS.has(parsed.origin) ? parsed.toString() : DEFAULT_RETURN_URL;
   } catch {
     return DEFAULT_RETURN_URL;
   }
@@ -39,11 +32,7 @@ export function App() {
       .then(() => window.location.replace(returnUrl))
       .catch((sessionError: unknown) => {
         if (!controller.signal.aborted && !isUnauthenticatedError(sessionError))
-          setError(
-            sessionError instanceof Error
-              ? sessionError.message
-              : "服务暂时不可用。",
-          );
+          setError(sessionError instanceof Error ? sessionError.message : "服务暂时不可用。");
         setChecking(false);
       });
     return () => controller.abort();
@@ -58,9 +47,7 @@ export function App() {
       const response = await client.login(password, returnUrl);
       window.location.replace(response.returnUrl || returnUrl);
     } catch (loginError) {
-      setError(
-        loginError instanceof Error ? loginError.message : "密码不正确。",
-      );
+      setError(loginError instanceof Error ? loginError.message : "密码不正确。");
       setSubmitting(false);
     }
   };
@@ -85,10 +72,7 @@ export function App() {
             正在检查会话
           </div>
         ) : (
-          <form
-            className="mt-8 space-y-4"
-            onSubmit={(event) => void login(event)}
-          >
+          <form className="mt-8 space-y-4" onSubmit={(event) => void login(event)}>
             <label className="block text-sm font-medium" htmlFor="password">
               访问密码
             </label>
@@ -109,11 +93,7 @@ export function App() {
                 {error}
               </p>
             ) : null}
-            <Button
-              type="submit"
-              className="h-11 w-full"
-              disabled={!password || submitting}
-            >
+            <Button type="submit" className="h-11 w-full" disabled={!password || submitting}>
               {submitting ? (
                 <LoaderCircle className="size-4 animate-spin" />
               ) : (

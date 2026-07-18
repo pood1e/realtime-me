@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" fill="none">
+  <title>Codex sparks animation</title>
   <g stroke-linecap="round" stroke-linejoin="round">
     <path d="M55 52h24v24H55z" stroke="#14B8A6" stroke-width="4">
       <animateTransform attributeName="transform" type="rotate" values="0 67 64;360 67 64" dur="4s" repeatCount="indefinite"/>

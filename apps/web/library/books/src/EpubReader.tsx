@@ -1,28 +1,18 @@
 import { create } from "@bufbuild/protobuf";
-import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import ePub from "epubjs";
-import type { Rendition } from "epubjs";
-import { ReadingProgressSchema } from "@realtime-me/library-contracts";
 import type { Book } from "@realtime-me/library-contracts";
-import {
-  BooksClient,
-  Button,
-  InlineError,
-  LoadingIndicator,
-} from "@realtime-me/library-web";
+import { ReadingProgressSchema } from "@realtime-me/library-contracts";
+import { type BooksClient, InlineError, LoadingIndicator } from "@realtime-me/library-web";
+import { Button } from "@realtime-me/web-ui";
+import type { Rendition } from "epubjs";
+import ePub from "epubjs";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 type EpubLocation = Readonly<{
   start: Readonly<{ cfi: string; percentage?: number }>;
 }>;
 
-export function EpubReader({
-  book,
-  client,
-}: {
-  book: Book;
-  client: BooksClient;
-}) {
+export function EpubReader({ book, client }: { book: Book; client: BooksClient }) {
   const host = useRef<HTMLDivElement>(null);
   const rendition = useRef<Rendition | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,9 +34,7 @@ export function EpubReader({
         rendition.current = next;
         const progress = await client.progress(book.uid).catch(() => undefined);
         await next.display(
-          progress?.location.case === "epub"
-            ? progress.location.value.cfi
-            : undefined,
+          progress?.location.case === "epub" ? progress.location.value.cfi : undefined,
         );
         next.on("relocated", (location: EpubLocation) => {
           void saveLocation(client, book.uid, location);
@@ -69,10 +57,7 @@ export function EpubReader({
     <div className="space-y-3">
       {loading ? <LoadingIndicator label="正在打开 EPUB" /> : null}
       {error ? <InlineError message={error} /> : null}
-      <div
-        ref={host}
-        className="overflow-hidden rounded-lg bg-white text-black"
-      />
+      <div ref={host} className="overflow-hidden rounded-lg bg-white text-black" />
       <div className="flex justify-center gap-3">
         <Button variant="outline" onClick={() => rendition.current?.prev()}>
           <ChevronLeft />

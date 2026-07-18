@@ -1,11 +1,6 @@
 import type { PlayableTrack } from "@realtime-me/library-contracts";
 
-export const PLAYBACK_MODES = [
-  "sequential",
-  "repeat-all",
-  "repeat-one",
-  "shuffle",
-] as const;
+export const PLAYBACK_MODES = ["sequential", "repeat-all", "repeat-one", "shuffle"] as const;
 
 export type PlaybackMode = (typeof PLAYBACK_MODES)[number];
 

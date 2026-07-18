@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import type { Lyric, PlayableTrack } from "@realtime-me/library-contracts";
-import { AppDialog, LoadingIndicator, MusicClient } from "@realtime-me/library-web";
+import { AppDialog, LoadingIndicator, type MusicClient } from "@realtime-me/library-web";
+import { useEffect, useState } from "react";
 
 export function LyricsDialog({
   track,

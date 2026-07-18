@@ -1,31 +1,30 @@
-import { useDeferredValue, useMemo, useState } from "react";
-import { Folder, FolderPlus, Search, Trash2 } from "lucide-react";
 import type { DriveItem } from "@realtime-me/library-contracts";
 import {
   Breadcrumbs,
-  Button,
   DriveClient,
   DriveItemView,
   DriveViewModeToggle,
+  driveItemIsDirectory,
+  driveItemName,
+  driveItemUid,
   EmptyState,
-  InlineError,
-  Input,
   InfiniteScrollSentinel,
+  InlineError,
   LoadingIndicator,
   PrivateAppShell,
   UploadButton,
   UploadClient,
-  driveItemIsDirectory,
-  driveItemName,
-  driveItemUid,
-  useDriveViewMode,
   useCursorQuery,
   useDialog,
+  useDriveViewMode,
   useToast,
 } from "@realtime-me/library-web";
-import { DriveDialog, type DriveDialogState } from "./drive-dialogs";
-import { DriveItemMenu } from "./DriveItemMenu";
+import { Button, Input } from "@realtime-me/web-ui";
+import { Folder, FolderPlus, Search, Trash2 } from "lucide-react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { API_BASE, APP_LINKS } from "./config";
+import { DriveItemMenu } from "./DriveItemMenu";
+import { DriveDialog, type DriveDialogState } from "./drive-dialogs";
 
 type View = "files" | "trash";
 type Trail = Readonly<{ id: string; label: string }>;
@@ -47,8 +46,7 @@ export function DrivePage() {
     queryKey: ["drive-items", view, parentUid, deferredQuery],
     loadPage: async (pageToken, signal) => {
       if (view === "trash") return client.listTrashPage(pageToken, signal);
-      if (deferredQuery)
-        return client.searchPage(deferredQuery, pageToken, signal);
+      if (deferredQuery) return client.searchPage(deferredQuery, pageToken, signal);
       return client.listPage(parentUid, pageToken, signal);
     },
   });
@@ -72,10 +70,7 @@ export function DrivePage() {
 
   const open = (item: DriveItem) => {
     if (driveItemIsDirectory(item)) {
-      setTrail((current) => [
-        ...current,
-        { id: driveItemUid(item), label: driveItemName(item) },
-      ]);
+      setTrail((current) => [...current, { id: driveItemUid(item), label: driveItemName(item) }]);
       setQuery("");
     } else setDialog({ kind: "preview", item });
   };
@@ -193,10 +188,7 @@ export function DrivePage() {
             回收站
           </Button>
           {view === "files" ? (
-            <Button
-              variant="outline"
-              onClick={() => setDialog({ kind: "folder" })}
-            >
+            <Button variant="outline" onClick={() => setDialog({ kind: "folder" })}>
               <FolderPlus />
               新建文件夹
             </Button>
@@ -222,20 +214,14 @@ export function DrivePage() {
             items={trail}
             onNavigate={(id) =>
               setTrail((current) =>
-                current.slice(
-                  0,
-                  current.findIndex((part) => part.id === id) + 1,
-                ),
+                current.slice(0, current.findIndex((part) => part.id === id) + 1),
               )
             }
           />
         </div>
       ) : null}
       {catalog.error ? (
-        <InlineError
-          message={message(catalog.error)}
-          onRetry={() => void load()}
-        />
+        <InlineError message={message(catalog.error)} onRetry={() => void load()} />
       ) : catalog.isPending ? (
         <LoadingIndicator label="正在读取文件" />
       ) : (
@@ -248,13 +234,7 @@ export function DrivePage() {
             empty={
               <EmptyState
                 icon={<Folder className="size-6" />}
-                title={
-                  view === "trash"
-                    ? "回收站为空"
-                    : query
-                      ? "没有匹配文件"
-                      : "这里还没有文件"
-                }
+                title={view === "trash" ? "回收站为空" : query ? "没有匹配文件" : "这里还没有文件"}
               />
             }
           />

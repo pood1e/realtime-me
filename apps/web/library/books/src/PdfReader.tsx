@@ -1,27 +1,17 @@
 import { create } from "@bufbuild/protobuf";
-import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
-import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
-import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-import { ReadingProgressSchema } from "@realtime-me/library-contracts";
 import type { Book } from "@realtime-me/library-contracts";
-import {
-  BooksClient,
-  Button,
-  InlineError,
-  LoadingIndicator,
-} from "@realtime-me/library-web";
+import { ReadingProgressSchema } from "@realtime-me/library-contracts";
+import { type BooksClient, InlineError, LoadingIndicator } from "@realtime-me/library-web";
+import { Button } from "@realtime-me/web-ui";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
+import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
+import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { useEffect, useRef, useState } from "react";
 
 GlobalWorkerOptions.workerSrc = pdfWorker;
 
-export function PdfReader({
-  book,
-  client,
-}: {
-  book: Book;
-  client: BooksClient;
-}) {
+export function PdfReader({ book, client }: { book: Book; client: BooksClient }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const documentRef = useRef<PDFDocumentProxy | null>(null);
   const [page, setPage] = useState(1);
@@ -35,10 +25,7 @@ export function PdfReader({
       url: client.contentUrl(book),
       withCredentials: true,
     });
-    void Promise.all([
-      task.promise,
-      client.progress(book.uid).catch(() => undefined),
-    ])
+    void Promise.all([task.promise, client.progress(book.uid).catch(() => undefined)])
       .then(([pdf, progress]) => {
         if (!active) return;
         documentRef.current = pdf;

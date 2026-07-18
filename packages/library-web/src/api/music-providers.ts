@@ -1,5 +1,14 @@
 import { create } from "@bufbuild/protobuf";
-import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { type Client, createClient, type Transport } from "@connectrpc/connect";
+import type {
+  Lyric,
+  PlayableTrack,
+  PlaybackDescriptor,
+  ProviderConnection,
+  ProviderConnectionAttempt,
+  ProviderDescriptor,
+  ProviderSearchGroup,
+} from "@realtime-me/library-contracts";
 import {
   BeginProviderConnectionRequestSchema,
   DisconnectProviderRequestSchema,
@@ -14,22 +23,8 @@ import {
   ResolvePlaybackRequestSchema,
   SearchMusicRequestSchema,
 } from "@realtime-me/library-contracts";
-import type {
-  Lyric,
-  PlayableTrack,
-  PlaybackDescriptor,
-  ProviderConnection,
-  ProviderConnectionAttempt,
-  ProviderDescriptor,
-  ProviderSearchGroup,
-} from "@realtime-me/library-contracts";
 
-import {
-  normalizeBaseUrl,
-  privateTransport,
-  required,
-  resolveApiUrl,
-} from "./core";
+import { normalizeBaseUrl, privateTransport, required, resolveApiUrl } from "./core";
 
 export type ProviderId = string;
 
@@ -39,10 +34,7 @@ export class MusicProviderClient {
   private readonly baseUrl: string;
   private readonly client: Client<typeof MusicProviderService>;
 
-  constructor(
-    baseUrl: string,
-    transport: Transport = privateTransport(baseUrl),
-  ) {
+  constructor(baseUrl: string, transport: Transport = privateTransport(baseUrl)) {
     this.baseUrl = normalizeBaseUrl(baseUrl);
     this.client = createClient(MusicProviderService, transport);
   }
@@ -65,9 +57,7 @@ export class MusicProviderClient {
     ).connections;
   }
 
-  async beginConnection(
-    providerId: ProviderId,
-  ): Promise<ProviderConnectionAttempt> {
+  async beginConnection(providerId: ProviderId): Promise<ProviderConnectionAttempt> {
     return required(
       (
         await this.client.beginProviderConnection(
@@ -94,9 +84,7 @@ export class MusicProviderClient {
   }
 
   async disconnect(providerId: ProviderId): Promise<void> {
-    await this.client.disconnectProvider(
-      create(DisconnectProviderRequestSchema, { providerId }),
-    );
+    await this.client.disconnectProvider(create(DisconnectProviderRequestSchema, { providerId }));
   }
 
   async search(
@@ -107,9 +95,7 @@ export class MusicProviderClient {
     const response = await this.client.searchMusic(
       create(SearchMusicRequestSchema, {
         query,
-        cursors: cursors.map((cursor) =>
-          create(ProviderSearchCursorSchema, cursor),
-        ),
+        cursors: cursors.map((cursor) => create(ProviderSearchCursorSchema, cursor)),
       }),
       signal ? { signal } : undefined,
     );
@@ -159,9 +145,7 @@ export class MusicProviderClient {
   }
 
   artworkUrl(track: PlayableTrack): string {
-    return track.artworkUrl
-      ? resolveApiUrl(this.baseUrl, track.artworkUrl)
-      : "";
+    return track.artworkUrl ? resolveApiUrl(this.baseUrl, track.artworkUrl) : "";
   }
 
   playbackUrl(url: string): string {

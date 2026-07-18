@@ -1,17 +1,17 @@
-import { useEffect } from "react";
 import {
-  PlaylistTrackDownloadStatus,
   type PlayableTrack,
   type Playlist,
   type PlaylistTrack,
+  PlaylistTrackDownloadStatus,
 } from "@realtime-me/library-contracts";
 import {
   InfiniteScrollSentinel,
   LoadingIndicator,
-  MusicClient,
+  type MusicClient,
   useCursorQuery,
   useToast,
 } from "@realtime-me/library-web";
+import { useEffect } from "react";
 import { PlayableTrackRow } from "./PlayableTrackRow";
 import type { PlaybackQueueSelection } from "./playback/playback-types";
 
@@ -39,11 +39,7 @@ export function PlaylistTracks({
           track.downloadStatus === PlaylistTrackDownloadStatus.RUNNING,
       ),
     loadPage: async (pageToken, signal) => {
-      const page = await client.playlists.tracks(
-        playlist.uid,
-        pageToken,
-        signal,
-      );
+      const page = await client.playlists.tracks(playlist.uid, pageToken, signal);
       return { items: page.tracks, nextPageToken: page.nextPageToken };
     },
   });
@@ -51,9 +47,8 @@ export function PlaylistTracks({
     if (catalog.error) showToast(message(catalog.error), "error");
   }, [catalog.error, showToast]);
   if (catalog.isPending) return <LoadingIndicator label="正在读取歌单" />;
-  const entries = catalog.items.filter(
-    (entry): entry is typeof entry & { track: PlayableTrack } =>
-      Boolean(entry.track),
+  const entries = catalog.items.filter((entry): entry is typeof entry & { track: PlayableTrack } =>
+    Boolean(entry.track),
   );
   const queue = entries.map((entry) => entry.track);
   const loadPlaybackPage = async (pageToken: string, signal: AbortSignal) => {
@@ -79,8 +74,7 @@ export function PlaylistTracks({
                   onPlay({
                     tracks: queue,
                     startIndex: index,
-                    nextPageToken:
-                      catalog.data?.pages.at(-1)?.nextPageToken ?? "",
+                    nextPageToken: catalog.data?.pages.at(-1)?.nextPageToken ?? "",
                     loadNextPage: loadPlaybackPage,
                   })
                 }
@@ -98,9 +92,7 @@ export function PlaylistTracks({
           />
         </>
       ) : (
-        <p className="py-8 text-center text-sm text-muted-foreground">
-          这个歌单没有可用歌曲
-        </p>
+        <p className="py-8 text-center text-sm text-muted-foreground">这个歌单没有可用歌曲</p>
       )}
     </div>
   );

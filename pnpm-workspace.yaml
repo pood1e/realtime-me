@@ -3,7 +3,24 @@ packages:
   - apps/web/library/*
   - packages/library-*
   - packages/status-contracts-web
+  - packages/web-ui
   - services/manager
+catalog:
+  '@bufbuild/protobuf': 2.12.1
+  '@connectrpc/connect': 2.1.2
+  '@connectrpc/connect-web': 2.1.2
+  '@tailwindcss/vite': 4.3.2
+  '@types/node': 24.13.3
+  '@types/react': 19.2.17
+  '@types/react-dom': 19.2.3
+  '@vitejs/plugin-react': 6.0.3
+  'lucide-react': 1.23.0
+  'react': 19.2.7
+  'react-dom': 19.2.7
+  'recharts': 3.9.2
+  'tailwindcss': 4.3.2
+  'typescript': 7.0.2
+  'vite': 8.1.3
 engineStrict: true
 saveExact: true
 allowBuilds:

@@ -1,5 +1,5 @@
-import { useState, type PropsWithChildren } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { type PropsWithChildren, useState } from "react";
 
 import { DialogProvider } from "./dialog-provider";
 import { ToastProvider } from "./feedback";

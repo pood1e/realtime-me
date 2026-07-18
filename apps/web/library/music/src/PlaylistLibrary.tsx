@@ -1,22 +1,18 @@
-import { useEffect, useState } from "react";
-import { ListMusic } from "lucide-react";
+import type { PlayableTrack, Playlist, ProviderDescriptor } from "@realtime-me/library-contracts";
 import { MusicProviderCapability } from "@realtime-me/library-contracts";
-import type {
-  PlayableTrack,
-  Playlist,
-  ProviderDescriptor,
-} from "@realtime-me/library-contracts";
 import {
   EmptyState,
   InfiniteScrollSentinel,
   LoadingIndicator,
-  MusicClient,
+  type MusicClient,
   type ProviderId,
   useCursorQuery,
   useDialog,
   useQuery,
   useToast,
 } from "@realtime-me/library-web";
+import { ListMusic } from "lucide-react";
+import { useEffect, useState } from "react";
 import { PlaylistImportDialog } from "./PlaylistImportDialog";
 import { PlaylistRow } from "./PlaylistRow";
 import { PlaylistTracks } from "./PlaylistTracks";
@@ -40,8 +36,7 @@ export function PlaylistLibrary({
   const catalog = useCursorQuery<Playlist>({
     queryKey: ["music-playlists"],
     pollInterval: 2_500,
-    shouldPoll: (playlists) =>
-      playlists.some((playlist) => playlist.pendingTrackCount > 0),
+    shouldPoll: (playlists) => playlists.some((playlist) => playlist.pendingTrackCount > 0),
     loadPage: async (pageToken, signal) => {
       const page = await client.playlists.page(pageToken, signal);
       return { items: page.playlists, nextPageToken: page.nextPageToken };
@@ -65,10 +60,7 @@ export function PlaylistLibrary({
   const importPlaylist = async (providerId: ProviderId, source: string) => {
     setBusy("import");
     try {
-      const playlist = await client.playlists.importPlaylist(
-        providerId,
-        source,
-      );
+      const playlist = await client.playlists.importPlaylist(providerId, source);
       await catalog.refetch();
       setExpanded(playlist.uid);
       showToast("歌单已导入");
@@ -134,9 +126,7 @@ export function PlaylistLibrary({
                   expanded={expanded === playlist.uid}
                   busy={busy === playlist.uid}
                   onToggle={() =>
-                    setExpanded((currentUID) =>
-                      currentUID === playlist.uid ? "" : playlist.uid,
-                    )
+                    setExpanded((currentUID) => (currentUID === playlist.uid ? "" : playlist.uid))
                   }
                   onDownload={() => void download(playlist)}
                   onDelete={() => void remove(playlist)}

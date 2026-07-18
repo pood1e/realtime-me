@@ -1,4 +1,4 @@
-import type { PlaybackDescriptor, PlayableTrack } from "@realtime-me/library-contracts";
+import type { PlayableTrack, PlaybackDescriptor } from "@realtime-me/library-contracts";
 import { durationSeconds } from "../music-model";
 import type { PlaybackAdapterState } from "./playback-types";
 
@@ -11,9 +11,7 @@ export type PlaybackSessionState = Readonly<{
   error: string;
 }>;
 
-export function emptyPlaybackState(
-  track: PlayableTrack | undefined,
-): PlaybackSessionState {
+export function emptyPlaybackState(track: PlayableTrack | undefined): PlaybackSessionState {
   return {
     descriptor: undefined,
     paused: true,
@@ -43,7 +41,6 @@ export function effectiveVolume(volume: number, muted: boolean): number {
 }
 
 export function playbackErrorMessage(error: unknown): string {
-  if (error instanceof DOMException && error.name === "AbortError")
-    return "播放请求超时";
+  if (error instanceof DOMException && error.name === "AbortError") return "播放请求超时";
   return error instanceof Error ? error.message : "播放失败";
 }

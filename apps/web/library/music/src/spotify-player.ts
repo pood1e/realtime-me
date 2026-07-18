@@ -1,8 +1,5 @@
 import type { MusicClient } from "@realtime-me/library-web";
-import type {
-  PlaybackAdapter,
-  PlaybackAdapterEvents,
-} from "./playback/playback-types";
+import type { PlaybackAdapter, PlaybackAdapterEvents } from "./playback/playback-types";
 import { registerProviderPlayer } from "./playback/provider-player-registry";
 
 const SPOTIFY_PROVIDER_ID = "spotify";
@@ -46,10 +43,7 @@ declare global {
 let sdkPromise: Promise<SpotifySDK> | undefined;
 
 export function registerSpotifyBrowserPlayer(): void {
-  registerProviderPlayer(
-    SPOTIFY_SDK_ID,
-    (client, events) => new SpotifyController(client, events),
-  );
+  registerProviderPlayer(SPOTIFY_SDK_ID, (client, events) => new SpotifyController(client, events));
 }
 
 export class SpotifyController implements PlaybackAdapter {
@@ -73,16 +67,10 @@ export class SpotifyController implements PlaybackAdapter {
     this.request?.abort();
     this.request = new AbortController();
     const controller = this.request;
-    const timeout = window.setTimeout(
-      () => controller.abort(),
-      PLAYBACK_REQUEST_TIMEOUT_MS,
-    );
+    const timeout = window.setTimeout(() => controller.abort(), PLAYBACK_REQUEST_TIMEOUT_MS);
     try {
       const token = (
-        await this.client.providers.playbackToken(
-          SPOTIFY_PROVIDER_ID,
-          controller.signal,
-        )
+        await this.client.providers.playbackToken(SPOTIFY_PROVIDER_ID, controller.signal)
       ).accessToken;
       const response = await fetch(
         `https://api.spotify.com/v1/me/player/play?device_id=${encodeURIComponent(this.deviceID)}`,
@@ -160,29 +148,17 @@ export class SpotifyController implements PlaybackAdapter {
       "playback_error",
       "autoplay_failed",
     ]) {
-      player.addListener(event, (value) =>
-        this.events.onError(new Error(sdkError(value))),
-      );
+      player.addListener(event, (value) => this.events.onError(new Error(sdkError(value))));
     }
     const ready = new Promise<string>((resolve, reject) => {
-      player.addListener("ready", (value) =>
-        resolve((value as { device_id: string }).device_id),
-      );
-      player.addListener("not_ready", () =>
-        reject(new Error("Spotify 播放设备已离线")),
-      );
+      player.addListener("ready", (value) => resolve((value as { device_id: string }).device_id));
+      player.addListener("not_ready", () => reject(new Error("Spotify 播放设备已离线")));
     });
     try {
       if (!(await player.connect())) throw new Error("Spotify 播放器连接失败");
-      if (this.player !== player)
-        throw new DOMException("Aborted", "AbortError");
-      this.deviceID = await withTimeout(
-        ready,
-        DEVICE_READY_TIMEOUT_MS,
-        "Spotify 播放设备连接超时",
-      );
-      if (this.player !== player)
-        throw new DOMException("Aborted", "AbortError");
+      if (this.player !== player) throw new DOMException("Aborted", "AbortError");
+      this.deviceID = await withTimeout(ready, DEVICE_READY_TIMEOUT_MS, "Spotify 播放设备连接超时");
+      if (this.player !== player) throw new DOMException("Aborted", "AbortError");
       return player;
     } catch (error) {
       player.disconnect();
@@ -267,16 +243,9 @@ function loadSpotifySDK(): Promise<SpotifySDK> {
   return sdkPromise;
 }
 
-function withTimeout<T>(
-  operation: Promise<T>,
-  milliseconds: number,
-  message: string,
-): Promise<T> {
+function withTimeout<T>(operation: Promise<T>, milliseconds: number, message: string): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(
-      () => reject(new Error(message)),
-      milliseconds,
-    );
+    const timeout = window.setTimeout(() => reject(new Error(message)), milliseconds);
     void operation.then(
       (value) => {
         window.clearTimeout(timeout);
@@ -298,7 +267,6 @@ function spotifyPlaybackError(status: number): string {
 }
 
 function sdkError(value: unknown): string {
-  if (value && typeof value === "object" && "message" in value)
-    return String(value.message);
+  if (value && typeof value === "object" && "message" in value) return String(value.message);
   return "Spotify 播放器发生错误";
 }

@@ -1,7 +1,7 @@
-import { ExternalLink, Images, LayoutGrid, LayoutDashboard, Library, Music } from 'lucide-react';
-import { useEffect, useState, type ReactElement } from 'react';
-import { Card, CardAction, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyCard, StatusSection } from '@/components/layout';
+import { Card, CardAction, CardHeader, CardTitle } from "@realtime-me/web-ui/card";
+import { ExternalLink, Images, LayoutDashboard, LayoutGrid, Library, Music } from "lucide-react";
+import { type ReactElement, useEffect, useState } from "react";
+import { EmptyCard, StatusSection } from "@/components/layout";
 
 type ExternalApp = {
   title: string;
@@ -17,19 +17,19 @@ type LinkedApp = ExternalApp & { href: string };
 // all rather than links that go nowhere.
 const APPS: ExternalApp[] = [
   {
-    title: 'Music',
+    title: "Music",
     icon: <Music className="size-5" />,
-    path: '/music',
+    path: "/music",
   },
   {
-    title: 'Library',
+    title: "Library",
     icon: <Library className="size-5" />,
-    path: '/books',
+    path: "/books",
   },
   {
-    title: 'Wallpapers',
+    title: "Wallpapers",
     icon: <Images className="size-5" />,
-    path: '/wallpapers',
+    path: "/wallpapers",
   },
 ];
 
@@ -56,10 +56,10 @@ export function AppsApp() {
   // a door that is no longer there.
   useEffect(() => {
     const resync = () => {
-      if (document.visibilityState === 'visible') setSignedIn(signedIntoConsole());
+      if (document.visibilityState === "visible") setSignedIn(signedIntoConsole());
     };
-    document.addEventListener('visibilitychange', resync);
-    return () => document.removeEventListener('visibilitychange', resync);
+    document.addEventListener("visibilitychange", resync);
+    return () => document.removeEventListener("visibilitychange", resync);
   }, []);
 
   const apps: LinkedApp[] = [
@@ -67,9 +67,9 @@ export function AppsApp() {
     ...(signedIn && console_
       ? [
           {
-            title: 'Console',
+            title: "Console",
             icon: <LayoutDashboard className="size-5" />,
-            path: '/drive',
+            path: "/drive",
             href: `${console_}/drive`,
           },
         ]
@@ -78,7 +78,11 @@ export function AppsApp() {
 
   return (
     <StatusSection title="Apps" icon={<LayoutGrid className="size-4" />}>
-      {apps.length === 0 ? <EmptyCard text="No apps are configured." /> : apps.map((app) => <AppCard key={app.title} app={app} />)}
+      {apps.length === 0 ? (
+        <EmptyCard text="No apps are configured." />
+      ) : (
+        apps.map((app) => <AppCard key={app.title} app={app} />)
+      )}
     </StatusSection>
   );
 }
@@ -94,10 +98,15 @@ function AppCard({ app }: { app: LinkedApp }) {
       <Card className="h-full transition-shadow group-hover:ring-primary/40">
         <CardHeader>
           <CardAction>
-            <ExternalLink className="size-4 text-muted-foreground transition-colors group-hover:text-primary" aria-hidden />
+            <ExternalLink
+              className="size-4 text-muted-foreground transition-colors group-hover:text-primary"
+              aria-hidden
+            />
           </CardAction>
           <CardTitle className="flex items-center gap-2.5 text-lg">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">{app.icon}</span>
+            <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              {app.icon}
+            </span>
             {app.title}
           </CardTitle>
         </CardHeader>
@@ -107,5 +116,5 @@ function AppCard({ app }: { app: LinkedApp }) {
 }
 
 function appUrl(configured: string | undefined): string | null {
-  return configured?.trim().replace(/\/+$/, '') || null;
+  return configured?.trim().replace(/\/+$/, "") || null;
 }

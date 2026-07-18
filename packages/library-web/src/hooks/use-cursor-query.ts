@@ -1,5 +1,5 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
 import type { InfiniteData, QueryKey } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 export type CursorPage<T> = Readonly<{
   items: T[];
@@ -31,8 +31,7 @@ export function useCursorQuery<T>({
     refetchInterval:
       pollInterval && shouldPoll
         ? (current) => {
-            const items =
-              current.state.data?.pages.flatMap((page) => page.items) ?? [];
+            const items = current.state.data?.pages.flatMap((page) => page.items) ?? [];
             return shouldPoll(items) ? pollInterval : false;
           }
         : false,

@@ -1,23 +1,25 @@
-import { useDeferredValue, useMemo, useState } from "react";
-import { Download, ImageOff, Search, Sparkles, X } from "lucide-react";
-import { WallpaperOrientation } from "@realtime-me/library-contracts";
 import type { Wallpaper } from "@realtime-me/library-contracts";
+import { WallpaperOrientation } from "@realtime-me/library-contracts";
 import {
-  Button,
-  DialogRoot,
-  DialogContent,
   EmptyState,
-  Input,
   InfiniteScrollSentinel,
   LoadingIndicator,
+  useCursorQuery,
+  WallpaperPublicClient,
+} from "@realtime-me/library-web";
+import {
+  Button,
+  DialogContent,
+  DialogRoot,
+  Input,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  WallpaperPublicClient,
-  useCursorQuery,
-} from "@realtime-me/library-web";
+} from "@realtime-me/web-ui";
+import { Download, ImageOff, Search, Sparkles, X } from "lucide-react";
+import { useDeferredValue, useMemo, useState } from "react";
 
 import { API_BASE } from "./config";
 
@@ -35,9 +37,7 @@ export function App() {
       const page = await client.listPage(
         {
           query: deferredQuery,
-          ...(orientation === "all"
-            ? {}
-            : { orientation: orientationValue(orientation) }),
+          ...(orientation === "all" ? {} : { orientation: orientationValue(orientation) }),
           pageToken,
         },
         signal,
@@ -68,11 +68,7 @@ export function App() {
         ) : null}
         {!catalog.isPending && !catalog.error ? (
           <>
-            <WallpaperGrid
-              wallpapers={catalog.items}
-              client={client}
-              onSelect={setSelected}
-            />
+            <WallpaperGrid wallpapers={catalog.items} client={client} onSelect={setSelected} />
             <InfiniteScrollSentinel
               hasMore={catalog.hasNextPage}
               loading={catalog.isFetchingNextPage}
@@ -134,9 +130,7 @@ function Hero({
           </div>
           <Select
             value={orientation}
-            onValueChange={(value) =>
-              onOrientationChange(value as OrientationFilter)
-            }
+            onValueChange={(value) => onOrientationChange(value as OrientationFilter)}
           >
             <SelectTrigger className="h-11 w-full sm:w-44">
               <SelectValue />
@@ -219,9 +213,7 @@ function WallpaperPreview({
           <div className="flex items-center gap-3 border-t border-white/10 bg-black p-4 text-white">
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{wallpaper.title}</p>
-              <p className="text-xs text-white/55">
-                {wallpaper.tags.join(" · ")}
-              </p>
+              <p className="text-xs text-white/55">{wallpaper.tags.join(" · ")}</p>
             </div>
             <Button asChild>
               <a href={`${client.assetUrl(downloadPath)}?download=1`}>
@@ -229,12 +221,7 @@ function WallpaperPreview({
                 下载
               </a>
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              aria-label="关闭壁纸预览"
-            >
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label="关闭壁纸预览">
               <X />
             </Button>
           </div>

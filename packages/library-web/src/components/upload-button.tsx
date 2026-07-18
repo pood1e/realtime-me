@@ -1,7 +1,6 @@
-import { useRef, useState } from "react";
+import { Button } from "@realtime-me/web-ui/button";
 import { LoaderCircle, Upload } from "lucide-react";
-
-import { Button } from "./ui/button";
+import { useRef, useState } from "react";
 
 export function UploadButton({
   accept,
@@ -37,11 +36,7 @@ export function UploadButton({
         onChange={(event) => void select(event.target.files)}
       />
       <Button disabled={busy} onClick={() => input.current?.click()}>
-        {busy ? (
-          <LoaderCircle className="size-4 animate-spin" />
-        ) : (
-          <Upload className="size-4" />
-        )}
+        {busy ? <LoaderCircle className="size-4 animate-spin" /> : <Upload className="size-4" />}
         {busy ? "上传中" : label}
       </Button>
     </>

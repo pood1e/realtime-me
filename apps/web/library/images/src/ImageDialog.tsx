@@ -1,15 +1,14 @@
-import { useState } from "react";
-import { Check, Copy, Download, ExternalLink, Palette } from "lucide-react";
 import type { Image } from "@realtime-me/library-contracts";
 import {
-  Button,
   AppDialog,
-  ImagesClient,
-  Input,
-  WallpaperAdminClient,
+  type ImagesClient,
   useDialog,
   useToast,
+  WallpaperAdminClient,
 } from "@realtime-me/library-web";
+import { Button, Input } from "@realtime-me/web-ui";
+import { Check, Copy, Download, ExternalLink, Palette } from "lucide-react";
+import { useState } from "react";
 import { API_BASE } from "./config";
 
 export function ImageDialog({
@@ -101,9 +100,7 @@ export function ImageDialog({
                 variant="outline"
                 className="w-full"
                 onClick={() =>
-                  void navigator.clipboard
-                    .writeText(link)
-                    .then(() => showToast("链接已复制"))
+                  void navigator.clipboard.writeText(link).then(() => showToast("链接已复制"))
                 }
               >
                 <Check />
@@ -120,11 +117,7 @@ export function ImageDialog({
             <Palette />
             {publishing ? "发布中" : "发布为壁纸"}
           </Button>
-          <Button
-            variant="ghost"
-            className="w-full"
-            onClick={() => void copyOriginal()}
-          >
+          <Button variant="ghost" className="w-full" onClick={() => void copyOriginal()}>
             <Copy />
             复制私有地址
           </Button>

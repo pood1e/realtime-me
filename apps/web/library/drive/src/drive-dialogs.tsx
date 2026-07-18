@@ -1,23 +1,22 @@
-import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
-import { Download, Link2 } from "lucide-react";
 import type { DriveItem } from "@realtime-me/library-contracts";
 import {
-  Button,
   AppDialog,
-  DriveClient,
-  EmptyState,
-  InlineError,
-  Input,
-  LoadingIndicator,
+  type DriveClient,
   driveItemIsDirectory,
   driveItemName,
   driveItemUid,
+  EmptyState,
+  InlineError,
   isImage,
   isPdf,
   isText,
+  LoadingIndicator,
   useToast,
 } from "@realtime-me/library-web";
+import { Button, Input } from "@realtime-me/web-ui";
+import { Download, Link2 } from "lucide-react";
+import type { FormEvent } from "react";
+import { useEffect, useState } from "react";
 
 export type DriveDialogState =
   | { kind: "folder" }
@@ -40,9 +39,7 @@ export function DriveDialog({
   onChanged: () => Promise<void>;
 }) {
   if (state.kind === "preview")
-    return (
-      <PreviewDialog item={state.item} client={client} onClose={onClose} />
-    );
+    return <PreviewDialog item={state.item} client={client} onClose={onClose} />;
   if (state.kind === "share")
     return <ShareDialog item={state.item} client={client} onClose={onClose} />;
   return (
@@ -65,10 +62,7 @@ function EditDialog({
   onClose,
   onChanged,
 }: {
-  state: Exclude<
-    DriveDialogState,
-    null | { kind: "preview" } | { kind: "share" }
-  >;
+  state: Exclude<DriveDialogState, null | { kind: "preview" } | { kind: "share" }>;
   client: DriveClient;
   currentItems: readonly DriveItem[];
   parentUid: string;
@@ -76,18 +70,14 @@ function EditDialog({
   onChanged: () => Promise<void>;
 }) {
   const { showToast } = useToast();
-  const [value, setValue] = useState(
-    state.kind === "rename" ? driveItemName(state.item) : "",
-  );
+  const [value, setValue] = useState(state.kind === "rename" ? driveItemName(state.item) : "");
   const [busy, setBusy] = useState(false);
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
     try {
-      if (state.kind === "folder")
-        await client.createDirectory(parentUid, value.trim());
-      else if (state.kind === "rename")
-        await client.rename(driveItemUid(state.item), value.trim());
+      if (state.kind === "folder") await client.createDirectory(parentUid, value.trim());
+      else if (state.kind === "rename") await client.rename(driveItemUid(state.item), value.trim());
       else await client.move(driveItemUid(state.item), value);
       showToast("操作已完成");
       await onChanged();
@@ -97,11 +87,7 @@ function EditDialog({
     }
   };
   const title =
-    state.kind === "folder"
-      ? "新建文件夹"
-      : state.kind === "rename"
-        ? "重命名"
-        : "移动项目";
+    state.kind === "folder" ? "新建文件夹" : state.kind === "rename" ? "重命名" : "移动项目";
   return (
     <AppDialog open title={title} onClose={onClose}>
       <form className="space-y-4" onSubmit={(event) => void submit(event)}>
@@ -117,8 +103,7 @@ function EditDialog({
               {currentItems
                 .filter(
                   (item) =>
-                    driveItemIsDirectory(item) &&
-                    driveItemUid(item) !== driveItemUid(state.item),
+                    driveItemIsDirectory(item) && driveItemUid(item) !== driveItemUid(state.item),
                 )
                 .map((item) => (
                   <option key={driveItemUid(item)} value={driveItemUid(item)}>
@@ -139,10 +124,7 @@ function EditDialog({
           <Button variant="ghost" onClick={onClose}>
             取消
           </Button>
-          <Button
-            type="submit"
-            disabled={busy || (state.kind !== "move" && !value.trim())}
-          >
+          <Button type="submit" disabled={busy || (state.kind !== "move" && !value.trim())}>
             {busy ? "处理中" : "确定"}
           </Button>
         </div>
@@ -182,28 +164,17 @@ function ShareDialog({
     showToast("链接已复制");
   };
   return (
-    <AppDialog
-      open
-      title="分享文件"
-      description="链接默认 7 天后失效。"
-      onClose={onClose}
-    >
+    <AppDialog open title="分享文件" description="链接默认 7 天后失效。" onClose={onClose}>
       {url ? (
         <div className="space-y-4">
-          <p className="break-all rounded-lg border bg-muted/30 p-3 text-sm">
-            {url}
-          </p>
+          <p className="break-all rounded-lg border bg-muted/30 p-3 text-sm">{url}</p>
           <Button className="w-full" onClick={() => void copy()}>
             <Link2 />
             复制链接
           </Button>
         </div>
       ) : (
-        <Button
-          className="w-full"
-          disabled={busy}
-          onClick={() => void create()}
-        >
+        <Button className="w-full" disabled={busy} onClick={() => void create()}>
           {busy ? "创建中" : "创建分享链接"}
         </Button>
       )}
@@ -231,8 +202,7 @@ function PreviewDialog({
         if (active) setUrl(next);
       })
       .catch((reason) => {
-        if (active)
-          setError(reason instanceof Error ? reason.message : "无法预览");
+        if (active) setError(reason instanceof Error ? reason.message : "无法预览");
       });
     return () => {
       active = false;
@@ -249,16 +219,9 @@ function PreviewDialog({
       });
     return () => controller.abort();
   }, [item, url]);
-  const download = url
-    ? `${url}${url.includes("?") ? "&" : "?"}download=1`
-    : "";
+  const download = url ? `${url}${url.includes("?") ? "&" : "?"}download=1` : "";
   return (
-    <AppDialog
-      open
-      title={driveItemName(item)}
-      size="preview"
-      onClose={onClose}
-    >
+    <AppDialog open title={driveItemName(item)} size="preview" onClose={onClose}>
       {error ? (
         <InlineError message={error} />
       ) : !url ? (

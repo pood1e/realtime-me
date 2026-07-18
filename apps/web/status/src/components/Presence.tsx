@@ -1,9 +1,8 @@
-import { Footprints, HeartPulse, Music } from 'lucide-react';
-import type { ReactNode } from 'react';
-import type { PublicStatus } from '@realtime-me/status-contracts';
-import type { MediaStatus, SwitchPresence } from '@realtime-me/status-contracts';
-import { OnlineState } from '@realtime-me/status-contracts';
-import { SwitchArtwork } from '@/components/SwitchArtwork';
+import type { MediaStatus, PublicStatus, SwitchPresence } from "@realtime-me/status-contracts";
+import { OnlineState } from "@realtime-me/status-contracts";
+import { Footprints, HeartPulse, Music } from "lucide-react";
+import type { ReactNode } from "react";
+import { SwitchArtwork } from "@/components/SwitchArtwork";
 
 export function Presence({ status }: { status?: PublicStatus | null }) {
   const watch = status?.mobiles.find((mobile) => mobile.watch)?.watch;
@@ -42,7 +41,13 @@ export function Presence({ status }: { status?: PublicStatus | null }) {
 
 function NowPlaying({ media }: { media: MediaStatus }) {
   const text = media.artist ? `${media.title} · ${media.artist}` : media.title;
-  return <PlayingIndicator icon={<Music className="size-3.5 text-primary" />} text={text} title={`Now playing: ${text}`} />;
+  return (
+    <PlayingIndicator
+      icon={<Music className="size-3.5 text-primary" />}
+      text={text}
+      title={`Now playing: ${text}`}
+    />
+  );
 }
 
 function PlayingIndicator({ icon, text, title }: { icon: ReactNode; text: string; title: string }) {

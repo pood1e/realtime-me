@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
 import type { PlayableTrack } from "@realtime-me/library-contracts";
+import { useEffect, useRef } from "react";
 
 export function useMediaSession({
   track,
@@ -64,10 +64,7 @@ export function useMediaSession({
     setAction("play", () => handlers.current.onPlay());
     setAction("pause", () => handlers.current.onPause());
     setAction("previoustrack", () => handlers.current.onPrevious());
-    setAction(
-      "nexttrack",
-      canNext ? () => handlers.current.onNext() : undefined,
-    );
+    setAction("nexttrack", canNext ? () => handlers.current.onNext() : undefined);
     setSeekAction("seekto", (seconds) => handlers.current.onSeek(seconds));
     setRelativeSeekAction("seekbackward", -1, handlers);
     setRelativeSeekAction("seekforward", 1, handlers);
@@ -80,12 +77,7 @@ export function useMediaSession({
   }, [playing, track]);
 
   useEffect(() => {
-    if (
-      !("mediaSession" in navigator) ||
-      !track ||
-      !Number.isFinite(duration) ||
-      duration <= 0
-    )
+    if (!("mediaSession" in navigator) || !track || !Number.isFinite(duration) || duration <= 0)
       return;
     try {
       navigator.mediaSession.setPositionState({
@@ -109,10 +101,7 @@ function clearMediaSessionActions(): void {
   clearAction("seekforward");
 }
 
-function setAction(
-  action: MediaSessionAction,
-  handler: (() => void) | undefined,
-): void {
+function setAction(action: MediaSessionAction, handler: (() => void) | undefined): void {
   try {
     navigator.mediaSession.setActionHandler(action, handler ?? null);
   } catch {
@@ -120,14 +109,10 @@ function setAction(
   }
 }
 
-function setSeekAction(
-  action: MediaSessionAction,
-  onSeek: (seconds: number) => void,
-): void {
+function setSeekAction(action: MediaSessionAction, onSeek: (seconds: number) => void): void {
   try {
     navigator.mediaSession.setActionHandler(action, (details) => {
-      if ("seekTime" in details && details.seekTime !== undefined)
-        onSeek(details.seekTime);
+      if ("seekTime" in details && details.seekTime !== undefined) onSeek(details.seekTime);
     });
   } catch {
     // Unsupported actions are intentionally omitted from system controls.
@@ -155,9 +140,7 @@ function setRelativeSeekAction(
   try {
     navigator.mediaSession.setActionHandler(action, (details) => {
       const offset = "seekOffset" in details ? (details.seekOffset ?? 5) : 5;
-      handlers.current.onSeek(
-        Math.max(0, handlers.current.position + direction * offset),
-      );
+      handlers.current.onSeek(Math.max(0, handlers.current.position + direction * offset));
     });
   } catch {
     // Unsupported actions are intentionally omitted from system controls.

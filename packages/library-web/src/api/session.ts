@@ -1,6 +1,6 @@
 import { create } from "@bufbuild/protobuf";
-import { createClient } from "@connectrpc/connect";
 import type { Client } from "@connectrpc/connect";
+import { createClient } from "@connectrpc/connect";
 import {
   GetSessionRequestSchema,
   LoginRequestSchema,
@@ -20,10 +20,7 @@ export class SessionClient {
   }
 
   getSession(signal?: AbortSignal) {
-    return this.client.getSession(
-      create(GetSessionRequestSchema),
-      signal ? { signal } : undefined,
-    );
+    return this.client.getSession(create(GetSessionRequestSchema), signal ? { signal } : undefined);
   }
 
   login(password: string, returnUrl: string, signal?: AbortSignal) {
@@ -35,10 +32,7 @@ export class SessionClient {
 
   async logout(signal?: AbortSignal): Promise<void> {
     try {
-      await this.client.logout(
-        create(LogoutRequestSchema),
-        signal ? { signal } : undefined,
-      );
+      await this.client.logout(create(LogoutRequestSchema), signal ? { signal } : undefined);
     } finally {
       clearRecentSessionValidation();
     }
@@ -47,9 +41,7 @@ export class SessionClient {
 
 export function hasRecentSessionValidation(apiBase: string): boolean {
   try {
-    return (
-      Number(window.sessionStorage.getItem(validationKey(apiBase))) > Date.now()
-    );
+    return Number(window.sessionStorage.getItem(validationKey(apiBase))) > Date.now();
   } catch {
     return false;
   }
@@ -83,10 +75,7 @@ function validationKey(apiBase: string): string {
   return `cloud-drive.session-valid-until:${apiBase}`;
 }
 
-export function authenticationUrl(
-  authOrigin: string,
-  returnUrl = window.location.href,
-): string {
+export function authenticationUrl(authOrigin: string, returnUrl = window.location.href): string {
   const url = new URL(authOrigin);
   url.searchParams.set("return_to", returnUrl);
   return url.toString();

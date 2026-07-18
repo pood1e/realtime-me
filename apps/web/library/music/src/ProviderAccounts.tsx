@@ -1,21 +1,21 @@
-import { useCallback, useEffect, useState } from "react";
 import {
-  ProviderConnectionAttemptStatus,
   type ProviderConnection,
   type ProviderConnectionAttempt,
+  ProviderConnectionAttemptStatus,
 } from "@realtime-me/library-contracts";
 import {
   LoadingIndicator,
-  MusicClient,
+  type MusicClient,
   type ProviderId,
   useDialog,
   useQuery,
   useToast,
 } from "@realtime-me/library-web";
-import { useProviderLabel } from "./provider-catalog";
+import { useCallback, useEffect, useState } from "react";
 import { ProviderAccountRow } from "./ProviderAccountRow";
 import { ProviderLoginDialog } from "./ProviderLoginDialog";
 import { terminalConnectionAttempt } from "./provider-account-model";
+import { useProviderLabel } from "./provider-catalog";
 
 export function ProviderAccounts({ client }: { client: MusicClient }) {
   const { showToast } = useToast();
@@ -32,8 +32,7 @@ export function ProviderAccounts({ client }: { client: MusicClient }) {
   const attemptQuery = useQuery({
     queryKey: ["music-provider-attempt", attempt?.uid ?? ""],
     enabled: Boolean(attempt && !terminalConnectionAttempt(attempt.status)),
-    queryFn: ({ signal }) =>
-      client.providers.connectionAttempt(attempt?.uid ?? "", signal),
+    queryFn: ({ signal }) => client.providers.connectionAttempt(attempt?.uid ?? "", signal),
     refetchInterval: 2_000,
     retry: 3,
   });
@@ -85,8 +84,7 @@ export function ProviderAccounts({ client }: { client: MusicClient }) {
       showToast(message(error), "error");
     }
   };
-  if (connections.isPending)
-    return <LoadingIndicator label="正在读取音乐账号" />;
+  if (connections.isPending) return <LoadingIndicator label="正在读取音乐账号" />;
   return (
     <>
       <div className="overflow-hidden rounded-xl border bg-card/35">
@@ -102,10 +100,7 @@ export function ProviderAccounts({ client }: { client: MusicClient }) {
       <p className="mt-4 text-sm text-muted-foreground">
         每个平台只连接一个账号。凭据在服务器加密保存，不会写入浏览器存储。
       </p>
-      <ProviderLoginDialog
-        attempt={attempt}
-        onClose={() => setAttempt(undefined)}
-      />
+      <ProviderLoginDialog attempt={attempt} onClose={() => setAttempt(undefined)} />
     </>
   );
 }
@@ -121,9 +116,7 @@ function useProviderReturn(
     if (!providerId) return;
     const connected = url.searchParams.get("connection") === "connected";
     toast(
-      connected
-        ? `${providerLabel(providerId)}已连接`
-        : `${providerLabel(providerId)}连接失败`,
+      connected ? `${providerLabel(providerId)}已连接` : `${providerLabel(providerId)}连接失败`,
       connected ? "default" : "error",
     );
     if (connected) void reload();

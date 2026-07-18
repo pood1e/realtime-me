@@ -14,10 +14,10 @@ type Env = {
 // Nothing under /api/ is proxied either: those are the gateway's control-plane
 // routes, such as Prometheus scrape discovery.
 const PROXY_PREFIXES = [
-  '/realtime.me.status.v1.StatusService/',
-  '/realtime.me.site.v1.ProfileService/',
-  '/realtime.me.site.v1.ProjectsService/',
-  '/realtime.me.status.v1.MetricsService/',
+  "/realtime.me.status.v1.StatusService/",
+  "/realtime.me.site.v1.ProfileService/",
+  "/realtime.me.site.v1.ProjectsService/",
+  "/realtime.me.status.v1.MetricsService/",
 ];
 
 export default {
@@ -31,9 +31,9 @@ export default {
 };
 
 function proxyStatusApi(request: Request, url: URL, env: Env): Promise<Response> {
-  const upstreamBaseUrl = env.STATUS_API_BASE_URL?.trim().replace(/\/+$/, '');
+  const upstreamBaseUrl = env.STATUS_API_BASE_URL?.trim().replace(/\/+$/, "");
   if (!upstreamBaseUrl) {
-    return Promise.resolve(json({ error: 'status_api_not_configured' }, 503));
+    return Promise.resolve(json({ error: "status_api_not_configured" }, 503));
   }
 
   const upstreamUrl = new URL(`${upstreamBaseUrl}${url.pathname}`);
@@ -43,7 +43,7 @@ function proxyStatusApi(request: Request, url: URL, env: Env): Promise<Response>
 
 function withNoStore(response: Response): Response {
   const headers = new Headers(response.headers);
-  headers.set('Cache-Control', 'no-store');
+  headers.set("Cache-Control", "no-store");
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -55,8 +55,8 @@ function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
-      'Cache-Control': 'no-store',
-      'Content-Type': 'application/json; charset=utf-8',
+      "Cache-Control": "no-store",
+      "Content-Type": "application/json; charset=utf-8",
     },
   });
 }

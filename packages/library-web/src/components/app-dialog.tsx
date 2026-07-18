@@ -1,13 +1,12 @@
-import type { PropsWithChildren } from "react";
-
-import { cn } from "../lib/utils";
+import { cn } from "@realtime-me/web-ui/cn";
 import {
-  Dialog as DialogRoot,
   DialogContent,
   DialogDescription,
   DialogHeader,
+  Dialog as DialogRoot,
   DialogTitle,
-} from "./ui/dialog";
+} from "@realtime-me/web-ui/dialog";
+import type { PropsWithChildren } from "react";
 
 export type DialogSize = "compact" | "standard" | "preview";
 
@@ -38,17 +37,10 @@ export function AppDialog({
         if (!nextOpen) onClose();
       }}
     >
-      <DialogContent
-        className={cn(
-          "max-h-[calc(100dvh-1rem)] overflow-y-auto",
-          dialogSizes[size],
-        )}
-      >
+      <DialogContent className={cn("max-h-[calc(100dvh-1rem)] overflow-y-auto", dialogSizes[size])}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          {description ? (
-            <DialogDescription>{description}</DialogDescription>
-          ) : null}
+          {description ? <DialogDescription>{description}</DialogDescription> : null}
         </DialogHeader>
         {children}
       </DialogContent>

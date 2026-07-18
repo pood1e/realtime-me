@@ -1,16 +1,16 @@
-import { CloudOff } from 'lucide-react';
-import { useCallback } from 'react';
-import type { ReactNode } from 'react';
-import { Link, NavLink, Outlet } from 'react-router-dom';
-import type { PublicStatus } from '@realtime-me/status-contracts';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import { ContactLinks } from '@/components/ContactLinks';
-import { Presence } from '@/components/Presence';
-import { ThemeToggle } from '@/components/theme';
-import { usePolling } from '@/hooks/usePolling';
-import { POLL_INTERVAL_MS, profileClient, statusClient } from '@/lib/transport';
+import type { PublicStatus } from "@realtime-me/status-contracts";
+import { Badge } from "@realtime-me/web-ui/badge";
+import { Skeleton } from "@realtime-me/web-ui/skeleton";
+import { TooltipProvider } from "@realtime-me/web-ui/tooltip";
+import { CloudOff } from "lucide-react";
+import type { ReactNode } from "react";
+import { useCallback } from "react";
+import { Link, NavLink, Outlet } from "react-router-dom";
+import { ContactLinks } from "@/components/ContactLinks";
+import { Presence } from "@/components/Presence";
+import { ThemeToggle } from "@/components/theme";
+import { usePolling } from "@/hooks/usePolling";
+import { POLL_INTERVAL_MS, profileClient, statusClient } from "@/lib/transport";
 
 export type ShellContext = {
   status: PublicStatus | null;
@@ -18,10 +18,19 @@ export type ShellContext = {
 };
 
 export function AppShell() {
-  const fetchProfile = useCallback(async (signal: AbortSignal) => (await profileClient.getProfile({}, { signal })).profile ?? null, []);
+  const fetchProfile = useCallback(
+    async (signal: AbortSignal) => (await profileClient.getProfile({}, { signal })).profile ?? null,
+    [],
+  );
   const { data: profile } = usePolling(fetchProfile, { intervalMs: 0 });
-  const fetchStatus = useCallback(async (signal: AbortSignal) => (await statusClient.getPublicStatus({}, { signal })).status ?? null, []);
-  const { data: status, error: statusError } = usePolling(fetchStatus, { intervalMs: POLL_INTERVAL_MS });
+  const fetchStatus = useCallback(
+    async (signal: AbortSignal) =>
+      (await statusClient.getPublicStatus({}, { signal })).status ?? null,
+    [],
+  );
+  const { data: status, error: statusError } = usePolling(fetchStatus, {
+    intervalMs: POLL_INTERVAL_MS,
+  });
   const statusFailed = statusError !== null;
 
   return (
@@ -43,7 +52,9 @@ export function AppShell() {
                       width={36}
                       height={36}
                     />
-                    <span className="font-heading text-lg font-semibold tracking-tight">{profile.displayName}</span>
+                    <span className="font-heading text-lg font-semibold tracking-tight">
+                      {profile.displayName}
+                    </span>
                   </>
                 ) : (
                   <>
@@ -102,14 +113,16 @@ function Tab({ to, children }: { to: string; children: ReactNode }) {
   return (
     <NavLink
       to={to}
-      end={to === '/'}
-      className={({ isActive }) => `relative py-1 transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+      end={to === "/"}
+      className={({ isActive }) =>
+        `relative py-1 transition-colors ${isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`
+      }
     >
       {({ isActive }) => (
         <>
           {children}
           <span
-            className={`absolute -bottom-0.5 left-0 h-0.5 rounded-full bg-primary transition-all duration-200 ${isActive ? 'w-full opacity-100' : 'w-0 opacity-0'}`}
+            className={`absolute -bottom-0.5 left-0 h-0.5 rounded-full bg-primary transition-all duration-200 ${isActive ? "w-full opacity-100" : "w-0 opacity-0"}`}
           />
         </>
       )}

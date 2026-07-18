@@ -10,22 +10,23 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "^2.12.1",
+    "@bufbuild/protobuf": "catalog:",
     "@realtime-me/library-contracts": "workspace:*",
     "@realtime-me/library-web": "workspace:*",
+    "@realtime-me/web-ui": "workspace:*",
     "epubjs": "^0.3.93",
-    "lucide-react": "^1.22.0",
+    "lucide-react": "catalog:",
     "pdfjs-dist": "^5.4.530",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react": "catalog:",
+    "react-dom": "catalog:"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.3.1",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "tailwindcss": "^4.3.1",
-    "typescript": "^6.0.3",
-    "vite": "^8.1.0"
+    "@tailwindcss/vite": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
   }
 }

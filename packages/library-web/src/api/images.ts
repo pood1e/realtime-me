@@ -1,6 +1,7 @@
 import { create } from "@bufbuild/protobuf";
-import { createClient } from "@connectrpc/connect";
 import type { Client } from "@connectrpc/connect";
+import { createClient } from "@connectrpc/connect";
+import type { Image, ImageAlbum, ImageLink } from "@realtime-me/library-contracts";
 import {
   CreateImageAlbumRequestSchema,
   CreateImageLinkRequestSchema,
@@ -17,14 +18,8 @@ import {
   RevokeImageLinkRequestSchema,
   UpdateImageRequestSchema,
 } from "@realtime-me/library-contracts";
-import type { Image, ImageAlbum, ImageLink } from "@realtime-me/library-contracts";
 
-import {
-  normalizeBaseUrl,
-  privateTransport,
-  required,
-  resolveApiUrl,
-} from "./core";
+import { normalizeBaseUrl, privateTransport, required, resolveApiUrl } from "./core";
 
 export type ImageListOptions = Readonly<{
   query?: string;
@@ -45,10 +40,7 @@ export class ImagesClient {
     this.baseUrl = normalizeBaseUrl(baseUrl);
     this.client = createClient(ImageService, privateTransport(baseUrl));
   }
-  async listPage(
-    options: ImageListOptions = {},
-    signal?: AbortSignal,
-  ): Promise<ImagePage> {
+  async listPage(options: ImageListOptions = {}, signal?: AbortSignal): Promise<ImagePage> {
     const response = await this.client.listImages(
       create(ListImagesRequestSchema, { ...options, pageSize: 60 }),
       signal ? { signal } : undefined,
@@ -57,18 +49,14 @@ export class ImagesClient {
   }
   async get(imageUid: string): Promise<Image> {
     return required(
-      (await this.client.getImage(create(GetImageRequestSchema, { imageUid })))
-        .image,
+      (await this.client.getImage(create(GetImageRequestSchema, { imageUid }))).image,
       "image",
     );
   }
   async importUpload(uploadUid: string, albumUid = ""): Promise<Image> {
     return required(
-      (
-        await this.client.importImage(
-          create(ImportImageRequestSchema, { uploadUid, albumUid }),
-        )
-      ).image,
+      (await this.client.importImage(create(ImportImageRequestSchema, { uploadUid, albumUid })))
+        .image,
       "image",
     );
   }
@@ -87,14 +75,10 @@ export class ImagesClient {
     );
   }
   async trash(imageUid: string): Promise<void> {
-    await this.client.deleteImage(
-      create(DeleteImageRequestSchema, { imageUid }),
-    );
+    await this.client.deleteImage(create(DeleteImageRequestSchema, { imageUid }));
   }
   async restore(imageUid: string): Promise<void> {
-    await this.client.restoreImage(
-      create(RestoreImageRequestSchema, { imageUid }),
-    );
+    await this.client.restoreImage(create(RestoreImageRequestSchema, { imageUid }));
   }
   async purge(imageUid: string): Promise<void> {
     await this.client.purgeImage(create(PurgeImageRequestSchema, { imageUid }));
@@ -112,35 +96,24 @@ export class ImagesClient {
   }
   async createAlbum(displayName: string): Promise<ImageAlbum> {
     return required(
-      (
-        await this.client.createImageAlbum(
-          create(CreateImageAlbumRequestSchema, { displayName }),
-        )
-      ).album,
+      (await this.client.createImageAlbum(create(CreateImageAlbumRequestSchema, { displayName })))
+        .album,
       "album",
     );
   }
   async links(imageUid: string): Promise<ImageLink[]> {
-    return (
-      await this.client.listImageLinks(
-        create(ListImageLinksRequestSchema, { imageUid }),
-      )
-    ).imageLinks;
+    return (await this.client.listImageLinks(create(ListImageLinksRequestSchema, { imageUid })))
+      .imageLinks;
   }
   async createLink(imageUid: string): Promise<ImageLink> {
     return required(
-      (
-        await this.client.createImageLink(
-          create(CreateImageLinkRequestSchema, { imageUid }),
-        )
-      ).imageLink,
+      (await this.client.createImageLink(create(CreateImageLinkRequestSchema, { imageUid })))
+        .imageLink,
       "imageLink",
     );
   }
   async revokeLink(imageLinkUid: string): Promise<void> {
-    await this.client.revokeImageLink(
-      create(RevokeImageLinkRequestSchema, { imageLinkUid }),
-    );
+    await this.client.revokeImageLink(create(RevokeImageLinkRequestSchema, { imageLinkUid }));
   }
   previewUrl(image: Image): string {
     return resolveApiUrl(this.baseUrl, image.previewUrl);

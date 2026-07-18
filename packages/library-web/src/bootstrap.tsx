@@ -1,4 +1,4 @@
-import { StrictMode, type ReactElement } from "react";
+import { type ReactElement, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { AppProviders } from "./components/app-providers";

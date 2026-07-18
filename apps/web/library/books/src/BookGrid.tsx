@@ -1,5 +1,5 @@
 import type { Book } from "@realtime-me/library-contracts";
-import { BooksClient, InfiniteScrollSentinel } from "@realtime-me/library-web";
+import { type BooksClient, InfiniteScrollSentinel } from "@realtime-me/library-web";
 import { BookCard } from "./BookCard";
 
 type BookGridProps = Readonly<{

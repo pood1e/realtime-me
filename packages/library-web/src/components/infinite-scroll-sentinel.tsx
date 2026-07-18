@@ -1,6 +1,5 @@
+import { Button } from "@realtime-me/web-ui/button";
 import { useEffect, useRef } from "react";
-
-import { Button } from "./ui/button";
 import { LoadingIndicator } from "./feedback";
 
 export function InfiniteScrollSentinel({
@@ -21,14 +20,7 @@ export function InfiniteScrollSentinel({
   const sentinel = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const target = sentinel.current;
-    if (
-      !target ||
-      !hasMore ||
-      loading ||
-      failed ||
-      !("IntersectionObserver" in window)
-    )
-      return;
+    if (!target || !hasMore || loading || failed || !("IntersectionObserver" in window)) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) onLoadMore();
@@ -46,11 +38,7 @@ export function InfiniteScrollSentinel({
       </p>
     );
   return (
-    <div
-      ref={sentinel}
-      className="flex min-h-24 items-center justify-center"
-      aria-live="polite"
-    >
+    <div ref={sentinel} className="flex min-h-24 items-center justify-center" aria-live="polite">
       {loading ? (
         <LoadingIndicator label={loadingLabel} />
       ) : (

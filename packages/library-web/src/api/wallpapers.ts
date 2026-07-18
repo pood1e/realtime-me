@@ -1,6 +1,7 @@
 import { create } from "@bufbuild/protobuf";
-import { createClient } from "@connectrpc/connect";
 import type { Client } from "@connectrpc/connect";
+import { createClient } from "@connectrpc/connect";
+import type { Wallpaper, WallpaperOrientation } from "@realtime-me/library-contracts";
 import {
   ListPublishedWallpapersRequestSchema,
   ListWallpapersRequestSchema,
@@ -10,7 +11,6 @@ import {
   WallpaperAdminService,
   WallpaperPublicService,
 } from "@realtime-me/library-contracts";
-import type { Wallpaper, WallpaperOrientation } from "@realtime-me/library-contracts";
 
 import {
   normalizeBaseUrl,
@@ -28,10 +28,7 @@ export type WallpaperPage = Readonly<{
 export class WallpaperAdminClient {
   private readonly client: Client<typeof WallpaperAdminService>;
   constructor(baseUrl: string) {
-    this.client = createClient(
-      WallpaperAdminService,
-      privateTransport(baseUrl),
-    );
+    this.client = createClient(WallpaperAdminService, privateTransport(baseUrl));
   }
   async listPage(pageToken = "", signal?: AbortSignal): Promise<WallpaperPage> {
     const response = await this.client.listPublishedWallpapers(
@@ -46,11 +43,7 @@ export class WallpaperAdminClient {
       nextPageToken: response.nextPageToken,
     };
   }
-  async publish(
-    imageUid: string,
-    title: string,
-    tags: string[],
-  ): Promise<Wallpaper> {
+  async publish(imageUid: string, title: string, tags: string[]): Promise<Wallpaper> {
     return required(
       (
         await this.client.publishWallpaper(
@@ -60,11 +53,7 @@ export class WallpaperAdminClient {
       "wallpaper",
     );
   }
-  async update(
-    wallpaperUid: string,
-    title: string,
-    tags: string[],
-  ): Promise<Wallpaper> {
+  async update(wallpaperUid: string, title: string, tags: string[]): Promise<Wallpaper> {
     return required(
       (
         await this.client.updateWallpaper(
@@ -75,9 +64,7 @@ export class WallpaperAdminClient {
     );
   }
   async unpublish(wallpaperUid: string): Promise<void> {
-    await this.client.unpublishWallpaper(
-      create(UnpublishWallpaperRequestSchema, { wallpaperUid }),
-    );
+    await this.client.unpublishWallpaper(create(UnpublishWallpaperRequestSchema, { wallpaperUid }));
   }
 }
 
@@ -86,10 +73,7 @@ export class WallpaperPublicClient {
   private readonly client: Client<typeof WallpaperPublicService>;
   constructor(baseUrl: string) {
     this.baseUrl = normalizeBaseUrl(baseUrl);
-    this.client = createClient(
-      WallpaperPublicService,
-      publicTransport(baseUrl),
-    );
+    this.client = createClient(WallpaperPublicService, publicTransport(baseUrl));
   }
   async listPage(
     options: {

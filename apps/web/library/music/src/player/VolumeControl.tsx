@@ -1,5 +1,5 @@
+import { Button } from "@realtime-me/web-ui";
 import { Volume2, VolumeX } from "lucide-react";
-import { Button } from "@realtime-me/library-web";
 
 export function VolumeControl({
   volume,

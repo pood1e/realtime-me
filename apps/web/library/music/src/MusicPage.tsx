@@ -1,22 +1,8 @@
-import { lazy, Suspense, useCallback, useMemo, useState } from "react";
-import {
-  Heart,
-  History,
-  Library,
-  ListMusic,
-  Radio,
-  Trash2,
-  UserRoundCog,
-} from "lucide-react";
 import type { PlayableTrack } from "@realtime-me/library-contracts";
-import {
-  LoadingIndicator,
-  MusicClient,
-  PrivateAppShell,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@realtime-me/library-web";
+import { LoadingIndicator, MusicClient, PrivateAppShell } from "@realtime-me/library-web";
+import { Tabs, TabsList, TabsTrigger } from "@realtime-me/web-ui";
+import { Heart, History, Library, ListMusic, Radio, Trash2, UserRoundCog } from "lucide-react";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { API_BASE, APP_LINKS } from "./config";
 import { LocalLibrary } from "./LocalLibrary";
 import { LyricsDialog } from "./LyricsDialog";
@@ -24,8 +10,8 @@ import { OnlineSearch } from "./OnlineSearch";
 import { PlaybackHistory } from "./PlaybackHistory";
 import { useMediaSession } from "./playback/media-session";
 import { usePlaybackQueue } from "./playback/playback-queue";
-import { usePlaybackSettings } from "./playback/playback-storage";
 import { usePlaybackShortcuts } from "./playback/playback-shortcuts";
+import { usePlaybackSettings } from "./playback/playback-storage";
 import { usePlaybackSession } from "./playback/use-playback-session";
 import { PlayerBar } from "./player/PlayerBar";
 import { MusicProviderCatalog } from "./provider-catalog";
@@ -59,10 +45,7 @@ export function MusicPage() {
     onModeChange: settings.setMode,
     random: Math.random,
   });
-  const recordHistory = useCallback(
-    () => setHistoryVersion((value) => value + 1),
-    [],
-  );
+  const recordHistory = useCallback(() => setHistoryVersion((value) => value + 1), []);
   const session = usePlaybackSession({
     track: queue.currentTrack,
     playbackSequence: queue.playbackSequence,

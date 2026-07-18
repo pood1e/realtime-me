@@ -1,4 +1,5 @@
-import { TooltipProvider, type MusicClient } from "@realtime-me/library-web";
+import type { MusicClient } from "@realtime-me/library-web";
+import { TooltipProvider } from "@realtime-me/web-ui";
 import type { PlaybackQueueController } from "../playback/playback-queue";
 import type { PlaybackSessionController } from "../playback/use-playback-session";
 import { NowPlaying } from "./NowPlaying";

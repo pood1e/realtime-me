@@ -1,9 +1,8 @@
+import { Button } from "@realtime-me/web-ui/button";
+import { AlertCircle, Folder, LoaderCircle } from "lucide-react";
 import type { PropsWithChildren, ReactNode } from "react";
 import { useCallback, useMemo } from "react";
-import { AlertCircle, Folder, LoaderCircle } from "lucide-react";
 import { Toaster, toast } from "sonner";
-
-import { Button } from "./ui/button";
 
 export function LoadingIndicator({ label = "加载中" }: { label?: string }) {
   return (
@@ -32,22 +31,14 @@ export function EmptyState({
       </div>
       <h2 className="text-base font-medium text-foreground">{title}</h2>
       {detail ? (
-        <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
-          {detail}
-        </p>
+        <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">{detail}</p>
       ) : null}
       {action ? <div className="mt-5">{action}</div> : null}
     </div>
   );
 }
 
-export function InlineError({
-  message,
-  onRetry,
-}: {
-  message: string;
-  onRetry?: () => void;
-}) {
+export function InlineError({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div className="m-4 flex items-center justify-between gap-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-foreground">
       <span className="flex min-w-0 items-center gap-2">
@@ -78,12 +69,9 @@ export function ToastProvider({ children }: PropsWithChildren) {
 }
 
 export function useToast(): ToastContextValue {
-  const showToast = useCallback(
-    (message: string, variant: ToastVariant = "default") => {
-      if (variant === "error") toast.error(message);
-      else toast.success(message);
-    },
-    [],
-  );
+  const showToast = useCallback((message: string, variant: ToastVariant = "default") => {
+    if (variant === "error") toast.error(message);
+    else toast.success(message);
+  }, []);
   return useMemo(() => ({ showToast }), [showToast]);
 }

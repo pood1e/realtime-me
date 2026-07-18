@@ -1,5 +1,5 @@
-import { Code, ConnectError } from "@connectrpc/connect";
 import type { Transport } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 
 export const DEFAULT_TIMEOUT_MS = 30_000;
@@ -23,8 +23,7 @@ export function resolveApiUrl(baseUrl: string, path: string): string {
 }
 
 export function required<T>(value: T | undefined, field: string): T {
-  if (value === undefined)
-    throw new ApiError(`The API response is missing ${field}.`);
+  if (value === undefined) throw new ApiError(`The API response is missing ${field}.`);
   return value;
 }
 
@@ -51,10 +50,7 @@ export function publicTransport(baseUrl: string): Transport {
   });
 }
 
-export function apiBaseUrl(
-  value: string | undefined,
-  fallback: string,
-): string {
+export function apiBaseUrl(value: string | undefined, fallback: string): string {
   return normalizeBaseUrl(value?.trim() || fallback);
 }
 
@@ -67,11 +63,8 @@ export function isUnauthenticatedError(error: unknown): boolean {
 
 export function isUnavailableShareError(error: unknown): boolean {
   return (
-    (error instanceof ApiError &&
-      [401, 403, 404, 410].includes(error.status)) ||
+    (error instanceof ApiError && [401, 403, 404, 410].includes(error.status)) ||
     (error instanceof ConnectError &&
-      [Code.Unauthenticated, Code.PermissionDenied, Code.NotFound].includes(
-        error.code,
-      ))
+      [Code.Unauthenticated, Code.PermissionDenied, Code.NotFound].includes(error.code))
   );
 }

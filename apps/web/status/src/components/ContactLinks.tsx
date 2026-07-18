@@ -1,16 +1,16 @@
-import { Globe, Mail } from 'lucide-react';
-import type { ReactElement } from 'react';
-import { siDiscord, siGithub, siGmail, siTelegram } from 'simple-icons/icons';
-import type { ProfileLink } from '@realtime-me/status-contracts';
-import { Button } from '@/components/ui/button';
-import { BrandIcon } from '@/components/brand';
+import type { ProfileLink } from "@realtime-me/status-contracts";
+import { Button } from "@realtime-me/web-ui/button";
+import { Globe, Mail } from "lucide-react";
+import type { ReactElement } from "react";
+import { siDiscord, siGithub, siGmail, siTelegram } from "simple-icons/icons";
+import { BrandIcon } from "@/components/brand";
 
 export function ContactLinks({ links }: { links?: ProfileLink[] }) {
   if (!links || links.length === 0) return null;
   return (
     <div className="flex items-center gap-0.5">
       {links.map((link) => {
-        const label = link.label || link.platform || 'Link';
+        const label = link.label || link.platform || "Link";
         return (
           <Button
             key={`${link.platform}:${link.uri}`}
@@ -21,7 +21,9 @@ export function ContactLinks({ links }: { links?: ProfileLink[] }) {
             title={label}
             className="text-muted-foreground hover:text-foreground"
           >
-            <a href={link.uri} target="_blank" rel="noreferrer">{contactIcon(link)}</a>
+            <a href={link.uri} target="_blank" rel="noreferrer">
+              {contactIcon(link)}
+            </a>
           </Button>
         );
       })}
@@ -31,11 +33,11 @@ export function ContactLinks({ links }: { links?: ProfileLink[] }) {
 
 export function contactIcon(link: ProfileLink): ReactElement {
   const platform = link.platform.toLowerCase();
-  if (platform === 'github') return <BrandIcon icon={siGithub} mono />;
-  if (platform === 'telegram') return <BrandIcon icon={siTelegram} mono />;
-  if (platform === 'discord') return <BrandIcon icon={siDiscord} mono />;
-  if (platform === 'email' || link.uri.startsWith('mailto:')) {
-    return link.uri.includes('gmail') ? <BrandIcon icon={siGmail} mono /> : <Mail />;
+  if (platform === "github") return <BrandIcon icon={siGithub} mono />;
+  if (platform === "telegram") return <BrandIcon icon={siTelegram} mono />;
+  if (platform === "discord") return <BrandIcon icon={siDiscord} mono />;
+  if (platform === "email" || link.uri.startsWith("mailto:")) {
+    return link.uri.includes("gmail") ? <BrandIcon icon={siGmail} mono /> : <Mail />;
   }
   return <Globe />;
 }

@@ -1,20 +1,46 @@
-import type { Timestamp } from '@bufbuild/protobuf/wkt';
-import { AlertTriangle, CheckCircle2, Clock, CloudOff, LoaderCircle, RefreshCw } from 'lucide-react';
-import type { ReactElement, ReactNode } from 'react';
-import { Link, NavLink } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ThemeToggle } from '@/components/theme';
-import { formatTime } from '@/lib/format';
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { Badge } from "@realtime-me/web-ui/badge";
+import { Button } from "@realtime-me/web-ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@realtime-me/web-ui/card";
+import { Skeleton } from "@realtime-me/web-ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@realtime-me/web-ui/tooltip";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  CloudOff,
+  LoaderCircle,
+  RefreshCw,
+} from "lucide-react";
+import type { ReactElement, ReactNode } from "react";
+import { Link } from "react-router-dom";
+import { ThemeToggle } from "@/components/theme";
+import { formatTime } from "@/lib/format";
 
-export function PageFrame({ maxWidth = 'max-w-6xl', children }: { maxWidth?: string; children: ReactNode }) {
+export function PageFrame({
+  maxWidth = "max-w-6xl",
+  children,
+}: {
+  maxWidth?: string;
+  children: ReactNode;
+}) {
   return (
     <TooltipProvider>
       <main className="min-h-screen bg-[radial-gradient(46rem_30rem_at_50%_-4rem,color-mix(in_oklab,var(--primary)_13%,transparent),transparent)]">
-        <div className={`mx-auto flex min-h-screen w-full ${maxWidth} flex-col gap-8 px-5 py-9`}>{children}</div>
+        <div className={`mx-auto flex min-h-screen w-full ${maxWidth} flex-col gap-8 px-5 py-9`}>
+          {children}
+        </div>
       </main>
     </TooltipProvider>
   );
@@ -23,7 +49,13 @@ export function PageFrame({ maxWidth = 'max-w-6xl', children }: { maxWidth?: str
 export function SiteLogo() {
   return (
     <Link to="/" className="flex items-center gap-2.5" aria-label="Home">
-      <img src="/scallion.png" alt="" className="size-11 rounded-2xl drop-shadow-sm" width={44} height={44} />
+      <img
+        src="/scallion.png"
+        alt=""
+        className="size-11 rounded-2xl drop-shadow-sm"
+        width={44}
+        height={44}
+      />
       <span className="font-heading text-xl font-semibold tracking-tight">pood1e</span>
     </Link>
   );
@@ -32,13 +64,23 @@ export function SiteLogo() {
 export function HeaderActions({ failed, refresh }: { failed: boolean; refresh: () => void }) {
   return (
     <div className="flex items-center gap-2">
-      <Badge variant={failed ? 'destructive' : 'default'} aria-label={failed ? 'API offline' : 'Online'} title={failed ? 'API offline' : 'Online'}>
+      <Badge
+        variant={failed ? "destructive" : "default"}
+        aria-label={failed ? "API offline" : "Online"}
+        title={failed ? "API offline" : "Online"}
+      >
         {failed ? <AlertTriangle /> : <CheckCircle2 />}
       </Badge>
       <ThemeToggle />
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="secondary" size="icon" aria-label="Refresh" title="Refresh" onClick={refresh}>
+          <Button
+            variant="secondary"
+            size="icon"
+            aria-label="Refresh"
+            title="Refresh"
+            onClick={refresh}
+          >
             <RefreshCw />
           </Button>
         </TooltipTrigger>
@@ -48,7 +90,12 @@ export function HeaderActions({ failed, refresh }: { failed: boolean; refresh: (
   );
 }
 
-export function StatusSection({ title, icon, columns = 'sm:grid-cols-2 lg:grid-cols-3', children }: {
+export function StatusSection({
+  title,
+  icon,
+  columns = "sm:grid-cols-2 lg:grid-cols-3",
+  children,
+}: {
   title: string;
   icon: ReactElement;
   columns?: string;
@@ -65,11 +112,24 @@ export function StatusSection({ title, icon, columns = 'sm:grid-cols-2 lg:grid-c
   );
 }
 
-export function SummaryCard({ icon, title, value, detail }: { icon: ReactElement; title: string; value: string; detail: string }) {
+export function SummaryCard({
+  icon,
+  title,
+  value,
+  detail,
+}: {
+  icon: ReactElement;
+  title: string;
+  value: string;
+  detail: string;
+}) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-sm text-muted-foreground">{icon}{title}</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-sm text-muted-foreground">
+          {icon}
+          {title}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="text-3xl font-semibold tracking-tight">{value}</div>
@@ -93,7 +153,8 @@ export function LoadingCard() {
   return (
     <Card>
       <CardContent className="flex items-center gap-2 text-sm text-muted-foreground">
-        <LoaderCircle className="size-4 animate-spin" />Loading
+        <LoaderCircle className="size-4 animate-spin" />
+        Loading
       </CardContent>
     </Card>
   );
@@ -105,7 +166,9 @@ export function SkeletonCard() {
   return (
     <Card aria-hidden>
       <CardHeader>
-        <CardTitle className="w-full"><Skeleton className="h-4 w-28" /></CardTitle>
+        <CardTitle className="w-full">
+          <Skeleton className="h-4 w-28" />
+        </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3">
         <Skeleton className="h-9 w-full" />
@@ -125,7 +188,8 @@ export function ErrorCard({ text, retry }: { text: string; retry?: () => void })
         <CardDescription className="grow">{text}</CardDescription>
         {retry && (
           <Button variant="secondary" size="sm" onClick={retry}>
-            <RefreshCw />Retry
+            <RefreshCw />
+            Retry
           </Button>
         )}
       </CardContent>
@@ -141,7 +205,7 @@ export function PageFooter({ updatedAt }: { updatedAt?: Timestamp }) {
   return (
     <footer className="flex items-center gap-2 text-xs text-muted-foreground">
       <Clock className="size-3.5" />
-      <span>{updatedAt ? `Updated ${formatTime(updatedAt)}` : 'Waiting for first status'}</span>
+      <span>{updatedAt ? `Updated ${formatTime(updatedAt)}` : "Waiting for first status"}</span>
     </footer>
   );
 }

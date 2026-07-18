@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import type { DriveItem } from "@realtime-me/library-contracts";
+import { cn } from "@realtime-me/web-ui/cn";
 import {
   File,
   FileArchive,
@@ -9,10 +10,8 @@ import {
   Music2,
   Video,
 } from "lucide-react";
-import type { DriveItem } from "@realtime-me/library-contracts";
-
+import type { ReactNode } from "react";
 import { fileExtension, formatBytes, formatDate } from "../format";
-import { cn } from "../lib/utils";
 import {
   driveItemContentType,
   driveItemIsDirectory,
@@ -23,48 +22,25 @@ import {
 } from "../message";
 import type { DriveViewMode } from "./navigation";
 
-export function FileGlyph({
-  item,
-  className,
-}: {
-  item: DriveItem;
-  className?: string;
-}) {
+export function FileGlyph({ item, className }: { item: DriveItem; className?: string }) {
   const contentType = driveItemContentType(item);
   const extension = fileExtension(driveItemName(item));
   const iconClass = cn("size-5", className);
   if (driveItemIsDirectory(item))
     return (
-      <Folder
-        className={cn(iconClass, "fill-amber-300/15 text-amber-300")}
-        aria-hidden="true"
-      />
+      <Folder className={cn(iconClass, "fill-amber-300/15 text-amber-300")} aria-hidden="true" />
     );
   if (
     contentType.startsWith("image/") ||
     ["avif", "gif", "jpg", "jpeg", "png", "svg", "webp"].includes(extension)
   )
-    return (
-      <FileImage
-        className={cn(iconClass, "text-fuchsia-300")}
-        aria-hidden="true"
-      />
-    );
+    return <FileImage className={cn(iconClass, "text-fuchsia-300")} aria-hidden="true" />;
   if (contentType.startsWith("audio/"))
-    return (
-      <Music2 className={cn(iconClass, "text-violet-300")} aria-hidden="true" />
-    );
+    return <Music2 className={cn(iconClass, "text-violet-300")} aria-hidden="true" />;
   if (contentType.startsWith("video/"))
-    return (
-      <Video className={cn(iconClass, "text-rose-300")} aria-hidden="true" />
-    );
+    return <Video className={cn(iconClass, "text-rose-300")} aria-hidden="true" />;
   if (["zip", "gz", "rar", "7z", "tar"].includes(extension))
-    return (
-      <FileArchive
-        className={cn(iconClass, "text-amber-200")}
-        aria-hidden="true"
-      />
-    );
+    return <FileArchive className={cn(iconClass, "text-amber-200")} aria-hidden="true" />;
   if (
     contentType.startsWith("text/") ||
     [
@@ -84,22 +60,10 @@ export function FileGlyph({
       "yml",
     ].includes(extension)
   )
-    return (
-      <FileCode2 className={cn(iconClass, "text-sky-300")} aria-hidden="true" />
-    );
+    return <FileCode2 className={cn(iconClass, "text-sky-300")} aria-hidden="true" />;
   if (extension === "pdf" || ["doc", "docx", "rtf", "txt"].includes(extension))
-    return (
-      <FileText
-        className={cn(iconClass, "text-emerald-300")}
-        aria-hidden="true"
-      />
-    );
-  return (
-    <File
-      className={cn(iconClass, "text-muted-foreground")}
-      aria-hidden="true"
-    />
-  );
+    return <FileText className={cn(iconClass, "text-emerald-300")} aria-hidden="true" />;
+  return <File className={cn(iconClass, "text-muted-foreground")} aria-hidden="true" />;
 }
 
 type DriveItemCollectionProps = {
@@ -109,12 +73,7 @@ type DriveItemCollectionProps = {
   actions?: (item: DriveItem) => ReactNode;
 };
 
-function DriveItemList({
-  items,
-  selectedUid,
-  onOpen,
-  actions,
-}: DriveItemCollectionProps) {
+function DriveItemList({ items, selectedUid, onOpen, actions }: DriveItemCollectionProps) {
   return (
     <div className="relative isolate rounded-xl border bg-card/60">
       <div className="sticky top-0 z-10 hidden grid-cols-[minmax(0,1fr)_7rem_10rem_3rem] gap-4 rounded-t-xl border-b bg-card/95 px-4 py-2.5 text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase backdrop-blur sm:grid xl:grid-cols-[minmax(20rem,1fr)_9rem_12rem_3rem]">
@@ -165,10 +124,7 @@ function DriveListRow({
         <div className="flex min-w-0 items-center gap-3">
           <FileGlyph item={item} />
           <div className="min-w-0">
-            <p
-              className="truncate text-sm font-medium"
-              title={driveItemName(item)}
-            >
+            <p className="truncate text-sm font-medium" title={driveItemName(item)}>
               {driveItemName(item)}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground sm:hidden">
@@ -185,19 +141,12 @@ function DriveListRow({
           {formatDate(driveItemUpdatedAt(item))}
         </span>
       </button>
-      <div className="flex items-center justify-center">
-        {actions ? actions(item) : null}
-      </div>
+      <div className="flex items-center justify-center">{actions ? actions(item) : null}</div>
     </div>
   );
 }
 
-function DriveItemGrid({
-  items,
-  selectedUid,
-  onOpen,
-  actions,
-}: DriveItemCollectionProps) {
+function DriveItemGrid({ items, selectedUid, onOpen, actions }: DriveItemCollectionProps) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]">
       {items.map((item) => (
@@ -217,25 +166,18 @@ function DriveItemGrid({
               <FileGlyph item={item} className="size-7" />
             </div>
             <div className="mt-5 min-w-0 max-w-[calc(100%-2rem)]">
-              <p
-                className="truncate text-sm font-medium"
-                title={driveItemName(item)}
-              >
+              <p className="truncate text-sm font-medium" title={driveItemName(item)}>
                 {driveItemName(item)}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {driveItemIsDirectory(item)
-                  ? "文件夹"
-                  : formatBytes(driveItemSize(item))}
+                {driveItemIsDirectory(item) ? "文件夹" : formatBytes(driveItemSize(item))}
               </p>
               <p className="mt-1 truncate text-xs text-muted-foreground/70">
                 {formatDate(driveItemUpdatedAt(item))}
               </p>
             </div>
           </button>
-          {actions ? (
-            <div className="absolute top-3 right-3">{actions(item)}</div>
-          ) : null}
+          {actions ? <div className="absolute top-3 right-3">{actions(item)}</div> : null}
         </article>
       ))}
     </div>
@@ -248,9 +190,5 @@ export function DriveItemView({
   ...props
 }: DriveItemCollectionProps & { mode: DriveViewMode; empty: ReactNode }) {
   if (!props.items.length) return <>{empty}</>;
-  return mode === "grid" ? (
-    <DriveItemGrid {...props} />
-  ) : (
-    <DriveItemList {...props} />
-  );
+  return mode === "grid" ? <DriveItemGrid {...props} /> : <DriveItemList {...props} />;
 }

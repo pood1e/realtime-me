@@ -1,6 +1,7 @@
 import { create } from "@bufbuild/protobuf";
-import { createClient } from "@connectrpc/connect";
 import type { Client } from "@connectrpc/connect";
+import { createClient } from "@connectrpc/connect";
+import type { DriveItem, ShareLink } from "@realtime-me/library-contracts";
 import {
   CreateDirectoryRequestSchema,
   CreateShareLinkRequestSchema,
@@ -20,14 +21,8 @@ import {
   SearchDriveItemsRequestSchema,
   ShareService,
 } from "@realtime-me/library-contracts";
-import type { DriveItem, ShareLink } from "@realtime-me/library-contracts";
 
-import {
-  normalizeBaseUrl,
-  privateTransport,
-  required,
-  resolveApiUrl,
-} from "./core";
+import { normalizeBaseUrl, privateTransport, required, resolveApiUrl } from "./core";
 
 export type DriveItemPage = Readonly<{
   items: DriveItem[];
@@ -46,11 +41,7 @@ export class DriveClient {
     this.share = createClient(ShareService, transport);
   }
 
-  async listPage(
-    parentUid = "",
-    pageToken = "",
-    signal?: AbortSignal,
-  ): Promise<DriveItemPage> {
+  async listPage(parentUid = "", pageToken = "", signal?: AbortSignal): Promise<DriveItemPage> {
     const response = await this.drive.listDriveItems(
       create(ListDriveItemsRequestSchema, {
         parentUid,
@@ -61,10 +52,7 @@ export class DriveClient {
     );
     return { items: response.items, nextPageToken: response.nextPageToken };
   }
-  async listTrashPage(
-    pageToken = "",
-    signal?: AbortSignal,
-  ): Promise<DriveItemPage> {
+  async listTrashPage(pageToken = "", signal?: AbortSignal): Promise<DriveItemPage> {
     const response = await this.drive.listTrashedItems(
       create(ListTrashedItemsRequestSchema, {
         pageSize: 100,
@@ -74,11 +62,7 @@ export class DriveClient {
     );
     return { items: response.items, nextPageToken: response.nextPageToken };
   }
-  async searchPage(
-    query: string,
-    pageToken = "",
-    signal?: AbortSignal,
-  ): Promise<DriveItemPage> {
+  async searchPage(query: string, pageToken = "", signal?: AbortSignal): Promise<DriveItemPage> {
     const response = await this.drive.searchDriveItems(
       create(SearchDriveItemsRequestSchema, {
         query,
@@ -91,67 +75,44 @@ export class DriveClient {
   }
   async createDirectory(parentUid: string, name: string): Promise<DriveItem> {
     return required(
-      (
-        await this.drive.createDirectory(
-          create(CreateDirectoryRequestSchema, { parentUid, name }),
-        )
-      ).item,
+      (await this.drive.createDirectory(create(CreateDirectoryRequestSchema, { parentUid, name })))
+        .item,
       "item",
     );
   }
   async rename(itemUid: string, name: string): Promise<DriveItem> {
     return required(
-      (
-        await this.drive.renameDriveItem(
-          create(RenameDriveItemRequestSchema, { itemUid, name }),
-        )
-      ).item,
+      (await this.drive.renameDriveItem(create(RenameDriveItemRequestSchema, { itemUid, name })))
+        .item,
       "item",
     );
   }
   async move(itemUid: string, parentUid: string): Promise<DriveItem> {
     return required(
-      (
-        await this.drive.moveDriveItem(
-          create(MoveDriveItemRequestSchema, { itemUid, parentUid }),
-        )
-      ).item,
+      (await this.drive.moveDriveItem(create(MoveDriveItemRequestSchema, { itemUid, parentUid })))
+        .item,
       "item",
     );
   }
   async trash(itemUid: string): Promise<DriveItem> {
     return required(
-      (
-        await this.drive.deleteDriveItem(
-          create(DeleteDriveItemRequestSchema, { itemUid }),
-        )
-      ).item,
+      (await this.drive.deleteDriveItem(create(DeleteDriveItemRequestSchema, { itemUid }))).item,
       "item",
     );
   }
   async restore(itemUid: string): Promise<DriveItem> {
     return required(
-      (
-        await this.drive.restoreDriveItem(
-          create(RestoreDriveItemRequestSchema, { itemUid }),
-        )
-      ).item,
+      (await this.drive.restoreDriveItem(create(RestoreDriveItemRequestSchema, { itemUid }))).item,
       "item",
     );
   }
   async purge(itemUid: string): Promise<void> {
-    await this.drive.purgeDriveItem(
-      create(PurgeDriveItemRequestSchema, { itemUid }),
-    );
+    await this.drive.purgeDriveItem(create(PurgeDriveItemRequestSchema, { itemUid }));
   }
   async emptyTrash(): Promise<void> {
     await this.drive.emptyTrash(create(EmptyTrashRequestSchema));
   }
-  async importUpload(
-    uploadUid: string,
-    parentUid: string,
-    name: string,
-  ): Promise<DriveItem> {
+  async importUpload(uploadUid: string, parentUid: string, name: string): Promise<DriveItem> {
     return required(
       (
         await this.drive.importDriveFile(
@@ -162,16 +123,11 @@ export class DriveClient {
     );
   }
   async downloadUrl(itemUid: string): Promise<string> {
-    const response = await this.drive.getDownload(
-      create(GetDownloadRequestSchema, { itemUid }),
-    );
+    const response = await this.drive.getDownload(create(GetDownloadRequestSchema, { itemUid }));
     return resolveApiUrl(this.baseUrl, response.downloadUrl);
   }
   contentUrl(itemUid: string): string {
-    return resolveApiUrl(
-      this.baseUrl,
-      `/v1/items/${encodeURIComponent(itemUid)}/content`,
-    );
+    return resolveApiUrl(this.baseUrl, `/v1/items/${encodeURIComponent(itemUid)}/content`);
   }
   async createShare(
     targetUid: string,
@@ -201,11 +157,8 @@ export class DriveClient {
   }
   async revokeShare(shareUid: string): Promise<ShareLink> {
     return required(
-      (
-        await this.share.revokeShareLink(
-          create(RevokeShareLinkRequestSchema, { shareUid }),
-        )
-      ).shareLink,
+      (await this.share.revokeShareLink(create(RevokeShareLinkRequestSchema, { shareUid })))
+        .shareLink,
       "shareLink",
     );
   }

@@ -1,6 +1,7 @@
-import { ExternalLink, FileText, Music2, Play } from "lucide-react";
 import type { PlayableTrack } from "@realtime-me/library-contracts";
-import { Badge, Button, MusicClient } from "@realtime-me/library-web";
+import type { MusicClient } from "@realtime-me/library-web";
+import { Badge, Button } from "@realtime-me/web-ui";
+import { ExternalLink, FileText, Music2, Play } from "lucide-react";
 import { clock, durationSeconds } from "./music-model";
 import { useProviderLabel } from "./provider-catalog";
 
@@ -59,9 +60,7 @@ export function PlayableTrackRow({
           {track.artists.join("、") || "未知艺人"}
         </p>
       </button>
-      <p className="hidden truncate text-sm text-muted-foreground md:block">
-        {track.album || "—"}
-      </p>
+      <p className="hidden truncate text-sm text-muted-foreground md:block">{track.album || "—"}</p>
       <Badge variant="outline" className="hidden lg:inline-flex">
         {providerLabel(track.providerId)}
       </Badge>

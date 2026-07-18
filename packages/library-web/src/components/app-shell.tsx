@@ -1,26 +1,16 @@
-import type { PropsWithChildren, ReactNode } from "react";
-import {
-  BookOpen,
-  HardDrive,
-  Image,
-  LogOut,
-  Menu,
-  Music,
-  Palette,
-  Share2,
-} from "lucide-react";
-
-import { SessionClient } from "../api";
-import type { AppLinks, PrivateAppId } from "../configuration";
-import { cn } from "../lib/utils";
-import { Button } from "./ui/button";
+import { Button } from "@realtime-me/web-ui/button";
+import { cn } from "@realtime-me/web-ui/cn";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "./ui/sheet";
+} from "@realtime-me/web-ui/sheet";
+import { BookOpen, HardDrive, Image, LogOut, Menu, Music, Palette, Share2 } from "lucide-react";
+import type { PropsWithChildren, ReactNode } from "react";
+import { SessionClient } from "../api";
+import type { AppLinks, PrivateAppId } from "../configuration";
 
 const privateApps = [
   { id: "drive" as const, label: "云盘", icon: HardDrive },
@@ -29,13 +19,7 @@ const privateApps = [
   { id: "images" as const, label: "图床", icon: Image },
 ];
 
-function AppNavigation({
-  current,
-  links,
-}: {
-  current: PrivateAppId;
-  links: AppLinks;
-}) {
+function AppNavigation({ current, links }: { current: PrivateAppId; links: AppLinks }) {
   return (
     <nav className="space-y-1" aria-label="应用">
       {privateApps.map(({ id, label, icon: Icon }) => {
@@ -146,17 +130,11 @@ export function PrivateAppShell({
           </Sheet>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-base font-semibold">{title}</h1>
-            {subtitle ? (
-              <p className="truncate text-xs text-muted-foreground">
-                {subtitle}
-              </p>
-            ) : null}
+            {subtitle ? <p className="truncate text-xs text-muted-foreground">{subtitle}</p> : null}
           </div>
           <div className="flex shrink-0 items-center gap-2">{actions}</div>
         </header>
-        <div className="mx-auto w-full max-w-[112rem] p-4 sm:p-6 lg:p-8">
-          {children}
-        </div>
+        <div className="mx-auto w-full max-w-[112rem] p-4 sm:p-6 lg:p-8">{children}</div>
       </main>
     </div>
   );

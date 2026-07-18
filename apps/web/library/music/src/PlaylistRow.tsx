@@ -1,12 +1,6 @@
-import {
-  ChevronDown,
-  ChevronRight,
-  CloudDownload,
-  ExternalLink,
-  Trash2,
-} from "lucide-react";
 import type { Playlist } from "@realtime-me/library-contracts";
-import { Badge, Button, Progress } from "@realtime-me/library-web";
+import { Badge, Button, Progress } from "@realtime-me/web-ui";
+import { ChevronDown, ChevronRight, CloudDownload, ExternalLink, Trash2 } from "lucide-react";
 import { useProviderLabel } from "./provider-catalog";
 
 export function PlaylistRow({
@@ -53,22 +47,14 @@ export function PlaylistRow({
         ) : (
           <div className="size-14 shrink-0 rounded-md bg-muted" />
         )}
-        <button
-          type="button"
-          onClick={onToggle}
-          className="min-w-0 flex-1 text-left"
-        >
+        <button type="button" onClick={onToggle} className="min-w-0 flex-1 text-left">
           <div className="flex min-w-0 items-center gap-2">
-            <p className="truncate text-sm font-medium">
-              {playlist.displayName}
-            </p>
+            <p className="truncate text-sm font-medium">{playlist.displayName}</p>
             <Badge variant="outline" className="shrink-0">
               {providerLabel(playlist.providerId)}
             </Badge>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {downloadSummary(playlist)}
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{downloadSummary(playlist)}</p>
           {playlist.downloadSupported && playlist.trackCount ? (
             <Progress value={progress} className="mt-2 h-1.5 max-w-md" />
           ) : null}
@@ -76,12 +62,7 @@ export function PlaylistRow({
         <div className="flex shrink-0 items-center gap-1">
           {playlist.providerUrl ? (
             <Button variant="ghost" size="icon-sm" asChild>
-              <a
-                href={playlist.providerUrl}
-                target="_blank"
-                rel="noreferrer"
-                title="在来源中打开"
-              >
+              <a href={playlist.providerUrl} target="_blank" rel="noreferrer" title="在来源中打开">
                 <ExternalLink />
                 <span className="sr-only">在来源中打开</span>
               </a>
@@ -92,11 +73,7 @@ export function PlaylistRow({
             size="icon-sm"
             onClick={onDownload}
             disabled={busy || !playlist.downloadSupported || fullyDownloaded}
-            title={
-              playlist.downloadSupported
-                ? "将未下载歌曲存入本地"
-                : "该来源只支持在线播放"
-            }
+            title={playlist.downloadSupported ? "将未下载歌曲存入本地" : "该来源只支持在线播放"}
           >
             <CloudDownload />
             <span className="sr-only">存入本地</span>
@@ -124,9 +101,7 @@ function downloadSummary(playlist: Playlist): string {
   const details = [
     `${playlist.completedTrackCount}/${playlist.downloadableTrackCount} 可下载歌曲已存入本地`,
   ];
-  if (playlist.pendingTrackCount)
-    details.push(`${playlist.pendingTrackCount} 首处理中`);
-  if (playlist.failedTrackCount)
-    details.push(`${playlist.failedTrackCount} 首失败`);
+  if (playlist.pendingTrackCount) details.push(`${playlist.pendingTrackCount} 首处理中`);
+  if (playlist.failedTrackCount) details.push(`${playlist.failedTrackCount} 首失败`);
   return details.join(" · ");
 }

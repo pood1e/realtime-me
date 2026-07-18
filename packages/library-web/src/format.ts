@@ -47,8 +47,7 @@ export function isImage(item: DriveItem): boolean {
 
 export function isPdf(item: DriveItem): boolean {
   return (
-    driveItemContentType(item) === "application/pdf" ||
-    fileExtension(driveItemName(item)) === "pdf"
+    driveItemContentType(item) === "application/pdf" || fileExtension(driveItemName(item)) === "pdf"
   );
 }
 

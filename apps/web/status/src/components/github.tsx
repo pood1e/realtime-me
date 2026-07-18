@@ -1,25 +1,25 @@
-import { AlertTriangle, CheckCircle2, CircleOff, LoaderCircle } from 'lucide-react';
-import type { ReactElement } from 'react';
-import { siGithub } from 'simple-icons/icons';
-import { GithubSyncState } from '@realtime-me/status-contracts';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { BrandIcon } from '@/components/brand';
+import { GithubSyncState } from "@realtime-me/status-contracts";
+import { Badge } from "@realtime-me/web-ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@realtime-me/web-ui/tooltip";
+import { AlertTriangle, CheckCircle2, CircleOff, LoaderCircle } from "lucide-react";
+import type { ReactElement } from "react";
+import { siGithub } from "simple-icons/icons";
+import { BrandIcon } from "@/components/brand";
 
-type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline';
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
 
 export function githubStatusTitle(state: GithubSyncState | undefined): string {
-  if (state === GithubSyncState.OK) return 'Connected';
-  if (state === GithubSyncState.PENDING) return 'Connecting';
-  if (state === GithubSyncState.ERROR) return 'Sync failed';
-  return 'Disconnected';
+  if (state === GithubSyncState.OK) return "Connected";
+  if (state === GithubSyncState.PENDING) return "Connecting";
+  if (state === GithubSyncState.ERROR) return "Sync failed";
+  return "Disconnected";
 }
 
 export function githubBadgeVariant(state: GithubSyncState | undefined): BadgeVariant {
-  if (state === GithubSyncState.ERROR) return 'destructive';
-  if (state === GithubSyncState.OK) return 'default';
-  if (state === GithubSyncState.PENDING) return 'secondary';
-  return 'outline';
+  if (state === GithubSyncState.ERROR) return "destructive";
+  if (state === GithubSyncState.OK) return "default";
+  if (state === GithubSyncState.PENDING) return "secondary";
+  return "outline";
 }
 
 export function githubIcon(state: GithubSyncState | undefined): ReactElement {
