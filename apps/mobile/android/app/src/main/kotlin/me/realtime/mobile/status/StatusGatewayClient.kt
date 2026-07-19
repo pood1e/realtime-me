@@ -47,7 +47,7 @@ class StatusGatewayClient(
     private fun post(endpoint: String, procedure: String, token: String, body: ByteArray): Response {
         var connection: HttpURLConnection? = null
         return try {
-            val url = URL("${endpoint.trimEnd('/')}/$procedure")
+            val url = URL("${endpoint.trimEnd('/')}$procedure")
             connection = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 connectTimeout = TIMEOUT_MS
@@ -97,8 +97,8 @@ class StatusGatewayClient(
         const val TIMEOUT_MS = 5_000
         const val NOT_FOUND_CODE = "not_found"
         const val CONTENT_TYPE = "application/proto"
-        const val ENROLL_PROCEDURE = "realtime.me.v1.EnrollmentService/EnrollDevice"
-        const val REPORT_PROCEDURE = "realtime.me.v1.IngestService/ReportMobileStatus"
+        const val ENROLL_PROCEDURE = EnrollmentServiceProcedures.ENROLL_DEVICE
+        const val REPORT_PROCEDURE = IngestServiceProcedures.REPORT_MOBILE_STATUS
 
         fun configuredEndpoints(): List<String> = buildList {
             BuildConfig.STATUS_GATEWAY_LAN_URL.trim().takeIf { it.isNotEmpty() }?.let(::add)

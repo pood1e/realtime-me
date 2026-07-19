@@ -203,19 +203,14 @@ func TestGitHubSnapshotIsACloneNotAnAlias(t *testing.T) {
 }
 
 func TestParseScrapeJob(t *testing.T) {
-	for name, want := range map[string]mev1.ScrapeJob{
-		"node-exporter":    mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER,
-		"vm-node-exporter": mev1.ScrapeJob_SCRAPE_JOB_VM_NODE_EXPORTER,
-		"device-exporter":  mev1.ScrapeJob_SCRAPE_JOB_DEVICE_EXPORTER,
-		"agent-exporter":   mev1.ScrapeJob_SCRAPE_JOB_AGENT_EXPORTER,
-	} {
-		got, ok := parseScrapeJob(name)
-		if !ok || got != want {
-			t.Errorf("parseScrapeJob(%q) = %v, %v", name, got, ok)
-		}
+	got, ok := parseScrapeJob("probe-agent")
+	if !ok || got != mev1.ScrapeJob_SCRAPE_JOB_PROBE {
+		t.Errorf("parseScrapeJob(probe-agent) = %v, %v", got, ok)
 	}
-	if _, ok := parseScrapeJob("../../etc/passwd"); ok {
-		t.Error("an unknown job name must be rejected")
+	for _, retired := range []string{"node-exporter", "vm-node-exporter", "device-exporter", "agent-exporter", "../../etc/passwd"} {
+		if _, ok := parseScrapeJob(retired); ok {
+			t.Errorf("retired or unknown job %q must be rejected", retired)
+		}
 	}
 }
 

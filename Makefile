@@ -11,11 +11,12 @@ generate-mobile:
 	cd apps/mobile && dart run pigeon --input pigeons/status_bridge.dart
 	cd apps/mobile && dart format lib/core/platform/status_bridge.g.dart >/dev/null
 	node tools/normalize-text.mjs apps/mobile/android/app/src/main/kotlin/me/realtime/mobile/platform/StatusBridge.g.kt
+	node tools/generate-android-connect-procedures.mjs
 
 verify: verify-generated verify-style verify-proto verify-status verify-library verify-manager verify-console verify-site verify-watch verify-mobile verify-ops
 
 verify-generated: generate
-	git diff --exit-code -- gen/go packages/auth-contracts-web/src/gen packages/status-contracts-web/src/gen packages/status-contracts-dart/lib/gen packages/library-contracts-web/src/gen packages/manager-contracts-web/src/gen services/manager/src/gen packages/manager-contracts-dart/lib/gen apps/mobile/lib/core/platform/status_bridge.g.dart apps/mobile/android/app/src/main/kotlin/me/realtime/mobile/platform/StatusBridge.g.kt
+	git diff --exit-code -- gen/go packages/auth-contracts-web/src/gen packages/status-contracts-web/src/gen packages/status-contracts-dart/lib/gen packages/library-contracts-web/src/gen packages/manager-contracts-web/src/gen services/manager/src/gen packages/manager-contracts-dart/lib/gen apps/mobile/lib/core/platform/status_bridge.g.dart apps/mobile/android/app/src/main/kotlin/me/realtime/mobile/platform/StatusBridge.g.kt apps/mobile/android/app/src/main/kotlin/me/realtime/mobile/status/StatusGatewayProcedures.kt
 
 verify-style:
 	pnpm check:style

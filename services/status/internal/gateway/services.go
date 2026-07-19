@@ -3,10 +3,6 @@ package gateway
 import (
 	"context"
 	"errors"
-	"fmt"
-	"net"
-	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -56,10 +52,11 @@ type IngestServer struct {
 	store    *StatusStore
 	identity *IdentityStore
 	github   *GitHubStatusPublisher
+	targets  ScrapeTargetPolicy
 }
 
-func NewIngestServer(store *StatusStore, identity *IdentityStore, github *GitHubStatusPublisher) *IngestServer {
-	return &IngestServer{store: store, identity: identity, github: github}
+func NewIngestServer(store *StatusStore, identity *IdentityStore, github *GitHubStatusPublisher, targets ScrapeTargetPolicy) *IngestServer {
+	return &IngestServer{store: store, identity: identity, github: github, targets: targets}
 }
 
 func (server *IngestServer) requireEnrolled(uid string) (*EnrolledDevice, error) {
@@ -109,7 +106,7 @@ func (server *IngestServer) RegisterScrapeTargets(
 		return nil, err
 	}
 	for _, target := range message.GetTargets() {
-		if err := validateScrapeTarget(target); err != nil {
+		if err := server.targets.Validate(target); err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
 	}
@@ -117,35 +114,6 @@ func (server *IngestServer) RegisterScrapeTargets(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&mev1.RegisterScrapeTargetsResponse{}), nil
-}
-
-// validateScrapeTarget refuses anything that is not a bare host:port. Prometheus
-// would otherwise scrape whatever an ingest-token holder wrote here.
-func validateScrapeTarget(target *mev1.ScrapeTarget) error {
-	if target.GetJob() != mev1.ScrapeJob_SCRAPE_JOB_PROBE {
-		return errors.New("scrape target job must be SCRAPE_JOB_PROBE")
-	}
-	host, port, err := net.SplitHostPort(target.GetTarget())
-	if err != nil {
-		return fmt.Errorf("scrape target must be host:port: %w", err)
-	}
-	if host == "" {
-		return errors.New("scrape target host is required")
-	}
-	if net.ParseIP(host) == nil && !isHostname(host) {
-		return errors.New("scrape target host must be an IP address or hostname")
-	}
-	number, err := strconv.Atoi(port)
-	if err != nil || number < 1 || number > 65535 {
-		return errors.New("scrape target port must be between 1 and 65535")
-	}
-	return nil
-}
-
-var hostnamePattern = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$`)
-
-func isHostname(host string) bool {
-	return len(host) <= 253 && hostnamePattern.MatchString(host)
 }
 
 // StatusServer implements the Connect StatusService.

@@ -11,7 +11,9 @@ Self-hosted metrics and status gateway for a private metrics host.
 
 Public ingress is owned by [`deploy/edge`](../edge/README.md), not this release unit. The gateway
 joins the external `realtime-me-edge` network as `status-api` while Prometheus and exporters remain
-on the internal Status backend network.
+on the internal Status backend network. Prometheus alone also joins `probe-egress`, which supplies
+the default route needed to scrape LAN/VPN probes; the gateway admits discovery targets only from
+the CIDRs and single port declared under `probe` in `gateway.yaml`.
 
 ## Setup
 
@@ -30,13 +32,16 @@ printf %s "<tokens.discovery>" > prometheus/discovery_token
 ```
 
 The gateway refuses to start unless both workload tokens are set and distinct.
+It also refuses missing or invalid `probe.allowed_cidrs`/`probe.port` settings. Use
+literal device IP addresses, keep the CIDRs narrow, and allow the Probe port through
+each device firewall only from the Prometheus host.
 Human internal Status and Metrics calls do not use either token: they require an
 OIDC access token with `PERMISSION_STATUS_INTERNAL_READ` and are reached through
 the authenticated Console BFF.
 
 Set `STATUS_GATEWAY_BIND` to the LAN address that should accept local device updates, or keep `127.0.0.1` when only Cloudflare Tunnel should reach the gateway.
 
-Set `GITHUB_TOKEN` to a classic GitHub token with only the `user` scope so the gateway can call `changeUserStatus`.
+Set `github.status_token` in `gateway.yaml` to a classic GitHub token with only the `user` scope so the gateway can call `changeUserStatus`.
 
 Configure the shared Cloudflare Tunnel to route `api-status.<BASE_DOMAIN>` to
 `http://status-api:8080`. Start `deploy/edge` once before bringing up this stack so the external

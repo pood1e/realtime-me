@@ -9,24 +9,35 @@ import (
 	mev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/status/v1"
 )
 
-// An ingest-token holder must not be able to point Prometheus at anything it
-// likes: the target has to be a bare host:port.
-func TestValidateScrapeTargetRejectsAnythingButHostPort(t *testing.T) {
+func testScrapeTargetPolicy(t *testing.T) ScrapeTargetPolicy {
+	t.Helper()
+	policy, err := NewScrapeTargetPolicy([]string{"10.40.0.0/16", "fd42::/64"}, 18082)
+	if err != nil {
+		t.Fatalf("NewScrapeTargetPolicy() = %v", err)
+	}
+	return policy
+}
+
+// An ingest-token holder cannot redirect Prometheus outside the explicitly
+// routed probe networks, to another port, or through rebinding-prone DNS.
+func TestScrapeTargetPolicyRejectsUnsafeTargets(t *testing.T) {
+	policy := testScrapeTargetPolicy(t)
 	for name, target := range map[string]string{
-		"a URL":                  "http://10.0.0.5:9100/metrics",
-		"a bare host":            "10.0.0.5",
-		"an empty host":          ":9100",
-		"a missing port":         "10.0.0.5:",
-		"a non-numeric port":     "10.0.0.5:metrics",
-		"a port out of range":    "10.0.0.5:70000",
-		"a zero port":            "10.0.0.5:0",
-		"a path traversal":       "10.0.0.5:9100/../admin",
-		"a shell injection":      "10.0.0.5:9100;curl evil.test",
-		"an unbracketed IPv6":    "fd00::1:9100",
-		"a hostname with spaces": "my host:9100",
+		"a URL":               "http://10.40.0.5:18082/metrics",
+		"a bare host":         "10.40.0.5",
+		"an empty host":       ":18082",
+		"a hostname":          "probe-host.lan:18082",
+		"a DNS localhost":     "localhost:18082",
+		"an external address": "203.0.113.8:18082",
+		"a loopback address":  "127.0.0.1:18082",
+		"a wrong port":        "10.40.0.5:9100",
+		"a missing port":      "10.40.0.5:",
+		"a path traversal":    "10.40.0.5:18082/../admin",
+		"an unbracketed IPv6": "fd42::1:18082",
+		"a zoned IPv6":        "[fd42::1%eth0]:18082",
 	} {
-		err := validateScrapeTarget(&mev1.ScrapeTarget{
-			Job:    mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER,
+		err := policy.Validate(&mev1.ScrapeTarget{
+			Job:    mev1.ScrapeJob_SCRAPE_JOB_PROBE,
 			Target: target,
 		})
 		if err == nil {
@@ -35,19 +46,20 @@ func TestValidateScrapeTargetRejectsAnythingButHostPort(t *testing.T) {
 	}
 }
 
-func TestValidateScrapeTargetAcceptsRealTargets(t *testing.T) {
-	for _, target := range []string{"10.0.0.5:9100", "localhost:18083", "probe-host.lan:18082", "[fd00::1]:9100"} {
-		if err := validateScrapeTarget(&mev1.ScrapeTarget{
-			Job:    mev1.ScrapeJob_SCRAPE_JOB_NODE_EXPORTER,
+func TestScrapeTargetPolicyAcceptsAllowedAddresses(t *testing.T) {
+	policy := testScrapeTargetPolicy(t)
+	for _, target := range []string{"10.40.0.5:18082", "[fd42::1]:18082"} {
+		if err := policy.Validate(&mev1.ScrapeTarget{
+			Job:    mev1.ScrapeJob_SCRAPE_JOB_PROBE,
 			Target: target,
 		}); err != nil {
-			t.Errorf("validateScrapeTarget(%q) = %v, want nil", target, err)
+			t.Errorf("ScrapeTargetPolicy.Validate(%q) = %v, want nil", target, err)
 		}
 	}
 }
 
-func TestValidateScrapeTargetRequiresAJob(t *testing.T) {
-	err := validateScrapeTarget(&mev1.ScrapeTarget{Target: "10.0.0.5:9100"})
+func TestScrapeTargetPolicyRequiresProbeJob(t *testing.T) {
+	err := testScrapeTargetPolicy(t).Validate(&mev1.ScrapeTarget{Target: "10.40.0.5:18082"})
 	if err == nil {
 		t.Fatal("a target with no job was accepted; it would land in no discovery list")
 	}

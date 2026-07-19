@@ -94,7 +94,11 @@ services:
       node-exporter:
         condition: service_healthy
     networks:
-      - backend
+      backend:
+      # This is Prometheus's only route to LAN/VPN probe addresses. The
+      # gateway validates every discovered address against probe.allowed_cidrs.
+      probe-egress:
+        gw_priority: 1
 
   node-exporter:
     image: prom/node-exporter:v1.11.1
@@ -137,6 +141,7 @@ services:
 networks:
   backend:
     internal: true
+  probe-egress:
   edge:
     external: true
     name: realtime-me-edge

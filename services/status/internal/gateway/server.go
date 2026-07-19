@@ -70,7 +70,7 @@ func (server *Server) mountConnectServices(router *gin.Engine) {
 		connect.WithInterceptors(NewTokenAuthInterceptor(server.config.IngestTokens)),
 	))
 	mount(statusv1connect.NewIngestServiceHandler(
-		NewIngestServer(server.store, server.identity, server.github),
+		NewIngestServer(server.store, server.identity, server.github, server.config.ScrapeTargets),
 		connect.WithInterceptors(NewTokenAuthInterceptor(server.config.IngestTokens)),
 	))
 	mount(statusv1connect.NewStatusServiceHandler(

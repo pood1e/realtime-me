@@ -7,6 +7,7 @@ import (
 )
 
 func TestValidateRequiresBothTokens(t *testing.T) {
+	targets := testScrapeTargetPolicy(t)
 	cases := []struct {
 		name      string
 		ingest    map[string]struct{}
@@ -25,6 +26,7 @@ func TestValidateRequiresBothTokens(t *testing.T) {
 				DiscoveryTokens: testCase.discovery,
 				OIDCIssuer:      "https://identity.example.com",
 				OIDCAudience:    "status",
+				ScrapeTargets:   targets,
 			}
 			if err := config.Validate(); (err != nil) != testCase.wantErr {
 				t.Fatalf("Validate() error = %v, wantErr %v", err, testCase.wantErr)
@@ -111,6 +113,10 @@ profile:
     - platform: telegram
       label: Telegram
       uri: https://t.me/a-handle
+probe:
+  allowed_cidrs:
+    - 10.40.0.0/16
+  port: 18082
 `)
 	if err != nil {
 		t.Fatalf("load config: %v", err)
@@ -139,12 +145,24 @@ profile:
 
 // Prometheus holds the discovery token. It must never authorize device enrollment.
 func TestOneTokenCannotBeBothHalvesOfTheAPI(t *testing.T) {
-	config, err := loadSettingsFile(t, "tokens:\n  ingest: same\n  discovery: same\n")
+	config, err := loadSettingsFile(t, "tokens:\n  ingest: same\n  discovery: same\nprobe:\n  allowed_cidrs: [10.40.0.0/16]\n  port: 18082\n")
 	if err != nil {
 		t.Fatalf("load config: %v", err)
 	}
 	if err := config.Validate(); err == nil {
 		t.Fatal("the read and write tokens must be different secrets")
+	}
+}
+
+func TestProbePolicyIsRequired(t *testing.T) {
+	if _, err := loadSettingsFile(t, "tokens:\n  ingest: write\n  discovery: read\n"); err == nil {
+		t.Fatal("missing probe policy must fail configuration loading")
+	}
+}
+
+func TestProbePolicyRejectsInvalidNetwork(t *testing.T) {
+	if _, err := loadSettingsFile(t, "tokens:\n  ingest: write\n  discovery: read\nprobe:\n  allowed_cidrs: [not-a-network]\n  port: 18082\n"); err == nil {
+		t.Fatal("invalid probe CIDR must fail configuration loading")
 	}
 }
 

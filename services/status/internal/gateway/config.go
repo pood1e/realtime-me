@@ -38,12 +38,14 @@ type Config struct {
 	GitHubProjectsRefreshHours     int
 	PublicAgentPlaceholder         bool
 	Profile                        ConfiguredProfile
+	ScrapeTargets                  ScrapeTargetPolicy
 }
 
 // Settings is the hand-written half, exactly as it appears in the YAML.
 type Settings struct {
 	Tokens                 TokenSettings   `yaml:"tokens"`
 	GitHub                 GitHubSettings  `yaml:"github"`
+	Probe                  ProbeSettings   `yaml:"probe"`
 	Profile                ProfileSettings `yaml:"profile"`
 	PublicAgentPlaceholder bool            `yaml:"public_agent_placeholder"`
 }
@@ -52,6 +54,13 @@ type Settings struct {
 type TokenSettings struct {
 	Ingest    string `yaml:"ingest"`
 	Discovery string `yaml:"discovery"`
+}
+
+// ProbeSettings bounds the network endpoint Prometheus may learn from an
+// ingest caller.
+type ProbeSettings struct {
+	AllowedCIDRs []string `yaml:"allowed_cidrs"`
+	Port         int      `yaml:"port"`
 }
 
 // GitHubSettings holds credentials that must not be confused for one another. The
@@ -86,6 +95,10 @@ func LoadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	scrapeTargets, err := NewScrapeTargetPolicy(settings.Probe.AllowedCIDRs, settings.Probe.Port)
+	if err != nil {
+		return Config{}, err
+	}
 
 	return Config{
 		Port:              env("PORT", "8080"),
@@ -105,6 +118,7 @@ func LoadConfig() (Config, error) {
 		GitHubProjectsRefreshHours:     atLeastOne(settings.GitHub.ProjectsRefreshHours, 24),
 		PublicAgentPlaceholder:         settings.PublicAgentPlaceholder,
 		Profile:                        configuredProfile(settings.Profile),
+		ScrapeTargets:                  scrapeTargets,
 	}, nil
 }
 
@@ -146,6 +160,9 @@ func configuredProfile(profile ProfileSettings) ConfiguredProfile {
 
 // Validate reports the first incomplete authentication boundary.
 func (config Config) Validate() error {
+	if err := config.ScrapeTargets.validate(); err != nil {
+		return err
+	}
 	if len(config.IngestTokens) == 0 {
 		return errors.New("tokens.ingest is required")
 	}
