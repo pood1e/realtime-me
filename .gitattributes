@@ -1,0 +1,2 @@
+scripts/install-probe.py text eol=lf
+scripts/probe/** text eol=lf

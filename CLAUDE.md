@@ -126,14 +126,15 @@ take the metrics pipeline down. Swallowing the missing file is what let a lost
 profile sit for days behind a healthy 200 — and why the topbar no longer hardcodes a
 name and avatar to fall back on.
 
-**`scripts/` has one published installer and one manifest-governed runtime.**
-`install-probe.py` fetches `probe/manifest.txt`, every listed package file, and
-the pinned `probe/requirements.txt` from jsdelivr or GitHub raw. It installs into
-an atomic staged runtime while preserving the package hierarchy. Keep the base
-URL stable and keep the manifest complete; `REALTIME_ME_RAW_BASE_URL` or
-`REALTIME_ME_RAW_BASE_URLS` may select another immutable mirror. Operator-side
-ConnectRPC code belongs in `scripts/operator/status_client.py` and must not be
-imported by the credential-free probe.
+**`scripts/` has one published installer and one integrity-governed runtime.**
+`install-probe.py` requires a 40-character `REALTIME_PROBE_RELEASE`, verifies the
+embedded digest of `probe/integrity.json`, verifies every runtime file, and lets
+pip accept only hash-pinned wheels. `scripts/probe/generate-integrity.py` owns the
+manifest and installer digest. A custom immutable HTTPS mirror may be selected
+only through `REALTIME_PROBE_SOURCE_URLS`. Installation is atomic and the service
+identity cannot modify its runtime. Operator-side ConnectRPC code belongs in
+`scripts/operator/status_client.py` and must not be imported by the
+credential-free probe.
 
 **Device identity is backend-owned.** The gateway mints every device uid via
 `EnrollmentService/EnrollDevice`; clients cache it and never construct one. A
@@ -222,12 +223,9 @@ cannot run an arbitrary query. Don't reintroduce a `query=` parameter.
   `[]`. cAdvisor sits behind the `containers` Compose profile, so an empty
   file_sd list is the opt-in switch; `cadvisor.yml.example` shows the contents.
   A `static_configs` entry would leave a permanently-down target.
-- The installers try jsdelivr before GitHub raw, and jsdelivr caches a branch ref
-  for hours, so `@main` keeps serving the old file for the rest of the day you
-  push a probe change. Reinstall against the commit instead, keeping raw as the
-  fallback, because raw alone is slow enough on some networks that only the
-  largest probe file times out:
-  `REALTIME_ME_RAW_BASE_URLS="https://cdn.jsdelivr.net/gh/pood1e/realtime-me@<sha>/scripts https://raw.githubusercontent.com/pood1e/realtime-me/main/scripts"`.
+- Probe installation never accepts a branch ref. Pass the reviewed commit through
+  `REALTIME_PROBE_RELEASE`; the installer tries commit-pinned jsdelivr and GitHub
+  raw mirrors and rejects stale or mixed content by SHA-256.
 - `GetPublicStatus` is unauthenticated, so its Prometheus fan-out sits behind a
   2-second single-flight cache in `internal/gateway/status.go`. Don't add a query
   to the assembly without checking it runs inside `parallel(...)`.

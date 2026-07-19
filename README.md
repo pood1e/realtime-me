@@ -161,16 +161,37 @@ with the Status ingest API:
 
 ```sh
 # Linux
-curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-probe.py \
-  | sudo python3 -
+release=REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT
+curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSLo \
+  /tmp/install-realtime-me-probe.py \
+  "https://raw.githubusercontent.com/pood1e/realtime-me/$release/scripts/install-probe.py"
+sudo env REALTIME_PROBE_RELEASE="$release" python3 /tmp/install-realtime-me-probe.py
 
-# macOS (login user, not sudo)
-curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-probe.py \
-  | python3 -
-
-# Windows PowerShell
-irm https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-probe.py | py -3 -
+# macOS (run from the target login user's terminal)
+release=REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT
+curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSLo \
+  /tmp/install-realtime-me-probe.py \
+  "https://raw.githubusercontent.com/pood1e/realtime-me/$release/scripts/install-probe.py"
+sudo env REALTIME_PROBE_RELEASE="$release" python3 /tmp/install-realtime-me-probe.py
 ```
+
+Run Windows PowerShell as Administrator:
+
+```powershell
+$Release = "REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT"
+$Installer = Join-Path $env:TEMP "install-realtime-me-probe.py"
+Invoke-WebRequest `
+  "https://raw.githubusercontent.com/pood1e/realtime-me/$Release/scripts/install-probe.py" `
+  -OutFile $Installer
+$env:REALTIME_PROBE_RELEASE = $Release
+py -3 $Installer
+```
+
+The commit pin is mandatory. The installer verifies a SHA-256 manifest embedded
+in that reviewed installer, and pip accepts only hash-pinned wheels. Linux and
+macOS runtime files remain root-owned; Windows grants the scheduled-task user
+read/execute only. The probe binds its detected private address by default rather
+than every interface.
 
 ## Web release
 

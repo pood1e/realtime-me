@@ -81,8 +81,12 @@ curl -o /dev/null -w '%{http_code}\n' "$GATEWAY/metrics"
 Install the unified probe on a Linux, macOS, or Windows device; register its one scrape target centrally through the gateway API:
 
 ```sh
-curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-probe.py \
-  | sudo env REALTIME_PROBE_HOST=<device-lan-ip> python3 -
+release=REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT
+curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSLo \
+  /tmp/install-realtime-me-probe.py \
+  "https://raw.githubusercontent.com/pood1e/realtime-me/$release/scripts/install-probe.py"
+sudo env REALTIME_PROBE_RELEASE="$release" REALTIME_PROBE_HOST=REPLACE_WITH_DEVICE_LAN_IP \
+  python3 /tmp/install-realtime-me-probe.py
 ```
 
 Open the Console `/status` route for detailed device, metric, GitHub sync, and

@@ -175,8 +175,10 @@ proto/realtime/me/
 
 Linux、macOS、Windows 统一运行 `scripts/probe/realtime_probe` 的同一 Python 采集核心，
 安装器只适配 systemd、launchd 与 Task Scheduler。Linux `aarch64`（包括 64 位 Raspberry
-Pi OS）属于支持范围；采集协议和指标不按 CPU 架构分叉。Manager 服务能否运行在 ARM64
-还取决于固定版本 Codex/Claude CLI 与 `node-pty` 的目标平台产物，不能由 Probe 支持推导。
+Pi OS）属于支持范围；采集协议和指标不按 CPU 架构分叉。安装必须绑定已审查的 Git
+commit，运行时文件逐项校验 SHA-256，并由 root/Administrators 持有，采集身份只有读取和
+执行权限。Manager 服务能否运行在 ARM64 还取决于固定版本 Codex/Claude CLI 与
+`node-pty` 的目标平台产物，不能由 Probe 支持推导。
 
 ## 7. 发布边界
 

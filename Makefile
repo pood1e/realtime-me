@@ -1,8 +1,8 @@
 SHELL := /bin/bash
 
-.PHONY: generate generate-proto generate-mobile verify verify-generated verify-style verify-proto verify-go-shared verify-status verify-library verify-manager verify-console verify-site verify-watch verify-mobile verify-ops
+.PHONY: generate generate-proto generate-mobile generate-probe-integrity verify verify-generated verify-style verify-proto verify-go-shared verify-status verify-library verify-manager verify-console verify-site verify-watch verify-mobile verify-ops
 
-generate: generate-proto generate-mobile
+generate: generate-proto generate-mobile generate-probe-integrity
 
 generate-proto:
 	pnpm generate
@@ -13,10 +13,13 @@ generate-mobile:
 	node tools/normalize-text.mjs apps/mobile/android/app/src/main/kotlin/me/realtime/mobile/platform/StatusBridge.g.kt
 	node tools/generate-android-connect-procedures.mjs
 
+generate-probe-integrity:
+	python3 scripts/probe/generate-integrity.py
+
 verify: verify-generated verify-style verify-proto verify-status verify-library verify-manager verify-console verify-site verify-watch verify-mobile verify-ops
 
 verify-generated: generate
-	git diff --exit-code -- gen/go packages/auth-contracts-web/src/gen packages/status-contracts-web/src/gen packages/status-contracts-dart/lib/gen packages/library-contracts-web/src/gen packages/manager-contracts-web/src/gen services/manager/src/gen packages/manager-contracts-dart/lib/gen apps/mobile/lib/core/platform/status_bridge.g.dart apps/mobile/android/app/src/main/kotlin/me/realtime/mobile/platform/StatusBridge.g.kt apps/mobile/android/app/src/main/kotlin/me/realtime/mobile/status/StatusGatewayProcedures.kt
+	git diff --exit-code -- gen/go packages/auth-contracts-web/src/gen packages/status-contracts-web/src/gen packages/status-contracts-dart/lib/gen packages/library-contracts-web/src/gen packages/manager-contracts-web/src/gen services/manager/src/gen packages/manager-contracts-dart/lib/gen apps/mobile/lib/core/platform/status_bridge.g.dart apps/mobile/android/app/src/main/kotlin/me/realtime/mobile/platform/StatusBridge.g.kt apps/mobile/android/app/src/main/kotlin/me/realtime/mobile/status/StatusGatewayProcedures.kt scripts/install-probe.py scripts/probe/integrity.json
 
 verify-style:
 	pnpm check:style
@@ -72,6 +75,6 @@ verify-ops:
 	find deploy scripts -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
 	find deploy scripts -type f -name '*.sh' -print0 | xargs -0 shellcheck --severity=warning
 	python3 -m compileall -q scripts
-	cd scripts/probe && diff -u <(find realtime_probe -type f -name '*.py' | LC_ALL=C sort) <(LC_ALL=C sort manifest.txt)
+	python3 scripts/probe/generate-integrity.py --check
 	PYTHONPATH=deploy/library/operator python3 -B -c 'import compose_policy, compose_rendered_policy, compose_source_policy'
 	python3 -B deploy/library/operator/validate-compose.py source deploy/library/compose.yaml
