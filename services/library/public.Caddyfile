@@ -1,0 +1,28 @@
+{
+	admin off
+	auto_https off
+}
+
+:8080 {
+	route {
+		@public path \
+ /i/* \
+ /v1/wallpapers/* \
+ /v1/shares/* \
+ /realtime.me.library.drive.v1.ShareService/ResolveShare \
+ /realtime.me.library.drive.v1.ShareService/ListSharedItems \
+ /realtime.me.library.drive.v1.ShareService/GetSharedDownload \
+ /realtime.me.library.wallpapers.v1.WallpaperPublicService/GetWallpaper \
+ /realtime.me.library.wallpapers.v1.WallpaperPublicService/ListWallpapers
+		handle @public {
+			reverse_proxy api:8080 {
+				header_up Host {$PUBLIC_API_HOST}
+				header_up -Authorization
+				header_up -Cookie
+				header_up -X-Realtime-Internal-Key
+			}
+		}
+		respond /healthz 204
+		respond 404
+	}
+}

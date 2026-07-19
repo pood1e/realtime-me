@@ -88,6 +88,7 @@ REPO_DIR=$(cd -- "$REPO_DIR" && pwd -P)
 COMPOSE_FILE=${COMPOSE_FILE:-$REPO_DIR/deploy/library/compose.yaml}
 require_regular_file "$COMPOSE_FILE"
 require_secure_root_file "$ENV_FILE"
+require_docker_compose
 
 POSTGRES_USER=$(require_env_value "$ENV_FILE" POSTGRES_USER)
 POSTGRES_DB=$(require_env_value "$ENV_FILE" POSTGRES_DB)

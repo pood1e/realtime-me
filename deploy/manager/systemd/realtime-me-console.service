@@ -8,6 +8,8 @@ Type=simple
 DynamicUser=yes
 WorkingDirectory=/opt/realtime-me
 EnvironmentFile=/etc/realtime-me/console.env
+LoadCredential=internal-api-key:/etc/realtime-me/internal-api-key
+Environment=INTERNAL_API_KEY_FILE=%d/internal-api-key
 ExecStart=/opt/realtime-me/bin/realtime-me-console
 Restart=on-failure
 RestartSec=3s

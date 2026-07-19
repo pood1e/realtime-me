@@ -57,6 +57,7 @@ if [[ -z "$COMPOSE_FILE" ]]; then
 fi
 require_regular_file "$COMPOSE_FILE"
 require_secure_root_file "$ENV_FILE"
+require_docker_compose
 
 exec env -i PATH="$PATH" HOME=/root docker compose \
   --project-directory "$REPO_DIR" \

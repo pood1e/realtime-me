@@ -11,31 +11,34 @@ import (
 	sitev1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/site/v1/sitev1connect"
 	statusv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/status/v1/statusv1connect"
 	"github.com/pood1e/realtime-me/libs/go/authn"
+	"github.com/pood1e/realtime-me/libs/go/serviceauth"
 )
 
 type Server struct {
-	config     Config
-	store      *StatusStore
-	identity   *IdentityStore
-	prometheus *PrometheusClient
-	github     *GitHubStatusPublisher
-	profile    *ProfileService
-	projects   *ProjectsService
-	metrics    http.Handler
-	access     *authn.Verifier
+	config         Config
+	store          *StatusStore
+	identity       *IdentityStore
+	prometheus     *PrometheusClient
+	github         *GitHubStatusPublisher
+	profile        *ProfileService
+	projects       *ProjectsService
+	metrics        http.Handler
+	access         *authn.Verifier
+	internalAPIKey serviceauth.Key
 }
 
-func NewServer(config Config, store *StatusStore, identity *IdentityStore, prometheus *PrometheusClient, github *GitHubStatusPublisher, profile *ProfileService, projects *ProjectsService, metrics http.Handler, access *authn.Verifier) *Server {
+func NewServer(config Config, store *StatusStore, identity *IdentityStore, prometheus *PrometheusClient, github *GitHubStatusPublisher, profile *ProfileService, projects *ProjectsService, metrics http.Handler, access *authn.Verifier, internalAPIKey serviceauth.Key) *Server {
 	return &Server{
-		config:     config,
-		store:      store,
-		identity:   identity,
-		prometheus: prometheus,
-		github:     github,
-		profile:    profile,
-		projects:   projects,
-		metrics:    metrics,
-		access:     access,
+		config:         config,
+		store:          store,
+		identity:       identity,
+		prometheus:     prometheus,
+		github:         github,
+		profile:        profile,
+		projects:       projects,
+		metrics:        metrics,
+		access:         access,
+		internalAPIKey: internalAPIKey,
 	}
 }
 
@@ -75,11 +78,11 @@ func (server *Server) mountConnectServices(router *gin.Engine) {
 	))
 	mount(statusv1connect.NewStatusServiceHandler(
 		NewStatusServer(server.store, server.prometheus, server.config),
-		connect.WithInterceptors(NewPermissionInterceptor(server.access, authv1.Permission_PERMISSION_STATUS_INTERNAL_READ, statusv1connect.StatusServiceGetPublicStatusProcedure)),
+		connect.WithInterceptors(NewOwnerInterceptor(server.internalAPIKey, server.access, authv1.Permission_PERMISSION_STATUS_INTERNAL_READ, statusv1connect.StatusServiceGetPublicStatusProcedure)),
 	))
 	mount(statusv1connect.NewMetricsServiceHandler(
 		NewMetricsServer(server.prometheus),
-		connect.WithInterceptors(NewPermissionInterceptor(server.access, authv1.Permission_PERMISSION_STATUS_INTERNAL_READ)),
+		connect.WithInterceptors(NewOwnerInterceptor(server.internalAPIKey, server.access, authv1.Permission_PERMISSION_STATUS_INTERNAL_READ)),
 	))
 	mount(sitev1connect.NewProfileServiceHandler(
 		NewProfileServer(server.profile),

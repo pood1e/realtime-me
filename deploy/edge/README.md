@@ -2,8 +2,8 @@
 
 This is the only Cloudflare Tunnel connector in the repository. It creates the
 external Docker network `realtime-me-edge`; the Status and Library release units
-join that network through stable aliases while retaining independent Compose
-projects and lifecycle controls.
+join that network only through route-allowlisting Caddy sidecars. Business API
+containers never join the edge network.
 
 ## Configure
 
@@ -20,18 +20,17 @@ Configure the tunnel's public hostnames in Cloudflare before starting it:
 
 | Public hostname | Origin service |
 | --- | --- |
-| Status API hostname | `http://status-api:8080` |
-| Library private API hostname | `http://library-api:8080` |
-| Library public API hostname | `http://library-api:8080` |
+| Status public API hostname | `http://status-public:8080` |
+| Library public API hostname | `http://library-public:8080` |
 
-End the ingress list with the managed `http_status:404` catch-all. Public and
-private Library hosts intentionally reach the same API process; exact Host routing,
-OIDC permission checks, and a reduced public router preserve the application boundary.
+End the ingress list with the managed `http_status:404` catch-all. Do not create
+a Tunnel hostname for Console, Manager owner routes, Status private procedures,
+or Library private routes. The two public sidecars strip cookies, authorization,
+and the internal management key before forwarding only allowlisted routes.
 
-The public Site Worker consumes the Status and Library public hostnames. The
-Console BFF consumes Status and the Library private hostname. Manager remains on
-its direct host: mTLS device traffic uses the public Manager endpoint while Console
-owner traffic reaches Manager over loopback.
+The public Site Worker consumes the two public hostnames. Console reaches Status
+and Library over the hosts' LAN and reaches Manager over loopback. Manager's
+device endpoint remains private LAN/OpenVPN ingress protected by mTLS.
 
 ## Run
 

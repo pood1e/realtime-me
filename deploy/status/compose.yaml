@@ -18,12 +18,16 @@ services:
     # quietly leaves with one is exactly how the profile went missing for four days.
     environment:
       PORT: "8080"
+      INTERNAL_API_KEY_FILE: /run/secrets/internal_api_key
       STATUS_STATE_FILE: /data/status-state.json
       STATUS_GATEWAY_CONFIG: /etc/status-gateway/gateway.yaml
       PROJECTS_CONFIG_FILE: /etc/status-gateway/projects.json
       PROMETHEUS_URL: http://prometheus:9090
     ports:
-      - "${STATUS_GATEWAY_BIND:-127.0.0.1}:18080:8080"
+      - "${STATUS_GATEWAY_LAN_BIND:?STATUS_GATEWAY_LAN_BIND is required}:18080:8080"
+      - "${STATUS_GATEWAY_VPN_BIND:?STATUS_GATEWAY_VPN_BIND is required}:18080:8080"
+    secrets:
+      - internal_api_key
     volumes:
       - status-gateway-data:/data
       # The two files the owner writes by hand. gateway.yaml is every setting there is:
@@ -60,9 +64,33 @@ services:
         condition: service_healthy
     networks:
       backend:
+      gateway-egress:
+        gw_priority: 1
+
+  status-public:
+    image: caddy:2.11.4-alpine
+    restart: unless-stopped
+    depends_on:
+      status-gateway:
+        condition: service_healthy
+    volumes:
+      - type: bind
+        source: ./public.Caddyfile
+        target: /etc/caddy/Caddyfile
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      backend:
       edge:
         aliases:
-          - status-api
+          - status-public
 
   prometheus:
     image: prom/prometheus:v3.13.0
@@ -142,6 +170,7 @@ networks:
   backend:
     internal: true
   probe-egress:
+  gateway-egress:
   edge:
     external: true
     name: realtime-me-edge
@@ -151,3 +180,7 @@ volumes:
     name: realtime-me-prometheus
   status-gateway-data:
     name: realtime-me-status-gateway
+
+secrets:
+  internal_api_key:
+    file: "${INTERNAL_API_KEY_FILE:?INTERNAL_API_KEY_FILE is required}"

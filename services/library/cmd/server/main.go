@@ -55,7 +55,7 @@ func run(logger *slog.Logger) error {
 	}
 	providerRegistry, err := provider.NewRegistry(provider.RegistryConfig{
 		SpotifyClientID: cfg.SpotifyClientID, SpotifyClientSecret: cfg.SpotifyClientSecret,
-		SpotifyRedirectURI: cfg.PrivateAPIOrigin() + "/v1/music/providers/spotify/callback",
+		SpotifyRedirectURI: cfg.SpotifyRedirectURI(),
 	})
 	if err != nil {
 		return err

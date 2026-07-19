@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/pood1e/realtime-me/libs/go/authn"
+	"github.com/pood1e/realtime-me/libs/go/serviceauth"
 )
 
 const (
@@ -31,6 +32,7 @@ type Config struct {
 	ConsoleOrigin         string
 	OIDCIssuer            string
 	OIDCAudience          string
+	InternalAPIKey        serviceauth.Key
 	ProviderCredentialKey []byte
 	SpotifyClientID       string
 	SpotifyClientSecret   string
@@ -79,6 +81,11 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	config.ProviderCredentialKey = providerCredentialKey
+	internalAPIKey, err := serviceauth.LoadFile(os.Getenv("INTERNAL_API_KEY_FILE"))
+	if err != nil {
+		return Config{}, err
+	}
+	config.InternalAPIKey = internalAPIKey
 	if err := applyNumericOverrides(&config); err != nil {
 		return Config{}, err
 	}
@@ -124,16 +131,16 @@ func LoadWorker() (WorkerConfig, error) {
 		return WorkerConfig{}, err
 	}
 	config.ProviderCredentialKey = providerCredentialKey
+	consoleOrigin := trimTrailingSlash(os.Getenv("CONSOLE_ORIGIN"))
+	if err := validateOrigin("CONSOLE_ORIGIN", consoleOrigin); err != nil {
+		return WorkerConfig{}, err
+	}
 	spotifyConfigured := config.SpotifyClientID != "" || config.SpotifyClientSecret != ""
-	privateAPIHost := normalizeHost(os.Getenv("PRIVATE_API_HOST"))
 	if spotifyConfigured {
-		if config.SpotifyClientID == "" || config.SpotifyClientSecret == "" || privateAPIHost == "" {
-			return WorkerConfig{}, errors.New("Spotify worker configuration requires client ID, client secret, and private API host")
+		if config.SpotifyClientID == "" || config.SpotifyClientSecret == "" {
+			return WorkerConfig{}, errors.New("Spotify worker configuration requires client ID and client secret")
 		}
-		if err := validateHost("PRIVATE_API_HOST", privateAPIHost); err != nil {
-			return WorkerConfig{}, err
-		}
-		config.SpotifyRedirectURI = "https://" + privateAPIHost + "/v1/music/providers/spotify/callback"
+		config.SpotifyRedirectURI = spotifyRedirectURI(consoleOrigin)
 	}
 	if raw := strings.TrimSpace(os.Getenv("RESERVED_FREE_BYTES")); raw != "" {
 		value, err := strconv.ParseInt(raw, 10, 64)
@@ -157,8 +164,8 @@ func LoadMigration() (MigrationConfig, error) {
 	return config, nil
 }
 
-// PrivateAPIOrigin returns the canonical private API origin.
-func (c Config) PrivateAPIOrigin() string { return "https://" + c.PrivateAPIHost }
+// SpotifyRedirectURI returns the Console-owned provider callback URL.
+func (c Config) SpotifyRedirectURI() string { return spotifyRedirectURI(c.ConsoleOrigin) }
 
 // AccessConfig returns the human OIDC trust boundary.
 func (c Config) AccessConfig() authn.Config {
@@ -208,6 +215,10 @@ func validateSpotifyConfig(config Config) error {
 		return nil
 	}
 	return nil
+}
+
+func spotifyRedirectURI(consoleOrigin string) string {
+	return consoleOrigin + "/api/library/v1/music/providers/spotify/callback"
 }
 
 func valueOrDefault(key, fallback string) string {

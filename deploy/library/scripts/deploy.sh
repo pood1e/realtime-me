@@ -66,7 +66,7 @@ fi
 require_regular_file "$COMPOSE_FILE"
 require_regular_file "$REPO_DIR/services/library/Dockerfile"
 require_secure_root_file "$ENV_FILE"
-docker compose version >/dev/null
+require_docker_compose
 
 POSTGRES_USER=$(require_env_value "$ENV_FILE" POSTGRES_USER)
 POSTGRES_PASSWORD=$(require_env_value "$ENV_FILE" POSTGRES_PASSWORD)
@@ -78,6 +78,9 @@ OIDC_ISSUER=$(require_env_value "$ENV_FILE" OIDC_ISSUER)
 LIBRARY_AUTH_AUDIENCE=$(require_env_value "$ENV_FILE" LIBRARY_AUTH_AUDIENCE)
 PRIVATE_API_HOST=$(require_env_value "$ENV_FILE" PRIVATE_API_HOST)
 PUBLIC_API_HOST=$(require_env_value "$ENV_FILE" PUBLIC_API_HOST)
+LIBRARY_API_LAN_BIND=$(require_env_value "$ENV_FILE" LIBRARY_API_LAN_BIND)
+LIBRARY_API_VPN_BIND=$(require_env_value "$ENV_FILE" LIBRARY_API_VPN_BIND)
+INTERNAL_API_KEY_FILE=$(require_env_value "$ENV_FILE" INTERNAL_API_KEY_FILE)
 SPOTIFY_CLIENT_ID=$(read_env_value "$ENV_FILE" SPOTIFY_CLIENT_ID)
 SPOTIFY_CLIENT_SECRET=$(read_env_value "$ENV_FILE" SPOTIFY_CLIENT_SECRET)
 VOLUME_MOUNT_DIR=$(require_env_value "$ENV_FILE" CLOUD_DRIVE_VOLUME_MOUNT_DIR)
@@ -92,6 +95,11 @@ BACKUP_STAGING_DIR=$(require_env_value "$ENV_FILE" CLOUD_DRIVE_BACKUP_STAGING_DI
 [[ "$POSTGRES_DB" =~ ^[A-Za-z0-9_]+$ ]] || die 'POSTGRES_DB must contain only letters, digits, or underscores'
 [[ "$MUSIC_PROVIDER_CREDENTIAL_KEY" =~ ^[A-Za-z0-9+/]{43}=$ ]] ||
   die 'MUSIC_PROVIDER_CREDENTIAL_KEY must be padded Base64 containing exactly 32 bytes'
+[[ "$LIBRARY_API_LAN_BIND" =~ ^192\.168\.0\.([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])$ && "$PRIVATE_API_HOST" == "$LIBRARY_API_LAN_BIND" ]] ||
+  die 'Library private API host and bind must be the same usable 192.168.0.0/24 LAN address'
+[[ "$LIBRARY_API_VPN_BIND" == '10.66.0.11' ]] ||
+  die 'Library VPN bind must use its assigned overlay address 10.66.0.11'
+require_secure_root_file "$INTERNAL_API_KEY_FILE"
 if [[ -n "$SPOTIFY_CLIENT_ID" || -n "$SPOTIFY_CLIENT_SECRET" ]]; then
   [[ -n "$SPOTIFY_CLIENT_ID" && -n "$SPOTIFY_CLIENT_SECRET" ]] ||
     die 'SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET must be configured together'
@@ -115,6 +123,7 @@ FREE_BYTES=$(available_bytes "$VOLUME_MOUNT_DIR")
 : "$MUSIC_PROVIDER_CREDENTIAL_KEY"
 : "$PUBLIC_SITE_ORIGIN" "$CONSOLE_ORIGIN" "$OIDC_ISSUER" "$LIBRARY_AUTH_AUDIENCE"
 : "$PRIVATE_API_HOST" "$PUBLIC_API_HOST"
+: "$LIBRARY_API_LAN_BIND" "$LIBRARY_API_VPN_BIND" "$INTERNAL_API_KEY_FILE"
 : "$SPOTIFY_CLIENT_ID" "$SPOTIFY_CLIENT_SECRET"
 
 compose() {

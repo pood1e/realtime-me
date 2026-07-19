@@ -10,7 +10,7 @@ _MAX_SOURCE_BYTES = 128 * 1024
 _VARIABLE_PATTERN = re.compile(r"\$(?:\{[^}\n]*\}|\$[A-Za-z_][A-Za-z0-9_]*)")
 _YAML_REFERENCE_PATTERN = re.compile(r"[&*][A-Za-z][A-Za-z0-9_-]*")
 _FORBIDDEN_KEY_PATTERN = re.compile(
-    r"(?m)^\s*(?:include|extends|env_file|label_file|file)\s*:"
+    r"(?m)^\s*(?:include|extends|env_file|label_file)\s*:"
 )
 _BLOCK_SCALAR_PATTERN = re.compile(r"(?m):\s*[>|][-+]?\s*(?:#.*)?$")
 
@@ -21,7 +21,10 @@ _EXPECTED_VARIABLES = Counter(
         "${CLOUD_DRIVE_DATA_DIR:?CLOUD_DRIVE_DATA_DIR is required}": 3,
         "${CLOUD_DRIVE_IMAGE:-cloud-drive:local}": 1,
         "${CLOUD_DRIVE_POSTGRES_DIR:?CLOUD_DRIVE_POSTGRES_DIR is required}": 1,
-        "${CONSOLE_ORIGIN:?CONSOLE_ORIGIN is required}": 1,
+        "${CONSOLE_ORIGIN:?CONSOLE_ORIGIN is required}": 2,
+        "${INTERNAL_API_KEY_FILE:?INTERNAL_API_KEY_FILE is required}": 1,
+        "${LIBRARY_API_LAN_BIND:?LIBRARY_API_LAN_BIND is required}": 1,
+        "${LIBRARY_API_VPN_BIND:?LIBRARY_API_VPN_BIND is required}": 1,
         "${LIBRARY_AUTH_AUDIENCE:?LIBRARY_AUTH_AUDIENCE is required}": 1,
         "${MUSIC_PROVIDER_CREDENTIAL_KEY:?MUSIC_PROVIDER_CREDENTIAL_KEY is required}": 2,
         "${OIDC_ISSUER:?OIDC_ISSUER is required}": 1,
@@ -29,8 +32,8 @@ _EXPECTED_VARIABLES = Counter(
         "${POSTGRES_IMAGE:-postgres:18.4-alpine}": 1,
         "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}": 4,
         "${POSTGRES_USER:?POSTGRES_USER is required}": 4,
-        "${PRIVATE_API_HOST:?PRIVATE_API_HOST is required}": 2,
-        "${PUBLIC_API_HOST:?PUBLIC_API_HOST is required}": 1,
+        "${PRIVATE_API_HOST:?PRIVATE_API_HOST is required}": 1,
+        "${PUBLIC_API_HOST:?PUBLIC_API_HOST is required}": 2,
         "${PUBLIC_SITE_ORIGIN:?PUBLIC_SITE_ORIGIN is required}": 1,
         "${RESERVED_FREE_BYTES:-21474836480}": 2,
         "${SPOTIFY_CLIENT_ID:-}": 2,

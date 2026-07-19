@@ -209,7 +209,7 @@ class _EndpointHeader extends StatelessWidget {
           child: ListTile(
             leading: const CircleAvatar(child: Icon(Icons.home_work_outlined)),
             title: SelectableText(session.credentials.serviceUri.toString()),
-            subtitle: const Text('DDNS 直连 · mTLS + 设备令牌'),
+            subtitle: const Text('局域网 / OpenVPN · mTLS + 设备令牌'),
             trailing: StatusPill(
               label: '已保护',
               color: scheme.primary,

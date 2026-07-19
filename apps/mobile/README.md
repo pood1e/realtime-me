@@ -14,7 +14,7 @@ Flutter UI.
 - Native Android owns Wear OS Data Layer listeners, Android Keystore token storage,
   WorkManager recovery, and foreground/background Status sync. These continue when
   the Flutter engine is not running.
-- Manager pairing uses the private CA/DDNS origin created by `smctl pair create`, a
+- Manager pairing uses the private CA and internal service origin created by `smctl pair create`, a
   device PKCS#12 identity, and a bearer token. The app rejects plaintext HTTP and has
   no certificate-verification bypass.
 

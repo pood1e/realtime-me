@@ -154,7 +154,7 @@ async function withPairingAuthority<T>(
       secrets: await SecretStore.open(config.dataDirectory),
       opensslPath: config.opensslPath,
       dataDirectory: config.dataDirectory,
-      publicUrl: config.publicUrl,
+      serviceUrl: config.serviceUrl,
       pairingUrl: config.pairingUrl,
     });
     return operation(pairing);

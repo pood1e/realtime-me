@@ -15,6 +15,16 @@ require_command() {
   command -v "$1" >/dev/null 2>&1 || die "required command is unavailable: $1"
 }
 
+require_docker_compose() {
+  local version
+
+  require_command docker
+  version=$(docker compose version --short 2>/dev/null) ||
+    die 'Docker Compose is unavailable'
+  [[ "$version" == '5.1.4' ]] ||
+    die "Docker Compose 5.1.4 is required; found $version"
+}
+
 require_root() {
   [[ ${EUID} -eq 0 ]] || die 'run this host administration script as root'
 }

@@ -65,7 +65,6 @@ install -d -o root -g "$OPERATOR_GROUP" -m 2770 \
   "$INCOMING_COMPOSE_DIR"
 install -o root -g root -m 0644 "$REPO_DIR/deploy/library/operator/lib.sh" "$LIBEXEC_DIR/lib.sh"
 install -o root -g root -m 0644 \
-  "$REPO_DIR/deploy/library/operator/compose_expected.py" \
   "$REPO_DIR/deploy/library/operator/compose_policy.py" \
   "$REPO_DIR/deploy/library/operator/compose_rendered_policy.py" \
   "$REPO_DIR/deploy/library/operator/compose_source_policy.py" \

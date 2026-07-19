@@ -13,6 +13,7 @@ import (
 	sitev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/site/v1"
 	mev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/status/v1"
 	"github.com/pood1e/realtime-me/libs/go/authn"
+	"github.com/pood1e/realtime-me/libs/go/serviceauth"
 )
 
 // EnrollmentServer implements the Connect EnrollmentService. It mints the
@@ -208,8 +209,9 @@ func NewTokenAuthInterceptor(tokens map[string]struct{}, publicProcedures ...str
 	}
 }
 
-// NewPermissionInterceptor verifies an OIDC identity and one bounded-context permission.
-func NewPermissionInterceptor(verifier *authn.Verifier, permission authv1.Permission, publicProcedures ...string) connect.UnaryInterceptorFunc {
+// NewOwnerInterceptor requires both the private management-plane credential
+// and an OIDC identity with one bounded-context permission.
+func NewOwnerInterceptor(internalAPIKey serviceauth.Key, verifier *authn.Verifier, permission authv1.Permission, publicProcedures ...string) connect.UnaryInterceptorFunc {
 	allow := make(map[string]bool, len(publicProcedures))
 	for _, procedure := range publicProcedures {
 		allow[procedure] = true
@@ -218,6 +220,9 @@ func NewPermissionInterceptor(verifier *authn.Verifier, permission authv1.Permis
 		return func(ctx context.Context, request connect.AnyRequest) (connect.AnyResponse, error) {
 			if request.Spec().IsClient || allow[request.Spec().Procedure] {
 				return next(ctx, request)
+			}
+			if !internalAPIKey.Matches(request.Header().Get(serviceauth.Header)) {
+				return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthorized"))
 			}
 			_, err := verifier.Authenticate(ctx, request.Header().Get("Authorization"), permission)
 			if errors.Is(err, authn.ErrUnavailable) {

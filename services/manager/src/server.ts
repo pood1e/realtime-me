@@ -19,6 +19,11 @@ import { Permission } from "./gen/realtime/me/auth/v1/permission_pb.js";
 import type { ServerConfig } from "./infrastructure/config.js";
 import { ResourceStore } from "./infrastructure/resource-store.js";
 import { SecretStore } from "./infrastructure/secret-store.js";
+import {
+  INTERNAL_API_KEY_HEADER,
+  loadInternalApiKey,
+  matchesInternalApiKey,
+} from "./infrastructure/service-auth.js";
 import { openDatabase, type SqliteDatabase } from "./infrastructure/sqlite.js";
 import { registerAguiHttp } from "./transport/agui-http.js";
 import { createControlRoutes } from "./transport/control/routes.js";
@@ -33,9 +38,10 @@ export interface ServerApplication {
 }
 
 export async function createServer(config: ServerConfig): Promise<ServerApplication> {
+  const internalApiKey = loadInternalApiKey(config.internalApiKeyFile);
   const database = openDatabase(config.databasePath);
   try {
-    return await buildServer(config, database);
+    return await buildServer(config, database, internalApiKey);
   } catch (error) {
     database.close();
     throw error;
@@ -45,6 +51,7 @@ export async function createServer(config: ServerConfig): Promise<ServerApplicat
 async function buildServer(
   config: ServerConfig,
   database: SqliteDatabase,
+  internalApiKey: Uint8Array,
 ): Promise<ServerApplication> {
   const store = new ResourceStore(database);
   const secrets = await SecretStore.open(config.dataDirectory);
@@ -68,7 +75,7 @@ async function buildServer(
     secrets,
     opensslPath: config.opensslPath,
     dataDirectory: config.dataDirectory,
-    publicUrl: config.publicUrl,
+    serviceUrl: config.serviceUrl,
     pairingUrl: config.pairingUrl,
   });
   const terminals = new TerminalManager(store, config.tmuxPath, config.tmuxSocketName);
@@ -84,7 +91,12 @@ async function buildServer(
     logger: {
       level: config.logLevel,
       redact: {
-        paths: ["req.headers.authorization", "request.headers.authorization"],
+        paths: [
+          "req.headers.authorization",
+          "request.headers.authorization",
+          'req.headers["x-realtime-internal-key"]',
+          'request.headers["x-realtime-internal-key"]',
+        ],
         censor: "[REDACTED]",
       },
     },
@@ -113,6 +125,9 @@ async function buildServer(
     }
     if (deviceAuth.authenticate(request.headers.authorization)) {
       return;
+    }
+    if (!matchesInternalApiKey(request.headers[INTERNAL_API_KEY_HEADER], internalApiKey)) {
+      return reply.code(401).send({ error: "Unauthorized" });
     }
     try {
       if (await ownerAuth.authenticate(request.headers.authorization, Permission.MANAGER_CONTROL)) {

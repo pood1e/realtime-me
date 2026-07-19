@@ -1,0 +1,22 @@
+{
+	admin off
+	auto_https off
+}
+
+:8080 {
+	route {
+		@public path \
+ /realtime.me.status.v1.StatusService/GetPublicStatus \
+ /realtime.me.site.v1.ProfileService/GetProfile \
+ /realtime.me.site.v1.ProjectsService/ListProjects
+		handle @public {
+			reverse_proxy status-gateway:8080 {
+				header_up -Authorization
+				header_up -Cookie
+				header_up -X-Realtime-Internal-Key
+			}
+		}
+		respond /healthz 204
+		respond 404
+	}
+}

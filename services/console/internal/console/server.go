@@ -23,6 +23,7 @@ import (
 	authv1 "github.com/pood1e/realtime-me/gen/go/realtime/me/auth/v1"
 	authv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/auth/v1/authv1connect"
 	"github.com/pood1e/realtime-me/libs/go/authn"
+	"github.com/pood1e/realtime-me/libs/go/serviceauth"
 	"github.com/pood1e/realtime-me/services/console/internal/config"
 	"github.com/pood1e/realtime-me/services/console/internal/session"
 )
@@ -76,9 +77,9 @@ func NewServer(ctx context.Context, cfg config.Config, logger *slog.Logger) (*Se
 		},
 		connectErrors: connect.NewErrorWriter(),
 		proxies: map[string]*httputil.ReverseProxy{
-			"/api/status/":  newProxy("/api/status", cfg.StatusUpstream, logger),
-			"/api/library/": newProxy("/api/library", cfg.LibraryUpstream, logger),
-			"/api/manager/": newProxy("/api/manager", cfg.ManagerUpstream, logger),
+			"/api/status/":  newProxy("/api/status", cfg.StatusUpstream, cfg.InternalAPIKey.HeaderValue(), logger),
+			"/api/library/": newProxy("/api/library", cfg.LibraryUpstream, cfg.InternalAPIKey.HeaderValue(), logger),
+			"/api/manager/": newProxy("/api/manager", cfg.ManagerUpstream, cfg.InternalAPIKey.HeaderValue(), logger),
 		},
 	}
 	server.sessionPath, server.sessionAPI = authv1connect.NewSessionServiceHandler(&sessionServer{server: server})
@@ -339,7 +340,7 @@ func (service *sessionServer) Logout(ctx context.Context, _ *connect.Request[aut
 	return response, nil
 }
 
-func newProxy(prefix string, target *url.URL, logger *slog.Logger) *httputil.ReverseProxy {
+func newProxy(prefix string, target *url.URL, internalAPIKey string, logger *slog.Logger) *httputil.ReverseProxy {
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	director := proxy.Director
 	proxy.Director = func(request *http.Request) {
@@ -350,6 +351,7 @@ func newProxy(prefix string, target *url.URL, logger *slog.Logger) *httputil.Rev
 		}
 		request.Host = target.Host
 		request.Header.Del("Cookie")
+		request.Header.Set(serviceauth.Header, internalAPIKey)
 		if resolved, ok := request.Context().Value(contextKey{}).(session.Resolved); ok {
 			request.Header.Set("Authorization", "Bearer "+resolved.AccessToken)
 		}

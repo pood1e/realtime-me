@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: generate generate-proto generate-mobile verify verify-generated verify-style verify-proto verify-status verify-library verify-manager verify-console verify-site verify-watch verify-mobile verify-ops
+.PHONY: generate generate-proto generate-mobile verify verify-generated verify-style verify-proto verify-go-shared verify-status verify-library verify-manager verify-console verify-site verify-watch verify-mobile verify-ops
 
 generate: generate-proto generate-mobile
 
@@ -24,13 +24,17 @@ verify-style:
 verify-proto:
 	pnpm check:proto
 
-verify-status:
+verify-go-shared:
+	test -z "$$(find libs/go/authn libs/go/serviceauth -type f -name '*.go' -print0 | xargs -0 gofmt -l)"
+	go vet ./libs/go/authn ./libs/go/serviceauth
+
+verify-status: verify-go-shared
 	test -z "$$(find services/status -type f -name '*.go' -print0 | xargs -0 gofmt -l)"
-	go vet ./services/status/... ./libs/go/authn
+	go vet ./services/status/...
 	go build ./services/status/...
 	pnpm --filter @realtime-me/status-web typecheck
 
-verify-library:
+verify-library: verify-go-shared
 	test -z "$$(find services/library -path services/library/vendor -prune -o -type f -name '*.go' -print0 | xargs -0 gofmt -l)"
 	go vet ./services/library/...
 	go build ./services/library/...
@@ -40,8 +44,8 @@ verify-manager:
 	pnpm --filter @realtime-me/manager check
 	pnpm --filter @realtime-me/manager build
 
-verify-console:
-	test -z "$$(find services/console libs/go/authn -type f -name '*.go' -print0 | xargs -0 gofmt -l)"
+verify-console: verify-go-shared
+	test -z "$$(find services/console -type f -name '*.go' -print0 | xargs -0 gofmt -l)"
 	go vet ./services/console/...
 	go build ./services/console/...
 	pnpm --filter @realtime-me/console check
@@ -64,5 +68,5 @@ verify-ops:
 	find deploy scripts -type f -name '*.sh' -print0 | xargs -0 shellcheck --severity=warning
 	python3 -m compileall -q scripts
 	cd scripts/probe && diff -u <(find realtime_probe -type f -name '*.py' | LC_ALL=C sort) <(LC_ALL=C sort manifest.txt)
-	PYTHONPATH=deploy/library/operator python3 -B -c 'import compose_expected, compose_policy, compose_rendered_policy, compose_source_policy'
+	PYTHONPATH=deploy/library/operator python3 -B -c 'import compose_policy, compose_rendered_policy, compose_source_policy'
 	python3 -B deploy/library/operator/validate-compose.py source deploy/library/compose.yaml

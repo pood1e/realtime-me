@@ -21,9 +21,10 @@ Two web applications present them:
 - `apps/web/console`: the authenticated owner console for Status, Library, and
   Manager, served by the Go OIDC BFF in `services/console`.
 
-The Console uses browser-bound authorization-code state + PKCE, bounded server-side sessions, a
-host-only `HttpOnly` cookie, same-origin CSRF checks, and downstream JWT
-permissions. The browser never stores the owner access token.
+The Console is reachable directly on the trusted LAN or through OpenVPN's separate overlay. It uses browser-bound authorization-code state +
+PKCE, bounded server-side sessions, a host-only `HttpOnly` cookie, same-origin CSRF checks, an
+internal service key, and downstream JWT permissions. The browser stores neither downstream
+credential.
 
 Workload/device credentials remain deliberately separate:
 
@@ -31,6 +32,10 @@ Workload/device credentials remain deliberately separate:
 - Prometheus uses a workload token limited to target discovery and gateway process scraping;
 - Manager Flutter clients use device mTLS plus a revocable bearer;
 - anonymous users reach only public Status/wallpaper/share handlers.
+
+Manager and Console have no public hostname or TCP port forward. Local clients use
+the existing LAN addresses; remote clients first join the non-conflicting
+`10.66.0.0/24` OpenVPN overlay. Only the OpenVPN UDP endpoint may be public.
 
 See [the unified architecture](docs/architecture/project-consolidation.md),
 [Library architecture](docs/library/architecture.md), and
@@ -62,6 +67,7 @@ services/library            Go API/worker/migrate
 services/manager            TypeScript/Fastify Manager
 services/console            Go OIDC BFF/static host
 libs/go/authn               shared Go OIDC verifier
+libs/go/serviceauth         shared Go internal-key verifier
 proto/realtime/me           canonical language-neutral contracts
 gen/go                      generated Go contracts
 packages/*-contracts-*      generated TypeScript/Dart contracts
@@ -106,7 +112,7 @@ make verify
 Register one confidential client with callback:
 
 ```text
-https://console.example.com/auth/callback
+https://console.realtime.internal:9443/auth/callback
 ```
 
 Issue the common owner access-token audience (recommended `realtime-me`) and put
@@ -119,9 +125,10 @@ PERMISSION_LIBRARY_MANAGE
 PERMISSION_MANAGER_CONTROL
 ```
 
-Each downstream service independently verifies issuer, audience, expiry,
-subject, its permission, and the bounded RFC 9068 `typ: at+jwt` access-token
-profile. ID tokens are accepted only by the Console login boundary.
+Each owner downstream first verifies the internal management key, then independently verifies
+issuer, audience, expiry, subject, its permission, and the bounded RFC 9068 `typ: at+jwt`
+access-token profile. ID tokens are accepted only by the Console login boundary. VPN and key
+setup lives in [`deploy/vpn`](deploy/vpn/README.md).
 
 ## Status stack quick start
 
@@ -131,11 +138,16 @@ cp gateway.example.yaml gateway.yaml
 cp projects.example.json projects.json
 cp .env.example .env
 
+# First complete deploy/vpn and install the shared key on this host.
+sudo install -d -m 0700 /etc/realtime-me
+sudo install -m 0400 /secure/internal-api-key /etc/realtime-me/internal-api-key
+
 openssl rand -base64 32 # tokens.ingest
 openssl rand -base64 32 # tokens.discovery
 printf %s '<tokens.discovery>' > prometheus/discovery_token
 chmod 700 . && chmod 644 gateway.yaml projects.json
 
+docker compose --env-file ../edge/.env -f ../edge/compose.yaml up -d
 docker compose up -d --build --remove-orphans
 ```
 
@@ -165,7 +177,7 @@ irm https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-probe.py
 Public Site:
 
 ```sh
-VITE_CONSOLE_URL=https://console.example.com pnpm --filter @realtime-me/site build
+VITE_CONSOLE_URL=https://console.realtime.internal:9443 pnpm --filter @realtime-me/site build
 pnpm --dir apps/web/site deploy -- \
   --var STATUS_API_BASE_URL:https://api-status.example.com \
   --var LIBRARY_PUBLIC_API_BASE_URL:https://api-library-public.example.com
@@ -179,13 +191,13 @@ operations remain in [`deploy/library`](deploy/library/README.md) and
 
 ## Mobile development
 
-LAN and public Status endpoints are Android build properties, never committed
+Private LAN/OpenVPN and public Status endpoints are Android build properties, never committed
 addresses:
 
 ```sh
 cd apps/mobile/android
 ./gradlew app:assembleDebug \
-  -PstatusGatewayLanUrl=http://<lan-host>:18080 \
+  -PstatusGatewayLanUrl=http://status.realtime.internal:18080 \
   -PstatusGatewayPublicUrl=https://api-status.example.com
 ```
 

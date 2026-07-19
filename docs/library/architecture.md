@@ -8,9 +8,9 @@ not own browser identity or a standalone frontend.
 
 ```mermaid
 flowchart LR
-  Site[Public Site Worker] -->|wallpaper/share allowlist| PublicHost[Public API host]
-  Console[Console BFF] -->|OIDC bearer| PrivateHost[Private API host]
-  Provider[Music provider] -->|state + PKCE callback| PrivateHost
+  Site[Public Site Worker] -->|wallpaper/share allowlist| PublicHost[Public Caddy sidecar]
+  Console[Console BFF] -->|LAN + internal key + OIDC| PrivateHost[existing LAN IP :18081]
+  Provider[Music provider] -->|Console callback| Console
   PrivateHost --> API[Go API]
   PublicHost --> API
   API --> DB[(PostgreSQL)]
@@ -20,25 +20,26 @@ flowchart LR
   Worker --> Providers[Music providers]
 ```
 
-The private and public hostnames reach one API process, but Host routing creates
-two disjoint handler trees:
+The existing LAN address, dedicated OpenVPN `10.66.0.11`, and public sidecar reach one API process, but fixed
+Host routing creates two disjoint handler trees:
 
 - private: ConnectRPC, uploads, source/derived files, provider management;
 - public: wallpaper reads, anonymous image assets, and token-scoped read-only
   shares;
-- provider callback: the only unauthenticated private-host GET, protected by
-  one-time state and PKCE and redirected to the fixed Console origin.
+- provider callback: returns through the authenticated Console proxy and requires
+  its session, internal key, owner token, one-time state, and PKCE.
 
 Unknown hosts return 404. Library does not emit CORS because browsers reach it
 through same-origin Site/Console proxies.
 
 ## Identity
 
-Private routes require an OIDC JWT with the configured issuer, common owner
-audience, valid expiry/subject, and `PERMISSION_LIBRARY_MANAGE`. Password login,
+Private routes require the shared internal management key plus an OIDC JWT with the configured
+issuer, common owner audience, valid expiry/subject, and `PERMISSION_LIBRARY_MANAGE`. Password login,
 Library sessions, Library-owned browser cookies, and the old Library Auth Proto no longer exist.
 
-The public Site Worker strips cookies and authorization before forwarding. Share
+The public Site Worker and Caddy sidecar both strip cookies, authorization, and
+the internal-key header before forwarding. Share
 tokens are unguessable resource capabilities scoped to the public share methods;
 they are not owner identities and cannot reach private handlers.
 
@@ -92,8 +93,10 @@ Restoring database and objects from different instants is unsupported.
 ## Deployment
 
 `deploy/library/compose.yaml` retains independent lifecycle control for
-PostgreSQL, migrate, API, and worker. Only API joins `realtime-me-edge`; PostgreSQL
-is internal and worker gets a separate provider-egress network.
+PostgreSQL, migrate, API, public Caddy sidecar, and worker. Only the sidecar joins
+`realtime-me-edge`; PostgreSQL is internal, while API and worker receive a separate
+provider-egress network. API publishes the same private port on the host's existing LAN address and
+dedicated overlay `10.66.0.11`; it never allocates another LAN address.
 
 Required application wiring:
 
@@ -104,9 +107,13 @@ Required application wiring:
 | `OIDC_ISSUER` | owner trust boundary |
 | `LIBRARY_AUTH_AUDIENCE` | common owner token audience |
 | `PRIVATE_API_HOST` / `PUBLIC_API_HOST` | strict Host routing |
+| `LIBRARY_API_LAN_BIND` | existing LAN API bind; equals private Host |
+| `LIBRARY_API_VPN_BIND` | fixed OpenVPN overlay bind |
+| `INTERNAL_API_KEY_FILE` | root-only shared management key file |
 | `MUSIC_PROVIDER_CREDENTIAL_KEY` | provider credential encryption |
 
 Restricted releases may replace Library source and Compose only after source and
 rendered policy validation. Root retains control of `go.mod`, vendor,
-Auth/Library generated contracts, `libs/go/authn`, Dockerfile, operator policy,
+Auth/Library generated contracts, `libs/go/authn`, `libs/go/serviceauth`, public
+route allowlist, Dockerfile, operator policy,
 and backup scripts.
