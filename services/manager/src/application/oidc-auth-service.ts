@@ -20,6 +20,7 @@ const ACCESS_TOKEN_ALGORITHMS = [
   "ES512",
   "EdDSA",
 ];
+const MAX_ACCESS_TOKEN_LENGTH = 16 * 1024;
 
 export class PermissionDeniedError extends Error {
   constructor() {
@@ -124,7 +125,9 @@ function identityUnavailable(error: unknown): boolean {
 function bearerToken(authorization: string | undefined): string | null {
   if (!authorization?.startsWith("Bearer ")) return null;
   const token = authorization.slice("Bearer ".length);
-  return token.length > 0 && !/\s/.test(token) ? token : null;
+  return token.length > 0 && token.length <= MAX_ACCESS_TOKEN_LENGTH && !/\s/.test(token)
+    ? token
+    : null;
 }
 
 function loopback(hostname: string): boolean {

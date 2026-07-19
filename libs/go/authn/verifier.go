@@ -4,6 +4,8 @@ package authn
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -18,7 +20,18 @@ import (
 	authv1 "github.com/pood1e/realtime-me/gen/go/realtime/me/auth/v1"
 )
 
-const discoveryTimeout = 10 * time.Second
+const (
+	discoveryTimeout     = 10 * time.Second
+	maxAccessTokenLength = 16 * 1024
+	accessTokenType      = "at+jwt"
+)
+
+var accessTokenSigningAlgorithms = []string{
+	"RS256", "RS384", "RS512",
+	"PS256", "PS384", "PS512",
+	"ES256", "ES384", "ES512",
+	"EdDSA",
+}
 
 // ErrUnauthenticated means that no valid identity was presented.
 var ErrUnauthenticated = errors.New("authentication required")
@@ -107,7 +120,7 @@ func NewVerifier(config Config) (*Verifier, error) {
 // Authenticate verifies a bearer token and enforces one required permission.
 func (verifier *Verifier) Authenticate(ctx context.Context, authorization string, required authv1.Permission) (Principal, error) {
 	rawToken, ok := bearerToken(authorization)
-	if !ok {
+	if !ok || !hasAccessTokenType(rawToken) {
 		return Principal{}, ErrUnauthenticated
 	}
 	tokens, err := verifier.tokenVerifier(ctx)
@@ -122,17 +135,17 @@ func (verifier *Verifier) Authenticate(ctx context.Context, authorization string
 		return Principal{}, ErrUnauthenticated
 	}
 	var claims struct {
-		Name        string   `json:"name"`
-		Permissions []string `json:"permissions"`
+		Name        string    `json:"name"`
+		Permissions *[]string `json:"permissions"`
 	}
-	if err := token.Claims(&claims); err != nil || strings.TrimSpace(token.Subject) == "" {
+	if err := token.Claims(&claims); err != nil || strings.TrimSpace(token.Subject) == "" || claims.Permissions == nil {
 		return Principal{}, ErrUnauthenticated
 	}
 	principal := Principal{
 		Subject:     strings.TrimSpace(token.Subject),
 		DisplayName: strings.TrimSpace(claims.Name),
 		ExpireTime:  token.Expiry.UTC(),
-		Permissions: ParsePermissionNames(claims.Permissions),
+		Permissions: ParsePermissionNames(*claims.Permissions),
 	}
 	if required != authv1.Permission_PERMISSION_UNSPECIFIED && !principal.Has(required) {
 		return Principal{}, ErrPermissionDenied
@@ -152,7 +165,10 @@ func (verifier *Verifier) tokenVerifier(ctx context.Context) (*oidc.IDTokenVerif
 	if err != nil {
 		return nil, fmt.Errorf("discover OIDC provider: %w", err)
 	}
-	verifier.tokens = provider.Verifier(&oidc.Config{ClientID: verifier.config.Audience})
+	verifier.tokens = provider.Verifier(&oidc.Config{
+		ClientID:             verifier.config.Audience,
+		SupportedSigningAlgs: accessTokenSigningAlgorithms,
+	})
 	return verifier.tokens, nil
 }
 
@@ -162,7 +178,22 @@ func bearerToken(authorization string) (string, bool) {
 		return "", false
 	}
 	token := strings.TrimPrefix(authorization, prefix)
-	return token, token != "" && !strings.ContainsAny(token, " \t\r\n")
+	return token, token != "" && len(token) <= maxAccessTokenLength && !strings.ContainsAny(token, " \t\r\n")
+}
+
+func hasAccessTokenType(token string) bool {
+	headerSegment, remainder, found := strings.Cut(token, ".")
+	if !found || strings.Count(remainder, ".") != 1 {
+		return false
+	}
+	headerJSON, err := base64.RawURLEncoding.DecodeString(headerSegment)
+	if err != nil {
+		return false
+	}
+	var header struct {
+		Type string `json:"typ"`
+	}
+	return json.Unmarshal(headerJSON, &header) == nil && header.Type == accessTokenType
 }
 
 // ParsePermissionNames converts the canonical JWT claim names into generated values.

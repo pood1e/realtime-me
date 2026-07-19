@@ -75,7 +75,7 @@ provider traffic while reacting promptly to an observed address change.
    pnpm --filter @realtime-me/manager build
    pnpm --filter @realtime-me/console build
    sudo install -d -o root -g root -m 0755 /opt/realtime-me/bin
-   GOTOOLCHAIN=go1.26.4 go build -mod=vendor -trimpath \
+   GOTOOLCHAIN=go1.26.5 go build -mod=vendor -trimpath \
      -o /opt/realtime-me/bin/realtime-me-console ./services/console/cmd/server
    ```
 
@@ -140,8 +140,8 @@ audience. The available values are:
 - `PERMISSION_LIBRARY_MANAGE`
 - `PERMISSION_MANAGER_CONTROL`
 
-Manager requires RFC 9068 access tokens (`typ: at+jwt`). Use the same issuer and audience in
-Status, Library, Manager, and Console configuration; permissions retain the service boundary.
+Status, Library, and Manager require RFC 9068 access tokens (`typ: at+jwt`). Use the same issuer
+and audience in all downstream and Console configuration; permissions retain the service boundary.
 
 Install the root-only Console environment, replace every example origin and secret, then install
 the hardened dynamic-user unit:

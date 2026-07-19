@@ -25,8 +25,8 @@ There is no dual route, legacy configuration fallback, or parallel writer.
 
 Register one confidential OIDC client with callback
 `https://console.example.com/auth/callback`. ID and access tokens must carry the
-common owner audience and canonical `permissions` array. Manager additionally
-requires access-token `typ: at+jwt`.
+common owner audience and canonical `permissions` array. Status, Library, and
+Manager all require access-token `typ: at+jwt`; ID tokens stop at Console.
 
 ## Maintenance-window order
 

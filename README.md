@@ -120,7 +120,8 @@ PERMISSION_MANAGER_CONTROL
 ```
 
 Each downstream service independently verifies issuer, audience, expiry,
-subject, and its permission. Manager requires RFC 9068 `typ: at+jwt` tokens.
+subject, its permission, and the bounded RFC 9068 `typ: at+jwt` access-token
+profile. ID tokens are accepted only by the Console login boundary.
 
 ## Status stack quick start
 
