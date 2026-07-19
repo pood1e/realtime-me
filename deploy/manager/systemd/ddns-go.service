@@ -1,5 +1,5 @@
 [Unit]
-Description=DDNS updater for Realtime Me Manager
+Description=DDNS updater for the Realtime Me OpenVPN endpoint
 After=network-online.target
 Wants=network-online.target
 

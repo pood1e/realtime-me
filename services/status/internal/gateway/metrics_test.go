@@ -20,12 +20,12 @@ func TestMetricSeriesQueryResolvesEverySeries(t *testing.T) {
 		{
 			name:    "host cpu",
 			request: &mev1.GetMetricRangeRequest{Series: mev1.MetricSeries_METRIC_SERIES_HOST_CPU_UTILIZATION, DeviceUid: "dev_a"},
-			want:    `100 * (1 - avg(rate(node_cpu_seconds_total{job=~"node-exporter|vm-node-exporter",instance="dev_a",mode="idle"}[2m])))`,
+			want:    `realtime_system_cpu_utilization_ratio{job="probe-agent",instance="dev_a"} * 100`,
 		},
 		{
 			name:    "the server uses its static instance label",
 			request: &mev1.GetMetricRangeRequest{Series: mev1.MetricSeries_METRIC_SERIES_HOST_CPU_UTILIZATION, DeviceUid: "server"},
-			want:    `100 * (1 - avg(rate(node_cpu_seconds_total{job=~"node-exporter|vm-node-exporter",instance="server",mode="idle"}[2m])))`,
+			want:    `100 * (1 - avg(rate(node_cpu_seconds_total{job="node-exporter",instance="server",mode="idle"}[2m])))`,
 		},
 		{
 			name:    "phone battery",
@@ -187,10 +187,7 @@ func TestMetricPointsSkipsMalformedSamples(t *testing.T) {
 	}
 }
 
-// The Mac runs the darwin node_exporter, which publishes neither
-// node_memory_MemTotal_bytes nor node_memory_MemAvailable_bytes. A memory query
-// that names only the Linux series charts nothing for it.
-func TestHostMemoryQueryCoversDarwinNodeExporter(t *testing.T) {
+func TestHostMemoryQueryUsesUnifiedProbeMetrics(t *testing.T) {
 	query, err := metricSeriesQuery(&mev1.GetMetricRangeRequest{
 		Series:    mev1.MetricSeries_METRIC_SERIES_HOST_MEMORY_USAGE,
 		DeviceUid: "dev_aaaa",
@@ -198,18 +195,8 @@ func TestHostMemoryQueryCoversDarwinNodeExporter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("metricSeriesQuery: %v", err)
 	}
-	for _, series := range []string{
-		"node_memory_MemTotal_bytes",
-		"node_memory_MemAvailable_bytes",
-		"node_memory_total_bytes",
-		"node_memory_free_bytes",
-		"node_memory_inactive_bytes",
-	} {
-		if !strings.Contains(query, series) {
-			t.Errorf("host memory query does not read %s: %s", series, query)
-		}
-	}
-	if !strings.Contains(query, "ignoring(__name__)") {
-		t.Errorf("darwin free+inactive must drop __name__ to add: %s", query)
+	want := `realtime_system_memory_total_bytes{job="probe-agent",instance="dev_aaaa"} - realtime_system_memory_available_bytes{job="probe-agent",instance="dev_aaaa"}`
+	if query != want {
+		t.Errorf("\n got: %s\nwant: %s", query, want)
 	}
 }

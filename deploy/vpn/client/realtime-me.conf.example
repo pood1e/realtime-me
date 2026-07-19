@@ -1,0 +1,25 @@
+client
+dev tun
+proto udp
+remote vpn.example.com 1194
+nobind
+
+ca /etc/openvpn/client/realtime-me/ca.crt
+cert /etc/openvpn/client/realtime-me/client.crt
+key /etc/openvpn/client/realtime-me/client.key
+tls-crypt-v2 /etc/openvpn/client/realtime-me/tls-crypt-v2-client.key
+remote-cert-tls server
+verify-x509-name realtime-me-vpn-server name
+
+tls-version-min 1.2
+tls-cert-profile preferred
+data-ciphers AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305
+allow-compression no
+auth-nocache
+
+# Only the directly connected 10.66.0.0/24 overlay is available. Never accept
+# LAN routes or DNS changes from the server.
+route-nopull
+persist-key
+persist-tun
+verb 3

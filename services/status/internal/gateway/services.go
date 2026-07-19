@@ -3,10 +3,6 @@ package gateway
 import (
 	"context"
 	"errors"
-	"fmt"
-	"net"
-	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +13,7 @@ import (
 	sitev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/site/v1"
 	mev1 "github.com/pood1e/realtime-me/gen/go/realtime/me/status/v1"
 	"github.com/pood1e/realtime-me/libs/go/authn"
+	"github.com/pood1e/realtime-me/libs/go/serviceauth"
 )
 
 // EnrollmentServer implements the Connect EnrollmentService. It mints the
@@ -56,10 +53,11 @@ type IngestServer struct {
 	store    *StatusStore
 	identity *IdentityStore
 	github   *GitHubStatusPublisher
+	targets  ScrapeTargetPolicy
 }
 
-func NewIngestServer(store *StatusStore, identity *IdentityStore, github *GitHubStatusPublisher) *IngestServer {
-	return &IngestServer{store: store, identity: identity, github: github}
+func NewIngestServer(store *StatusStore, identity *IdentityStore, github *GitHubStatusPublisher, targets ScrapeTargetPolicy) *IngestServer {
+	return &IngestServer{store: store, identity: identity, github: github, targets: targets}
 }
 
 func (server *IngestServer) requireEnrolled(uid string) (*EnrolledDevice, error) {
@@ -109,7 +107,7 @@ func (server *IngestServer) RegisterScrapeTargets(
 		return nil, err
 	}
 	for _, target := range message.GetTargets() {
-		if err := validateScrapeTarget(target); err != nil {
+		if err := server.targets.Validate(target); err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
 	}
@@ -117,35 +115,6 @@ func (server *IngestServer) RegisterScrapeTargets(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&mev1.RegisterScrapeTargetsResponse{}), nil
-}
-
-// validateScrapeTarget refuses anything that is not a bare host:port. Prometheus
-// would otherwise scrape whatever an ingest-token holder wrote here.
-func validateScrapeTarget(target *mev1.ScrapeTarget) error {
-	if target.GetJob() != mev1.ScrapeJob_SCRAPE_JOB_PROBE {
-		return errors.New("scrape target job must be SCRAPE_JOB_PROBE")
-	}
-	host, port, err := net.SplitHostPort(target.GetTarget())
-	if err != nil {
-		return fmt.Errorf("scrape target must be host:port: %w", err)
-	}
-	if host == "" {
-		return errors.New("scrape target host is required")
-	}
-	if net.ParseIP(host) == nil && !isHostname(host) {
-		return errors.New("scrape target host must be an IP address or hostname")
-	}
-	number, err := strconv.Atoi(port)
-	if err != nil || number < 1 || number > 65535 {
-		return errors.New("scrape target port must be between 1 and 65535")
-	}
-	return nil
-}
-
-var hostnamePattern = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$`)
-
-func isHostname(host string) bool {
-	return len(host) <= 253 && hostnamePattern.MatchString(host)
 }
 
 // StatusServer implements the Connect StatusService.
@@ -240,8 +209,9 @@ func NewTokenAuthInterceptor(tokens map[string]struct{}, publicProcedures ...str
 	}
 }
 
-// NewPermissionInterceptor verifies an OIDC identity and one bounded-context permission.
-func NewPermissionInterceptor(verifier *authn.Verifier, permission authv1.Permission, publicProcedures ...string) connect.UnaryInterceptorFunc {
+// NewOwnerInterceptor requires both the private management-plane credential
+// and an OIDC identity with one bounded-context permission.
+func NewOwnerInterceptor(internalAPIKey serviceauth.Key, verifier *authn.Verifier, permission authv1.Permission, publicProcedures ...string) connect.UnaryInterceptorFunc {
 	allow := make(map[string]bool, len(publicProcedures))
 	for _, procedure := range publicProcedures {
 		allow[procedure] = true
@@ -250,6 +220,9 @@ func NewPermissionInterceptor(verifier *authn.Verifier, permission authv1.Permis
 		return func(ctx context.Context, request connect.AnyRequest) (connect.AnyResponse, error) {
 			if request.Spec().IsClient || allow[request.Spec().Procedure] {
 				return next(ctx, request)
+			}
+			if !internalAPIKey.Matches(request.Header().Get(serviceauth.Header)) {
+				return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthorized"))
 			}
 			_, err := verifier.Authenticate(ctx, request.Header().Get("Authorization"), permission)
 			if errors.Is(err, authn.ErrUnavailable) {

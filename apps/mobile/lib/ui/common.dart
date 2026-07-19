@@ -112,6 +112,6 @@ class StatusPill extends StatelessWidget {
 String readableError(Object error) {
   final text = error.toString().replaceFirst(RegExp(r'^[^:]+:\s*'), '').trim();
   return text.isEmpty
-      ? '请检查网络、DDNS 和服务状态。'
+      ? '请检查局域网或 OpenVPN 连接和服务状态。'
       : text.substring(0, text.length.clamp(0, 240).toInt());
 }

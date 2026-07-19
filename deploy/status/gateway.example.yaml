@@ -23,6 +23,17 @@ tokens:
   #   printf %s "<the token>" > prometheus/discovery_token
   discovery: replace-with-a-second-generated-token
 
+probe:
+  # Prometheus accepts only literal addresses inside these routed LAN/VPN
+  # networks. Keep the list as narrow as the deployment permits; hostnames are
+  # intentionally rejected to prevent DNS rebinding.
+  allowed_cidrs:
+    - 192.168.0.0/24
+    - fd42::/64
+
+  # Must match REALTIME_PROBE_PORT on every registered probe.
+  port: 18082
+
 github:
   # Writes the owner's GitHub status — the emoji and message on their profile — through
   # the changeUserStatus mutation. A *classic* token, scope `user`, and nothing more:

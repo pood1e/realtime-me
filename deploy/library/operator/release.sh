@@ -19,7 +19,7 @@ MAX_COMPOSE_BYTES=$((128 * 1024))
 
 require_root
 require_no_arguments "$@"
-for command in find flock install mktemp rm rsync stat; do
+for command in cmp find flock install mktemp rm rsync stat; do
   require_command "$command"
 done
 for file in \
@@ -29,7 +29,9 @@ for file in \
   /opt/cloud-drive/vendor/modules.txt \
   /opt/cloud-drive/gen/go/realtime/me/auth/v1/permission.pb.go \
   /opt/cloud-drive/libs/go/authn/verifier.go \
+  /opt/cloud-drive/libs/go/serviceauth/key.go \
   /opt/cloud-drive/services/library/Dockerfile \
+  /opt/cloud-drive/services/library/public.Caddyfile \
   "$BACKUP_SCRIPT" \
   "$DEPLOY_SCRIPT" \
   "$INSTALL_COMPOSE_FILE" \
@@ -40,6 +42,7 @@ require_root_controlled_tree /opt/cloud-drive/vendor
 require_root_controlled_tree /opt/cloud-drive/gen/go/realtime/me/auth
 require_root_controlled_tree /opt/cloud-drive/gen/go/realtime/me/library
 require_root_controlled_tree /opt/cloud-drive/libs/go/authn
+require_root_controlled_tree /opt/cloud-drive/libs/go/serviceauth
 [[ -d "$INCOMING_SOURCE_DIR" && ! -L "$INCOMING_SOURCE_DIR" ]] ||
   die "incoming Library source directory is unavailable: $INCOMING_SOURCE_DIR"
 [[ -f "$INCOMING_COMPOSE_FILE" && ! -L "$INCOMING_COMPOSE_FILE" ]] ||
@@ -67,6 +70,8 @@ INVALID_ENTRY=$(find -P "$SEALED_SOURCE_DIR" -mindepth 1 ! -type d ! -type f -pr
 for file in cmd/migrate/main.go cmd/server/main.go cmd/worker/main.go; do
   [[ -f "$SEALED_SOURCE_DIR/$file" ]] || die "release is missing required Library source: $file"
 done
+cmp -s "$SEALED_SOURCE_DIR/public.Caddyfile" /opt/cloud-drive/services/library/public.Caddyfile ||
+  die 'release cannot change the root-controlled public API allowlist'
 
 CANDIDATE_COMPOSE_FILE="$WORK_DIR/compose.yaml"
 PREVIOUS_COMPOSE_FILE="$WORK_DIR/compose.previous.yaml"

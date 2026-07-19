@@ -11,6 +11,8 @@ Group=super-manager
 WorkingDirectory=/opt/realtime-me
 EnvironmentFile=/etc/super-manager/agent.env
 Environment=PATH=/opt/super-manager/node/bin:/opt/super-manager/providers/node_modules/.bin:/usr/local/bin:/usr/bin:/bin
+LoadCredential=internal-api-key:/etc/realtime-me/internal-api-key
+Environment=INTERNAL_API_KEY_FILE=%d/internal-api-key
 UMask=0077
 ExecStart=/opt/super-manager/node/bin/node /opt/realtime-me/services/manager/dist/main.js
 Restart=on-failure

@@ -252,7 +252,7 @@ class _PairingScreenState extends ConsumerState<PairingScreen> {
     }
     final message = switch (error) {
       FormatException(:final message) => message,
-      _ => '连接失败，请检查 DDNS、端口和服务状态',
+      _ => '连接失败，请检查局域网或 OpenVPN、端口和服务状态',
     };
     ScaffoldMessenger.of(
       context,

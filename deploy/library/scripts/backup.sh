@@ -72,7 +72,7 @@ fi
 require_regular_file "$COMPOSE_FILE"
 require_secure_root_file "$ENV_FILE"
 require_secure_root_file "$BACKUP_ENV_FILE"
-docker compose version >/dev/null
+require_docker_compose
 
 POSTGRES_USER=$(require_env_value "$ENV_FILE" POSTGRES_USER)
 POSTGRES_DB=$(require_env_value "$ENV_FILE" POSTGRES_DB)

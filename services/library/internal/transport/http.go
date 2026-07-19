@@ -19,6 +19,7 @@ import (
 	systemv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/system/v1/systemv1connect"
 	wallpapersv1connect "github.com/pood1e/realtime-me/gen/go/realtime/me/library/wallpapers/v1/wallpapersv1connect"
 	"github.com/pood1e/realtime-me/libs/go/authn"
+	"github.com/pood1e/realtime-me/libs/go/serviceauth"
 	"github.com/pood1e/realtime-me/services/library/internal/app"
 	"github.com/pood1e/realtime-me/services/library/internal/config"
 	"github.com/pood1e/realtime-me/services/library/internal/domain"
@@ -125,6 +126,15 @@ func (router *httpRouter) health(writer http.ResponseWriter, request *http.Reque
 
 func (router *httpRouter) servePrivate(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Cache-Control", "no-store")
+	if !router.config.InternalAPIKey.Matches(request.Header.Get(serviceauth.Header)) {
+		router.writeAccessError(writer, request, authn.ErrUnauthenticated)
+		return
+	}
+	_, err := router.access.Authenticate(request.Context(), request.Header.Get("Authorization"), authv1.Permission_PERMISSION_LIBRARY_MANAGE)
+	if err != nil {
+		router.writeAccessError(writer, request, err)
+		return
+	}
 	if strings.HasPrefix(request.URL.Path, providerCallbackPrefix) {
 		segments := pathSegments(request.URL.Path, providerCallbackPrefix)
 		if len(segments) != 2 || segments[1] != "callback" {
@@ -137,11 +147,6 @@ func (router *httpRouter) servePrivate(writer http.ResponseWriter, request *http
 			return
 		}
 		router.serveProviderCallback(writer, request, provider)
-		return
-	}
-	_, err := router.access.Authenticate(request.Context(), request.Header.Get("Authorization"), authv1.Permission_PERMISSION_LIBRARY_MANAGE)
-	if err != nil {
-		router.writeAccessError(writer, request, err)
 		return
 	}
 	if strings.HasPrefix(request.URL.Path, "/v1/") {

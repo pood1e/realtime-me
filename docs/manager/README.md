@@ -1,8 +1,8 @@
 # Realtime Me Manager
 
 单用户、自托管的 Codex 与 Claude Code 远程控制器。Linux 工作机运行服务和已登录的 CLI，
-统一 Flutter 手机应用中的 Agent/Terminal 模块通过住宅公网 DDNS 直连；不调用模型 API，
-不经过 VPS/公共 relay。
+统一 Flutter 手机应用中的 Agent/Terminal 模块只通过可信局域网或 OpenVPN 到达；不调用模型
+API，不经过 VPS/公共 relay，也不公开 Manager TCP 管理面。
 
 ## 数据面
 
@@ -10,8 +10,10 @@
 - **控制面**：Protobuf + ConnectRPC 管理 workspace、thread、runtime、terminal 与设备。
 - **终端**：二进制 Protobuf WebSocket + node-pty + tmux，不解析 ANSI 来推断 Agent 语义。
 
-公网入口由同机 Caddy 提供：443 使用设备 mTLS 与 bearer，8443 仅在配对时开放。DDNS
-不能解决 CGNAT，网络门禁见 [`deploy/manager/README.md`](../../deploy/manager/README.md)。
+同机 Caddy 的 443 使用设备 mTLS 与 bearer，8443 仅路由一次性配对；两者只绑定 Manager
+主机已有 LAN 地址和 OpenVPN `10.66.0.1`。路由器仅可为 OpenVPN 转发 UDP 1194，不能转发
+Manager/Console 的 TCP 端口。网络门禁见
+[`deploy/manager/README.md`](../../deploy/manager/README.md)。
 
 ## 仓库
 
@@ -20,7 +22,7 @@ proto/realtime/me/manager/  控制面与终端唯一契约
 services/manager/           TypeScript Linux 服务、CLI adapter、SQLite、SSE/WS
 apps/mobile/                统一 Flutter 手机客户端
 packages/ag-ui-dart/        固定的 AG-UI Dart 最小协议 fork
-deploy/manager/             Caddy、systemd、ddns-go 与部署说明
+deploy/manager/             Caddy、systemd、OpenVPN 端点 DDNS 与部署说明
 docs/manager/research/      公开实现与复用决策
 ```
 
@@ -57,12 +59,12 @@ pnpm build
 
 ```bash
 export SM_ALLOWED_WORKSPACE_ROOTS="$HOME/workspace"
-export SM_PUBLIC_URL="https://manager.example.com"
+export SM_SERVICE_URL="https://manager.realtime.internal"
 export SM_CODEX_PATH=/absolute/path/to/codex
 export SM_CLAUDE_PATH=/absolute/path/to/claude
 pnpm --filter @realtime-me/manager dev
 ```
 
-生产部署、PKI、Caddy、路由器和 DDNS 步骤见
+生产部署、PKI、Caddy、私有 DNS 和 OpenVPN 步骤见
 [`deploy/manager/README.md`](../../deploy/manager/README.md)，整合约束见
 [`project-consolidation.md`](../architecture/project-consolidation.md)。

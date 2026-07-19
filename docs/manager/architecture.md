@@ -13,50 +13,46 @@ MVP 提供两条彼此独立的数据面：
 
 明确不做：多人协作、公共云中继、多主机编排、附件、后台推送、任意现存 shell 接管、ANSI/TUI 语义识别和 provider 普通权限审批。CLI 始终以 bypass/never 运行，但 `AskUserQuestion` 保留。
 
-## 2. DDNS 直连与管理拓扑
+## 2. 私有管理拓扑
 
 ```text
-Flutter Android
-  │ HTTPS / SSE / WSS
-  ▼
-manager.example.com ── A/AAAA ── 住宅真实公网地址
-  │
-  ▼
-路由器转发或 IPv6 防火墙
-  │
-  ├── 443  Caddy：设备 mTLS + 内层 bearer
-  └── 8443 Caddy：只开放一次性 PairDevice
-                    │
-                    ▼
-              127.0.0.1:3080
-            Realtime Me Manager
-
-Browser ── HTTPS ──> console.example.com:443 ──> Caddy
-                                                   │
-                                                   ▼
-                                             127.0.0.1:8090
-                                               Console BFF
-                                              │    │    └─ Manager loopback
-                                              │    └── Library HTTPS
-                                              └─── Status HTTPS
+LAN Flutter/Browser ───────────────> Manager host existing 192.168.0.x
+                                          │
+Remote Flutter/Browser                    ├─ manager.realtime.internal :443/:8443
+  └─ vpn.example.com:1194/UDP ─ OpenVPN ─>│  Caddy: mTLS device / one-time pairing
+                             10.66.0.1    └─ console.realtime.internal :9443
+                                                        │
+                                  ┌─────────────────────┴────────────────────┐
+                                  ▼                                          ▼
+                            Manager :3080                              Console :8090
+                              loopback                                loopback BFF
+                                                                         │
+                                                     LAN Status/Library + internal key
 ```
 
-`ddns-go` 与 Caddy 和应用运行在同一台 Linux 主机，不再经过 VPS、Cloudflare Tunnel、CDN 或 relay。DDNS 只更新 DNS，不能穿透 CGNAT；上线前必须确认至少一个地址族可从外网入站。
+`manager.realtime.internal` 与 `console.realtime.internal` 只在私有 DNS 中存在：LAN 解析到
+Manager 主机已有地址，OpenVPN 客户端解析到 `10.66.0.1`。Caddy 只绑定这两个地址。路由器
+不得转发 TCP 443、8443、9443；Cloudflare Tunnel 也不得配置 Manager/Console hostname。
+公网只允许 OpenVPN 的 UDP 1194 端点，可选 `vpn.example.com` DDNS 名称。
 
-Manager 公网域名始终要求设备客户端证书；浏览器只访问独立的 Console 域名。Console 完成 OIDC 授权码 + PKCE 登录，在服务端保管 token，再以 owner access token 访问三个后端。Manager 延迟 OIDC discovery 到首个 owner JWT 请求，因此 IdP 故障不会阻止设备路径启动。
+本地客户端直接走 `192.168.0.x`，远端客户端才加入 `10.66.0.0/24` overlay；OpenVPN 不推送
+`192.168.0.0/24`，因此远端现场使用相同 LAN 网段也不会冲突。Console 完成 OIDC 授权码 +
+PKCE 登录，在服务端保管 token，再以 LAN/loopback、内部管理密钥和 owner access token
+访问三个后端。Manager 延迟 OIDC discovery 到首个 owner JWT 请求，因此 IdP 故障不会
+阻止设备路径启动。
 
 ## 3. 已实现架构
 
 ### Linux 服务端
 
-- TypeScript/Fastify 模块化单体，生产环境强制 loopback、HTTPS 公网 origin、非 root 和 workspace allowlist。
-- 两类主体在传输边界分流：Flutter 设备使用 mTLS + 可吊销设备 token；Console owner 使用 OIDC access token + `PERMISSION_MANAGER_CONTROL`。
+- TypeScript/Fastify 模块化单体，生产环境强制 loopback、HTTPS 私有 service origin、非 root 和 workspace allowlist。
+- 两类主体在传输边界分流：Flutter 设备使用 mTLS + 可吊销设备 token；Console owner 使用内部管理密钥 + OIDC access token + `PERMISSION_MANAGER_CONTROL`。
 - Protobuf + ConnectRPC 控制面：runtime、quota、workspace、thread、execution、terminal、device。
 - SQLite WAL：资源、run、pending interrupt、AG-UI append-only event、设备和额度快照。
 - AG-UI SSE：先持久化后发布；thread 内单调 sequence；`after` 游标重放；15 秒 heartbeat；慢订阅者有 4 MiB 上限。
 - `node-pty + tmux`：最多四个持久 shell、一个可写 attachment、二进制 Protobuf WebSocket、resize/detach/close。
-- 本地 PKI：私有 CA、DDNS 域名服务证书、设备 PKCS#12、可吊销 bearer、十分钟单次配对 secret。
-- `smctl doctor`、PKI 初始化/续签、一次性配对、设备查询/吊销，以及 systemd/Caddy/ddns-go 部署样例。
+- 本地 PKI：私有 CA、内部域名服务证书、设备 PKCS#12、可吊销 bearer、十分钟单次配对 secret。
+- `smctl doctor`、PKI 初始化/续签、一次性配对、设备查询/吊销，以及 systemd/Caddy/OpenVPN 部署样例。
 
 ### Flutter Android 客户端
 
@@ -117,24 +113,24 @@ resume 的敏感答案不写入 `RUN_STARTED` 或平台 raw diagnostics；Claude
 
 ## 7. 安全与资源边界
 
-- 公网只暴露 Caddy；Manager、Console、ddns-go 管理 UI、CLI stdio、tmux socket 和 SQLite 均留在主机内。
-- Manager 域名的 443 同时要求私有 CA 签发的设备证书与可吊销 bearer；8443 只路由 PairDevice，可在不用时关闭。
-- Console 域名使用标准服务器 TLS；浏览器仅持有 host-only `HttpOnly` session cookie，OAuth token 不下发给前端，Console 还必须校验同源写请求。
-- Status、Library 和 Manager 分别在后端校验自己的 canonical permission，Console 导航隐藏不能代替后端授权。
+- Caddy 的 Manager 443/8443 与 Console 9443 都只绑定现有 LAN 地址和 OpenVPN `10.66.0.1`；公网防火墙与路由器均禁止这些 TCP 端口。Manager、Console、ddns-go 管理 UI、CLI stdio、tmux socket 和 SQLite 均不公开。
+- Manager 内部域名的 443 同时要求私有 CA 签发的设备证书与可吊销 bearer；8443 只路由 PairDevice，且仍要求十分钟单次 secret。
+- Console 域名使用仅 owner 设备信任的内部 TLS CA；浏览器仅持有 host-only `HttpOnly` session cookie，OAuth token 与内部管理密钥不下发给前端，Console 还必须校验同源写请求。
+- Status、Library 和 Manager 先校验内部管理密钥，再分别校验自己的 canonical permission；Manager 设备 token 与配对路径保持独立。Console 导航隐藏不能代替后端授权。
 - 设备证书有效 365 天，服务证书 825 天；到期前重新配对/重新签发，不自动降低验证等级。
 - 服务运行在专用非 root Unix 账号；该账号和 workspace 文件权限才是 bypass 模式下的真实安全边界。
 - prompt 最大 128 KiB；结构化问题、frame、paused output、SSE backlog、terminal 数量、执行并发和诊断存储均有限额。
 - raw diagnostics 只保留有界、结构化且字段值脱敏的形状信息；Authorization 和设备凭据不写日志。
 - 当前 AG-UI 事件历史尚未压缩，部署方需监控 SQLite 大小并备份数据目录；在实现快照/保留策略前不能宣称无限历史适合长期运行。
 
-## 8. DDNS 部署门禁
+## 8. 网络部署门禁
 
-1. 对比路由器 WAN IPv4 与外网观察值，排除私网和 `100.64.0.0/10` CGNAT。
-2. 只发布真正可入站的 A/AAAA；IPv6 需同时开放路由器和 Linux 防火墙。
-3. 配置 `443 -> Linux:443`、`8443 -> Linux:8443`；运营商封端口时使用外部高端口并写入两个公开 URL。
-4. 使用低但合理的 DNS TTL；地址变化会产生 updater 与递归缓存收敛窗口，不能承诺零中断。
-5. 验证家庭 LAN 的 NAT loopback；不支持时用路由器 split DNS 把同一 DDNS 域名解析到内网地址，不能改用不匹配证书的 IP URL。
-6. 住宅网络不可入站时，DDNS profile 必须明确停用，再单独选择 overlay VPN 或国内 relay；MVP 不并行暗跑两条路径。
+1. 固定 Manager 主机现有 LAN 地址；不额外占用 `192.168.0.x`。
+2. 私有 DNS 将 Manager/Console 内部域名在 LAN 解析到该地址，在 OpenVPN 解析到 `10.66.0.1`。
+3. 路由器和公网防火墙禁止 TCP 443、8443、9443；不得为它们创建公网 DNS 或 Tunnel 路由。
+4. 只为 OpenVPN 转发 UDP 1194。需要 DDNS 时，独立的 `vpn.example.com` 仅指向该 VPN 端点。
+5. OpenVPN 只发布 `10.66.0.0/24` overlay，不发布默认路由或 `192.168.0.0/24` 路由。
+6. nftables 只允许 owner/device VPN 地址访问 Manager/Console，并限制 overlay 服务间访问。
 
 具体命令见 [`deploy/manager/README.md`](../../deploy/manager/README.md)。
 
@@ -142,10 +138,10 @@ resume 的敏感答案不写入 `RUN_STARTED` 或平台 raw diagnostics；Claude
 
 代码级检查和 Android debug 构建在开发机执行；最终发布前仍必须在目标 systemd Linux 上完成：
 
-1. 固定 Node/CLI/tmux/OpenSSL/Caddy/ddns-go 版本并执行 `smctl doctor`。
+1. 固定 Node/CLI/tmux/OpenSSL/Caddy/OpenVPN 版本并执行 `smctl doctor`。
 2. 用真实 subscription 登录分别验证普通问答、长命令、文件修改、Ask、cancel、Codex steer、session continuation 和额度。
-3. 验证 Flutter 断网、前后台切换、SSE replay、DDNS 地址变化、证书吊销与配对端口关闭。
+3. 验证 Flutter 断网、前后台切换、SSE replay、LAN/VPN 切换、证书吊销与配对入口限制。
 4. 验证 API crash 后 Execution=LOST、tmux shell 仍存活、整机重启、磁盘不足和慢客户端。
-5. 验证家庭公网 IPv4/IPv6、端口策略、NAT loopback/split DNS，并从家庭网络之外完成全链路连接。
+5. 从 LAN 与家庭网络之外分别验证 split DNS、OpenVPN overlay 和防火墙；确认公网无法连接 Manager/Console TCP 端口。
 
 目标 Linux 上任一私有 CLI 契约未通过时，对应 Structured runtime 必须显示不可用；原始终端仍可独立使用。

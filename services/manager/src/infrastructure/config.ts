@@ -20,10 +20,11 @@ const EnvironmentSchema = z.object({
     .regex(/^[A-Za-z0-9_-]{1,64}$/)
     .default("super-manager"),
   SM_OPENSSL_PATH: z.string().default("openssl"),
-  SM_PUBLIC_URL: z.string().url().default("https://127.0.0.1"),
+  SM_SERVICE_URL: z.string().url().default("https://127.0.0.1"),
   SM_PAIRING_URL: z.string().url().optional(),
   OIDC_ISSUER: z.string().url(),
   MANAGER_AUTH_AUDIENCE: z.string().trim().regex(/^\S+$/),
+  INTERNAL_API_KEY_FILE: z.string().trim().default(""),
 });
 
 export interface ServerConfig {
@@ -41,10 +42,11 @@ export interface ServerConfig {
   readonly tmuxPath: string;
   readonly tmuxSocketName: string;
   readonly opensslPath: string;
-  readonly publicUrl: string;
+  readonly serviceUrl: string;
   readonly pairingUrl: string;
   readonly oidcIssuer: string;
   readonly oidcAudience: string;
+  readonly internalApiKeyFile: string;
 }
 
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env): ServerConfig {
@@ -60,22 +62,22 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Server
       : parsed.NODE_ENV === "production"
         ? []
         : [resolve(process.cwd(), "..")];
-  const publicEndpoint = normalizeEndpoint(parsed.SM_PUBLIC_URL, "SM_PUBLIC_URL");
-  const defaultPairingUrl = new URL(publicEndpoint);
+  const serviceEndpoint = normalizeEndpoint(parsed.SM_SERVICE_URL, "SM_SERVICE_URL");
+  const defaultPairingUrl = new URL(serviceEndpoint);
   defaultPairingUrl.port = "8443";
   const pairingEndpoint = normalizeEndpoint(
     parsed.SM_PAIRING_URL ?? defaultPairingUrl.toString(),
     "SM_PAIRING_URL",
   );
   if (parsed.NODE_ENV === "production") {
-    if (publicEndpoint.protocol !== "https:" || pairingEndpoint.protocol !== "https:") {
-      throw new Error("Public and pairing endpoints must use HTTPS in production");
+    if (serviceEndpoint.protocol !== "https:" || pairingEndpoint.protocol !== "https:") {
+      throw new Error("Service and pairing endpoints must use HTTPS in production");
     }
     if (new URL(parsed.OIDC_ISSUER).protocol !== "https:") {
       throw new Error("OIDC_ISSUER must use HTTPS in production");
     }
-    if (publicEndpoint.hostname !== pairingEndpoint.hostname) {
-      throw new Error("Public and pairing endpoints must use the same hostname");
+    if (serviceEndpoint.hostname !== pairingEndpoint.hostname) {
+      throw new Error("Service and pairing endpoints must use the same hostname");
     }
   }
 
@@ -94,10 +96,11 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Server
     tmuxPath: parsed.SM_TMUX_PATH,
     tmuxSocketName: parsed.SM_TMUX_SOCKET_NAME,
     opensslPath: parsed.SM_OPENSSL_PATH,
-    publicUrl: publicEndpoint.toString().replace(/\/$/, ""),
+    serviceUrl: serviceEndpoint.toString().replace(/\/$/, ""),
     pairingUrl: pairingEndpoint.toString().replace(/\/$/, ""),
     oidcIssuer: normalizeIssuer(parsed.OIDC_ISSUER),
     oidcAudience: parsed.MANAGER_AUTH_AUDIENCE,
+    internalApiKeyFile: parsed.INTERNAL_API_KEY_FILE,
   };
 }
 

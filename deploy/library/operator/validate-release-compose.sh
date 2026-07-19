@@ -19,13 +19,15 @@ for command in docker env timeout; do
 done
 for file in \
   "$HOST_LIB" \
-  /usr/local/libexec/cloud-drive-operator/compose_expected.py \
   /usr/local/libexec/cloud-drive-operator/compose_policy.py \
   /usr/local/libexec/cloud-drive-operator/compose_rendered_policy.py \
   /usr/local/libexec/cloud-drive-operator/compose_source_policy.py \
   "$VALIDATOR"; do
   require_root_controlled_file "$file"
 done
+# shellcheck source=../scripts/lib.sh
+source "$HOST_LIB"
+require_docker_compose
 require_root_controlled_file "$CANDIDATE_FILE"
 [[ -d "$WORK_DIR" && ! -L "$WORK_DIR" ]] || die 'release validation work directory is invalid'
 
@@ -43,8 +45,11 @@ PUBLIC_SITE_ORIGIN=https://site.invalid
 CONSOLE_ORIGIN=https://console.invalid
 OIDC_ISSUER=https://identity.invalid/realms/realtime-me
 LIBRARY_AUTH_AUDIENCE=realtime-me
-PRIVATE_API_HOST=private.invalid
+PRIVATE_API_HOST=192.168.0.21
 PUBLIC_API_HOST=public.invalid
+LIBRARY_API_LAN_BIND=192.168.0.21
+LIBRARY_API_VPN_BIND=10.66.0.11
+INTERNAL_API_KEY_FILE=/etc/realtime-me/internal-api-key
 SPOTIFY_CLIENT_ID=
 SPOTIFY_CLIENT_SECRET=
 CLOUD_DRIVE_DATA_DIR=/var/lib/cloud-drive-validation/data
@@ -73,11 +78,11 @@ fi
   --data-directory /var/lib/cloud-drive-validation/data \
   --postgres-directory /var/lib/cloud-drive-validation/postgres
 
-# shellcheck source=../scripts/lib.sh
-source "$HOST_LIB"
 require_secure_root_file "$RUNTIME_ENV"
 DATA_DIRECTORY=$(require_env_value "$RUNTIME_ENV" CLOUD_DRIVE_DATA_DIR)
 POSTGRES_DIRECTORY=$(require_env_value "$RUNTIME_ENV" CLOUD_DRIVE_POSTGRES_DIR)
+INTERNAL_KEY_FILE=$(require_env_value "$RUNTIME_ENV" INTERNAL_API_KEY_FILE)
+require_secure_root_file "$INTERNAL_KEY_FILE"
 if ! render_compose "$RUNTIME_ENV" "$RUNTIME_RENDERED" 2>/dev/null; then
   die 'staged Compose file is incompatible with the runtime configuration'
 fi

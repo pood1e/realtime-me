@@ -10,8 +10,9 @@ android {
         applicationId = "me.realtime"
         minSdk = 30
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        // Wear artifacts require a version code distinct from every phone artifact.
+        versionCode = 37_000_001
+        versionName = "0.1.0"
     }
 
     compileOptions {
@@ -20,8 +21,12 @@ android {
     }
 }
 
+project.extensions.extraProperties["realtimeMe.signingPropertiesFile"] =
+    rootProject.file("apps/mobile/android/key.properties")
+apply(from = rootProject.file("gradle/release-signing.gradle"))
+
 dependencies {
-    implementation(dependencies.project(mapOf("path" to ":packages:status-protocol-android")))
+    implementation(project(":packages:status-protocol-android"))
     implementation(libs.coroutines.android)
     implementation(libs.play.services.wearable)
     implementation(libs.work.runtime.ktx)

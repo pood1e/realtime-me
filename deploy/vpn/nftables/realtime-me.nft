@@ -1,0 +1,19 @@
+table inet realtime_me_vpn {
+	chain input {
+		type filter hook input priority filter; policy accept;
+
+		iifname "tun0" ct state established,related accept
+		iifname "tun0" ip protocol icmp accept
+		iifname "tun0" ip saddr 10.66.0.100-10.66.0.200 ip daddr 10.66.0.1 tcp dport { 443, 8443, 9443 } accept
+		iifname "tun0" drop
+	}
+
+	chain forward {
+		type filter hook forward priority filter; policy accept;
+
+		iifname "tun0" oifname "tun0" ct state established,related accept
+		iifname "tun0" oifname "tun0" ip saddr 10.66.0.0/24 ip daddr 10.66.0.10 tcp dport 18080 accept
+		iifname "tun0" oifname "tun0" ip saddr 10.66.0.100-10.66.0.200 ip daddr 10.66.0.11 tcp dport 18081 accept
+		iifname "tun0" oifname "tun0" drop
+	}
+}

@@ -6,7 +6,7 @@ The Cloudflare Worker serves the SPA and proxies only the explicit public
 procedures allowlisted in `src/worker.ts`; it strips cookies and authorization.
 
 ```sh
-VITE_CONSOLE_URL=https://console.example.com pnpm --filter @realtime-me/site build
+VITE_CONSOLE_URL=https://console.realtime.internal:9443 pnpm --filter @realtime-me/site build
 pnpm --dir apps/web/site deploy -- \
   --var STATUS_API_BASE_URL:https://api-status.example.com \
   --var LIBRARY_PUBLIC_API_BASE_URL:https://api-library-public.example.com

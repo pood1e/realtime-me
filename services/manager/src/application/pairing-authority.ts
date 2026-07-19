@@ -38,7 +38,7 @@ export class PairingAuthority {
     private readonly store: ResourceStore,
     private readonly secrets: SecretStore,
     private readonly opensslPath: string,
-    private readonly publicUrl: string,
+    private readonly serviceUrl: string,
     private readonly pairingUrl: string,
     readonly pki: PkiPaths,
   ) {}
@@ -48,7 +48,7 @@ export class PairingAuthority {
     secrets: SecretStore;
     opensslPath: string;
     dataDirectory: string;
-    publicUrl: string;
+    serviceUrl: string;
     pairingUrl: string;
   }): Promise<PairingAuthority> {
     const directory = join(options.dataDirectory, "pki");
@@ -56,7 +56,7 @@ export class PairingAuthority {
       options.store,
       options.secrets,
       options.opensslPath,
-      options.publicUrl,
+      options.serviceUrl,
       options.pairingUrl,
       {
         directory,
@@ -79,7 +79,7 @@ export class PairingAuthority {
       expireTime,
       payload: JSON.stringify({
         version: 1,
-        serviceUrl: this.publicUrl,
+        serviceUrl: this.serviceUrl,
         pairingUrl: this.pairingUrl,
         pairingSecret: secret.toString("base64url"),
         caCertificatePem: caCertificate.toString("base64"),
@@ -151,7 +151,7 @@ export class PairingAuthority {
       const certificate = join(temporary, "server.cert.pem");
       const csr = join(temporary, "server.csr.pem");
       const extensions = join(temporary, "server.ext.cnf");
-      const hostname = new URL(this.publicUrl).hostname.replace(/^\[|\]$/g, "");
+      const hostname = new URL(this.serviceUrl).hostname.replace(/^\[|\]$/g, "");
       const subjectAltName = isIP(hostname) ? `IP:${hostname}` : `DNS:${hostname}`;
       await writeFile(
         extensions,

@@ -21,9 +21,10 @@ Two web applications present them:
 - `apps/web/console`: the authenticated owner console for Status, Library, and
   Manager, served by the Go OIDC BFF in `services/console`.
 
-The Console uses browser-bound authorization-code state + PKCE, bounded server-side sessions, a
-host-only `HttpOnly` cookie, same-origin CSRF checks, and downstream JWT
-permissions. The browser never stores the owner access token.
+The Console is reachable directly on the trusted LAN or through OpenVPN's separate overlay. It uses browser-bound authorization-code state +
+PKCE, bounded server-side sessions, a host-only `HttpOnly` cookie, same-origin CSRF checks, an
+internal service key, and downstream JWT permissions. The browser stores neither downstream
+credential.
 
 Workload/device credentials remain deliberately separate:
 
@@ -31,6 +32,10 @@ Workload/device credentials remain deliberately separate:
 - Prometheus uses a workload token limited to target discovery and gateway process scraping;
 - Manager Flutter clients use device mTLS plus a revocable bearer;
 - anonymous users reach only public Status/wallpaper/share handlers.
+
+Manager and Console have no public hostname or TCP port forward. Local clients use
+the existing LAN addresses; remote clients first join the non-conflicting
+`10.66.0.0/24` OpenVPN overlay. Only the OpenVPN UDP endpoint may be public.
 
 See [the unified architecture](docs/architecture/project-consolidation.md),
 [Library architecture](docs/library/architecture.md), and
@@ -62,6 +67,7 @@ services/library            Go API/worker/migrate
 services/manager            TypeScript/Fastify Manager
 services/console            Go OIDC BFF/static host
 libs/go/authn               shared Go OIDC verifier
+libs/go/serviceauth         shared Go internal-key verifier
 proto/realtime/me           canonical language-neutral contracts
 gen/go                      generated Go contracts
 packages/*-contracts-*      generated TypeScript/Dart contracts
@@ -106,7 +112,7 @@ make verify
 Register one confidential client with callback:
 
 ```text
-https://console.example.com/auth/callback
+https://console.realtime.internal:9443/auth/callback
 ```
 
 Issue the common owner access-token audience (recommended `realtime-me`) and put
@@ -119,8 +125,10 @@ PERMISSION_LIBRARY_MANAGE
 PERMISSION_MANAGER_CONTROL
 ```
 
-Each downstream service independently verifies issuer, audience, expiry,
-subject, and its permission. Manager requires RFC 9068 `typ: at+jwt` tokens.
+Each owner downstream first verifies the internal management key, then independently verifies
+issuer, audience, expiry, subject, its permission, and the bounded RFC 9068 `typ: at+jwt`
+access-token profile. ID tokens are accepted only by the Console login boundary. VPN and key
+setup lives in [`deploy/vpn`](deploy/vpn/README.md).
 
 ## Status stack quick start
 
@@ -130,11 +138,16 @@ cp gateway.example.yaml gateway.yaml
 cp projects.example.json projects.json
 cp .env.example .env
 
+# First complete deploy/vpn and install the shared key on this host.
+sudo install -d -m 0700 /etc/realtime-me
+sudo install -m 0400 /secure/internal-api-key /etc/realtime-me/internal-api-key
+
 openssl rand -base64 32 # tokens.ingest
 openssl rand -base64 32 # tokens.discovery
 printf %s '<tokens.discovery>' > prometheus/discovery_token
 chmod 700 . && chmod 644 gateway.yaml projects.json
 
+docker compose --env-file ../edge/.env -f ../edge/compose.yaml up -d
 docker compose up -d --build --remove-orphans
 ```
 
@@ -148,23 +161,44 @@ with the Status ingest API:
 
 ```sh
 # Linux
-curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-probe.py \
-  | sudo python3 -
+release=REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT
+curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSLo \
+  /tmp/install-realtime-me-probe.py \
+  "https://raw.githubusercontent.com/pood1e/realtime-me/$release/scripts/install-probe.py"
+sudo env REALTIME_PROBE_RELEASE="$release" python3 /tmp/install-realtime-me-probe.py
 
-# macOS (login user, not sudo)
-curl -fsSL https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-probe.py \
-  | python3 -
-
-# Windows PowerShell
-irm https://cdn.jsdelivr.net/gh/pood1e/realtime-me@main/scripts/install-probe.py | py -3 -
+# macOS (run from the target login user's terminal)
+release=REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT
+curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSLo \
+  /tmp/install-realtime-me-probe.py \
+  "https://raw.githubusercontent.com/pood1e/realtime-me/$release/scripts/install-probe.py"
+sudo env REALTIME_PROBE_RELEASE="$release" python3 /tmp/install-realtime-me-probe.py
 ```
+
+Run Windows PowerShell as Administrator:
+
+```powershell
+$Release = "REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT"
+$Installer = Join-Path $env:TEMP "install-realtime-me-probe.py"
+Invoke-WebRequest `
+  "https://raw.githubusercontent.com/pood1e/realtime-me/$Release/scripts/install-probe.py" `
+  -OutFile $Installer
+$env:REALTIME_PROBE_RELEASE = $Release
+py -3 $Installer
+```
+
+The commit pin is mandatory. The installer verifies a SHA-256 manifest embedded
+in that reviewed installer, and pip accepts only hash-pinned wheels. Linux and
+macOS runtime files remain root-owned; Windows grants the scheduled-task user
+read/execute only. The probe binds its detected private address by default rather
+than every interface.
 
 ## Web release
 
 Public Site:
 
 ```sh
-VITE_CONSOLE_URL=https://console.example.com pnpm --filter @realtime-me/site build
+VITE_CONSOLE_URL=https://console.realtime.internal:9443 pnpm --filter @realtime-me/site build
 pnpm --dir apps/web/site deploy -- \
   --var STATUS_API_BASE_URL:https://api-status.example.com \
   --var LIBRARY_PUBLIC_API_BASE_URL:https://api-library-public.example.com
@@ -178,14 +212,14 @@ operations remain in [`deploy/library`](deploy/library/README.md) and
 
 ## Mobile development
 
-LAN and public Status endpoints are Android build properties, never committed
-addresses:
+The phone uses the single private Status origin
+`http://status.realtime.internal:18080`. Split DNS maps it to the existing Status
+LAN address locally and OpenVPN `10.66.0.10` remotely; Status ingest is never sent
+through the public Site API:
 
 ```sh
-cd apps/mobile/android
-./gradlew app:assembleDebug \
-  -PstatusGatewayLanUrl=http://<lan-host>:18080 \
-  -PstatusGatewayPublicUrl=https://api-status.example.com
+cd apps/mobile
+flutter build apk --debug
 ```
 
 For debug builds only, inject an ingest token without using the clipboard:

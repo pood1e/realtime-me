@@ -14,10 +14,6 @@ class StatusGatewayPusher(context: Context) {
     private val client = StatusGatewayClient()
 
     fun pushLatest(): StatusGatewayPushResult {
-        if (!client.isConfigured) {
-            Log.w(TAG, "Status gateway endpoint is not configured")
-            return StatusGatewayPushResult.Disabled
-        }
         val token = tokenStore.token() ?: run {
             Log.w(TAG, "Status gateway token is not configured")
             return StatusGatewayPushResult.Disabled
