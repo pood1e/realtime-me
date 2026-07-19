@@ -215,8 +215,9 @@ cannot run an arbitrary query. Don't reintroduce a `query=` parameter.
 
 ## Gotchas
 
-- `gradle.properties` pins `org.gradle.java.home` to a macOS Homebrew JDK 17
-  path. On Linux, override it rather than committing a new path.
+- Export `JAVA_HOME` to a JDK supported by the current Gradle and Android Gradle
+  Plugin versions; never commit a host-specific `org.gradle.java.home` path
+  property. Configure it per host instead.
 - `deploy/status/prometheus/file_sd/cadvisor.yml` is intentionally an empty
   `[]`. cAdvisor sits behind the `containers` Compose profile, so an empty
   file_sd list is the opt-in switch; `cadvisor.yml.example` shows the contents.

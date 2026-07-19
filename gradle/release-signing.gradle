@@ -1,0 +1,65 @@
+def signingPropertiesName = "realtimeMe.signingPropertiesFile"
+def signingPropertiesFile = project.extensions.extraProperties.has(signingPropertiesName)
+    ? project.extensions.extraProperties.get(signingPropertiesName)
+    : null
+if (!(signingPropertiesFile instanceof File)) {
+    throw new GradleException(
+        "realtimeMe.signingPropertiesFile must be configured before applying release-signing.gradle"
+    )
+}
+
+def signingProperties = new Properties()
+if (signingPropertiesFile.isFile()) {
+    signingPropertiesFile.withInputStream { signingProperties.load(it) }
+}
+
+def signingProperty = { String name ->
+    def value = signingProperties.getProperty(name)?.trim()
+    if (!value) {
+        throw new GradleException("${name} is required in ${signingPropertiesFile.name}")
+    }
+    value
+}
+
+def signingFile = { String name ->
+    def configuredFile = new File(signingProperty(name))
+    def resolvedFile = configuredFile.isAbsolute()
+        ? configuredFile
+        : new File(signingPropertiesFile.parentFile, configuredFile.path)
+    if (!resolvedFile.isFile()) {
+        throw new GradleException("${name} does not reference an existing file")
+    }
+    resolvedFile
+}
+
+android {
+    def releaseSigning = null
+    if (signingPropertiesFile.isFile()) {
+        releaseSigning = signingConfigs.maybeCreate("release")
+        releaseSigning.keyAlias = signingProperty("keyAlias")
+        releaseSigning.keyPassword = signingProperty("keyPassword")
+        releaseSigning.storeFile = signingFile("storeFile")
+        releaseSigning.storePassword = signingProperty("storePassword")
+    }
+
+    buildTypes.named("release").configure {
+        signingConfig = releaseSigning
+    }
+}
+
+def requireReleaseSigning = tasks.register("requireReleaseSigning") {
+    doLast {
+        if (!signingPropertiesFile.isFile()) {
+            throw new GradleException(
+                "Release builds require ${signingPropertiesFile.path}; " +
+                    "copy key.properties.example and configure the upload key"
+            )
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == "preReleaseBuild") {
+        dependsOn(requireReleaseSigning)
+    }
+}

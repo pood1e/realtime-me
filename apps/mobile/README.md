@@ -27,7 +27,9 @@ make generate-mobile
 make verify-mobile
 ```
 
-Or run the Flutter checks directly:
+Or run the Flutter checks directly. Flutter drives the tracked Android Gradle
+wrapper; Gradle still compiles and packages the native host, plugins, and Kotlin
+Status service even though every phone screen is Flutter:
 
 ```sh
 (cd apps/mobile && flutter pub get)
@@ -40,14 +42,31 @@ with every contract change.
 
 ## Status gateway configuration
 
-Gateway addresses are Android build properties rather than committed private values:
+The app uses one canonical private origin, `http://status.realtime.internal:18080`.
+Split DNS resolves it to the Status host's existing LAN address for local clients
+and to OpenVPN `10.66.0.10` for remote clients. There is no public ingest fallback
+and no `192.168.0.0/24` route is pushed through the VPN.
+
+## Signed release
+
+Copy the signing template, point it at the existing upload keystore, and keep both
+files out of version control:
 
 ```sh
 cd apps/mobile/android
-./gradlew app:assembleDebug \
-  -PstatusGatewayLanUrl=http://<lan-host>:18080 \
-  -PstatusGatewayPublicUrl=https://api-status.example.com
+cp key.properties.example key.properties
+# Edit key.properties, then return to apps/mobile.
+cd ..
+flutter build appbundle --release --build-name 0.1.0 --build-number 1
+cd ../..
+./gradlew :apps:watch:bundleRelease
 ```
+
+Release builds fail closed when `key.properties` or its keystore is missing. The
+same file signs the phone and Wear OS bundles because both form factors use the
+`me.realtime` package. Preserve and back up that signing identity; updates must
+use the same key. Wear artifacts use a separate version-code range so Play can
+accept both form factors under one listing.
 
 The ingest token is entered in the app and stored through Android Keystore-backed
 encrypted preferences. OpenAI, Anthropic, and GitHub credentials are never stored in

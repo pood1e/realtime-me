@@ -59,6 +59,11 @@ verify-watch:
 	./gradlew :apps:watch:lintDebug :apps:watch:assembleDebug
 
 verify-mobile:
+	cmp gradlew apps/mobile/android/gradlew
+	cmp gradlew.bat apps/mobile/android/gradlew.bat
+	cmp gradle/wrapper/gradle-wrapper.jar apps/mobile/android/gradle/wrapper/gradle-wrapper.jar
+	cmp gradle/wrapper/gradle-wrapper.properties apps/mobile/android/gradle/wrapper/gradle-wrapper.properties
+	cd apps/mobile && flutter pub get
 	cd apps/mobile && flutter analyze
 	cd apps/mobile/android && ./gradlew app:lintDebug
 	cd apps/mobile && flutter build apk --debug

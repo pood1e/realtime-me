@@ -191,14 +191,14 @@ operations remain in [`deploy/library`](deploy/library/README.md) and
 
 ## Mobile development
 
-Private LAN/OpenVPN and public Status endpoints are Android build properties, never committed
-addresses:
+The phone uses the single private Status origin
+`http://status.realtime.internal:18080`. Split DNS maps it to the existing Status
+LAN address locally and OpenVPN `10.66.0.10` remotely; Status ingest is never sent
+through the public Site API:
 
 ```sh
-cd apps/mobile/android
-./gradlew app:assembleDebug \
-  -PstatusGatewayLanUrl=http://status.realtime.internal:18080 \
-  -PstatusGatewayPublicUrl=https://api-status.example.com
+cd apps/mobile
+flutter build apk --debug
 ```
 
 For debug builds only, inject an ingest token without using the clipboard:
